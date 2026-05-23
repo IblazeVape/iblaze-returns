@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 
@@ -48,7 +47,6 @@ function LoginContent() {
             </svg>
             Sign in with iBlaze Account
           </a>
-
           <p className="text-center text-xs text-gray-400">
             You&apos;ll be redirected to Shopify to authenticate securely
           </p>
@@ -62,13 +60,6 @@ function LoginContent() {
             </a>
           </p>
         </div>
-      </div>
-
-      {/* Admin link */}
-      <div className="mt-6">
-        <a href="/admin/login" className="text-xs text-gray-300 hover:text-gray-500 transition">
-          Admin access
-        </a>
       </div>
     </main>
   );
