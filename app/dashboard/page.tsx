@@ -50,7 +50,6 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Return modal state
   const [returnModal, setReturnModal] = useState<{ order: Order } | null>(null);
   const [selectedItems, setSelectedItems] = useState<Record<string, { selected: boolean; quantity: number; reason: string; description: string }>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -88,7 +87,6 @@ export default function DashboardPage() {
     const items = Object.entries(selectedItems)
       .filter(([, v]) => v.selected)
       .map(([lineItemId, v]) => ({ lineItemId, quantity: v.quantity, reason: v.reason, description: v.description }));
-
     if (items.length === 0) return;
     setSubmitting(true);
     try {
@@ -107,10 +105,10 @@ export default function DashboardPage() {
     }
   };
 
-  const hasEligible = returnModal
-    ? returnModal.order.processedItems.some((i) => i.returnStatus === "Eligible")
-    : false;
   const selectedCount = Object.values(selectedItems).filter((v) => v.selected).length;
+
+  // Shopify handles logout — link back to their account logout
+  const logoutUrl = `https://iblazevape.co.uk/account/logout`;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -127,10 +125,7 @@ export default function DashboardPage() {
             {data?.firstName && (
               <span className="text-sm text-gray-500">Hi, {data.firstName}</span>
             )}
-            <a
-              href="/api/logout"
-              className="text-sm text-gray-500 hover:text-gray-900 transition"
-            >
+            <a href={logoutUrl} className="text-sm text-gray-500 hover:text-gray-900 transition">
               Sign out
             </a>
           </div>
@@ -140,9 +135,7 @@ export default function DashboardPage() {
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
         <div className="mb-8">
           <h1 className="text-2xl font-semibold text-gray-900">Your Orders</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Select an eligible item to start a return
-          </p>
+          <p className="text-sm text-gray-500 mt-1">Select an eligible item to start a return</p>
         </div>
 
         {loading && (
@@ -157,9 +150,7 @@ export default function DashboardPage() {
         )}
 
         {error && (
-          <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-            {error}
-          </div>
+          <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>
         )}
 
         {!loading && data && data.orders.length === 0 && (
@@ -172,16 +163,11 @@ export default function DashboardPage() {
         <div className="space-y-4">
           {data?.orders.map((order) => (
             <div key={order.id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-              {/* Order header */}
               <div className="px-6 py-4 flex items-center justify-between border-b border-gray-50">
                 <div>
                   <span className="font-semibold text-gray-900">{order.name}</span>
                   <span className="ml-3 text-sm text-gray-400">
-                    {new Date(order.createdAt).toLocaleDateString("en-GB", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    })}
+                    {new Date(order.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
                   </span>
                 </div>
                 <div className="flex items-center gap-3">
@@ -189,17 +175,13 @@ export default function DashboardPage() {
                     £{parseFloat(order.totalPriceSet.shopMoney.amount).toFixed(2)}
                   </span>
                   {order.processedItems.some((i) => i.returnStatus === "Eligible") && (
-                    <button
-                      onClick={() => openReturnModal(order)}
-                      className="text-sm font-medium text-[#E5403B] hover:text-[#cc3935] transition"
-                    >
+                    <button onClick={() => openReturnModal(order)} className="text-sm font-medium text-[#E5403B] hover:text-[#cc3935] transition">
                       Return items →
                     </button>
                   )}
                 </div>
               </div>
 
-              {/* Line items */}
               <div className="divide-y divide-gray-50">
                 {order.processedItems.map((item) => (
                   <div key={item.id} className="px-6 py-4 flex items-center gap-4">
@@ -233,12 +215,7 @@ export default function DashboardPage() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
               <h2 className="font-semibold text-gray-900">Return items — {returnModal.order.name}</h2>
-              <button
-                onClick={() => { setReturnModal(null); setSubmitResult(null); }}
-                className="text-gray-400 hover:text-gray-700 transition"
-              >
-                ✕
-              </button>
+              <button onClick={() => { setReturnModal(null); setSubmitResult(null); }} className="text-gray-400 hover:text-gray-700 transition">✕</button>
             </div>
 
             {submitResult?.success ? (
@@ -250,86 +227,61 @@ export default function DashboardPage() {
               </div>
             ) : (
               <div className="px-6 py-5 space-y-5">
-                {!hasEligible && (
-                  <p className="text-sm text-gray-500 text-center py-4">No eligible items for return in this order.</p>
-                )}
-
-                {returnModal.order.processedItems
-                  .filter((i) => i.returnStatus === "Eligible")
-                  .map((item) => {
-                    const sel = selectedItems[item.id];
-                    return (
-                      <div key={item.id} className="space-y-3">
-                        <label className="flex items-start gap-3 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={sel?.selected || false}
-                            onChange={(e) =>
-                              setSelectedItems((prev) => ({
-                                ...prev,
-                                [item.id]: { ...prev[item.id], selected: e.target.checked },
-                              }))
-                            }
-                            className="mt-0.5 accent-[#E5403B]"
-                          />
-                          <div className="flex items-center gap-3">
-                            {item.image?.url && (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img src={item.image.url} alt={item.title} className="w-10 h-10 rounded-lg object-cover" />
+                {returnModal.order.processedItems.filter((i) => i.returnStatus === "Eligible").map((item) => {
+                  const sel = selectedItems[item.id];
+                  return (
+                    <div key={item.id} className="space-y-3">
+                      <label className="flex items-start gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={sel?.selected || false}
+                          onChange={(e) => setSelectedItems((prev) => ({ ...prev, [item.id]: { ...prev[item.id], selected: e.target.checked } }))}
+                          className="mt-0.5 accent-[#E5403B]"
+                        />
+                        <div className="flex items-center gap-3">
+                          {item.image?.url && (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={item.image.url} alt={item.title} className="w-10 h-10 rounded-lg object-cover" />
+                          )}
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">{item.title}</p>
+                            {item.variant?.title && item.variant.title !== "Default Title" && (
+                              <p className="text-xs text-gray-400">{item.variant.title}</p>
                             )}
-                            <div>
-                              <p className="text-sm font-medium text-gray-900">{item.title}</p>
-                              {item.variant?.title && item.variant.title !== "Default Title" && (
-                                <p className="text-xs text-gray-400">{item.variant.title}</p>
-                              )}
-                            </div>
                           </div>
-                        </label>
+                        </div>
+                      </label>
 
-                        {sel?.selected && (
-                          <div className="ml-6 space-y-3">
-                            <div>
-                              <label className="text-xs font-medium text-gray-700 block mb-1">Reason</label>
-                              <select
-                                value={sel.reason}
-                                onChange={(e) =>
-                                  setSelectedItems((prev) => ({
-                                    ...prev,
-                                    [item.id]: { ...prev[item.id], reason: e.target.value },
-                                  }))
-                                }
-                                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#E5403B]/30"
-                              >
-                                {RETURN_REASONS.map((r) => (
-                                  <option key={r.value} value={r.value}>{r.label}</option>
-                                ))}
-                              </select>
-                            </div>
-                            <div>
-                              <label className="text-xs font-medium text-gray-700 block mb-1">Additional notes (optional)</label>
-                              <textarea
-                                value={sel.description}
-                                onChange={(e) =>
-                                  setSelectedItems((prev) => ({
-                                    ...prev,
-                                    [item.id]: { ...prev[item.id], description: e.target.value },
-                                  }))
-                                }
-                                rows={2}
-                                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#E5403B]/30 resize-none"
-                                placeholder="Tell us more about the issue..."
-                              />
-                            </div>
+                      {sel?.selected && (
+                        <div className="ml-6 space-y-3">
+                          <div>
+                            <label className="text-xs font-medium text-gray-700 block mb-1">Reason</label>
+                            <select
+                              value={sel.reason}
+                              onChange={(e) => setSelectedItems((prev) => ({ ...prev, [item.id]: { ...prev[item.id], reason: e.target.value } }))}
+                              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#E5403B]/30"
+                            >
+                              {RETURN_REASONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+                            </select>
                           </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                          <div>
+                            <label className="text-xs font-medium text-gray-700 block mb-1">Additional notes (optional)</label>
+                            <textarea
+                              value={sel.description}
+                              onChange={(e) => setSelectedItems((prev) => ({ ...prev, [item.id]: { ...prev[item.id], description: e.target.value } }))}
+                              rows={2}
+                              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#E5403B]/30 resize-none"
+                              placeholder="Tell us more about the issue..."
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
 
                 {submitResult?.error && (
-                  <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
-                    {submitResult.error}
-                  </div>
+                  <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">{submitResult.error}</div>
                 )}
 
                 <div className="pt-2 border-t border-gray-100">
