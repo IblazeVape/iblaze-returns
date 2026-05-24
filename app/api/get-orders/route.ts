@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { validateSession } from "@/lib/auth";
+import { shopifyAdmin } from "@/lib/shopify";
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,10 +11,8 @@ export async function GET(request: NextRequest) {
     }
 
     const { email: sessionEmail } = session;
-    const shop = process.env.SHOPIFY_STORE_URL!;
-    const shopifyAccessToken = process.env.SHOPIFY_ACCESS_TOKEN!;
 
-    const query = `
+    const data = await shopifyAdmin(`
       query GetOrders($query: String!) {
         customers(first: 1, query: $query) {
           edges {
@@ -44,25 +43,9 @@ export async function GET(request: NextRequest) {
           }
         }
       }
-    `;
+    `, { query: `email:${sessionEmail}` });
 
-    const response = await fetch(`https://${shop}/admin/api/2026-04/graphql.json`, {
-      method: "POST",
-      headers: {
-        "X-Shopify-Access-Token": shopifyAccessToken,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ query, variables: { query: `email:${sessionEmail}` } }),
-    });
-
-    const result = await response.json();
-
-    if (result.errors) {
-      console.error("Shopify errors:", result.errors);
-      throw new Error(result.errors[0].message);
-    }
-
-    const customers = result.data?.customers?.edges || [];
+    const customers = data?.customers?.edges || [];
     if (customers.length === 0) {
       return NextResponse.json({ firstName: "", orders: [] });
     }
@@ -76,7 +59,7 @@ export async function GET(request: NextRequest) {
       createdAt: string;
       displayFulfillmentStatus: string;
       totalPriceSet: { shopMoney: { amount: string; currencyCode: string } };
-      fulfillments: Array<{ createdAt: string; displayStatus: string; trackingInfo: Array<{ number: string }> }>;
+      fulfillments: Array<{ createdAt: string; displayStatus: string }>;
       lineItems: { edges: Array<{ node: { id: string; title: string; quantity: number; image: { url: string }; variant: { title: string } } }> };
     }) => {
       const status = order.displayFulfillmentStatus;
@@ -86,9 +69,8 @@ export async function GET(request: NextRequest) {
       let isDelivered = false;
 
       if (isFulfilled && order.fulfillments?.length > 0) {
-        const fulfillment = order.fulfillments[0];
-        dispatchDate = new Date(fulfillment.createdAt);
-        if (fulfillment.displayStatus === "DELIVERED") isDelivered = true;
+        dispatchDate = new Date(order.fulfillments[0].createdAt);
+        if (order.fulfillments[0].displayStatus === "DELIVERED") isDelivered = true;
       }
 
       const returnDeadline = new Date(dispatchDate);
