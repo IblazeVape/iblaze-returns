@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "next": "15.1.11",
+    "@upstash/redis": "^1.34.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "node-mailjet": "^6.0.5",
