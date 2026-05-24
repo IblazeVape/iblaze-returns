@@ -27,6 +27,11 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const cookieHeader = request.headers.get("cookie");
 
+  // Don't touch API routes or callback
+  if (pathname.startsWith("/api/")) {
+    return NextResponse.next();
+  }
+
   if (pathname === "/" && !isValidPortalSession(cookieHeader)) {
     const clientId = process.env.CUSTOMER_API_CLIENT_ID!;
     const appUrl = process.env.NEXT_PUBLIC_APP_URL!;
@@ -46,5 +51,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/"],
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
 };
