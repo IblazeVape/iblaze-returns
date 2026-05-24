@@ -34,37 +34,14 @@ function isValidPortalSession(cookieHeader: string | null): boolean {
   }
 }
 
-function isValidAdminSession(cookieHeader: string | null): boolean {
-  const cookies = parseCookies(cookieHeader);
-  const token = cookies["admin_session"];
-  if (!token) return false;
-  try {
-    const secret = process.env.ADMIN_SECRET!;
-    const [payload64, sig] = token.split(".");
-    const expectedSig = crypto.createHmac("sha256", secret).update(payload64).digest("hex");
-    if (sig !== expectedSig) return false;
-    const payload = JSON.parse(Buffer.from(payload64, "base64").toString());
-    return payload.exp > Math.floor(Date.now() / 1000);
-  } catch {
-    return false;
-  }
-}
-
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const cookieHeader = request.headers.get("cookie");
 
-  // Protect customer dashboard
-  if (pathname.startsWith("/dashboard")) {
+  // Root path: if no valid session, redirect to login
+  if (pathname === "/") {
     if (!isValidPortalSession(cookieHeader)) {
-      return NextResponse.redirect(new URL("/", request.url));
-    }
-  }
-
-  // Protect admin routes (but not /admin/login itself)
-  if (pathname.startsWith("/admin") && pathname !== "/admin/login") {
-    if (!isValidAdminSession(cookieHeader)) {
-      return NextResponse.redirect(new URL("/admin/login", request.url));
+      return NextResponse.redirect(new URL("/api/login", request.url));
     }
   }
 
@@ -72,5 +49,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/admin/:path*"],
+  matcher: ["/"],
 };
