@@ -8,12 +8,13 @@ export async function GET(request: NextRequest) {
     if (!code) return NextResponse.json({ error: "Authorisation code missing." }, { status: 400 });
 
     const shop = process.env.SHOPIFY_STORE_URL!;
+    const storeDomain = process.env.SHOPIFY_STORE_DOMAIN!;
     const clientId = process.env.CUSTOMER_API_CLIENT_ID!;
     const clientSecret = process.env.CUSTOMER_API_CLIENT_SECRET!;
     const host = request.headers.get("host");
     const redirectUri = `https://${host}/api/callback`;
 
-    const discoveryRes = await fetch(`https://${shop}/.well-known/openid-configuration`);
+    const discoveryRes = await fetch(`https://${storeDomain}/.well-known/openid-configuration`);
     const config = await discoveryRes.json();
 
     const body = new URLSearchParams();
@@ -42,7 +43,8 @@ export async function GET(request: NextRequest) {
 
     const cookieValue = buildSessionCookie(verifiedEmail, tokenData.access_token);
 
-    const response = NextResponse.redirect(new URL("/dashboard", request.url));
+    // Redirect to root, not /dashboard
+    const response = NextResponse.redirect(new URL("/", request.url));
     response.cookies.set("portal_session", cookieValue, {
       httpOnly: true,
       secure: true,
@@ -54,7 +56,6 @@ export async function GET(request: NextRequest) {
     return response;
   } catch (error) {
     console.error("OAuth Callback Error:", error);
-    const response = NextResponse.redirect(new URL("/?error=auth_failed", request.url));
-    return response;
+    return NextResponse.redirect(new URL("/api/login", request.url));
   }
 }
