@@ -45,7 +45,7 @@ interface OrdersData {
 }
 
 const RETURN_REASONS = [
-  { value: "CHANGED_MIND", label: "Changed my mind" },
+  { value: "CHANGED_MINDs", label: "Changed my mind" },
   { value: "WRONG_ITEM", label: "Wrong item received" },
   { value: "FAULTY", label: "Faulty / not working" },
   { value: "DAMAGED", label: "Damaged in transit" },
