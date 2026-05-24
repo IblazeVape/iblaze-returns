@@ -7,15 +7,10 @@ export async function GET(request: NextRequest) {
     const code = searchParams.get("code");
     if (!code) return NextResponse.json({ error: "Authorisation code missing." }, { status: 400 });
 
-    const shop = process.env.SHOPIFY_STORE_URL!;
-    const storeDomain = process.env.SHOPIFY_STORE_DOMAIN!;
     const clientId = process.env.CUSTOMER_API_CLIENT_ID!;
     const clientSecret = process.env.CUSTOMER_API_CLIENT_SECRET!;
-    const host = request.headers.get("host");
-    const redirectUri = `https://${host}/api/callback`;
-
-    const discoveryRes = await fetch(`https://${storeDomain}/.well-known/openid-configuration`);
-    const config = await discoveryRes.json();
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL!;
+    const redirectUri = `${appUrl}/api/callback`;
 
     const body = new URLSearchParams();
     body.append("grant_type", "authorization_code");
@@ -25,7 +20,7 @@ export async function GET(request: NextRequest) {
 
     const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
 
-    const tokenRes = await fetch(config.token_endpoint, {
+    const tokenRes = await fetch("https://account.iblazevape.co.uk/authentication/oauth/token", {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
@@ -43,7 +38,6 @@ export async function GET(request: NextRequest) {
 
     const cookieValue = buildSessionCookie(verifiedEmail, tokenData.access_token);
 
-    // Redirect to root, not /dashboard
     const response = NextResponse.redirect(new URL("/", request.url));
     response.cookies.set("portal_session", cookieValue, {
       httpOnly: true,
@@ -56,6 +50,6 @@ export async function GET(request: NextRequest) {
     return response;
   } catch (error) {
     console.error("OAuth Callback Error:", error);
-    return NextResponse.redirect(new URL("/api/login", request.url));
+    return NextResponse.redirect(new URL("/", request.url));
   }
 }
