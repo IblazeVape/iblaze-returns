@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
 
     const customers = data?.customers?.edges || [];
     if (customers.length === 0) {
-      return NextResponse.json({ firstName: "", orders: [] });
+      return NextResponse.json({ firstName: "", email: sessionEmail, orders: [] });
     }
 
     const firstName = customers[0].node.firstName || "";
@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
       return { ...order, processedItems: items };
     });
 
-    return NextResponse.json({ firstName, orders: processedOrders });
+    return NextResponse.json({ firstName, email: sessionEmail, orders: processedOrders });
   } catch (err) {
     const error = err as Error;
     console.error("get-orders error:", error.message);
