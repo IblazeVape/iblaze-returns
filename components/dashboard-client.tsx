@@ -555,10 +555,10 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                       <div className="flex items-center gap-3 min-w-0">
                         {/* Image with qty badge — links to product */}
                         <a href={pUrl} target="_blank" rel="noopener noreferrer" className="relative shrink-0 block">
-                          <div className="w-12 h-12 rounded-lg border border-zinc-200 bg-white p-0.5 shadow-xs">
+                          <div className="size-12 rounded-lg border border-border bg-white overflow-hidden">
                             {item.image?.url && (
                               // eslint-disable-next-line @next/next/no-img-element
-                              <img src={item.image.url} alt={item.title} className="w-full h-full object-contain" />
+                              <img src={item.image.url} alt={item.title} className="w-full h-full object-contain p-0.5" />
                             )}
                           </div>
                           <span className="absolute -top-2 -right-2 bg-foreground text-white text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full ring-2 ring-white z-10">
@@ -699,126 +699,92 @@ export default function DashboardClient() {
   const [search, setSearch] = useState("")
   const [activeSection, setActiveSection] = useState("#orders")
 
- useEffect(() => {
+  useEffect(() => {
     fetch("/api/get-orders")
-      .then((res) => res.json())
-      .then((result) => {
-        if (result.success) {
-          setData(result.data)
-        } else {
-          setError(result.error || "Failed to load orders.")
-        }
-      })
-      .catch(() => {
-        setError("A network error occurred while fetching your orders.")
-      })
-      .finally(() => {
-        setLoading(false)
-      })
+      .then(r => r.json())
+      .then(d => { if (d.error) setError(d.error); else setData(d) })
+      .catch(() => setError("Failed to load orders."))
+      .finally(() => setLoading(false))
   }, [])
 
-  const filteredOrders = data?.orders.filter((order) =>
-    order.name.toLowerCase().includes(search.toLowerCase())
-  ) || []
+  if (loading) return <AuthenticatingScreen />
 
-  if (loading) {
-    return <AuthenticatingScreen />
-  }
-
-  if (error) {
-    return (
-      <div className="flex min-h-screen items-center justify-center p-6 bg-[#FAFAFA]">
-        <Alert variant="destructive" className="max-w-md">
-          <AlertTriangle className="size-4" />
-          <AlertTitle>Error Loading Orders</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      </div>
-    )
-  }
-
-  if (!data) return null
+  const filteredOrders = (data?.orders || []).filter(o =>
+    o.name.toLowerCase().includes(search.toLowerCase())
+  )
+  const user = { name: data?.firstName || "Customer", email: data?.email || "" }
 
   return (
-    <SidebarProvider>
-      <AppSidebar 
-        activeSection={activeSection} 
-        onNavigate={(section) => {
-          setActiveSection(section)
-          setSelectedOrder(null)
-        }}
+    <SidebarProvider style={{ "--sidebar-width": "18rem", "--header-height": "3rem" } as React.CSSProperties}>
+      <AppSidebar
+        variant="inset"
+        user={user}
+        onNavigate={s => { setActiveSection(s); setSelectedOrder(null) }}
+        activeSection={activeSection}
       />
       <SidebarInset>
-        <SiteHeader email={data.email} firstName={data.firstName} />
-        <main className="p-4 sm:p-6 md:p-8 lg:p-10 max-w-[1600px] mx-auto w-full">
+        <SiteHeader
+          title={selectedOrder ? selectedOrder.name : "My Orders"}
+          search={search}
+          onSearch={setSearch}
+          showSearch={!selectedOrder}
+          firstName={data?.firstName}
+          email={data?.email}
+        />
+
+        <div className="flex flex-1 flex-col p-4 lg:p-6 gap-4">
           {selectedOrder ? (
-            <OrderDetail 
-              order={selectedOrder} 
-              onBack={() => setSelectedOrder(null)} 
-            />
+            <OrderDetail order={selectedOrder} onBack={() => setSelectedOrder(null)} />
           ) : (
-            <div className="space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <>
+              <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-2xl font-bold tracking-tight text-foreground">
-                    Your Orders
-                  </h1>
-                  <p className="text-muted-foreground text-sm mt-1">
-                    Select an order to view details or start a return. Your order number can be found in what we said earlier or account history.
+                  <h2 className="text-lg font-semibold">
+                    {data?.firstName ? `Hi, ${data.firstName} 👋` : "Your Recent Orders"}
+                  </h2>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    Select an order to view details or initiate a return.
                   </p>
                 </div>
-                
-                <div className="flex items-center gap-2">
-                  <Button 
-                    variant={view === "grid" ? "secondary" : "ghost"} 
-                    size="icon" 
-                    onClick={() => setView("grid")}
-                  >
+                <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
+                  <Button variant="ghost" size="icon" className={cn("size-7", view === "grid" && "bg-background shadow-sm")} onClick={() => setView("grid")}>
                     <LayoutGrid className="size-4" />
                   </Button>
-                  <Button 
-                    variant={view === "list" ? "secondary" : "ghost"} 
-                    size="icon" 
-                    onClick={() => setView("list")}
-                  >
+                  <Button variant="ghost" size="icon" className={cn("size-7", view === "list" && "bg-background shadow-sm")} onClick={() => setView("list")}>
                     <List className="size-4" />
                   </Button>
                 </div>
               </div>
 
-              {filteredOrders.length === 0 ? (
-                <Card>
-                  <CardContent className="p-12 text-center text-muted-foreground flex flex-col items-center">
-                    <ShoppingBag className="size-10 mb-4 opacity-20" />
-                    <p>No orders found.</p>
-                  </CardContent>
-                </Card>
-              ) : view === "grid" ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {filteredOrders.map((order) => (
-                    <OrderCard 
-                      key={order.id} 
-                      order={order} 
-                      onClick={() => setSelectedOrder(order)} 
-                    />
-                  ))}
+              {error && (
+                <div className="flex items-center gap-3 p-4 rounded-xl bg-destructive/10 text-sm text-destructive">
+                  <XCircle className="size-5 shrink-0" />{error}
                 </div>
-              ) : (
+              )}
+
+              {!error && filteredOrders.length === 0 && (
+                <div className="text-center py-20">
+                  <ShoppingBag className="size-12 text-muted-foreground/30 mx-auto mb-4" />
+                  <p className="font-medium text-muted-foreground">No orders found</p>
+                  <p className="text-sm text-muted-foreground/60 mt-1">Orders placed with this account will appear here</p>
+                </div>
+              )}
+
+              {view === "grid" && (
+                <div className="grid grid-cols-2 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {filteredOrders.map(o => <OrderCard key={o.id} order={o} onClick={() => setSelectedOrder(o)} />)}
+                </div>
+              )}
+              {view === "list" && (
                 <Card>
-                  <CardContent className="p-0 flex flex-col divide-y divide-border">
-                    {filteredOrders.map((order) => (
-                      <OrderRow 
-                        key={order.id} 
-                        order={order} 
-                        onClick={() => setSelectedOrder(order)} 
-                      />
-                    ))}
+                  <CardContent className="p-0">
+                    {filteredOrders.map(o => <OrderRow key={o.id} order={o} onClick={() => setSelectedOrder(o)} />)}
                   </CardContent>
                 </Card>
               )}
-            </div>
+            </>
           )}
-        </main>
+        </div>
       </SidebarInset>
     </SidebarProvider>
   )
