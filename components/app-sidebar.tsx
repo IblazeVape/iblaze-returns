@@ -1,165 +1,59 @@
 "use client"
 
 import * as React from "react"
-import {
-  IconCamera,
-  IconChartBar, IconCircle,
-  IconDashboard,
-  IconFileAi,
-  IconFileDescription,
-  IconFolder,
-  IconInnerShadowTop,
-  IconListDetails,
-  IconUsers
-} from "@tabler/icons-react";
-
+import { ShoppingBag, FileText, Newspaper, MessageCircle, RotateCcw, ExternalLink } from "lucide-react"
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
+  Sidebar, SidebarContent, SidebarFooter,
+  SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
 } from "@/components/ui/sidebar"
 
-const data = {
-  user: {
-    name: "Toby Belhome",
-    email: "m@example.com",
-    avatar: "https://www.tobybelhome.com/toby-belhome.png",
-  },
-  navMain: [
-    {
-      title: "Dashboard",
-      url: "/dashboard",
-      icon: IconDashboard,
-    },
-    {
-      title: "Users",
-      url: "/dashboard/users",
-      icon: IconListDetails,
-    },
-    {
-      title: "Settings",
-      url: "/dashboard/settings",
-      icon: IconChartBar,
-    },
-    {
-      title: "Login",
-      url: "/login",
-      icon: IconFolder,
-    },
-    {
-      title: "Register",
-      url: "/register",
-      icon: IconUsers,
-    },
-    {
-      title: "404 Page",
-      url: "/404-page",
-      icon: IconFolder,
-    },
-    {
-      title: "500 Page",
-      url: "/500-page",
-      icon: IconUsers,
-    },
-  ],
-  navClouds: [
-    {
-      title: "Capture",
-      icon: IconCamera,
-      isActive: true,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Proposal",
-      icon: IconFileDescription,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Prompts",
-      icon: IconFileAi,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-  ],
-  navSecondary: [
-    {
-      title: "Get Pro",
-      url: "https://shadcnuikit.com/pricing",
-      icon: IconCircle,
-    },
-    {
-      title: "Shadcn UI Kit",
-      url: "https://shadcnuikit.com/",
-      icon: IconCircle,
-    },
-    {
-      title: "Bundui Component",
-      url: "https://bundui.io",
-      icon: IconCircle,
-    },
-  ],
+const navMain = [
+  { title: "My Orders", url: "#orders", icon: ShoppingBag },
+  { title: "Returns", url: "#returns", icon: RotateCcw },
+]
+
+const navSecondary = [
+  { title: "News & Updates", url: "https://iblazevape.co.uk/blogs/news", icon: Newspaper },
+  { title: "Returns Policy", url: "https://iblazevape.co.uk/policies/refund-policy", icon: FileText },
+  { title: "Speak to Support", url: "mailto:info@iblazevape.co.uk", icon: MessageCircle },
+  { title: "Back to Store", url: "https://iblazevape.co.uk", icon: ExternalLink },
+]
+
+interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
+  user?: { name: string; email: string }
+  onNavigate?: (section: string) => void
+  activeSection?: string
 }
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar({ user, onNavigate, activeSection, ...props }: AppSidebarProps) {
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              className="data-[slot=sidebar-menu-button]:!p-1.5"
-            >
-              <a href="#">
-                <img src="https://shadcnuikit.com/logo.png" className="size-6 rounded-sm group-data-[collapsible=icon]:size-5" alt="shadcn ui kit svg logo" />
-                <span className="text-base font-medium">Shadcn UI Kit</span>
+            <SidebarMenuButton asChild className="data-[slot=sidebar-menu-button]:!p-1.5">
+              <a href="https://iblazevape.co.uk" target="_blank">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="https://cdn.shopify.com/s/files/1/0941/5383/4761/files/IblazeLogo.png?v=14858"
+                  className="size-6 object-contain"
+                  alt="iBlaze Vape"
+                />
+                <span className="text-base font-semibold">iBlaze Returns</span>
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
+        <NavMain items={navMain} onNavigate={onNavigate} activeSection={activeSection} />
+        <NavSecondary items={navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser user={user || { name: "Customer", email: "" }} />
       </SidebarFooter>
     </Sidebar>
   )
