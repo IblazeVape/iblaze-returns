@@ -699,6 +699,127 @@ export default function DashboardClient() {
   const [search, setSearch] = useState("")
   const [activeSection, setActiveSection] = useState("#orders")
 
-  useEffect(() => {
+ useEffect(() => {
     fetch("/api/get-orders")
-      .then(
+      .then((res) => res.json())
+      .then((result) => {
+        if (result.success) {
+          setData(result.data)
+        } else {
+          setError(result.error || "Failed to load orders.")
+        }
+      })
+      .catch(() => {
+        setError("A network error occurred while fetching your orders.")
+      })
+      .finally(() => {
+        setLoading(false)
+      })
+  }, [])
+
+  const filteredOrders = data?.orders.filter((order) =>
+    order.name.toLowerCase().includes(search.toLowerCase())
+  ) || []
+
+  if (loading) {
+    return <AuthenticatingScreen />
+  }
+
+  if (error) {
+    return (
+      <div className="flex min-h-screen items-center justify-center p-6 bg-[#FAFAFA]">
+        <Alert variant="destructive" className="max-w-md">
+          <AlertTriangle className="size-4" />
+          <AlertTitle>Error Loading Orders</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      </div>
+    )
+  }
+
+  if (!data) return null
+
+  return (
+    <SidebarProvider>
+      <AppSidebar 
+        activeSection={activeSection} 
+        onNavigate={(section) => {
+          setActiveSection(section)
+          setSelectedOrder(null)
+        }}
+      />
+      <SidebarInset>
+        <SiteHeader email={data.email} firstName={data.firstName} />
+        <main className="p-4 sm:p-6 md:p-8 lg:p-10 max-w-[1600px] mx-auto w-full">
+          {selectedOrder ? (
+            <OrderDetail 
+              order={selectedOrder} 
+              onBack={() => setSelectedOrder(null)} 
+            />
+          ) : (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                    Your Orders
+                  </h1>
+                  <p className="text-muted-foreground text-sm mt-1">
+                    Select an order to view details or start a return. Your order number can be found in what we said earlier or account history.
+                  </p>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <Button 
+                    variant={view === "grid" ? "secondary" : "ghost"} 
+                    size="icon" 
+                    onClick={() => setView("grid")}
+                  >
+                    <LayoutGrid className="size-4" />
+                  </Button>
+                  <Button 
+                    variant={view === "list" ? "secondary" : "ghost"} 
+                    size="icon" 
+                    onClick={() => setView("list")}
+                  >
+                    <List className="size-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {filteredOrders.length === 0 ? (
+                <Card>
+                  <CardContent className="p-12 text-center text-muted-foreground flex flex-col items-center">
+                    <ShoppingBag className="size-10 mb-4 opacity-20" />
+                    <p>No orders found.</p>
+                  </CardContent>
+                </Card>
+              ) : view === "grid" ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {filteredOrders.map((order) => (
+                    <OrderCard 
+                      key={order.id} 
+                      order={order} 
+                      onClick={() => setSelectedOrder(order)} 
+                    />
+                  ))}
+                </div>
+              ) : (
+                <Card>
+                  <CardContent className="p-0 flex flex-col divide-y divide-border">
+                    {filteredOrders.map((order) => (
+                      <OrderRow 
+                        key={order.id} 
+                        order={order} 
+                        onClick={() => setSelectedOrder(order)} 
+                      />
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
+        </main>
+      </SidebarInset>
+    </SidebarProvider>
+  )
+}
