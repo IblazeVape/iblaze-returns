@@ -14,6 +14,7 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "node-mailjet": "^6.0.5",
+    "radix-ui": "latest",
     "@radix-ui/react-avatar": "^1.1.2",
     "@radix-ui/react-checkbox": "^1.1.2",
     "@radix-ui/react-collapsible": "^1.1.2",
