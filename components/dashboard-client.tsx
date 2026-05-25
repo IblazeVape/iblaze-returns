@@ -1,6 +1,6 @@
-# Complete Redesigned `dashboard-client.tsx`
 
-```tsx
+
+
 "use client"
 
 import * as React from "react"
