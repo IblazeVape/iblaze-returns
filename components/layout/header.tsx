@@ -1,93 +1,74 @@
-import { LockIcon, Menu } from "lucide-react";
+"use client"
+
+import { Menu, UserCircle, LogOut } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import Search from "./search";
-import Logo from "./logo";
-import { SidebarNavLink } from "./sidebar";
-import { page_routes } from "@/lib/routes-config";
-import { Fragment } from "react";
-import Link from "next/link";
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Button } from "@/components/ui/button"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import Logo from "./logo"
 
-export default function Header() {
+interface HeaderProps {
+  firstName?: string
+  email?: string
+}
+
+export default function Header({ firstName, email }: HeaderProps) {
+  const initial = firstName?.[0]?.toUpperCase() || "?"
+
   return (
-    <div className="sticky top-0 z-50 flex flex-col">
+    <div className="sticky top-0 z-50">
       <header className="flex h-14 items-center gap-4 border-b bg-background px-4 lg:h-[60px]">
+        {/* Mobile menu */}
         <Sheet>
           <SheetTrigger asChild>
             <Button variant="outline" size="icon" className="shrink-0 lg:hidden">
               <Menu className="h-5 w-5" />
-              <span className="sr-only">Toggle navigation menu</span>
+              <span className="sr-only">Toggle menu</span>
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="flex flex-col overflow-auto">
+          <SheetContent side="left" className="flex flex-col">
             <Logo className="px-0" />
-            <nav className="grid gap-2 text-lg font-medium">
-              {page_routes.map((route) => (
-                <Fragment key={route.title}>
-                  <div className="px-2 py-4 font-medium">{route.title}</div>
-                  <nav className="*:flex *:items-center *:gap-3 *:rounded-lg *:px-3 *:py-2 *:transition-all hover:*:bg-muted">
-                    {route.items.map((item, key) => (
-                      <SidebarNavLink key={key} item={item} />
-                    ))}
-                  </nav>
-                </Fragment>
-              ))}
-            </nav>
-            <div className="mt-auto">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Get Shadcn UI Kit Pro</CardTitle>
-                  <CardDescription>
-                    Need more pages and components? Then you can get the pro.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <Button
-                    size="sm"
-                    className="w-full items-center bg-gradient-to-r from-indigo-700 via-purple-500 to-pink-700 hover:opacity-90"
-                    asChild>
-                    <Link href="https://shadcnuikit.com/pricing" target="_blank">
-                      <LockIcon className="me-2 h-4 w-4" /> Get Pro
-                    </Link>
-                  </Button>
-                  <Button size="sm" className="w-full" variant="outline" asChild>
-                    <Link href="https://shadcnuikit.com/" target="_blank">
-                      Learn More
-                    </Link>
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
           </SheetContent>
         </Sheet>
-        <div className="w-full flex-1">
-          <Search />
-        </div>
+
+        <div className="flex-1" />
+
+        {/* User menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <figure className="cursor-pointer">
-              <img src={`/images/avatars/1.png`} className="h-10 w-10" alt="..." />
-            </figure>
+            <Avatar className="h-9 w-9 cursor-pointer hover:ring-2 hover:ring-[#E5403B]/30 hover:ring-offset-1 transition-all">
+              <AvatarFallback className="bg-[#E5403B] text-white text-sm font-semibold">
+                {initial}
+              </AvatarFallback>
+            </Avatar>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>My Account</DropdownMenuLabel>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuLabel>
+              <p className="font-medium">{firstName || "Customer"}</p>
+              {email && <p className="text-xs text-muted-foreground font-normal truncate">{email}</p>}
+            </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Settings</DropdownMenuItem>
-            <DropdownMenuItem>Support</DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <a href="https://account.iblazevape.co.uk/profile" target="_blank" rel="noopener noreferrer">
+                <UserCircle className="mr-2 h-4 w-4" />My Profile
+              </a>
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Logout</DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <a href="https://account.iblazevape.co.uk/logout">
+                <LogOut className="mr-2 h-4 w-4" />Sign out
+              </a>
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </header>
     </div>
-  );
+  )
 }
