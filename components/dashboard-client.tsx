@@ -42,6 +42,7 @@ interface Order {
 
 interface OrdersData {
   firstName: string
+  email: string
   orders: Order[]
 }
 
@@ -479,6 +480,8 @@ export default function DashboardClient() {
           search={search}
           onSearch={setSearch}
           showSearch={!selectedOrder}
+          firstName={data?.firstName}
+          email={data?.email}
         />
 
         {/* Mobile search */}
