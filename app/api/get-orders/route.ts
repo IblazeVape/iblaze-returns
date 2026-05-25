@@ -2,9 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { validateSession } from "@/lib/auth";
 import { shopifyAdmin } from "@/lib/shopify";
 
-// Order.fulfillments IS a FulfillmentConnection (paginated) in Shopify Admin GraphQL
-// Use edges { node { ... } } and first: N
-// Use fulfillment.deliveredAt (dedicated field) not updatedAt
+// Corrected: Order.fulfillments is a direct array [Fulfillment!]! in the Admin API, not a connection.
+// It does not use edges or node. However, fulfillmentLineItems IS a paginated connection.
 
 export async function GET(request: NextRequest) {
   try {
@@ -25,22 +24,21 @@ export async function GET(request: NextRequest) {
               orders(first: 20, sortKey: CREATED_AT, reverse: true) {
                 edges {
                   node {
-                    id name createdAt displayFulfillmentStatus
+                    id 
+                    name 
+                    createdAt 
+                    displayFulfillmentStatus
                     totalPriceSet { shopMoney { amount currencyCode } }
-                    fulfillments(first: 20) {
-                      edges {
-                        node {
-                          id
-                          displayStatus
-                          deliveredAt
-                          updatedAt
-                          fulfillmentLineItems(first: 50) {
-                            edges {
-                              node {
-                                lineItem { id }
-                                quantity
-                              }
-                            }
+                    fulfillments {
+                      id
+                      displayStatus
+                      deliveredAt
+                      updatedAt
+                      fulfillmentLineItems(first: 50) {
+                        edges {
+                          node {
+                            lineItem { id }
+                            quantity
                           }
                         }
                       }
@@ -78,19 +76,15 @@ export async function GET(request: NextRequest) {
       createdAt: string;
       displayFulfillmentStatus: string;
       totalPriceSet: { shopMoney: { amount: string; currencyCode: string } };
-      fulfillments: {
-        edges: Array<{
-          node: {
-            id: string;
-            displayStatus: string;
-            deliveredAt: string | null;
-            updatedAt: string;
-            fulfillmentLineItems: {
-              edges: Array<{ node: { lineItem: { id: string }; quantity: number } }>;
-            };
-          };
-        }>;
-      };
+      fulfillments: Array<{
+        id: string;
+        displayStatus: string;
+        deliveredAt: string | null;
+        updatedAt: string;
+        fulfillmentLineItems: {
+          edges: Array<{ node: { lineItem: { id: string }; quantity: number } }>;
+        };
+      }>;
       lineItems: {
         edges: Array<{
           node: {
@@ -104,8 +98,8 @@ export async function GET(request: NextRequest) {
         }>;
       };
     }) => {
-      // Flatten the FulfillmentConnection into a plain array
-      const fulfillments = order.fulfillments?.edges?.map(e => e.node) || [];
+      // fulfillments is already a plain array in the API response
+      const fulfillments = order.fulfillments || [];
 
       // Build per-line-item delivery tracking
       type LineDelivery = {
