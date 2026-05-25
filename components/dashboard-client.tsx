@@ -30,6 +30,7 @@ interface LineItem {
   title: string
   quantity: number
   returnStatus: ReturnStatus
+  returnReason?: string
   image?: { url: string }
   variant?: { title: string }
 }
@@ -41,6 +42,8 @@ interface Order {
   displayFulfillmentStatus: string
   totalPriceSet: { shopMoney: { amount: string; currencyCode: string } }
   processedItems: LineItem[]
+  isDelivered?: boolean
+  deliveredAt?: string | null
 }
 
 interface OrdersData {
@@ -58,18 +61,20 @@ const RETURN_REASONS = [
   { value: "OTHER", label: "Other" },
 ]
 
+// Fallback reasons if API doesn't supply returnReason
 const INELIGIBLE_REASONS: Record<ReturnStatus, string> = {
-  "Not yet dispatched": "This order hasn't been dispatched yet — returns can only be initiated after delivery.",
-  "On its way": "This order is still in transit — please wait until it's been delivered.",
-  "Passed the return window": "This item was delivered more than 30 days ago and is outside the return window.",
+  "Not yet dispatched": "This item hasn't been dispatched yet — returns can only be initiated after delivery.",
+  "On its way": "Your parcel is on its way — your 30-day return window starts once it's delivered.",
+  "Passed the return window": "This item was delivered more than 30 days ago and is outside the 30-day return window.",
   "Eligible": "",
 }
 
-function getFulfillmentBadge(status: string) {
+function getFulfillmentBadge(status: string, isDelivered?: boolean) {
+  if (isDelivered) return <Badge className="bg-green-100 text-green-700 border-0 hover:bg-green-100 text-xs">Delivered</Badge>
   switch (status) {
-    case "FULFILLED": return <Badge className="bg-green-100 text-green-700 border-0 hover:bg-green-100 text-xs">Delivered</Badge>
+    case "FULFILLED": return <Badge className="bg-blue-100 text-blue-700 border-0 hover:bg-blue-100 text-xs">Shipped</Badge>
     case "PARTIALLY_FULFILLED": return <Badge className="bg-blue-100 text-blue-700 border-0 hover:bg-blue-100 text-xs">Partial</Badge>
-    case "IN_PROGRESS": return <Badge className="bg-blue-100 text-blue-700 border-0 hover:bg-blue-100 text-xs">In Progress</Badge>
+    case "IN_PROGRESS": return <Badge className="bg-amber-100 text-amber-700 border-0 hover:bg-amber-100 text-xs">In Transit</Badge>
     default: return <Badge variant="secondary" className="text-xs">Processing</Badge>
   }
 }
@@ -140,7 +145,7 @@ function OrderCard({ order, onClick }: { order: Order; onClick: () => void }) {
             </div>
             <div className="text-right space-y-1">
               <p className="font-semibold text-sm">£{total.toFixed(2)}</p>
-              {getFulfillmentBadge(order.displayFulfillmentStatus)}
+              {getFulfillmentBadge(order.displayFulfillmentStatus, order.isDelivered)}
             </div>
           </div>
 
@@ -194,7 +199,7 @@ function OrderRow({ order, onClick }: { order: Order; onClick: () => void }) {
         <p className="text-xs text-muted-foreground">{date} · {order.processedItems.length} items</p>
       </div>
       {hasEligible && <Badge className="bg-green-100 text-green-700 border-0 hover:bg-green-100 text-xs">Return Available</Badge>}
-      {getFulfillmentBadge(order.displayFulfillmentStatus)}
+      {getFulfillmentBadge(order.displayFulfillmentStatus, order.isDelivered)}
       <p className="font-semibold text-sm w-14 text-right">£{total.toFixed(2)}</p>
       <ChevronRight className="size-4 text-muted-foreground flex-shrink-0 group-hover:text-[#E5403B] transition-colors" />
     </button>
@@ -330,7 +335,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
         setTimeout(() => {
           const shopifyOrderId = order.id.split("/").pop()
           window.location.href = `https://account.iblazevape.co.uk/orders/${shopifyOrderId}`
-        }, 3000)
+        }, 3000)  // 3 second delay before redirect
       } else {
         setSubmitError(result.error || "Something went wrong. Please try again.")
       }
@@ -372,9 +377,13 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-lg font-semibold">{order.name}</h2>
-                {getFulfillmentBadge(order.displayFulfillmentStatus)}
+                {getFulfillmentBadge(order.displayFulfillmentStatus, order.isDelivered)}
               </div>
-              <p className="text-sm text-muted-foreground mt-0.5">{date}</p>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                {order.isDelivered && order.deliveredAt
+                  ? `Delivered ${new Date(order.deliveredAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`
+                  : date}
+              </p>
               <p className="text-sm font-semibold mt-1">£{total.toFixed(2)} GBP · {totalQty} item{totalQty !== 1 ? "s" : ""}</p>
             </div>
             <a href={orderStatusUrl} target="_blank" rel="noopener noreferrer">
@@ -557,7 +566,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                         )}
                         <div className="flex items-center gap-1.5 mt-1.5">
                           <AlertTriangle className="size-3 text-amber-500 flex-shrink-0" />
-                          <p className="text-xs text-muted-foreground">{INELIGIBLE_REASONS[item.returnStatus]}</p>
+                          <p className="text-xs text-muted-foreground">{item.returnReason || INELIGIBLE_REASONS[item.returnStatus]}</p>
                         </div>
                       </div>
                     </div>
