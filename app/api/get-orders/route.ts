@@ -151,7 +151,7 @@ export async function GET(request: NextRequest) {
 
       const now = new Date();
       let orderIsDelivered = false;
-      let orderDeliveredAt: Date | null = null;
+      let orderDeliveredAt: Date | null = null as Date | null;
 
       const items = order.lineItems.edges.map(({ node: item }) => {
         const delivery = lineItemDelivery[item.id];
