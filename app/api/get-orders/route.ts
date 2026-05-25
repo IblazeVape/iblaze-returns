@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { validateSession } from "@/lib/auth";
 import { shopifyAdmin } from "@/lib/shopify";
 
+// Shopify's Order.fulfillments is a plain list (NOT a paginated connection)
+// Shopify's Fulfillment.fulfillmentLineItems IS a paginated connection
+// Shopify's Fulfillment.displayStatus uses uppercase enums: DELIVERED, IN_TRANSIT etc.
+
 export async function GET(request: NextRequest) {
   try {
     const cookieHeader = request.headers.get("cookie");
@@ -27,7 +31,8 @@ export async function GET(request: NextRequest) {
                     createdAt
                     displayFulfillmentStatus
                     totalPriceSet { shopMoney { amount currencyCode } }
-                    fulfillments(first: 10) {
+                    fulfillments {
+                      id
                       createdAt
                       updatedAt
                       displayStatus
@@ -37,14 +42,6 @@ export async function GET(request: NextRequest) {
                           node {
                             lineItem { id }
                             quantity
-                          }
-                        }
-                      }
-                      events(first: 20) {
-                        edges {
-                          node {
-                            happenedAt
-                            status
                           }
                         }
                       }
@@ -84,15 +81,13 @@ export async function GET(request: NextRequest) {
       displayFulfillmentStatus: string;
       totalPriceSet: { shopMoney: { amount: string; currencyCode: string } };
       fulfillments: Array<{
+        id: string;
         createdAt: string;
         updatedAt: string;
         displayStatus: string;
         trackingInfo: Array<{ number: string; url: string; company: string }>;
         fulfillmentLineItems: {
           edges: Array<{ node: { lineItem: { id: string }; quantity: number } }>;
-        };
-        events: {
-          edges: Array<{ node: { happenedAt: string; status: string } }>;
         };
       }>;
       lineItems: {
@@ -107,94 +102,94 @@ export async function GET(request: NextRequest) {
         }>;
       };
     }) => {
-      const fulfillmentStatus = order.displayFulfillmentStatus;
-      const isFulfilled =
-        fulfillmentStatus === "FULFILLED" ||
-        fulfillmentStatus === "PARTIALLY_FULFILLED" ||
-        fulfillmentStatus === "IN_PROGRESS";
+      // Order.fulfillments is a plain array in Shopify Admin GraphQL (not a connection)
+      const fulfillments = order.fulfillments || [];
 
-      // Find actual delivery date from fulfillment events
-      let deliveredAt: Date | null = null;
-      let isDelivered = false;
+      // Build per-line-item delivery tracking
+      // Each line item should use the delivery date of its own fulfillment
+      type LineItemDelivery = {
+        isDelivered: boolean;
+        deliveredAt: Date | null;
+        inTransit: boolean;
+        isDispatched: boolean;
+      };
+      const lineItemDelivery: Record<string, LineItemDelivery> = {};
+
+      for (const fulfillment of fulfillments) {
+        const status = fulfillment.displayStatus;
+
+        const isDelivered = status === "DELIVERED";
+
+        const inTransit =
+          status === "IN_TRANSIT" ||
+          status === "OUT_FOR_DELIVERY" ||
+          status === "ATTEMPTED_DELIVERY" ||
+          status === "READY_FOR_PICKUP" ||
+          status === "PICKED_UP";
+
+        const isDispatched =
+          isDelivered ||
+          inTransit ||
+          status === "CONFIRMED" ||
+          status === "LABEL_PRINTED" ||
+          status === "LABEL_PURCHASED" ||
+          status === "SUBMITTED";
+
+        // When delivered, use updatedAt as the best available delivery date approximation.
+        // Shopify doesn't reliably expose a dedicated deliveredAt field on Fulfillment.
+        const deliveredAt = isDelivered ? new Date(fulfillment.updatedAt) : null;
+
+        for (const edge of fulfillment.fulfillmentLineItems?.edges || []) {
+          const liId = edge.node.lineItem.id;
+          // If the same line item appears in multiple fulfillments, prefer delivered state
+          const existing = lineItemDelivery[liId];
+          if (!existing || (!existing.isDelivered && isDelivered)) {
+            lineItemDelivery[liId] = { isDelivered, deliveredAt, inTransit, isDispatched };
+          }
+        }
+      }
+
       const now = new Date();
-
-      if (isFulfilled && order.fulfillments?.length > 0) {
-        for (const fulfillment of order.fulfillments) {
-          if (fulfillment.displayStatus === "DELIVERED") {
-            isDelivered = true;
-
-            // Look for the delivery event to get the exact delivery timestamp
-            const deliveryEvent = fulfillment.events?.edges?.find(
-              (e) => e.node.status === "delivered"
-            );
-
-            if (deliveryEvent?.node?.happenedAt) {
-              deliveredAt = new Date(deliveryEvent.node.happenedAt);
-            } else {
-              // Fall back to fulfillment updatedAt as delivery approximation
-              deliveredAt = new Date(fulfillment.updatedAt);
-            }
-            break; // Use first delivered fulfillment
-          }
-        }
-      }
-
-      // Build a map of which fulfillment covers which line item
-      const lineItemFulfillmentStatus: Record<string, { delivered: boolean; inTransit: boolean }> = {};
-      if (order.fulfillments?.length > 0) {
-        for (const fulfillment of order.fulfillments) {
-          const isThisDelivered = fulfillment.displayStatus === "DELIVERED";
-          const isThisInTransit =
-            fulfillment.displayStatus === "IN_TRANSIT" ||
-            fulfillment.displayStatus === "OUT_FOR_DELIVERY" ||
-            fulfillment.displayStatus === "ATTEMPTED_DELIVERY" ||
-            fulfillment.displayStatus === "READY_FOR_PICKUP" ||
-            fulfillment.displayStatus === "PICKED_UP" ||
-            fulfillment.displayStatus === "LABEL_PRINTED" ||
-            fulfillment.displayStatus === "LABEL_PURCHASED" ||
-            fulfillment.displayStatus === "CONFIRMED";
-
-          for (const edge of fulfillment.fulfillmentLineItems?.edges || []) {
-            const liId = edge.node.lineItem.id;
-            if (!lineItemFulfillmentStatus[liId]) {
-              lineItemFulfillmentStatus[liId] = { delivered: false, inTransit: false };
-            }
-            if (isThisDelivered) lineItemFulfillmentStatus[liId].delivered = true;
-            if (isThisInTransit) lineItemFulfillmentStatus[liId].inTransit = true;
-          }
-        }
-      }
+      let orderIsDelivered = false;
+      let orderDeliveredAt: Date | null = null;
 
       const items = order.lineItems.edges.map(({ node: item }) => {
-        const itemFulfillment = lineItemFulfillmentStatus[item.id];
+        const delivery = lineItemDelivery[item.id];
         let returnStatus: string;
         let returnReason: string;
 
-        if (!isFulfilled || (!itemFulfillment?.delivered && !itemFulfillment?.inTransit)) {
+        if (!delivery || !delivery.isDispatched) {
           returnStatus = "Not yet dispatched";
-          returnReason = "This item hasn't been dispatched yet.";
-        } else if (!itemFulfillment?.delivered && itemFulfillment?.inTransit) {
+          returnReason = "This item hasn't been dispatched yet — check back once it ships.";
+        } else if (delivery.inTransit && !delivery.isDelivered) {
           returnStatus = "On its way";
-          returnReason = "Your parcel is on its way — your 30-day return window starts once it's delivered.";
-        } else if (itemFulfillment?.delivered) {
-          // Item is delivered — check the 30-day window
-          if (deliveredAt) {
-            const daysSinceDelivery =
-              (now.getTime() - deliveredAt.getTime()) / (1000 * 60 * 60 * 24);
-            if (daysSinceDelivery > 30) {
+          returnReason =
+            "Your parcel is on its way. Your 30-day return window starts once it's delivered.";
+        } else if (delivery.isDelivered) {
+          if (delivery.deliveredAt) {
+            const daysSince =
+              (now.getTime() - delivery.deliveredAt.getTime()) / (1000 * 60 * 60 * 24);
+            if (daysSince > 30) {
               returnStatus = "Passed the return window";
-              returnReason = `This item was delivered more than 30 days ago (on ${deliveredAt.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}).`;
+              const deliveredDateStr = delivery.deliveredAt.toLocaleDateString("en-GB", {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+              });
+              returnReason = `This item was delivered on ${deliveredDateStr} — more than 30 days ago.`;
             } else {
               returnStatus = "Eligible";
               returnReason = "";
+              orderIsDelivered = true;
+              orderDeliveredAt = delivery.deliveredAt;
             }
           } else {
-            // displayStatus is DELIVERED but no delivery date found — treat as eligible
+            // Delivered but no date available — treat as eligible conservatively
             returnStatus = "Eligible";
             returnReason = "";
+            orderIsDelivered = true;
           }
         } else {
-          // Item has no fulfillment record
           returnStatus = "Not yet dispatched";
           returnReason = "This item hasn't been dispatched yet.";
         }
@@ -205,8 +200,8 @@ export async function GET(request: NextRequest) {
       return {
         ...order,
         processedItems: items,
-        isDelivered,
-        deliveredAt: deliveredAt?.toISOString() ?? null,
+        isDelivered: orderIsDelivered,
+        deliveredAt: orderDeliveredAt?.toISOString() ?? null,
       };
     });
 
