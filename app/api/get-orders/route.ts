@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { validateSession } from "@/lib/auth";
 import { shopifyAdmin } from "@/lib/shopify";
 
-// Shopify's Order.fulfillments is a plain list (NOT a paginated connection)
-// Shopify's Fulfillment.fulfillmentLineItems IS a paginated connection
-// Shopify's Fulfillment.displayStatus uses uppercase enums: DELIVERED, IN_TRANSIT etc.
+// Order.fulfillments IS a FulfillmentConnection (paginated) in Shopify Admin GraphQL
+// Use edges { node { ... } } and first: N
+// Use fulfillment.deliveredAt (dedicated field) not updatedAt
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,7 +13,6 @@ export async function GET(request: NextRequest) {
     if (!session.valid) {
       return NextResponse.json({ error: "Session missing. Please log in." }, { status: 401 });
     }
-
     const { email: sessionEmail } = session;
 
     const data = await shopifyAdmin(`
@@ -26,22 +25,22 @@ export async function GET(request: NextRequest) {
               orders(first: 20, sortKey: CREATED_AT, reverse: true) {
                 edges {
                   node {
-                    id
-                    name
-                    createdAt
-                    displayFulfillmentStatus
+                    id name createdAt displayFulfillmentStatus
                     totalPriceSet { shopMoney { amount currencyCode } }
-                    fulfillments {
-                      id
-                      createdAt
-                      updatedAt
-                      displayStatus
-                      trackingInfo { number url company }
-                      fulfillmentLineItems(first: 50) {
-                        edges {
-                          node {
-                            lineItem { id }
-                            quantity
+                    fulfillments(first: 20) {
+                      edges {
+                        node {
+                          id
+                          displayStatus
+                          deliveredAt
+                          updatedAt
+                          fulfillmentLineItems(first: 50) {
+                            edges {
+                              node {
+                                lineItem { id }
+                                quantity
+                              }
+                            }
                           }
                         }
                       }
@@ -49,9 +48,8 @@ export async function GET(request: NextRequest) {
                     lineItems(first: 50) {
                       edges {
                         node {
-                          id
-                          title
-                          quantity
+                          id title quantity
+                          product { handle }
                           image { url }
                           variant { title }
                         }
@@ -80,46 +78,50 @@ export async function GET(request: NextRequest) {
       createdAt: string;
       displayFulfillmentStatus: string;
       totalPriceSet: { shopMoney: { amount: string; currencyCode: string } };
-      fulfillments: Array<{
-        id: string;
-        createdAt: string;
-        updatedAt: string;
-        displayStatus: string;
-        trackingInfo: Array<{ number: string; url: string; company: string }>;
-        fulfillmentLineItems: {
-          edges: Array<{ node: { lineItem: { id: string }; quantity: number } }>;
-        };
-      }>;
+      fulfillments: {
+        edges: Array<{
+          node: {
+            id: string;
+            displayStatus: string;
+            deliveredAt: string | null;
+            updatedAt: string;
+            fulfillmentLineItems: {
+              edges: Array<{ node: { lineItem: { id: string }; quantity: number } }>;
+            };
+          };
+        }>;
+      };
       lineItems: {
         edges: Array<{
           node: {
             id: string;
             title: string;
             quantity: number;
-            image: { url: string };
-            variant: { title: string };
+            product: { handle: string } | null;
+            image: { url: string } | null;
+            variant: { title: string } | null;
           };
         }>;
       };
     }) => {
-      // Order.fulfillments is a plain array in Shopify Admin GraphQL (not a connection)
-      const fulfillments = order.fulfillments || [];
+      // Flatten the FulfillmentConnection into a plain array
+      const fulfillments = order.fulfillments?.edges?.map(e => e.node) || [];
 
       // Build per-line-item delivery tracking
-      // Each line item should use the delivery date of its own fulfillment
-      type LineItemDelivery = {
+      type LineDelivery = {
         isDelivered: boolean;
         deliveredAt: Date | null;
         inTransit: boolean;
         isDispatched: boolean;
       };
-      const lineItemDelivery: Record<string, LineItemDelivery> = {};
+      const lineItemDelivery: Record<string, LineDelivery> = {};
 
       for (const fulfillment of fulfillments) {
         const status = fulfillment.displayStatus;
 
         const isDelivered = status === "DELIVERED";
 
+        // Active in-transit states (parcel is moving)
         const inTransit =
           status === "IN_TRANSIT" ||
           status === "OUT_FOR_DELIVERY" ||
@@ -127,22 +129,21 @@ export async function GET(request: NextRequest) {
           status === "READY_FOR_PICKUP" ||
           status === "PICKED_UP";
 
-        const isDispatched =
-          isDelivered ||
-          inTransit ||
-          status === "CONFIRMED" ||
-          status === "LABEL_PRINTED" ||
-          status === "LABEL_PURCHASED" ||
-          status === "SUBMITTED";
+        // Dispatched = label created or further along
+        const isDispatched = isDelivered || inTransit || status === "SUBMITTED";
 
-        // When delivered, use updatedAt as the best available delivery date approximation.
-        // Shopify doesn't reliably expose a dedicated deliveredAt field on Fulfillment.
-        const deliveredAt = isDelivered ? new Date(fulfillment.updatedAt) : null;
+        // Use Shopify's dedicated deliveredAt field first, fall back to updatedAt
+        let deliveredAt: Date | null = null;
+        if (isDelivered) {
+          deliveredAt = fulfillment.deliveredAt
+            ? new Date(fulfillment.deliveredAt)
+            : new Date(fulfillment.updatedAt);
+        }
 
         for (const edge of fulfillment.fulfillmentLineItems?.edges || []) {
           const liId = edge.node.lineItem.id;
-          // If the same line item appears in multiple fulfillments, prefer delivered state
           const existing = lineItemDelivery[liId];
+          // Prefer delivered state; only overwrite if we're upgrading the status
           if (!existing || (!existing.isDelivered && isDelivered)) {
             lineItemDelivery[liId] = { isDelivered, deliveredAt, inTransit, isDispatched };
           }
@@ -151,7 +152,7 @@ export async function GET(request: NextRequest) {
 
       const now = new Date();
       let orderIsDelivered = false;
-      let orderDeliveredAt: Date | null = null as Date | null;
+      let orderDeliveredAt = null as Date | null;
 
       const items = order.lineItems.edges.map(({ node: item }) => {
         const delivery = lineItemDelivery[item.id];
@@ -163,38 +164,35 @@ export async function GET(request: NextRequest) {
           returnReason = "This item hasn't been dispatched yet — check back once it ships.";
         } else if (delivery.inTransit && !delivery.isDelivered) {
           returnStatus = "On its way";
-          returnReason =
-            "Your parcel is on its way. Your 30-day return window starts once it's delivered.";
+          returnReason = "Your parcel is on its way. Your 30-day return window starts once it's delivered.";
         } else if (delivery.isDelivered) {
+          orderIsDelivered = true;
+          if (!orderDeliveredAt && delivery.deliveredAt) orderDeliveredAt = delivery.deliveredAt;
+
           if (delivery.deliveredAt) {
-            const daysSince =
-              (now.getTime() - delivery.deliveredAt.getTime()) / (1000 * 60 * 60 * 24);
+            const daysSince = (now.getTime() - delivery.deliveredAt.getTime()) / (1000 * 60 * 60 * 24);
             if (daysSince > 30) {
               returnStatus = "Passed the return window";
-              const deliveredDateStr = delivery.deliveredAt.toLocaleDateString("en-GB", {
-                day: "numeric",
-                month: "short",
-                year: "numeric",
-              });
-              returnReason = `This item was delivered on ${deliveredDateStr} — more than 30 days ago.`;
+              returnReason = `Delivered on ${delivery.deliveredAt.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })} — outside the 30-day return window.`;
             } else {
               returnStatus = "Eligible";
               returnReason = "";
-              orderIsDelivered = true;
-              orderDeliveredAt = delivery.deliveredAt;
             }
           } else {
-            // Delivered but no date available — treat as eligible conservatively
             returnStatus = "Eligible";
             returnReason = "";
-            orderIsDelivered = true;
           }
         } else {
           returnStatus = "Not yet dispatched";
           returnReason = "This item hasn't been dispatched yet.";
         }
 
-        return { ...item, returnStatus, returnReason };
+        return {
+          ...item,
+          productHandle: item.product?.handle || null,
+          returnStatus,
+          returnReason,
+        };
       });
 
       return {
