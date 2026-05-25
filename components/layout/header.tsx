@@ -2,12 +2,8 @@
 
 import { Menu, UserCircle, LogOut } from "lucide-react"
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
@@ -21,11 +17,9 @@ interface HeaderProps {
 
 export default function Header({ firstName, email }: HeaderProps) {
   const initial = firstName?.[0]?.toUpperCase() || "?"
-
   return (
     <div className="sticky top-0 z-50">
       <header className="flex h-14 items-center gap-4 border-b bg-background px-4 lg:h-[60px]">
-        {/* Mobile menu */}
         <Sheet>
           <SheetTrigger asChild>
             <Button variant="outline" size="icon" className="shrink-0 lg:hidden">
@@ -37,16 +31,11 @@ export default function Header({ firstName, email }: HeaderProps) {
             <Logo className="px-0" />
           </SheetContent>
         </Sheet>
-
         <div className="flex-1" />
-
-        {/* User menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Avatar className="h-9 w-9 cursor-pointer hover:ring-2 hover:ring-[#E5403B]/30 hover:ring-offset-1 transition-all">
-              <AvatarFallback className="bg-[#E5403B] text-white text-sm font-semibold">
-                {initial}
-              </AvatarFallback>
+              <AvatarFallback className="bg-[#E5403B] text-white text-sm font-semibold">{initial}</AvatarFallback>
             </Avatar>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
