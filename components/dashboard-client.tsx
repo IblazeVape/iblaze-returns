@@ -42,7 +42,6 @@ interface Order {
 
 interface OrdersData {
   firstName: string
-  email: string
   orders: Order[]
 }
 
@@ -461,7 +460,7 @@ export default function DashboardClient() {
   return (
     <SidebarProvider
       style={{
-        "--sidebar-width": "calc(var(--spacing, 0.25rem) * 72)",
+        "--sidebar-width": "18rem",
         "--header-height": "3rem",
       } as React.CSSProperties}
     >
@@ -480,8 +479,6 @@ export default function DashboardClient() {
           search={search}
           onSearch={setSearch}
           showSearch={!selectedOrder}
-          firstName={data?.firstName}
-          email={data?.email}
         />
 
         {/* Mobile search */}
