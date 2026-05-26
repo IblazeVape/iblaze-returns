@@ -652,7 +652,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
       {mounted && hasEligible && createPortal(
         <div
           className="fixed bottom-0 right-0 z-[48] border-t border-border bg-background shadow-[0_-2px_12px_rgba(0,0,0,0.08)]"
-          style={{ left: sidebarMobile ? "0px" : sidebarState === "collapsed" ? "3rem" : "18rem" }}
+          style={{ left: sidebarMobile ? "0px" : sidebarState === "collapsed" ? "4rem" : "18rem" }}
         >
           <div className="px-4 lg:px-6 py-2.5 flex items-center justify-between gap-2">
             {/* Left: stats */}
