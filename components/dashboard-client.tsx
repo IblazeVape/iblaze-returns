@@ -19,7 +19,6 @@ import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Drawer, DrawerClose, DrawerContent, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer"
 import { useMediaQuery } from "@/hooks/use-media-query"
@@ -320,13 +319,13 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
   }
 
   return (
-    <div className="space-y-4 max-w-5xl">
+    <div className="space-y-4">
       <Button variant="ghost" size="sm" onClick={onBack} className="-ml-2 text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-4" /> Back to Orders
       </Button>
 
       {/* ── Order Header Card (compact) ── */}
-      <Card className="shadow-sm">
+      <Card className="shadow-sm py-0">
         <CardContent className="px-5 py-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
@@ -357,7 +356,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
 
       {/* ── Refunded Card (separate, full-width, between header and items) ── */}
       {hasRefund && (
-        <Card className="shadow-sm">
+        <Card className="shadow-sm py-0">
           <CardContent className="px-5 py-4">
             <div className="flex items-center gap-3">
               <span className="text-base font-bold text-foreground">£{refundedAmount.toFixed(2)} GBP</span>
@@ -372,17 +371,18 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
 
       {/* ── Policy gate ── */}
       {hasEligible && !policyAccepted && (
-        <Alert>
-          <ShieldCheck className="size-4" />
-          <AlertTitle>Hygiene &amp; Returns Policy</AlertTitle>
-          <AlertDescription className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-1">
-            <span className="text-sm">Review and accept our returns policy before selecting items.</span>
-            <HygienePolicy
-              onAccept={() => setPolicyAccepted(true)}
-              onDecline={() => setPolicyAccepted(false)}
-            />
-          </AlertDescription>
-        </Alert>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border bg-card px-4 py-3 text-sm">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="size-4 text-muted-foreground shrink-0" />
+            <span className="font-medium">Hygiene &amp; Returns Policy</span>
+            <span className="text-muted-foreground hidden sm:inline">— Review and accept before selecting items.</span>
+          </div>
+          <span className="text-muted-foreground sm:hidden text-xs pl-6">Review and accept our returns policy before selecting items.</span>
+          <HygienePolicy
+            onAccept={() => setPolicyAccepted(true)}
+            onDecline={() => setPolicyAccepted(false)}
+          />
+        </div>
       )}
 
       {/* ── Two-column layout (only when there are eligible items) ── */}
@@ -393,7 +393,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
           <div className="lg:col-span-2 space-y-4">
 
             {/* Eligible items */}
-            <Card className="shadow-sm overflow-hidden">
+            <Card className="shadow-sm overflow-hidden py-0">
               <CardHeader className="px-5 py-3 border-b">
                 <CardTitle className="text-sm font-semibold flex items-center justify-between">
                   Select items to return
@@ -519,7 +519,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
 
             {/* Ineligible items (below eligible) */}
             {ineligibleItems.length > 0 && (
-              <Card className="shadow-sm overflow-hidden">
+              <Card className="shadow-sm overflow-hidden py-0">
                 <CardHeader className="px-5 py-3 border-b">
                   <CardTitle className="text-sm font-semibold">
                     {ineligibleItems.length} item{ineligibleItems.length !== 1 ? "s" : ""} in this order aren&apos;t eligible for return.
@@ -570,7 +570,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
           <div className="lg:col-span-1">
             <div className="lg:sticky lg:top-6 space-y-3">
               {/* Refund Estimator */}
-              <Card className="shadow-sm overflow-hidden">
+              <Card className="shadow-sm overflow-hidden py-0">
                 <CardHeader className="px-5 py-3 border-b">
                   <CardTitle className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
                     Refund Estimator
@@ -606,7 +606,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
               </Card>
 
               {/* Order Summary */}
-              <Card className="shadow-sm">
+              <Card className="shadow-sm py-0">
                 <CardContent className="px-5 py-4 space-y-2 text-sm">
                   <p className="font-semibold">Order Summary</p>
                   <div className="flex justify-between text-muted-foreground">
@@ -630,7 +630,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
         /* ── No eligible items: full-width, no sidebar ── */
         <div className="space-y-4">
           {ineligibleItems.length > 0 && (
-            <Card className="shadow-sm overflow-hidden">
+            <Card className="shadow-sm overflow-hidden py-0">
               <CardHeader className="px-5 py-3 border-b">
                 <CardTitle className="text-sm font-semibold">
                   {ineligibleItems.length} item{ineligibleItems.length !== 1 ? "s" : ""} in this order aren&apos;t eligible for return.
