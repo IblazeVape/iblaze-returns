@@ -139,46 +139,56 @@ export async function GET(request: NextRequest) {
       };
     }) => {
       
-      const itemReturnStatus: Record<string, { status: string; declineReason?: string; declineNote?: string; recency: number }> = {};
+      // 1. Collect the entire return history for every line item
+      const itemReturnHistory: Record<string, Array<{
+        returnId: string;
+        status: string;
+        declineReason?: string;
+        declineNote?: string;
+        index: number;
+      }>> = {};
+
       const returns = order.returns?.edges || [];
 
-      // Helper to prioritise active returns over cancelled/older ones
-      const getPriority = (status: string) => {
-        switch (status) {
-          case "OPEN": return 5;
-          case "REQUESTED": return 4;
-          case "CLOSED": return 3;
-          case "DECLINED": return 2;
-          case "CANCELED": return 1;
-          default: return 0;
-        }
-      };
-
-      let returnCounter = 0;
-      for (const retEdge of returns) {
-        returnCounter++; // Increment the counter for every return processed
+      returns.forEach((retEdge, index) => {
         const returnNode = retEdge.node;
-        const currentPriority = getPriority(returnNode.status);
-        
+
         for (const rliEdge of returnNode.returnLineItems?.edges || []) {
           const lineItemId = rliEdge.node.fulfillmentLineItem?.lineItem?.id;
-          if (lineItemId) {
-            const existing = itemReturnStatus[lineItemId];
-            const existingPriority = existing ? getPriority(existing.status) : -1;
-            const existingRecency = existing ? existing.recency : -1;
-            
-            // Overwrite if the new status has a HIGHER priority
-            // OR if the priority is the SAME, but the new one is MORE RECENT in the array
-            if (currentPriority > existingPriority || (currentPriority === existingPriority && returnCounter > existingRecency)) {
-              itemReturnStatus[lineItemId] = {
-                status: returnNode.status,
-                declineReason: returnNode.decline?.reason,
-                declineNote: returnNode.decline?.note,
-                recency: returnCounter
-              }; 
-            }
+          if (!lineItemId) continue;
+
+          if (!itemReturnHistory[lineItemId]) {
+            itemReturnHistory[lineItemId] = [];
           }
+
+          itemReturnHistory[lineItemId].push({
+            returnId: returnNode.id,
+            status: returnNode.status,
+            declineReason: returnNode.decline?.reason,
+            declineNote: returnNode.decline?.note,
+            index,
+          });
         }
+      });
+
+      // 2. Dump this history into your Vercel logs to verify array order
+      if (Object.keys(itemReturnHistory).length > 0) {
+        console.log(`ITEM RETURN HISTORY for Order ${order.name}:`, JSON.stringify(itemReturnHistory, null, 2));
+      }
+
+      // 3. Pick the final winning state deterministically (assuming the last element is the newest)
+      const itemReturnStatus: Record<string, { status: string; declineReason?: string; declineNote?: string }> = {};
+      
+      for (const [lineItemId, history] of Object.entries(itemReturnHistory)) {
+        // Taking the last item in the array. 
+        // If your logs show Shopify puts the newest return at index 0, change this to history[0]
+        const latestReturn = history[history.length - 1]; 
+        
+        itemReturnStatus[lineItemId] = {
+          status: latestReturn.status,
+          declineReason: latestReturn.declineReason,
+          declineNote: latestReturn.declineNote
+        };
       }
 
       const fulfillments = order.fulfillments || [];
@@ -230,14 +240,6 @@ export async function GET(request: NextRequest) {
           if (existingReturn.status === "DECLINED") {
             const dNote = (existingReturn.declineNote || "").trim();
             const dReason = existingReturn.declineReason;
-            
-            console.log("DECLINED RETURN DEBUG", {
-              lineItemId: item.id,
-              declineReason: dReason,
-              declineNote: existingReturn.declineNote,
-              processedNote: dNote,
-              recency: existingReturn.recency
-            });
             
             if (dNote) {
               returnReason = dNote;
