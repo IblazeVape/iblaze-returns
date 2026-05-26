@@ -2,11 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { validateSession } from "@/lib/auth";
 import { shopifyAdmin } from "@/lib/shopify";
 
-// Order.fulfillments is a PLAIN ARRAY in Shopify Admin GraphQL (NOT a paginated connection)
-// Do NOT use edges/node - query fields directly on the fulfillment
-// fulfillmentLineItems IS a connection - use edges { node { ... } }
-// Use fulfillment.deliveredAt (dedicated field) when available
-
 export async function GET(request: NextRequest) {
   try {
     const cookieHeader = request.headers.get("cookie");
@@ -34,6 +29,10 @@ export async function GET(request: NextRequest) {
                         node {
                           id
                           status
+                          decline {
+                            reason
+                            note
+                          }
                           returnLineItems(first: 50) {
                             edges {
                               node {
@@ -101,6 +100,10 @@ export async function GET(request: NextRequest) {
           node: {
             id: string;
             status: string;
+            decline?: {
+              reason: string;
+              note: string;
+            } | null;
             returnLineItems: {
               edges: Array<{
                 node: {
@@ -135,8 +138,8 @@ export async function GET(request: NextRequest) {
         }>;
       };
     }) => {
-      // Build a map of items already in a return
-      const itemReturnStatus: Record<string, string> = {};
+      // Build a map of items already in a return, capturing both status and the decline note
+      const itemReturnStatus: Record<string, { status: string; declineNote?: string }> = {};
       const returns = order.returns?.edges || [];
 
       for (const retEdge of returns) {
@@ -144,51 +147,32 @@ export async function GET(request: NextRequest) {
         for (const rliEdge of returnNode.returnLineItems?.edges || []) {
           const lineItemId = rliEdge.node.fulfillmentLineItem?.lineItem?.id;
           if (lineItemId) {
-            itemReturnStatus[lineItemId] = returnNode.status; 
+            itemReturnStatus[lineItemId] = {
+              status: returnNode.status,
+              declineNote: returnNode.decline?.note
+            }; 
           }
         }
       }
 
-      // fulfillments is already a plain array from Shopify (not a connection)
       const fulfillments = order.fulfillments || [];
-
-      // Build per-line-item delivery tracking
-      type LineDelivery = {
-        isDelivered: boolean;
-        deliveredAt: Date | null;
-        inTransit: boolean;
-        isDispatched: boolean;
-      };
+      type LineDelivery = { isDelivered: boolean; deliveredAt: Date | null; inTransit: boolean; isDispatched: boolean; };
       const lineItemDelivery: Record<string, LineDelivery> = {};
 
       for (const fulfillment of fulfillments) {
         const status = fulfillment.displayStatus;
-
         const isDelivered = status === "DELIVERED";
-
-        // Active in-transit states (parcel is moving)
-        const inTransit =
-          status === "IN_TRANSIT" ||
-          status === "OUT_FOR_DELIVERY" ||
-          status === "ATTEMPTED_DELIVERY" ||
-          status === "READY_FOR_PICKUP" ||
-          status === "PICKED_UP";
-
-        // Dispatched = label created or further along
+        const inTransit = status === "IN_TRANSIT" || status === "OUT_FOR_DELIVERY" || status === "ATTEMPTED_DELIVERY" || status === "READY_FOR_PICKUP" || status === "PICKED_UP";
         const isDispatched = isDelivered || inTransit || status === "SUBMITTED";
 
-        // Use Shopify's dedicated deliveredAt field first, fall back to updatedAt
         let deliveredAt: Date | null = null;
         if (isDelivered) {
-          deliveredAt = fulfillment.deliveredAt
-            ? new Date(fulfillment.deliveredAt)
-            : new Date(fulfillment.updatedAt);
+          deliveredAt = fulfillment.deliveredAt ? new Date(fulfillment.deliveredAt) : new Date(fulfillment.updatedAt);
         }
 
         for (const edge of fulfillment.fulfillmentLineItems?.edges || []) {
           const liId = edge.node.lineItem.id;
           const existing = lineItemDelivery[liId];
-          // Prefer delivered state; only overwrite if we're upgrading the status
           if (!existing || (!existing.isDelivered && isDelivered)) {
             lineItemDelivery[liId] = { isDelivered, deliveredAt, inTransit, isDispatched };
           }
@@ -201,12 +185,12 @@ export async function GET(request: NextRequest) {
 
       const items = order.lineItems.edges.map(({ node: item }) => {
         const delivery = lineItemDelivery[item.id];
-        const existingReturnStatus = itemReturnStatus[item.id];
+        const existingReturn = itemReturnStatus[item.id];
         
         let returnStatus: string;
         let returnReason: string;
 
-        if (existingReturnStatus) {
+        if (existingReturn) {
           const statusMap: Record<string, string> = {
             REQUESTED: "Return requested",
             OPEN: "Return approved",
@@ -214,8 +198,16 @@ export async function GET(request: NextRequest) {
             DECLINED: "Return declined",
             CANCELED: "Return cancelled"
           };
-          returnStatus = statusMap[existingReturnStatus] || "Return in progress";
-          returnReason = "You have already submitted a return request for this item.";
+          
+          returnStatus = statusMap[existingReturn.status] || "Return in progress";
+          
+          // If declined and there is a note, surface that message directly
+          if (existingReturn.status === "DECLINED" && existingReturn.declineNote) {
+            returnReason = existingReturn.declineNote;
+          } else {
+            returnReason = "You have already submitted a return request for this item.";
+          }
+
         } else if (!delivery || !delivery.isDispatched) {
           returnStatus = "Not yet dispatched";
           returnReason = "This item hasn't been dispatched yet — check back once it ships.";
