@@ -109,7 +109,7 @@ function IneligibleReason({ status, reason, lineDeliveredAt }: {
   const withHover = (badge: React.ReactNode, title: string, body: string) => (
     <HoverCard openDelay={100} closeDelay={100}>
       <HoverCardTrigger asChild>
-        <div className="cursor-help inline-flex">{badge}</div>
+        <div className="inline-flex">{badge}</div>
       </HoverCardTrigger>
       <HoverCardContent side="top" align="end" className="w-72">
         <div className="flex flex-col gap-1">
@@ -151,7 +151,7 @@ function IneligibleReason({ status, reason, lineDeliveredAt }: {
   )
 
   if (status === "Return completed" || status === "Returned") return (
-    <OutlineBadge className="bg-zinc-50 text-zinc-600 border-zinc-200">Completed</OutlineBadge>
+    <OutlineBadge className="bg-teal-50 text-teal-700 border-teal-200">Completed</OutlineBadge>
   )
 
   if (status === "Return declined") {
@@ -160,7 +160,7 @@ function IneligibleReason({ status, reason, lineDeliveredAt }: {
   }
 
   if (status === "Return cancelled") return (
-    <OutlineBadge className="bg-zinc-50 text-zinc-500 border-zinc-200">Cancelled</OutlineBadge>
+    <OutlineBadge className="bg-orange-50 text-orange-600 border-orange-200">Cancelled</OutlineBadge>
   )
 
   return <span className="text-xs text-muted-foreground">{status}</span>
@@ -415,7 +415,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
               {ineligibleItems.map(item => {
                 const url = pUrl(item.productHandle)
                 return (
-                  <TableRow key={item.id} className="opacity-75">
+                  <TableRow key={item.id}>
                     <TableCell className="pl-4 py-3">
                       <div className="flex items-center gap-3">
                         <ProductThumb item={item} />
@@ -475,11 +475,10 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                 {" "}&bull; £{total.toFixed(2)} GBP &bull; {totalQty} item{totalQty !== 1 ? "s" : ""}
               </p>
             </div>
-            <Button variant="outline" size="sm" asChild className="shrink-0 w-fit">
-              <a href={orderStatusUrl} target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="size-3.5" /> View Order Status
-              </a>
-            </Button>
+            <a href={orderStatusUrl} target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors hover:underline underline-offset-4">
+              <ExternalLink className="size-3.5" /> View Order Status
+            </a>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 border-t border-border divide-x divide-border">
             <div className="px-5 py-3"><p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Total Paid</p><p className="font-semibold text-sm mt-0.5">£{total.toFixed(2)}</p></div>
@@ -503,13 +502,14 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
         )}
 
         {/* ── Tables ──
-            If eligible items exist: side-by-side on xl, stacked below
-            If NO eligible items: ineligible table is full width, no eligible card shown
+            Both eligible + ineligible: side by side on xl
+            Only eligible:   eligible full width, no ineligible card
+            Only ineligible: ineligible full width, no eligible card
         ── */}
         {hasEligible ? (
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+          <div className={ineligibleItems.length > 0 ? "grid grid-cols-1 xl:grid-cols-2 gap-4" : "flex flex-col gap-4"}>
 
-            {/* Eligible */}
+            {/* Eligible — full width when no ineligible items */}
             <TableCard
               title="Select items to return"
               badge={
@@ -517,6 +517,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                   {eligibleItems.length}
                 </Badge>
               }
+              fullWidth={ineligibleItems.length === 0}
             >
               <ScrollArea className="flex-1 min-h-0">
                 <Table>
@@ -622,13 +623,15 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
               </ScrollArea>
             </TableCard>
 
-            {/* Ineligible (side by side) */}
-            <TableCard
-              title="Not eligible for return"
-              badge={<Badge variant="secondary" className="text-xs font-medium h-5 w-5 p-0 flex items-center justify-center rounded-full">{ineligibleItems.length}</Badge>}
-            >
-              {IneligibleTableContent}
-            </TableCard>
+            {/* Ineligible — only shown when there are ineligible items */}
+            {ineligibleItems.length > 0 && (
+              <TableCard
+                title="Not eligible for return"
+                badge={<Badge variant="secondary" className="text-xs font-medium h-5 w-5 p-0 flex items-center justify-center rounded-full">{ineligibleItems.length}</Badge>}
+              >
+                {IneligibleTableContent}
+              </TableCard>
+            )}
           </div>
 
         ) : (
