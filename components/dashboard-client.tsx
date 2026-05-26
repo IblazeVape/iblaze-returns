@@ -7,7 +7,7 @@ import { toast } from "sonner"
 import {
   ChevronRight, LayoutGrid, List, ArrowLeft,
   RotateCcw, CheckCircle2, ShoppingBag, ShieldCheck,
-  Clock, Truck, PackageX, Lock, ExternalLink, Info,
+  ExternalLink, Lock,
 } from "lucide-react"
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
@@ -21,8 +21,9 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Drawer, DrawerClose, DrawerContent, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer"
 import { useMediaQuery } from "@/hooks/use-media-query"
@@ -46,6 +47,7 @@ interface LineItem {
   quantity: number
   returnStatus: ReturnStatus
   returnReason?: string
+  lineDeliveredAt?: string | null
   productHandle?: string | null
   image?: { url: string } | null
   variant?: { title: string } | null
@@ -70,84 +72,98 @@ interface OrdersData {
 }
 
 const RETURN_REASONS = [
-  { value: "CHANGED_MIND",    label: "Changed my mind" },
-  { value: "WRONG_ITEM",      label: "Wrong item received" },
-  { value: "FAULTY",          label: "Faulty / not working" },
-  { value: "DAMAGED",         label: "Damaged in transit" },
-  { value: "NOT_AS_DESCRIBED",label: "Not as described" },
-  { value: "OTHER",           label: "Other" },
+  { value: "CHANGED_MIND",     label: "Changed my mind" },
+  { value: "WRONG_ITEM",       label: "Wrong item received" },
+  { value: "FAULTY",           label: "Faulty / not working" },
+  { value: "DAMAGED",          label: "Damaged in transit" },
+  { value: "NOT_AS_DESCRIBED", label: "Not as described" },
+  { value: "OTHER",            label: "Other" },
 ]
 
-// Suppress Card's default py-6 gap-6
 const C = "shadow-sm py-0 gap-0"
-// Fixed height for both item tables on large screens — equal height + scroll
 const TABLE_H = "xl:h-[480px]"
 
 function pUrl(handle?: string | null) {
   return handle ? `https://iblazevape.co.uk/products/${handle}` : "https://iblazevape.co.uk"
 }
 
-// ─── Ineligible reason chip + tooltip for long messages ───────────────────
-function IneligibleReason({ status, reason }: { status: ReturnStatus; reason?: string }) {
-  const chip = (() => {
-    if (status === "On its way") return (
-      <div className="inline-flex items-center gap-1.5 text-amber-600">
-        <Truck className="size-3.5 shrink-0" />
-        <span className="text-xs font-medium">On its way</span>
-      </div>
-    )
-    if (status === "Not yet dispatched") return (
-      <div className="inline-flex items-center gap-1.5 text-muted-foreground">
-        <Clock className="size-3.5 shrink-0" />
-        <span className="text-xs font-medium">Not dispatched</span>
-      </div>
-    )
-    if (status === "Passed the return window") return (
-      <div className="inline-flex items-center gap-1.5 text-destructive">
-        <PackageX className="size-3.5 shrink-0" />
-        <span className="text-xs font-medium">Window expired</span>
-      </div>
-    )
-    if (status === "Return requested") return (
-      <Badge className="text-[11px] font-medium bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-50">Requested</Badge>
-    )
-    if (status === "Return approved") return (
-      <Badge className="text-[11px] font-medium bg-green-50 text-green-700 border border-green-200 hover:bg-green-50">Approved</Badge>
-    )
-    if (status === "Return completed" || status === "Returned") return (
-      <Badge variant="secondary" className="text-[11px] font-medium">Completed</Badge>
-    )
-    if (status === "Return declined") return (
-      <Badge variant="destructive" className="text-[11px] font-medium">Declined</Badge>
-    )
-    if (status === "Return cancelled") return (
-      <span className="text-xs text-muted-foreground font-medium">Cancelled</span>
-    )
-    return <span className="text-xs text-muted-foreground">{status}</span>
-  })()
+// ─── Consistent outline badge helper ──────────────────────────────────────
+function OutlineBadge({ className, children }: { className: string; children: React.ReactNode }) {
+  return (
+    <span className={cn(
+      "inline-flex items-center justify-center rounded-full border px-2 py-0.5 text-[11px] font-medium whitespace-nowrap",
+      className
+    )}>
+      {children}
+    </span>
+  )
+}
 
-  // Show tooltip icon next to chip when there's a detail message
-  if (reason && status === "Return declined") {
-    return (
-      <div className="inline-flex items-center gap-1">
-        {chip}
-        <TooltipProvider delayDuration={100}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button className="text-muted-foreground hover:text-foreground transition-colors">
-                <Info className="size-3.5" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="left" className="max-w-[220px] text-xs leading-snug">
-              {reason}
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+// ─── Ineligible reason chip — all use consistent outline badge style ───────
+function IneligibleReason({ status, reason, lineDeliveredAt }: {
+  status: ReturnStatus
+  reason?: string
+  lineDeliveredAt?: string | null
+}) {
+  // Badges with hover card for items that have a detail message
+  const withHover = (badge: React.ReactNode, title: string, body: string) => (
+    <HoverCard openDelay={100} closeDelay={100}>
+      <HoverCardTrigger asChild>
+        <div className="cursor-help inline-flex">{badge}</div>
+      </HoverCardTrigger>
+      <HoverCardContent side="top" align="end" className="w-72">
+        <div className="flex flex-col gap-1">
+          <h4 className="font-medium text-sm">{title}</h4>
+          <p className="text-sm text-muted-foreground">{body}</p>
+        </div>
+      </HoverCardContent>
+    </HoverCard>
+  )
+
+  if (status === "On its way") return (
+    <div className="flex flex-col items-end gap-0.5">
+      <OutlineBadge className="bg-amber-50 text-amber-700 border-amber-200">On its way</OutlineBadge>
+    </div>
+  )
+
+  if (status === "Not yet dispatched") return (
+    <OutlineBadge className="bg-zinc-50 text-zinc-500 border-zinc-200">Not dispatched</OutlineBadge>
+  )
+
+  if (status === "Passed the return window") {
+    const badge = (
+      <div className="flex flex-col items-end gap-0.5">
+        <OutlineBadge className="bg-red-50 text-red-700 border-red-200">Window expired</OutlineBadge>
+        {lineDeliveredAt && (
+          <span className="text-[10px] text-muted-foreground">Arrived {lineDeliveredAt}</span>
+        )}
       </div>
     )
+    return reason ? withHover(badge, "Return window closed", reason) : badge
   }
 
-  return chip
+  if (status === "Return requested") return (
+    <OutlineBadge className="bg-blue-50 text-blue-700 border-blue-200">Requested</OutlineBadge>
+  )
+
+  if (status === "Return approved") return (
+    <OutlineBadge className="bg-green-50 text-green-700 border-green-200">Approved</OutlineBadge>
+  )
+
+  if (status === "Return completed" || status === "Returned") return (
+    <OutlineBadge className="bg-zinc-50 text-zinc-600 border-zinc-200">Completed</OutlineBadge>
+  )
+
+  if (status === "Return declined") {
+    const badge = <OutlineBadge className="bg-red-50 text-red-700 border-red-200">Declined</OutlineBadge>
+    return reason ? withHover(badge, "Return declined", reason) : badge
+  }
+
+  if (status === "Return cancelled") return (
+    <OutlineBadge className="bg-zinc-50 text-zinc-500 border-zinc-200">Cancelled</OutlineBadge>
+  )
+
+  return <span className="text-xs text-muted-foreground">{status}</span>
 }
 
 // ─── Product thumbnail ─────────────────────────────────────────────────────
@@ -168,37 +184,25 @@ function ProductThumb({ item }: { item: LineItem }) {
   )
 }
 
-// ─── Skeleton grid cards ───────────────────────────────────────────────────
 function OrderCardSkeleton() {
   return (
     <div className="bg-white border border-border rounded-xl p-5">
       <div className="flex items-start justify-between mb-3">
-        <div className="space-y-1.5">
-          <Skeleton className="h-4 w-24" />
-          <Skeleton className="h-3 w-32" />
-        </div>
+        <div className="space-y-1.5"><Skeleton className="h-4 w-24" /><Skeleton className="h-3 w-32" /></div>
         <Skeleton className="h-4 w-14" />
       </div>
-      <div className="flex gap-1.5">
-        {[1,2,3].map(i => <Skeleton key={i} className="w-10 h-10 rounded-md" />)}
-      </div>
+      <div className="flex gap-1.5">{[1,2,3].map(i => <Skeleton key={i} className="w-10 h-10 rounded-md" />)}</div>
     </div>
   )
 }
 
-// ─── Hygiene Policy Dialog / Drawer ───────────────────────────────────────
+// ─── Hygiene Policy ────────────────────────────────────────────────────────
 function HygienePolicy({ onAccept, onDecline }: { onAccept: () => void; onDecline: () => void }) {
   const [open, setOpen] = useState(false)
   const isDesktop = useMediaQuery("(min-width: 768px)")
 
-  const handleAccept = () => {
-    setOpen(false); onAccept()
-    toast.success("Policy accepted", { description: "You can now select items to return." })
-  }
-  const handleDecline = () => {
-    setOpen(false); onDecline()
-    toast.warning("Policy declined", { description: "You must accept the returns policy to continue." })
-  }
+  const handleAccept = () => { setOpen(false); onAccept(); toast.success("Policy accepted", { description: "You can now select items to return." }) }
+  const handleDecline = () => { setOpen(false); onDecline(); toast.warning("Policy declined", { description: "You must accept the returns policy to continue." }) }
 
   const policyItems = [
     { title: "Vape Kits & Mods",       desc: "30-day refund period. 30-day warranty from delivery." },
@@ -219,9 +223,7 @@ function HygienePolicy({ onAccept, onDecline }: { onAccept: () => void; onDeclin
   )
   const footer = (
     <div className="flex gap-2 pt-2">
-      <Button className="flex-1 bg-[#E5403B] hover:bg-[#cc3935] text-white" onClick={handleAccept}>
-        <CheckCircle2 className="size-4" /> I Accept
-      </Button>
+      <Button className="flex-1 bg-[#E5403B] hover:bg-[#cc3935] text-white" onClick={handleAccept}><CheckCircle2 className="size-4" /> I Accept</Button>
       <Button variant="outline" className="flex-1" onClick={handleDecline}>Decline</Button>
     </div>
   )
@@ -231,11 +233,7 @@ function HygienePolicy({ onAccept, onDecline }: { onAccept: () => void; onDeclin
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <ShieldCheck className="size-4 text-[#E5403B]" /> iBlaze Returns Policy
-          </DialogTitle>
-        </DialogHeader>
+        <DialogHeader><DialogTitle className="flex items-center gap-2"><ShieldCheck className="size-4 text-[#E5403B]" /> iBlaze Returns Policy</DialogTitle></DialogHeader>
         {body}{footer}
       </DialogContent>
     </Dialog>
@@ -244,22 +242,15 @@ function HygienePolicy({ onAccept, onDecline }: { onAccept: () => void; onDeclin
     <Drawer open={open} onOpenChange={setOpen}>
       <DrawerTrigger asChild>{trigger}</DrawerTrigger>
       <DrawerContent>
-        <DrawerHeader>
-          <DrawerTitle className="flex items-center gap-2">
-            <ShieldCheck className="size-4 text-[#E5403B]" /> iBlaze Returns Policy
-          </DrawerTitle>
-        </DrawerHeader>
+        <DrawerHeader><DrawerTitle className="flex items-center gap-2"><ShieldCheck className="size-4 text-[#E5403B]" /> iBlaze Returns Policy</DrawerTitle></DrawerHeader>
         <div className="px-4 pb-2">{body}</div>
-        <DrawerFooter>
-          {footer}
-          <DrawerClose asChild><Button variant="ghost" size="sm">Cancel</Button></DrawerClose>
-        </DrawerFooter>
+        <DrawerFooter>{footer}<DrawerClose asChild><Button variant="ghost" size="sm">Cancel</Button></DrawerClose></DrawerFooter>
       </DrawerContent>
     </Drawer>
   )
 }
 
-// ─── Order Card (grid) ────────────────────────────────────────────────────
+// ─── Order Card (grid) ─────────────────────────────────────────────────────
 function OrderCard({ order, onClick }: { order: Order; onClick: () => void }) {
   const uniqueImages = order.processedItems.map(i => i.image?.url).filter((u, i, a) => u && a.indexOf(u) === i).slice(0, 5) as string[]
   const extra = order.processedItems.length - uniqueImages.length
@@ -288,7 +279,6 @@ function OrderCard({ order, onClick }: { order: Order; onClick: () => void }) {
   )
 }
 
-// ─── Order Row (list) ────────────────────────────────────────────────────
 function OrderRow({ order, onClick }: { order: Order; onClick: () => void }) {
   const images = order.processedItems.map(i => i.image?.url).filter(Boolean).slice(0, 3) as string[]
   const total = parseFloat(order.totalPriceSet.shopMoney.amount)
@@ -297,12 +287,7 @@ function OrderRow({ order, onClick }: { order: Order; onClick: () => void }) {
   return (
     <button onClick={onClick} className="w-full px-5 py-3.5 flex items-center gap-4 hover:bg-zinc-50 transition-colors text-left group border-b border-border last:border-0">
       <div className="flex -space-x-2">
-        {images.map((url, i) => (
-          <div key={i} className="size-9 rounded-lg border-2 border-white bg-white overflow-hidden shadow-sm">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={url} alt="" className="w-full h-full object-contain" />
-          </div>
-        ))}
+        {images.map((url, i) => <div key={i} className="size-9 rounded-lg border-2 border-white bg-white overflow-hidden shadow-sm"><img src={url} alt="" className="w-full h-full object-contain" /></div>)}
       </div>
       <div className="flex-1 min-w-0">
         <p className="font-semibold text-sm group-hover:underline">{order.name}</p>
@@ -314,6 +299,26 @@ function OrderRow({ order, onClick }: { order: Order; onClick: () => void }) {
   )
 }
 
+// ─── Shared table card shell ───────────────────────────────────────────────
+function TableCard({ title, badge, fullWidth, children }: {
+  title: string
+  badge: React.ReactNode
+  fullWidth?: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <Card className={cn(C, "overflow-hidden flex flex-col", fullWidth ? "w-full" : TABLE_H)}>
+      <CardHeader className="px-5 py-3 border-b gap-0 shrink-0">
+        <CardTitle className="text-sm font-semibold flex items-center justify-between">
+          {title}
+          {badge}
+        </CardTitle>
+      </CardHeader>
+      {children}
+    </Card>
+  )
+}
+
 // ─── Order Detail ──────────────────────────────────────────────────────────
 function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
   const [policyAccepted, setPolicyAccepted] = useState(false)
@@ -322,7 +327,6 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
   >({})
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
-  // Portal needs client-side mount check
   const [mounted, setMounted] = useState(false)
   useEffect(() => { setMounted(true) }, [])
 
@@ -336,8 +340,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
   const total = parseFloat(order.totalPriceSet.shopMoney.amount)
   const totalQty = order.processedItems.reduce((s, i) => s + i.quantity, 0)
   const pricePerItem = totalQty > 0 ? total / totalQty : 0
-  const refundedAmount = order.totalRefundedSet?.shopMoney?.amount
-    ? parseFloat(order.totalRefundedSet.shopMoney.amount) : 0
+  const refundedAmount = order.totalRefundedSet?.shopMoney?.amount ? parseFloat(order.totalRefundedSet.shopMoney.amount) : 0
 
   const selectedCount = Object.values(selectedItems).filter(v => v.selected).length
   const estimatedRefund = Object.entries(selectedItems)
@@ -392,16 +395,67 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
     )
   }
 
+  // ── Ineligible table content (shared between layouts) ──
+  const IneligibleTableContent = (
+    <>
+      {ineligibleItems.length === 0 ? (
+        <div className="flex-1 flex items-center justify-center p-8 text-center text-muted-foreground text-sm">
+          All items in this order are eligible for return.
+        </div>
+      ) : (
+        <ScrollArea className="flex-1 min-h-0">
+          <Table>
+            <TableHeader className="sticky top-0 bg-background z-10">
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="pl-4">Product</TableHead>
+                <TableHead className="pr-4 text-right">Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {ineligibleItems.map(item => {
+                const url = pUrl(item.productHandle)
+                return (
+                  <TableRow key={item.id} className="opacity-75">
+                    <TableCell className="pl-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <ProductThumb item={item} />
+                        <div className="min-w-0">
+                          <a href={url} target="_blank" rel="noopener noreferrer"
+                            className="font-medium text-sm hover:underline block leading-tight truncate max-w-[200px]">
+                            {item.title}
+                          </a>
+                          {item.variant?.title && item.variant.title !== "Default Title" && (
+                            <p className="text-xs text-muted-foreground mt-0.5">{item.variant.title}</p>
+                          )}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="pr-4 py-3 text-right">
+                      <IneligibleReason
+                        status={item.returnStatus}
+                        reason={item.returnReason}
+                        lineDeliveredAt={item.lineDeliveredAt}
+                      />
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+        </ScrollArea>
+      )}
+    </>
+  )
+
   return (
     <>
       <div className={cn("flex flex-col gap-4", hasEligible && "pb-[64px]")}>
 
-        {/* ── Back ── */}
         <Button variant="ghost" size="sm" onClick={onBack} className="-ml-2 text-muted-foreground hover:text-foreground w-fit">
           <ArrowLeft className="size-4" /> Back to Orders
         </Button>
 
-        {/* ── Compact order header card ── */}
+        {/* ── Order header card ── */}
         <Card className={cn(C, "overflow-hidden")}>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-4">
             <div>
@@ -427,24 +481,11 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
               </a>
             </Button>
           </div>
-          {/* Stats bar */}
           <div className="grid grid-cols-2 sm:grid-cols-4 border-t border-border divide-x divide-border">
-            <div className="px-5 py-3">
-              <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Total Paid</p>
-              <p className="font-semibold text-sm mt-0.5">£{total.toFixed(2)}</p>
-            </div>
-            <div className="px-5 py-3">
-              <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Eligible</p>
-              <p className="font-semibold text-sm mt-0.5 text-green-600">{eligibleItems.length}</p>
-            </div>
-            <div className="px-5 py-3">
-              <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Ineligible</p>
-              <p className="font-semibold text-sm mt-0.5 text-zinc-500">{ineligibleItems.length}</p>
-            </div>
-            <div className="px-5 py-3">
-              <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Refunded</p>
-              <p className="font-semibold text-sm mt-0.5 text-blue-600">£{refundedAmount.toFixed(2)}</p>
-            </div>
+            <div className="px-5 py-3"><p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Total Paid</p><p className="font-semibold text-sm mt-0.5">£{total.toFixed(2)}</p></div>
+            <div className="px-5 py-3"><p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Eligible</p><p className="font-semibold text-sm mt-0.5 text-green-600">{eligibleItems.length}</p></div>
+            <div className="px-5 py-3"><p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Ineligible</p><p className="font-semibold text-sm mt-0.5 text-zinc-500">{ineligibleItems.length}</p></div>
+            <div className="px-5 py-3"><p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Refunded</p><p className="font-semibold text-sm mt-0.5 text-blue-600">£{refundedAmount.toFixed(2)}</p></div>
           </div>
         </Card>
 
@@ -461,28 +502,23 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
           </div>
         )}
 
-        {/* ── Side-by-side tables ──
-            xl: side-by-side (≥1280px) — below that they stack to avoid cramping
-            Each card has fixed height on xl with internal scroll
+        {/* ── Tables ──
+            If eligible items exist: side-by-side on xl, stacked below
+            If NO eligible items: ineligible table is full width, no eligible card shown
         ── */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        {hasEligible ? (
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
 
-          {/* Eligible */}
-          <Card className={cn(C, "overflow-hidden flex flex-col", TABLE_H)}>
-            <CardHeader className="px-5 py-3 border-b gap-0 shrink-0">
-              <CardTitle className="text-sm font-semibold flex items-center justify-between">
-                Select items to return
+            {/* Eligible */}
+            <TableCard
+              title="Select items to return"
+              badge={
                 <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-0 text-xs font-medium h-5 w-5 p-0 flex items-center justify-center rounded-full">
                   {eligibleItems.length}
                 </Badge>
-              </CardTitle>
-            </CardHeader>
-            {eligibleItems.length === 0 ? (
-              <div className="flex-1 flex items-center justify-center p-8 text-center text-muted-foreground text-sm">
-                No items are currently eligible for return.
-              </div>
-            ) : (
-              <div className="flex-1 overflow-y-auto min-h-0">
+              }
+            >
+              <ScrollArea className="flex-1 min-h-0">
                 <Table>
                   <TableHeader className="sticky top-0 bg-background z-10">
                     <TableRow className="hover:bg-transparent">
@@ -524,7 +560,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                                 <ProductThumb item={item} />
                                 <div className="min-w-0">
                                   <a href={url} target="_blank" rel="noopener noreferrer"
-                                    className="font-medium text-sm hover:underline block leading-tight truncate max-w-[180px]">
+                                    className="font-medium text-sm hover:underline block leading-tight truncate max-w-[170px]">
                                     {item.title}
                                   </a>
                                   {item.variant?.title && item.variant.title !== "Default Title" && (
@@ -538,31 +574,22 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                             </TableCell>
                           </TableRow>
 
-                          {/* Expanded form */}
                           {sel?.selected && (
                             <TableRow className="hover:bg-transparent bg-zinc-50/60">
                               <TableCell colSpan={3} className="px-4 pb-3 pt-1">
                                 <div className="ml-[calc(0.5rem+2.5rem+0.75rem)] grid grid-cols-2 gap-2.5">
                                   <div>
                                     <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">Quantity</label>
-                                    <Select
-                                      value={String(sel.quantity)}
-                                      onValueChange={val => setSelectedItems(prev => ({ ...prev, [item.id]: { ...prev[item.id], quantity: parseInt(val) } }))}
-                                    >
+                                    <Select value={String(sel.quantity)} onValueChange={val => setSelectedItems(prev => ({ ...prev, [item.id]: { ...prev[item.id], quantity: parseInt(val) } }))}>
                                       <SelectTrigger className="h-8 text-sm bg-white"><SelectValue /></SelectTrigger>
                                       <SelectContent>
-                                        {Array.from({ length: item.quantity }, (_, i) => (
-                                          <SelectItem key={i+1} value={String(i+1)}>{i+1}</SelectItem>
-                                        ))}
+                                        {Array.from({ length: item.quantity }, (_, i) => <SelectItem key={i+1} value={String(i+1)}>{i+1}</SelectItem>)}
                                       </SelectContent>
                                     </Select>
                                   </div>
                                   <div>
                                     <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">Reason</label>
-                                    <Select
-                                      value={sel.reason}
-                                      onValueChange={val => setSelectedItems(prev => ({ ...prev, [item.id]: { ...prev[item.id], reason: val, description: "" } }))}
-                                    >
+                                    <Select value={sel.reason} onValueChange={val => setSelectedItems(prev => ({ ...prev, [item.id]: { ...prev[item.id], reason: val, description: "" } }))}>
                                       <SelectTrigger className="h-8 text-sm bg-white"><SelectValue placeholder="Select..." /></SelectTrigger>
                                       <SelectContent>
                                         {RETURN_REASONS.map(r => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
@@ -592,71 +619,34 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                     })}
                   </TableBody>
                 </Table>
-              </div>
-            )}
-          </Card>
+              </ScrollArea>
+            </TableCard>
 
-          {/* Ineligible */}
-          <Card className={cn(C, "overflow-hidden flex flex-col", TABLE_H)}>
-            <CardHeader className="px-5 py-3 border-b gap-0 shrink-0">
-              <CardTitle className="text-sm font-semibold flex items-center justify-between">
-                Not eligible for return
-                <Badge variant="secondary" className="text-xs font-medium h-5 w-5 p-0 flex items-center justify-center rounded-full">
-                  {ineligibleItems.length}
-                </Badge>
-              </CardTitle>
-            </CardHeader>
-            {ineligibleItems.length === 0 ? (
-              <div className="flex-1 flex items-center justify-center p-8 text-center text-muted-foreground text-sm">
-                All items in this order are eligible for return.
-              </div>
-            ) : (
-              <div className="flex-1 overflow-y-auto min-h-0">
-                <Table>
-                  <TableHeader className="sticky top-0 bg-background z-10">
-                    <TableRow className="hover:bg-transparent">
-                      <TableHead className="pl-4">Product</TableHead>
-                      <TableHead className="pr-4 text-right">Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {ineligibleItems.map(item => {
-                      const url = pUrl(item.productHandle)
-                      return (
-                        <TableRow key={item.id} className="opacity-75">
-                          <TableCell className="pl-4 py-3">
-                            <div className="flex items-center gap-3">
-                              <ProductThumb item={item} />
-                              <div className="min-w-0">
-                                <a href={url} target="_blank" rel="noopener noreferrer"
-                                  className="font-medium text-sm hover:underline block leading-tight truncate max-w-[180px]">
-                                  {item.title}
-                                </a>
-                                {item.variant?.title && item.variant.title !== "Default Title" && (
-                                  <p className="text-xs text-muted-foreground mt-0.5">{item.variant.title}</p>
-                                )}
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell className="pr-4 py-3 text-right">
-                            <IneligibleReason status={item.returnStatus} reason={item.returnReason} />
-                          </TableCell>
-                        </TableRow>
-                      )
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </Card>
-        </div>
+            {/* Ineligible (side by side) */}
+            <TableCard
+              title="Not eligible for return"
+              badge={<Badge variant="secondary" className="text-xs font-medium h-5 w-5 p-0 flex items-center justify-center rounded-full">{ineligibleItems.length}</Badge>}
+            >
+              {IneligibleTableContent}
+            </TableCard>
+          </div>
+
+        ) : (
+          /* No eligible items — ineligible card takes full width */
+          <TableCard
+            title="Not eligible for return"
+            badge={<Badge variant="secondary" className="text-xs font-medium h-5 w-5 p-0 flex items-center justify-center rounded-full">{ineligibleItems.length}</Badge>}
+            fullWidth
+          >
+            {IneligibleTableContent}
+          </TableCard>
+        )}
       </div>
 
-      {/* ── Action bar — fixed, portalled to body to escape overflow:hidden ── */}
+      {/* ── Portalled fixed action bar — no blur/glass ── */}
       {mounted && hasEligible && createPortal(
-        <div className="fixed bottom-0 left-0 right-0 md:left-[18rem] z-[9999] border-t border-border bg-background/98 backdrop-blur-sm shadow-[0_-1px_8px_rgba(0,0,0,0.06)]">
+        <div className="fixed bottom-0 left-0 right-0 md:left-[18rem] z-[9999] border-t border-border bg-background shadow-[0_-2px_12px_rgba(0,0,0,0.08)]">
           <div className="px-4 lg:px-6 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            {/* Summary */}
             <div className="flex items-center gap-4">
               <div>
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Selected</p>
@@ -674,7 +664,6 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                 </div>
               )}
             </div>
-            {/* Actions */}
             <div className="flex items-center gap-2 shrink-0">
               <Button variant="ghost" size="sm" onClick={onBack} className="text-muted-foreground">Cancel</Button>
               <Button
@@ -682,9 +671,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                 disabled={!canSubmit || submitting}
                 onClick={submitReturn}
               >
-                {submitting
-                  ? <><Spinner className="size-4" /> Submitting...</>
-                  : <><RotateCcw className="size-4" /> Submit Return</>}
+                {submitting ? <><Spinner className="size-4" /> Submitting...</> : <><RotateCcw className="size-4" /> Submit Return</>}
               </Button>
             </div>
           </div>
@@ -713,28 +700,14 @@ export default function DashboardClient() {
       .finally(() => setLoading(false))
   }, [])
 
-  const filteredOrders = (data?.orders || []).filter(o =>
-    o.name.toLowerCase().includes(search.toLowerCase())
-  )
+  const filteredOrders = (data?.orders || []).filter(o => o.name.toLowerCase().includes(search.toLowerCase()))
   const user = { name: data?.firstName || "Customer", email: data?.email || "" }
 
   const portalContent = (
     <SidebarProvider style={{ "--sidebar-width": "18rem", "--header-height": "3rem" } as React.CSSProperties}>
-      <AppSidebar
-        variant="inset"
-        user={user}
-        onNavigate={s => { setActiveSection(s); setSelectedOrder(null) }}
-        activeSection={activeSection}
-      />
+      <AppSidebar variant="inset" user={user} onNavigate={s => { setActiveSection(s); setSelectedOrder(null) }} activeSection={activeSection} />
       <SidebarInset>
-        <SiteHeader
-          title={selectedOrder ? selectedOrder.name : "My Orders"}
-          search={search}
-          onSearch={setSearch}
-          showSearch={!selectedOrder}
-          firstName={data?.firstName}
-          email={data?.email}
-        />
+        <SiteHeader title={selectedOrder ? selectedOrder.name : "My Orders"} search={search} onSearch={setSearch} showSearch={!selectedOrder} firstName={data?.firstName} email={data?.email} />
         <div className="flex flex-1 flex-col p-4 lg:p-6 gap-4">
           {selectedOrder ? (
             <OrderDetail order={selectedOrder} onBack={() => setSelectedOrder(null)} />
@@ -742,33 +715,24 @@ export default function DashboardClient() {
             <>
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-lg font-semibold">
-                    {data?.firstName ? `Hi, ${data.firstName} 👋` : "Your Recent Orders"}
-                  </h2>
+                  <h2 className="text-lg font-semibold">{data?.firstName ? `Hi, ${data.firstName} 👋` : "Your Recent Orders"}</h2>
                   <p className="text-sm text-muted-foreground mt-0.5">Select an order to view details or initiate a return.</p>
                 </div>
                 <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
-                  <Button variant="ghost" size="icon" className={cn("size-7", view === "grid" && "bg-background shadow-sm")} onClick={() => setView("grid")}>
-                    <LayoutGrid className="size-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className={cn("size-7", view === "list" && "bg-background shadow-sm")} onClick={() => setView("list")}>
-                    <List className="size-4" />
-                  </Button>
+                  <Button variant="ghost" size="icon" className={cn("size-7", view === "grid" && "bg-background shadow-sm")} onClick={() => setView("grid")}><LayoutGrid className="size-4" /></Button>
+                  <Button variant="ghost" size="icon" className={cn("size-7", view === "list" && "bg-background shadow-sm")} onClick={() => setView("list")}><List className="size-4" /></Button>
                 </div>
               </div>
 
               {error && (
                 <div className="flex items-center gap-3 p-4 rounded-xl bg-destructive/10 text-sm text-destructive border border-destructive/20">
-                  <PackageX className="size-5 shrink-0" />{error}
+                  <ShoppingBag className="size-5 shrink-0" />{error}
                 </div>
               )}
 
               {view === "grid" && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                  {loading
-                    ? Array.from({ length: 6 }).map((_, i) => <OrderCardSkeleton key={i} />)
-                    : filteredOrders.map(o => <OrderCard key={o.id} order={o} onClick={() => setSelectedOrder(o)} />)
-                  }
+                  {loading ? Array.from({ length: 6 }).map((_, i) => <OrderCardSkeleton key={i} />) : filteredOrders.map(o => <OrderCard key={o.id} order={o} onClick={() => setSelectedOrder(o)} />)}
                 </div>
               )}
 
@@ -777,8 +741,7 @@ export default function DashboardClient() {
                   <CardContent className="p-0">
                     {filteredOrders.length === 0
                       ? <div className="text-center py-20"><ShoppingBag className="size-12 text-muted-foreground/30 mx-auto mb-4" /><p className="font-medium text-muted-foreground">No orders found</p></div>
-                      : filteredOrders.map(o => <OrderRow key={o.id} order={o} onClick={() => setSelectedOrder(o)} />)
-                    }
+                      : filteredOrders.map(o => <OrderRow key={o.id} order={o} onClick={() => setSelectedOrder(o)} />)}
                   </CardContent>
                 </Card>
               )}
@@ -792,19 +755,12 @@ export default function DashboardClient() {
   if (loading) {
     return (
       <div className="relative h-screen w-screen overflow-hidden">
-        <div className="pointer-events-none select-none blur-sm brightness-95 h-full w-full">
-          {portalContent}
-        </div>
+        <div className="pointer-events-none select-none blur-sm brightness-95 h-full w-full">{portalContent}</div>
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/40 backdrop-blur-sm">
           <Card className="w-full max-w-xs mx-4 shadow-xl">
             <CardContent className="flex flex-col items-center justify-center gap-3 py-8">
-              <div className="size-10 rounded-full bg-[#E5403B]/10 flex items-center justify-center">
-                <Spinner className="size-5 text-[#E5403B]" />
-              </div>
-              <div className="text-center">
-                <p className="font-semibold text-sm">Authenticating</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Verifying your session securely...</p>
-              </div>
+              <div className="size-10 rounded-full bg-[#E5403B]/10 flex items-center justify-center"><Spinner className="size-5 text-[#E5403B]" /></div>
+              <div className="text-center"><p className="font-semibold text-sm">Authenticating</p><p className="text-xs text-muted-foreground mt-0.5">Verifying your session securely...</p></div>
             </CardContent>
           </Card>
         </div>
