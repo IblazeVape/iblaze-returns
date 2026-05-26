@@ -569,8 +569,11 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                                 </div>
                               </div>
                             </TableCell>
-                            <TableCell className="text-right pr-4 py-3 text-sm whitespace-nowrap hidden sm:table-cell text-muted-foreground">
-                              £{pricePerItem.toFixed(2)} × <span className="inline-flex items-center justify-center bg-muted rounded px-1.5 text-[11px] font-semibold text-foreground">{item.quantity}</span>
+                            <TableCell className="pr-4 py-3 text-sm whitespace-nowrap hidden sm:table-cell">
+                              <div className="flex items-center justify-end gap-1.5">
+                                <span className="text-muted-foreground">£{pricePerItem.toFixed(2)} ×</span>
+                                <span className="inline-flex items-center justify-center bg-muted rounded px-1.5 text-[11px] font-semibold text-foreground min-w-[22px]">{item.quantity}</span>
+                              </div>
                             </TableCell>
                             <TableCell className="text-right pr-4 py-3 font-semibold text-sm whitespace-nowrap">
                               £{linePrice.toFixed(2)}
@@ -652,7 +655,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
       {mounted && hasEligible && createPortal(
         <div
           className="fixed bottom-0 right-0 z-[48] border-t border-border bg-background shadow-[0_-2px_12px_rgba(0,0,0,0.08)]"
-          style={{ left: sidebarMobile ? "0px" : sidebarState === "collapsed" ? "4rem" : "18rem" }}
+          style={{ left: sidebarMobile ? "0px" : sidebarState === "collapsed" ? "4.5rem" : "18rem" }}
         >
           <div className="px-4 lg:px-6 py-2.5 flex items-center justify-between gap-2">
             {/* Left: stats */}
