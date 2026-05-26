@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
                         node {
                           id
                           status
+                          updatedAt
                           decline {
                             reason
                             note
@@ -100,6 +101,7 @@ export async function GET(request: NextRequest) {
           node: {
             id: string;
             status: string;
+            updatedAt: string;
             decline?: {
               reason: string;
               note: string;
@@ -139,7 +141,7 @@ export async function GET(request: NextRequest) {
       };
     }) => {
       
-      const itemReturnStatus: Record<string, { status: string; declineReason?: string; declineNote?: string }> = {};
+      const itemReturnStatus: Record<string, { status: string; declineReason?: string; declineNote?: string; updatedAt: Date }> = {};
       const returns = order.returns?.edges || [];
 
       // Helper to prioritise active returns over cancelled/older ones
@@ -157,18 +159,22 @@ export async function GET(request: NextRequest) {
       for (const retEdge of returns) {
         const returnNode = retEdge.node;
         const currentPriority = getPriority(returnNode.status);
+        const returnUpdatedAt = new Date(returnNode.updatedAt);
         
         for (const rliEdge of returnNode.returnLineItems?.edges || []) {
           const lineItemId = rliEdge.node.fulfillmentLineItem?.lineItem?.id;
           if (lineItemId) {
-            const existingPriority = itemReturnStatus[lineItemId] ? getPriority(itemReturnStatus[lineItemId].status) : -1;
+            const existing = itemReturnStatus[lineItemId];
+            const existingPriority = existing ? getPriority(existing.status) : -1;
             
-            // Only update if this return status has a higher or equal priority to what we already saved
-            if (currentPriority >= existingPriority) {
+            // Overwrite if the new status has a HIGHER priority
+            // OR if the priority is the SAME, but the new one is MORE RECENT
+            if (currentPriority > existingPriority || (currentPriority === existingPriority && returnUpdatedAt > existing.updatedAt)) {
               itemReturnStatus[lineItemId] = {
                 status: returnNode.status,
                 declineReason: returnNode.decline?.reason,
-                declineNote: returnNode.decline?.note
+                declineNote: returnNode.decline?.note,
+                updatedAt: returnUpdatedAt
               }; 
             }
           }
@@ -225,12 +231,12 @@ export async function GET(request: NextRequest) {
             const dNote = (existingReturn.declineNote || "").trim();
             const dReason = existingReturn.declineReason;
             
-            // This logs the raw data to your Vercel runtime logs so we can see exactly what Shopify is sending
             console.log("DECLINED RETURN DEBUG", {
               lineItemId: item.id,
               declineReason: dReason,
               declineNote: existingReturn.declineNote,
-              processedNote: dNote
+              processedNote: dNote,
+              updatedAt: existingReturn.updatedAt
             });
             
             if (dNote) {
