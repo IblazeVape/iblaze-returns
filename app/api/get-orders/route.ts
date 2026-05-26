@@ -29,6 +29,23 @@ export async function GET(request: NextRequest) {
                     id name createdAt displayFulfillmentStatus
                     totalPriceSet { shopMoney { amount currencyCode } }
                     totalRefundedSet { shopMoney { amount } }
+                    returns(first: 10) {
+                      edges {
+                        node {
+                          id
+                          status
+                          returnLineItems(first: 50) {
+                            edges {
+                              node {
+                                fulfillmentLineItem {
+                                  lineItem { id }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
                     fulfillments {
                       id
                       displayStatus
@@ -76,6 +93,24 @@ export async function GET(request: NextRequest) {
       createdAt: string;
       displayFulfillmentStatus: string;
       totalPriceSet: { shopMoney: { amount: string; currencyCode: string } };
+      totalRefundedSet?: { shopMoney: { amount: string } } | null;
+      returns?: {
+        edges: Array<{
+          node: {
+            id: string;
+            status: string;
+            returnLineItems: {
+              edges: Array<{
+                node: {
+                  fulfillmentLineItem?: {
+                    lineItem?: { id: string };
+                  };
+                };
+              }>;
+            };
+          };
+        }>;
+      };
       fulfillments: Array<{
         id: string;
         displayStatus: string;
@@ -98,6 +133,20 @@ export async function GET(request: NextRequest) {
         }>;
       };
     }) => {
+      // Build a map of items already in a return
+      const itemReturnStatus: Record<string, string> = {};
+      const returns = order.returns?.edges || [];
+
+      for (const retEdge of returns) {
+        const returnNode = retEdge.node;
+        for (const rliEdge of returnNode.returnLineItems?.edges || []) {
+          const lineItemId = rliEdge.node.fulfillmentLineItem?.lineItem?.id;
+          if (lineItemId) {
+            itemReturnStatus[lineItemId] = returnNode.status; 
+          }
+        }
+      }
+
       // fulfillments is already a plain array from Shopify (not a connection)
       const fulfillments = order.fulfillments || [];
 
@@ -150,10 +199,22 @@ export async function GET(request: NextRequest) {
 
       const items = order.lineItems.edges.map(({ node: item }) => {
         const delivery = lineItemDelivery[item.id];
+        const existingReturnStatus = itemReturnStatus[item.id];
+        
         let returnStatus: string;
         let returnReason: string;
 
-        if (!delivery || !delivery.isDispatched) {
+        if (existingReturnStatus) {
+          const statusMap: Record<string, string> = {
+            REQUESTED: "Return requested",
+            OPEN: "Return approved",
+            CLOSED: "Return completed",
+            DECLINED: "Return declined",
+            CANCELED: "Return cancelled"
+          };
+          returnStatus = statusMap[existingReturnStatus] || "Return in progress";
+          returnReason = "You have already submitted a return request for this item.";
+        } else if (!delivery || !delivery.isDispatched) {
           returnStatus = "Not yet dispatched";
           returnReason = "This item hasn't been dispatched yet — check back once it ships.";
         } else if (delivery.inTransit && !delivery.isDelivered) {
