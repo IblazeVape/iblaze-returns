@@ -11,7 +11,7 @@ import {
 } from "lucide-react"
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
+import { SidebarInset, SidebarProvider, useSidebar } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Spinner } from "@/components/ui/spinner"
@@ -171,7 +171,7 @@ function ProductThumb({ item }: { item: LineItem }) {
   const url = pUrl(item.productHandle)
   return (
     <a href={url} target="_blank" rel="noopener noreferrer" className="relative shrink-0 block">
-      <div className="size-10 rounded-md overflow-hidden bg-white border border-border">
+      <div className="size-10 rounded-md overflow-hidden bg-white border border-border hover:border-foreground transition-colors duration-150">
         {item.image?.url && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={item.image.url} alt={item.title} className="w-full h-full object-contain p-0.5" />
@@ -329,6 +329,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
   const [submitted, setSubmitted] = useState(false)
   const [mounted, setMounted] = useState(false)
   useEffect(() => { setMounted(true) }, [])
+  const { state: sidebarState, isMobile: sidebarMobile } = useSidebar()
 
   const rawOrderId = order.id.split("/").pop()
   const orderStatusUrl = `https://account.iblazevape.co.uk/orders/${rawOrderId}`
@@ -449,7 +450,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
 
   return (
     <>
-      <div className={cn("flex flex-col gap-4", hasEligible && "pb-[64px]")}>
+      <div className={cn("flex flex-col gap-4", hasEligible && "pb-[120px] sm:pb-[64px]")}>
 
         <Button variant="ghost" size="sm" onClick={onBack} className="-ml-2 text-muted-foreground hover:text-foreground w-fit">
           <ArrowLeft className="size-4" /> Back to Orders
@@ -648,7 +649,10 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
 
       {/* ── Portalled fixed action bar — no blur/glass ── */}
       {mounted && hasEligible && createPortal(
-        <div className="fixed bottom-0 left-0 right-0 md:left-[18rem] z-[9999] border-t border-border bg-background shadow-[0_-2px_12px_rgba(0,0,0,0.08)]">
+        <div
+          className="fixed bottom-0 right-0 z-[48] border-t border-border bg-background shadow-[0_-2px_12px_rgba(0,0,0,0.08)]"
+          style={{ left: sidebarMobile ? "0px" : sidebarState === "collapsed" ? "var(--sidebar-width-icon, 3rem)" : "var(--sidebar-width, 18rem)" }}
+        >
           <div className="px-4 lg:px-6 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-4">
               <div>
