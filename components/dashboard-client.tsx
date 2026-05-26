@@ -26,7 +26,17 @@ import { Drawer, DrawerClose, DrawerContent, DrawerFooter, DrawerHeader, DrawerT
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { cn } from "@/lib/utils"
 
-type ReturnStatus = "Eligible" | "Not yet dispatched" | "On its way" | "Passed the return window" | "Returned"
+type ReturnStatus = 
+  | "Eligible" 
+  | "Not yet dispatched" 
+  | "On its way" 
+  | "Passed the return window" 
+  | "Returned"
+  | "Return requested"
+  | "Return approved"
+  | "Return completed"
+  | "Return declined"
+  | "Return cancelled"
 
 interface LineItem {
   id: string
@@ -95,8 +105,20 @@ function IneligibleReason({ status }: { status: ReturnStatus }) {
       <span className="text-xs font-medium whitespace-nowrap">Window expired</span>
     </div>
   )
-  if (status === "Returned") return (
-    <Badge variant="secondary" className="text-xs font-medium">Returned</Badge>
+  if (status === "Return requested") return (
+    <Badge variant="outline" className="text-xs font-medium bg-blue-50 text-blue-700 border-blue-200">Requested</Badge>
+  )
+  if (status === "Return approved") return (
+    <Badge variant="outline" className="text-xs font-medium bg-green-50 text-green-700 border-green-200">Approved</Badge>
+  )
+  if (status === "Return completed" || status === "Returned") return (
+    <Badge variant="secondary" className="text-xs font-medium">Completed</Badge>
+  )
+  if (status === "Return declined") return (
+    <Badge variant="destructive" className="text-xs font-medium">Declined</Badge>
+  )
+  if (status === "Return cancelled") return (
+    <span className="text-xs text-muted-foreground font-medium">Cancelled</span>
   )
   return <span className="text-xs text-muted-foreground">{status}</span>
 }
@@ -356,7 +378,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
         </div>
         <h2 className="text-xl font-semibold">Return Requested</h2>
         <p className="text-muted-foreground text-sm">
-          We&apos;ve sent you a confirmation email. Our team will review your return and be in touch once it&apos;s completed.
+          We&apos;ve sent you what we said earlier. Our team will review your return and be in touch once it&apos;s completed.
         </p>
         <p className="text-xs text-muted-foreground">Redirecting to your order page...</p>
       </div>
