@@ -5,7 +5,7 @@
 @layer base {
   :root {
     --radius: 0.625rem;
-   --background: 0 0% 98%;
+    --background: 0 0% 100%;
     --foreground: 0 0% 9%;
     --card: 0 0% 100%;
     --card-foreground: 0 0% 9%;
@@ -66,4 +66,23 @@
 
   * { @apply border-border; }
   body { @apply bg-background text-foreground; font-feature-settings: "rlig" 1, "calt" 1; }
+}
+
+/* Tailwind v3 compatibility fixes */
+.min-h-svh { min-height: 100svh; }
+.h-svh { height: 100svh; }
+
+/* ── Sonner toast — white background, no CSS-variable tinting ── */
+[data-sonner-toast][data-styled=true] {
+  padding: 16px;
+  background: white !important;
+  border: 1px solid #E5E5E5;
+  color: #111;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  width: var(--width);
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
