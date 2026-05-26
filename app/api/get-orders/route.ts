@@ -138,20 +138,39 @@ export async function GET(request: NextRequest) {
         }>;
       };
     }) => {
-      // Capture both the decline reason and note
+      
       const itemReturnStatus: Record<string, { status: string; declineReason?: string; declineNote?: string }> = {};
       const returns = order.returns?.edges || [];
 
+      // Helper to prioritise active returns over cancelled/older ones
+      const getPriority = (status: string) => {
+        switch (status) {
+          case "OPEN": return 5;
+          case "REQUESTED": return 4;
+          case "CLOSED": return 3;
+          case "DECLINED": return 2;
+          case "CANCELED": return 1;
+          default: return 0;
+        }
+      };
+
       for (const retEdge of returns) {
         const returnNode = retEdge.node;
+        const currentPriority = getPriority(returnNode.status);
+        
         for (const rliEdge of returnNode.returnLineItems?.edges || []) {
           const lineItemId = rliEdge.node.fulfillmentLineItem?.lineItem?.id;
           if (lineItemId) {
-            itemReturnStatus[lineItemId] = {
-              status: returnNode.status,
-              declineReason: returnNode.decline?.reason,
-              declineNote: returnNode.decline?.note
-            }; 
+            const existingPriority = itemReturnStatus[lineItemId] ? getPriority(itemReturnStatus[lineItemId].status) : -1;
+            
+            // Only update if this return status has a higher or equal priority to what we already saved
+            if (currentPriority >= existingPriority) {
+              itemReturnStatus[lineItemId] = {
+                status: returnNode.status,
+                declineReason: returnNode.decline?.reason,
+                declineNote: returnNode.decline?.note
+              }; 
+            }
           }
         }
       }
@@ -206,7 +225,14 @@ export async function GET(request: NextRequest) {
             const dNote = (existingReturn.declineNote || "").trim();
             const dReason = existingReturn.declineReason;
             
-            // Render the exact note if it exists (handles "OTHER" + custom message)
+            // This logs the raw data to your Vercel runtime logs so we can see exactly what Shopify is sending
+            console.log("DECLINED RETURN DEBUG", {
+              lineItemId: item.id,
+              declineReason: dReason,
+              declineNote: existingReturn.declineNote,
+              processedNote: dNote
+            });
+            
             if (dNote) {
               returnReason = dNote;
             } else if (dReason === "RETURN_PERIOD_ENDED") {
