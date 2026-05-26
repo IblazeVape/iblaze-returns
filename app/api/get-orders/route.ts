@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { validateSession } from "@/lib/auth";
 import { shopifyAdmin } from "@/lib/shopify";
 
-// Corrected: Order.fulfillments is a direct array [Fulfillment!]! in the Admin API, not a connection.
-// It does not use edges or node. However, fulfillmentLineItems IS a paginated connection.
+// Order.fulfillments is a PLAIN ARRAY in Shopify Admin GraphQL (NOT a paginated connection)
+// Do NOT use edges/node - query fields directly on the fulfillment
+// fulfillmentLineItems IS a connection - use edges { node { ... } }
+// Use fulfillment.deliveredAt (dedicated field) when available
 
 export async function GET(request: NextRequest) {
   try {
@@ -24,10 +26,7 @@ export async function GET(request: NextRequest) {
               orders(first: 20, sortKey: CREATED_AT, reverse: true) {
                 edges {
                   node {
-                    id 
-                    name 
-                    createdAt 
-                    displayFulfillmentStatus
+                    id name createdAt displayFulfillmentStatus
                     totalPriceSet { shopMoney { amount currencyCode } }
                     fulfillments {
                       id
@@ -98,7 +97,7 @@ export async function GET(request: NextRequest) {
         }>;
       };
     }) => {
-      // fulfillments is already a plain array in the API response
+      // fulfillments is already a plain array from Shopify (not a connection)
       const fulfillments = order.fulfillments || [];
 
       // Build per-line-item delivery tracking
