@@ -29,7 +29,6 @@ export async function GET(request: NextRequest) {
                         node {
                           id
                           status
-                          updatedAt
                           decline {
                             reason
                             note
@@ -101,7 +100,6 @@ export async function GET(request: NextRequest) {
           node: {
             id: string;
             status: string;
-            updatedAt: string;
             decline?: {
               reason: string;
               note: string;
@@ -141,7 +139,7 @@ export async function GET(request: NextRequest) {
       };
     }) => {
       
-      const itemReturnStatus: Record<string, { status: string; declineReason?: string; declineNote?: string; updatedAt: Date }> = {};
+      const itemReturnStatus: Record<string, { status: string; declineReason?: string; declineNote?: string; recency: number }> = {};
       const returns = order.returns?.edges || [];
 
       // Helper to prioritise active returns over cancelled/older ones
@@ -156,25 +154,27 @@ export async function GET(request: NextRequest) {
         }
       };
 
+      let returnCounter = 0;
       for (const retEdge of returns) {
+        returnCounter++; // Increment the counter for every return processed
         const returnNode = retEdge.node;
         const currentPriority = getPriority(returnNode.status);
-        const returnUpdatedAt = new Date(returnNode.updatedAt);
         
         for (const rliEdge of returnNode.returnLineItems?.edges || []) {
           const lineItemId = rliEdge.node.fulfillmentLineItem?.lineItem?.id;
           if (lineItemId) {
             const existing = itemReturnStatus[lineItemId];
             const existingPriority = existing ? getPriority(existing.status) : -1;
+            const existingRecency = existing ? existing.recency : -1;
             
             // Overwrite if the new status has a HIGHER priority
-            // OR if the priority is the SAME, but the new one is MORE RECENT
-            if (currentPriority > existingPriority || (currentPriority === existingPriority && returnUpdatedAt > existing.updatedAt)) {
+            // OR if the priority is the SAME, but the new one is MORE RECENT in the array
+            if (currentPriority > existingPriority || (currentPriority === existingPriority && returnCounter > existingRecency)) {
               itemReturnStatus[lineItemId] = {
                 status: returnNode.status,
                 declineReason: returnNode.decline?.reason,
                 declineNote: returnNode.decline?.note,
-                updatedAt: returnUpdatedAt
+                recency: returnCounter
               }; 
             }
           }
@@ -236,7 +236,7 @@ export async function GET(request: NextRequest) {
               declineReason: dReason,
               declineNote: existingReturn.declineNote,
               processedNote: dNote,
-              updatedAt: existingReturn.updatedAt
+              recency: existingReturn.recency
             });
             
             if (dNote) {
