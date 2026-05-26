@@ -138,8 +138,8 @@ export async function GET(request: NextRequest) {
         }>;
       };
     }) => {
-      // Build a map of items already in a return, capturing both status and the decline note
-      const itemReturnStatus: Record<string, { status: string; declineNote?: string }> = {};
+      // Capture both the decline reason and note
+      const itemReturnStatus: Record<string, { status: string; declineReason?: string; declineNote?: string }> = {};
       const returns = order.returns?.edges || [];
 
       for (const retEdge of returns) {
@@ -149,6 +149,7 @@ export async function GET(request: NextRequest) {
           if (lineItemId) {
             itemReturnStatus[lineItemId] = {
               status: returnNode.status,
+              declineReason: returnNode.decline?.reason,
               declineNote: returnNode.decline?.note
             }; 
           }
@@ -201,9 +202,20 @@ export async function GET(request: NextRequest) {
           
           returnStatus = statusMap[existingReturn.status] || "Return in progress";
           
-          // If declined and there is a note, surface that message directly
-          if (existingReturn.status === "DECLINED" && existingReturn.declineNote) {
-            returnReason = existingReturn.declineNote;
+          if (existingReturn.status === "DECLINED") {
+            const dNote = (existingReturn.declineNote || "").trim();
+            const dReason = existingReturn.declineReason;
+            
+            // Render the exact note if it exists (handles "OTHER" + custom message)
+            if (dNote) {
+              returnReason = dNote;
+            } else if (dReason === "RETURN_PERIOD_ENDED") {
+              returnReason = "Your return request was declined because it is outside the return window.";
+            } else if (dReason === "FINAL_SALE") {
+              returnReason = "Your return request was declined because the item is a final sale.";
+            } else {
+              returnReason = "Your return request was declined.";
+            }
           } else {
             returnReason = "You have already submitted a return request for this item.";
           }
