@@ -656,7 +656,14 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                             {item.variant?.title && item.variant.title !== "Default Title" ? item.variant.title : "—"}
                           </TableCell>
                           <TableCell className="pr-4 text-right">
-                            <IneligibleReason status={item.returnStatus} />
+                            <div className="flex flex-col items-end gap-1.5">
+                              <IneligibleReason status={item.returnStatus} />
+                              {item.returnReason && item.returnStatus === "Return declined" && (
+                                <span className="text-[11px] text-muted-foreground text-right max-w-[220px] leading-snug whitespace-normal break-words">
+                                  {item.returnReason}
+                                </span>
+                              )}
+                            </div>
                           </TableCell>
                         </TableRow>
                       )
@@ -749,16 +756,19 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                         </div>
                       </div>
                     </TableCell>
+                    <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">
+                      {item.variant?.title && item.variant.title !== "Default Title" ? item.variant.title : "—"}
+                    </TableCell>
                     <TableCell className="pr-4 text-right">
-  <div className="flex flex-col items-end gap-1.5">
-    <IneligibleReason status={item.returnStatus} />
-    {item.returnReason && item.returnStatus === "Return declined" && (
-      <span className="text-[11px] text-muted-foreground text-right max-w-[220px] leading-snug">
-        {item.returnReason}
-      </span>
-    )}
-  </div>
-</TableCell>
+                      <div className="flex flex-col items-end gap-1.5">
+                        <IneligibleReason status={item.returnStatus} />
+                        {item.returnReason && item.returnStatus === "Return declined" && (
+                          <span className="text-[11px] text-muted-foreground text-right max-w-[220px] leading-snug whitespace-normal break-words">
+                            {item.returnReason}
+                          </span>
+                        )}
+                      </div>
+                    </TableCell>
                   </TableRow>
                 )
               })}
