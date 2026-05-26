@@ -28,6 +28,7 @@ export async function GET(request: NextRequest) {
                   node {
                     id name createdAt displayFulfillmentStatus
                     totalPriceSet { shopMoney { amount currencyCode } }
+                    totalRefundedSet { shopMoney { amount } }
                     fulfillments {
                       id
                       displayStatus
