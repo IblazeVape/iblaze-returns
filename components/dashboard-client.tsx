@@ -64,7 +64,10 @@ const RETURN_REASONS = [
   { value: "OTHER", label: "Other" },
 ]
 
-function productUrl(handle?: string | null) {
+// Compact card — no py-6, no gap-6 from Card base
+const C = "shadow-sm py-0 gap-0"
+
+function pUrl(handle?: string | null) {
   return handle ? `https://iblazevape.co.uk/products/${handle}` : "https://iblazevape.co.uk"
 }
 
@@ -80,7 +83,7 @@ function AuthenticatingScreen() {
   )
 }
 
-// ─── Hygiene Policy Dialog/Drawer ──────────────────────────────────────────
+// ─── Hygiene Policy Dialog / Drawer ───────────────────────────────────────
 function HygienePolicy({ onAccept, onDecline }: { onAccept: () => void; onDecline: () => void }) {
   const [open, setOpen] = useState(false)
   const isDesktop = useMediaQuery("(min-width: 768px)")
@@ -93,7 +96,7 @@ function HygienePolicy({ onAccept, onDecline }: { onAccept: () => void; onDeclin
   const handleDecline = () => {
     setOpen(false)
     onDecline()
-    toast.error("Policy declined", { description: "You must accept the returns policy to submit a return." })
+    toast.warning("Policy declined", { description: "You must accept the returns policy to submit a return." })
   }
 
   const trigger = (
@@ -165,6 +168,57 @@ function HygienePolicy({ onAccept, onDecline }: { onAccept: () => void; onDeclin
         </DrawerFooter>
       </DrawerContent>
     </Drawer>
+  )
+}
+
+// ─── Ineligible Items Card (reused in both layouts) ───────────────────────
+function IneligibleCard({ items }: { items: LineItem[] }) {
+  if (items.length === 0) return null
+  return (
+    <Card className={C + " overflow-hidden"}>
+      <CardHeader className="px-5 py-3 border-b">
+        <CardTitle className="text-sm font-semibold">
+          {items.length} item{items.length !== 1 ? "s" : ""} in this order aren&apos;t eligible for return.
+        </CardTitle>
+      </CardHeader>
+      <div className="divide-y divide-border">
+        {items.map(item => {
+          const url = pUrl(item.productHandle)
+          const label =
+            item.returnStatus === "On its way" ? "On its way" :
+            item.returnStatus === "Not yet dispatched" ? "Not dispatched" :
+            item.returnStatus === "Passed the return window" ? "Window expired" :
+            item.returnStatus
+          return (
+            <div key={item.id} className="flex items-center justify-between px-4 py-3 gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <a href={url} target="_blank" rel="noopener noreferrer" className="relative shrink-0 block">
+                  <div className="size-12 rounded-lg border border-border bg-white overflow-hidden">
+                    {item.image?.url && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={item.image.url} alt={item.title} className="w-full h-full object-contain p-0.5" />
+                    )}
+                  </div>
+                  <span className="absolute -top-2 -right-2 bg-foreground text-white text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full ring-2 ring-white z-10">
+                    {item.quantity}
+                  </span>
+                </a>
+                <div className="min-w-0">
+                  <a href={url} target="_blank" rel="noopener noreferrer"
+                    className="text-sm font-semibold text-foreground hover:underline block truncate">
+                    {item.title}
+                  </a>
+                  {item.variant?.title && item.variant.title !== "Default Title" && (
+                    <p className="text-xs text-muted-foreground">{item.variant.title}</p>
+                  )}
+                </div>
+              </div>
+              <span className="text-sm text-muted-foreground whitespace-nowrap shrink-0">{label}</span>
+            </div>
+          )
+        })}
+      </div>
+    </Card>
   )
 }
 
@@ -249,9 +303,9 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
 
   const total = parseFloat(order.totalPriceSet.shopMoney.amount)
   const totalQty = order.processedItems.reduce((s, i) => s + i.quantity, 0)
-
-  // Calculate per-item price by dividing total by total qty
   const pricePerItem = totalQty > 0 ? total / totalQty : 0
+  const refundedAmount = order.totalRefundedSet?.shopMoney?.amount ? parseFloat(order.totalRefundedSet.shopMoney.amount) : 0
+  const hasRefund = refundedAmount > 0
 
   const selectedCount = Object.values(selectedItems).filter(v => v.selected).length
   const estimatedRefund = Object.entries(selectedItems)
@@ -262,8 +316,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
     }, 0)
 
   const canSubmit =
-    selectedCount > 0 &&
-    policyAccepted &&
+    selectedCount > 0 && policyAccepted &&
     Object.entries(selectedItems)
       .filter(([, v]) => v.selected)
       .every(([, v]) => v.reason && (v.reason !== "OTHER" || v.description.trim().length > 0))
@@ -298,10 +351,6 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
   }
 
   const orderStatusUrl = `https://account.iblazevape.co.uk/orders/${order.id.split("/").pop()}`
-  const refundedAmount = order.totalRefundedSet?.shopMoney?.amount
-    ? parseFloat(order.totalRefundedSet.shopMoney.amount)
-    : 0
-  const hasRefund = refundedAmount > 0
 
   if (submitted) {
     return (
@@ -324,58 +373,66 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
         <ArrowLeft className="size-4" /> Back to Orders
       </Button>
 
-      {/* ── Order Header Card (compact) ── */}
-      <Card className="shadow-sm py-0">
-        <CardContent className="px-5 py-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-base font-semibold">{order.name}</h2>
-                {order.isDelivered
-                  ? <Badge className="bg-green-100 text-green-700 border-0 text-xs">Delivered</Badge>
-                  : <Badge variant="secondary" className="text-xs">
-                      {order.displayFulfillmentStatus === "IN_PROGRESS" ? "In Transit" :
-                       order.displayFulfillmentStatus === "FULFILLED" ? "Shipped" : "Processing"}
-                    </Badge>}
-              </div>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                {order.isDelivered && order.deliveredAt
-                  ? `Delivered ${new Date(order.deliveredAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`
-                  : new Date(order.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
-              </p>
-              <p className="text-sm font-semibold mt-0.5">£{total.toFixed(2)} GBP &bull; {totalQty} item{totalQty !== 1 ? "s" : ""}</p>
-            </div>
-            <a href={orderStatusUrl} target="_blank" rel="noopener noreferrer">
-              <Button variant="outline" size="sm" className="shrink-0">
-                <ExternalLink className="size-4" /> View Order Status
-              </Button>
-            </a>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* ── Refunded Card (separate, full-width, between header and items) ── */}
-      {hasRefund && (
-        <Card className="shadow-sm py-0">
+      {/* ── Top row: order header (2/3) + refunded card (1/3) ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+        <Card className={C + " lg:col-span-2"}>
           <CardContent className="px-5 py-4">
-            <div className="flex items-center gap-3">
-              <span className="text-base font-bold text-foreground">£{refundedAmount.toFixed(2)} GBP</span>
-              <Badge variant="outline" className="text-xs font-semibold">Refunded</Badge>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="text-base font-semibold">{order.name}</h2>
+                  {order.isDelivered
+                    ? <Badge className="bg-green-100 text-green-700 border-0 text-xs">Delivered</Badge>
+                    : <Badge variant="secondary" className="text-xs">
+                        {order.displayFulfillmentStatus === "IN_PROGRESS" ? "In Transit" :
+                         order.displayFulfillmentStatus === "FULFILLED" ? "Shipped" : "Processing"}
+                      </Badge>}
+                </div>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  {order.isDelivered && order.deliveredAt
+                    ? `Delivered ${new Date(order.deliveredAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`
+                    : new Date(order.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
+                </p>
+                <p className="text-sm font-semibold mt-0.5">
+                  £{total.toFixed(2)} GBP &bull; {totalQty} item{totalQty !== 1 ? "s" : ""}
+                </p>
+              </div>
+              <a href={orderStatusUrl} target="_blank" rel="noopener noreferrer">
+                <Button variant="outline" size="sm" className="shrink-0">
+                  <ExternalLink className="size-4" /> View Order Status
+                </Button>
+              </a>
             </div>
-            <p className="text-sm text-muted-foreground mt-1">
-              {refundedAmount >= total ? "You received a full refund for this order." : "You received partial refunds for this order."}
-            </p>
           </CardContent>
         </Card>
-      )}
+
+        {/* Refunded card — only shows if there's a refund, otherwise empty col */}
+        {hasRefund ? (
+          <Card className={C}>
+            <CardContent className="px-5 py-4">
+              <div className="flex items-center gap-2.5 mb-1">
+                <span className="text-base font-bold">£{refundedAmount.toFixed(2)} GBP</span>
+                <Badge variant="outline" className="text-xs font-semibold">Refunded</Badge>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {refundedAmount >= total
+                  ? "You received a full refund for this order."
+                  : "You received partial refunds for this order."}
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="hidden lg:block" />
+        )}
+      </div>
 
       {/* ── Policy gate ── */}
       {hasEligible && !policyAccepted && (
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border bg-card px-4 py-3 text-sm">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 min-w-0">
             <ShieldCheck className="size-4 text-muted-foreground shrink-0" />
             <span className="font-medium">Hygiene &amp; Returns Policy</span>
-            <span className="text-muted-foreground hidden sm:inline">— Review and accept before selecting items.</span>
+            <span className="text-muted-foreground hidden sm:inline truncate">— Review and accept before selecting items.</span>
           </div>
           <span className="text-muted-foreground sm:hidden text-xs pl-6">Review and accept our returns policy before selecting items.</span>
           <HygienePolicy
@@ -385,15 +442,15 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
         </div>
       )}
 
-      {/* ── Two-column layout (only when there are eligible items) ── */}
+      {/* ── WITH eligible items: 2-col layout with sidebar ── */}
       {hasEligible ? (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
 
-          {/* Left column */}
+          {/* Left: eligible + ineligible */}
           <div className="lg:col-span-2 space-y-4">
 
-            {/* Eligible items */}
-            <Card className="shadow-sm overflow-hidden py-0">
+            {/* Eligible */}
+            <Card className={C + " overflow-hidden"}>
               <CardHeader className="px-5 py-3 border-b">
                 <CardTitle className="text-sm font-semibold flex items-center justify-between">
                   Select items to return
@@ -406,9 +463,8 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                 {eligibleItems.map(item => {
                   const sel = selectedItems[item.id]
                   const isLocked = !policyAccepted
-                  const pUrl = productUrl(item.productHandle)
+                  const url = pUrl(item.productHandle)
                   const linePrice = pricePerItem * item.quantity
-
                   return (
                     <div key={item.id} className={cn("px-4 py-3 transition-colors", sel?.selected && "bg-muted/20")}>
                       <div className="flex items-center gap-3">
@@ -426,8 +482,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                           }}
                           className="shrink-0"
                         />
-                        {/* Product image with qty badge */}
-                        <a href={pUrl} target="_blank" rel="noopener noreferrer" className="relative shrink-0 block">
+                        <a href={url} target="_blank" rel="noopener noreferrer" className="relative shrink-0 block">
                           <div className="size-14 rounded-lg overflow-hidden bg-white border border-border">
                             {item.image?.url && (
                               // eslint-disable-next-line @next/next/no-img-element
@@ -439,7 +494,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                           </span>
                         </a>
                         <div className="flex-1 min-w-0">
-                          <a href={pUrl} target="_blank" rel="noopener noreferrer"
+                          <a href={url} target="_blank" rel="noopener noreferrer"
                             className="text-sm font-semibold text-foreground hover:underline block truncate">
                             {item.title}
                           </a>
@@ -450,12 +505,11 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                         <p className="text-sm font-semibold whitespace-nowrap shrink-0">£{linePrice.toFixed(2)}</p>
                       </div>
 
-                      {/* Expanded controls */}
                       {sel?.selected && (
                         <div className="mt-3 ml-[calc(1.25rem+0.75rem+3.5rem+0.75rem)] bg-zinc-50 border border-border rounded-xl p-3 space-y-3">
                           <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1">
-                              <label className="text-[11px] font-semibold uppercase tracking-wide text-foreground">Quantity</label>
+                              <label className="text-[11px] font-semibold uppercase tracking-wide">Quantity</label>
                               <Select
                                 value={String(sel.quantity)}
                                 onValueChange={val => setSelectedItems(prev => ({ ...prev, [item.id]: { ...prev[item.id], quantity: parseInt(val) } }))}
@@ -469,7 +523,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                               </Select>
                             </div>
                             <div className="space-y-1">
-                              <label className="text-[11px] font-semibold uppercase tracking-wide text-foreground">Reason</label>
+                              <label className="text-[11px] font-semibold uppercase tracking-wide">Reason</label>
                               <Select
                                 value={sel.reason}
                                 onValueChange={val => setSelectedItems(prev => ({ ...prev, [item.id]: { ...prev[item.id], reason: val, description: "" } }))}
@@ -483,30 +537,18 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                           </div>
                           {sel.reason === "OTHER" && (
                             <div className="space-y-1">
-                              <label className="text-[11px] font-semibold uppercase tracking-wide text-foreground">
-                                Please describe <span className="text-destructive">*</span>
+                              <label className="text-[11px] font-semibold uppercase tracking-wide">
+                                Describe <span className="text-destructive">*</span>
                               </label>
-                              <Textarea
-                                value={sel.description}
-                                onChange={e => setSelectedItems(prev => ({ ...prev, [item.id]: { ...prev[item.id], description: e.target.value } }))}
-                                placeholder="Describe your reason..."
-                                className="text-sm bg-white min-h-0"
-                                rows={2}
-                              />
+                              <Textarea value={sel.description} onChange={e => setSelectedItems(prev => ({ ...prev, [item.id]: { ...prev[item.id], description: e.target.value } }))} placeholder="Describe your reason..." className="text-sm bg-white min-h-0" rows={2} />
                             </div>
                           )}
                           {sel.reason && sel.reason !== "OTHER" && (
                             <div className="space-y-1">
-                              <label className="text-[11px] font-semibold uppercase tracking-wide text-foreground">
+                              <label className="text-[11px] font-semibold uppercase tracking-wide">
                                 Notes <span className="text-muted-foreground font-normal normal-case text-xs">(optional)</span>
                               </label>
-                              <Textarea
-                                value={sel.description}
-                                onChange={e => setSelectedItems(prev => ({ ...prev, [item.id]: { ...prev[item.id], description: e.target.value } }))}
-                                placeholder="Any additional information..."
-                                className="text-sm bg-white min-h-0"
-                                rows={2}
-                              />
+                              <Textarea value={sel.description} onChange={e => setSelectedItems(prev => ({ ...prev, [item.id]: { ...prev[item.id], description: e.target.value } }))} placeholder="Any additional information..." className="text-sm bg-white min-h-0" rows={2} />
                             </div>
                           )}
                         </div>
@@ -517,60 +559,14 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
               </div>
             </Card>
 
-            {/* Ineligible items (below eligible) */}
-            {ineligibleItems.length > 0 && (
-              <Card className="shadow-sm overflow-hidden py-0">
-                <CardHeader className="px-5 py-3 border-b">
-                  <CardTitle className="text-sm font-semibold">
-                    {ineligibleItems.length} item{ineligibleItems.length !== 1 ? "s" : ""} in this order aren&apos;t eligible for return.
-                  </CardTitle>
-                </CardHeader>
-                <div className="divide-y divide-border">
-                  {ineligibleItems.map(item => {
-                    const pUrl = productUrl(item.productHandle)
-                    const reasonLabel =
-                      item.returnStatus === "On its way" ? "On its way" :
-                      item.returnStatus === "Not yet dispatched" ? "Not dispatched" :
-                      item.returnStatus === "Passed the return window" ? "Window expired" :
-                      item.returnStatus
-                    return (
-                      <div key={item.id} className="flex items-center justify-between px-4 py-3 gap-3">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <a href={pUrl} target="_blank" rel="noopener noreferrer" className="relative shrink-0 block">
-                            <div className="size-12 rounded-lg border border-border bg-white overflow-hidden">
-                              {item.image?.url && (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img src={item.image.url} alt={item.title} className="w-full h-full object-contain p-0.5" />
-                              )}
-                            </div>
-                            <span className="absolute -top-2 -right-2 bg-foreground text-white text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full ring-2 ring-white z-10">
-                              {item.quantity}
-                            </span>
-                          </a>
-                          <div className="min-w-0">
-                            <a href={pUrl} target="_blank" rel="noopener noreferrer"
-                              className="text-sm font-semibold text-foreground hover:underline block truncate">
-                              {item.title}
-                            </a>
-                            {item.variant?.title && item.variant.title !== "Default Title" && (
-                              <p className="text-xs text-muted-foreground">{item.variant.title}</p>
-                            )}
-                          </div>
-                        </div>
-                        <span className="text-sm text-muted-foreground whitespace-nowrap shrink-0">{reasonLabel}</span>
-                      </div>
-                    )
-                  })}
-                </div>
-              </Card>
-            )}
+            {/* Ineligible (below eligible in left col) */}
+            <IneligibleCard items={ineligibleItems} />
           </div>
 
-          {/* Right sidebar — sticky */}
+          {/* Right: sticky sidebar */}
           <div className="lg:col-span-1">
             <div className="lg:sticky lg:top-6 space-y-3">
-              {/* Refund Estimator */}
-              <Card className="shadow-sm overflow-hidden py-0">
+              <Card className={C + " overflow-hidden"}>
                 <CardHeader className="px-5 py-3 border-b">
                   <CardTitle className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
                     Refund Estimator
@@ -595,7 +591,9 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                       disabled={!canSubmit || submitting}
                       onClick={submitReturn}
                     >
-                      {submitting ? <><Spinner className="size-4" />Submitting...</> : <><RotateCcw className="size-4" />Submit Return Request</>}
+                      {submitting
+                        ? <><Spinner className="size-4" />Submitting...</>
+                        : <><RotateCcw className="size-4" />Submit Return Request</>}
                     </Button>
                     {!policyAccepted && (
                       <p className="text-xs text-center text-muted-foreground">Accept the returns policy to continue</p>
@@ -605,8 +603,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                 </CardContent>
               </Card>
 
-              {/* Order Summary */}
-              <Card className="shadow-sm py-0">
+              <Card className={C}>
                 <CardContent className="px-5 py-4 space-y-2 text-sm">
                   <p className="font-semibold">Order Summary</p>
                   <div className="flex justify-between text-muted-foreground">
@@ -628,54 +625,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
 
       ) : (
         /* ── No eligible items: full-width, no sidebar ── */
-        <div className="space-y-4">
-          {ineligibleItems.length > 0 && (
-            <Card className="shadow-sm overflow-hidden py-0">
-              <CardHeader className="px-5 py-3 border-b">
-                <CardTitle className="text-sm font-semibold">
-                  {ineligibleItems.length} item{ineligibleItems.length !== 1 ? "s" : ""} in this order aren&apos;t eligible for return.
-                </CardTitle>
-              </CardHeader>
-              <div className="divide-y divide-border">
-                {ineligibleItems.map(item => {
-                  const pUrl = productUrl(item.productHandle)
-                  const reasonLabel =
-                    item.returnStatus === "On its way" ? "On its way" :
-                    item.returnStatus === "Not yet dispatched" ? "Not dispatched" :
-                    item.returnStatus === "Passed the return window" ? "Window expired" :
-                    item.returnStatus
-                  return (
-                    <div key={item.id} className="flex items-center justify-between px-4 py-3 gap-3">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <a href={pUrl} target="_blank" rel="noopener noreferrer" className="relative shrink-0 block">
-                          <div className="size-12 rounded-lg border border-border bg-white overflow-hidden">
-                            {item.image?.url && (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img src={item.image.url} alt={item.title} className="w-full h-full object-contain p-0.5" />
-                            )}
-                          </div>
-                          <span className="absolute -top-2 -right-2 bg-foreground text-white text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full ring-2 ring-white z-10">
-                            {item.quantity}
-                          </span>
-                        </a>
-                        <div className="min-w-0">
-                          <a href={pUrl} target="_blank" rel="noopener noreferrer"
-                            className="text-sm font-semibold text-foreground hover:underline block truncate">
-                            {item.title}
-                          </a>
-                          {item.variant?.title && item.variant.title !== "Default Title" && (
-                            <p className="text-xs text-muted-foreground">{item.variant.title}</p>
-                          )}
-                        </div>
-                      </div>
-                      <span className="text-sm text-muted-foreground whitespace-nowrap shrink-0">{reasonLabel}</span>
-                    </div>
-                  )
-                })}
-              </div>
-            </Card>
-          )}
-        </div>
+        <IneligibleCard items={ineligibleItems} />
       )}
     </div>
   )
@@ -765,7 +715,7 @@ export default function DashboardClient() {
                 </div>
               )}
               {view === "list" && (
-                <Card>
+                <Card className={C}>
                   <CardContent className="p-0">
                     {filteredOrders.map(o => <OrderRow key={o.id} order={o} onClick={() => setSelectedOrder(o)} />)}
                   </CardContent>
