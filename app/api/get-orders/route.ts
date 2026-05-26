@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { validateSession } from "@/lib/auth";
 import { shopifyAdmin } from "@/lib/shopify";
 
+// IMPORTANT: Order.fulfillments is a PLAIN ARRAY — not a paginated connection, do NOT use edges/node
+// fulfillmentLineItems IS a connection — use edges { node { ... } }
+// Order.returns IS a connection — use edges { node { ... } }
+
 export async function GET(request: NextRequest) {
   try {
     const cookieHeader = request.headers.get("cookie");
@@ -24,29 +28,6 @@ export async function GET(request: NextRequest) {
                     id name createdAt displayFulfillmentStatus
                     totalPriceSet { shopMoney { amount currencyCode } }
                     totalRefundedSet { shopMoney { amount } }
-                    returns(first: 10) {
-                      edges {
-                        node {
-                          id
-                          status
-                          decline {
-                            reason
-                            note
-                          }
-                          returnLineItems(first: 50) {
-                            edges {
-                              node {
-                                ... on ReturnLineItem {
-                                  fulfillmentLineItem {
-                                    lineItem { id }
-                                  }
-                                }
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
                     fulfillments {
                       id
                       displayStatus
@@ -57,6 +38,24 @@ export async function GET(request: NextRequest) {
                           node {
                             lineItem { id }
                             quantity
+                          }
+                        }
+                      }
+                    }
+                    returns(first: 20) {
+                      edges {
+                        node {
+                          id
+                          status
+                          returnLineItems(first: 50) {
+                            edges {
+                              node {
+                                quantity
+                                fulfillmentLineItem {
+                                  lineItem { id }
+                                }
+                              }
+                            }
                           }
                         }
                       }
@@ -94,28 +93,7 @@ export async function GET(request: NextRequest) {
       createdAt: string;
       displayFulfillmentStatus: string;
       totalPriceSet: { shopMoney: { amount: string; currencyCode: string } };
-      totalRefundedSet?: { shopMoney: { amount: string } } | null;
-      returns?: {
-        edges: Array<{
-          node: {
-            id: string;
-            status: string;
-            decline?: {
-              reason: string;
-              note: string;
-            } | null;
-            returnLineItems: {
-              edges: Array<{
-                node: {
-                  fulfillmentLineItem?: {
-                    lineItem?: { id: string };
-                  };
-                };
-              }>;
-            };
-          };
-        }>;
-      };
+      totalRefundedSet: { shopMoney: { amount: string } } | null;
       fulfillments: Array<{
         id: string;
         displayStatus: string;
@@ -125,6 +103,22 @@ export async function GET(request: NextRequest) {
           edges: Array<{ node: { lineItem: { id: string }; quantity: number } }>;
         };
       }>;
+      returns: {
+        edges: Array<{
+          node: {
+            id: string;
+            status: string;
+            returnLineItems: {
+              edges: Array<{
+                node: {
+                  quantity: number;
+                  fulfillmentLineItem: { lineItem: { id: string } };
+                };
+              }>;
+            };
+          };
+        }>;
+      };
       lineItems: {
         edges: Array<{
           node: {
@@ -138,72 +132,33 @@ export async function GET(request: NextRequest) {
         }>;
       };
     }) => {
-      
-      // 1. Collect the entire return history for every line item
-      const itemReturnHistory: Record<string, Array<{
-        returnId: string;
-        status: string;
-        declineReason?: string;
-        declineNote?: string;
-        index: number;
-      }>> = {};
-
-      const returns = order.returns?.edges || [];
-
-      returns.forEach((retEdge, index) => {
-        const returnNode = retEdge.node;
-
-        for (const rliEdge of returnNode.returnLineItems?.edges || []) {
-          const lineItemId = rliEdge.node.fulfillmentLineItem?.lineItem?.id;
-          if (!lineItemId) continue;
-
-          if (!itemReturnHistory[lineItemId]) {
-            itemReturnHistory[lineItemId] = [];
-          }
-
-          itemReturnHistory[lineItemId].push({
-            returnId: returnNode.id,
-            status: returnNode.status,
-            declineReason: returnNode.decline?.reason,
-            declineNote: returnNode.decline?.note,
-            index,
-          });
-        }
-      });
-
-      // 2. Dump this history into your Vercel logs to verify array order
-      if (Object.keys(itemReturnHistory).length > 0) {
-        console.log(`ITEM RETURN HISTORY for Order ${order.name}:`, JSON.stringify(itemReturnHistory, null, 2));
-      }
-
-      // 3. Pick the final winning state deterministically (assuming the last element is the newest)
-      const itemReturnStatus: Record<string, { status: string; declineReason?: string; declineNote?: string }> = {};
-      
-      for (const [lineItemId, history] of Object.entries(itemReturnHistory)) {
-        // Taking the last item in the array. 
-        // If your logs show Shopify puts the newest return at index 0, change this to history[0]
-        const latestReturn = history[history.length - 1]; 
-        
-        itemReturnStatus[lineItemId] = {
-          status: latestReturn.status,
-          declineReason: latestReturn.declineReason,
-          declineNote: latestReturn.declineNote
-        };
-      }
-
       const fulfillments = order.fulfillments || [];
-      type LineDelivery = { isDelivered: boolean; deliveredAt: Date | null; inTransit: boolean; isDispatched: boolean; };
+
+      // ── Build per-line-item delivery tracking ──────────────────────────
+      type LineDelivery = {
+        isDelivered: boolean;
+        deliveredAt: Date | null;
+        inTransit: boolean;
+        isDispatched: boolean;
+      };
       const lineItemDelivery: Record<string, LineDelivery> = {};
 
       for (const fulfillment of fulfillments) {
         const status = fulfillment.displayStatus;
         const isDelivered = status === "DELIVERED";
-        const inTransit = status === "IN_TRANSIT" || status === "OUT_FOR_DELIVERY" || status === "ATTEMPTED_DELIVERY" || status === "READY_FOR_PICKUP" || status === "PICKED_UP";
+        const inTransit =
+          status === "IN_TRANSIT" ||
+          status === "OUT_FOR_DELIVERY" ||
+          status === "ATTEMPTED_DELIVERY" ||
+          status === "READY_FOR_PICKUP" ||
+          status === "PICKED_UP";
         const isDispatched = isDelivered || inTransit || status === "SUBMITTED";
 
         let deliveredAt: Date | null = null;
         if (isDelivered) {
-          deliveredAt = fulfillment.deliveredAt ? new Date(fulfillment.deliveredAt) : new Date(fulfillment.updatedAt);
+          deliveredAt = fulfillment.deliveredAt
+            ? new Date(fulfillment.deliveredAt)
+            : new Date(fulfillment.updatedAt);
         }
 
         for (const edge of fulfillment.fulfillmentLineItems?.edges || []) {
@@ -215,45 +170,63 @@ export async function GET(request: NextRequest) {
         }
       }
 
+      // ── Build per-line-item return status from Shopify returns ─────────
+      // Maps lineItem GID → { shopifyStatus, returnId }
+      // Priority: prefer highest-lifecycle status if multiple returns exist
+      const STATUS_PRIORITY: Record<string, number> = {
+        CLOSED: 5,    // returned/completed — highest
+        OPEN: 4,      // approved by merchant
+        REQUESTED: 3, // waiting for merchant review
+        DECLINED: 2,  // merchant declined
+        CANCELED: 1,  // customer/merchant cancelled
+      };
+
+      const lineItemReturnInfo: Record<string, { shopifyStatus: string; returnId: string }> = {};
+
+      for (const retEdge of order.returns?.edges || []) {
+        const ret = retEdge.node;
+        for (const liEdge of ret.returnLineItems?.edges || []) {
+          const lineItemId = liEdge.node.fulfillmentLineItem?.lineItem?.id;
+          if (!lineItemId) continue;
+          const existing = lineItemReturnInfo[lineItemId];
+          const newPriority = STATUS_PRIORITY[ret.status] ?? 0;
+          const existingPriority = existing ? (STATUS_PRIORITY[existing.shopifyStatus] ?? 0) : -1;
+          if (newPriority > existingPriority) {
+            lineItemReturnInfo[lineItemId] = { shopifyStatus: ret.status, returnId: ret.id };
+          }
+        }
+      }
+
+      // Customer-facing return status labels
+      const shopifyReturnStatusToLabel = (s: string): string => {
+        switch (s) {
+          case "REQUESTED": return "Return requested";
+          case "OPEN":      return "Return approved";
+          case "DECLINED":  return "Return declined";
+          case "CANCELED":  return "Return cancelled";
+          case "CLOSED":    return "Returned";
+          default:          return "Return in progress";
+        }
+      };
+
+      // ── Determine order-level delivery state ───────────────────────────
       const now = new Date();
       let orderIsDelivered = false;
       let orderDeliveredAt = null as Date | null;
 
       const items = order.lineItems.edges.map(({ node: item }) => {
         const delivery = lineItemDelivery[item.id];
-        const existingReturn = itemReturnStatus[item.id];
-        
+        const existingReturn = lineItemReturnInfo[item.id];
+
         let returnStatus: string;
         let returnReason: string;
+        let existingReturnStatus: string | null = null;
 
+        // If Shopify already has a return record for this line item, it takes priority
         if (existingReturn) {
-          const statusMap: Record<string, string> = {
-            REQUESTED: "Return requested",
-            OPEN: "Return approved",
-            CLOSED: "Return completed",
-            DECLINED: "Return declined",
-            CANCELED: "Return cancelled"
-          };
-          
-          returnStatus = statusMap[existingReturn.status] || "Return in progress";
-          
-          if (existingReturn.status === "DECLINED") {
-            const dNote = (existingReturn.declineNote || "").trim();
-            const dReason = existingReturn.declineReason;
-            
-            if (dNote) {
-              returnReason = dNote;
-            } else if (dReason === "RETURN_PERIOD_ENDED") {
-              returnReason = "Your return request was declined because it is outside the return window.";
-            } else if (dReason === "FINAL_SALE") {
-              returnReason = "Your return request was declined because the item is a final sale.";
-            } else {
-              returnReason = "Your return request was declined.";
-            }
-          } else {
-            returnReason = "You have already submitted a return request for this item.";
-          }
-
+          existingReturnStatus = shopifyReturnStatusToLabel(existingReturn.shopifyStatus);
+          returnStatus = existingReturnStatus;
+          returnReason = existingReturnStatus;
         } else if (!delivery || !delivery.isDispatched) {
           returnStatus = "Not yet dispatched";
           returnReason = "This item hasn't been dispatched yet — check back once it ships.";
@@ -287,14 +260,24 @@ export async function GET(request: NextRequest) {
           productHandle: item.product?.handle || null,
           returnStatus,
           returnReason,
+          existingReturnStatus,
         };
       });
+
+      // Build a deduplicated list of existing returns for display
+      const existingReturns = (order.returns?.edges || []).map((retEdge) => ({
+        id: retEdge.node.id,
+        status: retEdge.node.status,
+        label: shopifyReturnStatusToLabel(retEdge.node.status),
+        itemCount: retEdge.node.returnLineItems?.edges?.length || 0,
+      }));
 
       return {
         ...order,
         processedItems: items,
         isDelivered: orderIsDelivered,
         deliveredAt: orderDeliveredAt?.toISOString() ?? null,
+        existingReturns,
       };
     });
 
