@@ -37,8 +37,10 @@ export async function GET(request: NextRequest) {
                           returnLineItems(first: 50) {
                             edges {
                               node {
-                                fulfillmentLineItem {
-                                  lineItem { id }
+                                ... on ReturnLineItem {
+                                  fulfillmentLineItem {
+                                    lineItem { id }
+                                  }
                                 }
                               }
                             }
