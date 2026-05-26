@@ -6,7 +6,7 @@ import { toast } from "sonner"
 import {
   ChevronRight, LayoutGrid, List, ArrowLeft,
   RotateCcw, ExternalLink, CheckCircle2,
-  XCircle, ShoppingBag, ShieldCheck,
+  ShoppingBag, ShieldCheck, Clock, Truck, PackageX,
 } from "lucide-react"
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
@@ -18,13 +18,15 @@ import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Drawer, DrawerClose, DrawerContent, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { cn } from "@/lib/utils"
 
-type ReturnStatus = "Eligible" | "Not yet dispatched" | "On its way" | "Passed the return window"
+type ReturnStatus = "Eligible" | "Not yet dispatched" | "On its way" | "Passed the return window" | "Returned"
 
 interface LineItem {
   id: string
@@ -64,21 +66,91 @@ const RETURN_REASONS = [
   { value: "OTHER", label: "Other" },
 ]
 
-// Compact card — no py-6, no gap-6 from Card base
+// Suppress default Card py-6 gap-6
 const C = "shadow-sm py-0 gap-0"
 
 function pUrl(handle?: string | null) {
   return handle ? `https://iblazevape.co.uk/products/${handle}` : "https://iblazevape.co.uk"
 }
 
+// ─── Ineligible reason label + icon ───────────────────────────────────────
+function IneligibleReason({ status }: { status: ReturnStatus }) {
+  if (status === "On its way") return (
+    <div className="flex items-center gap-1.5 text-amber-600">
+      <Truck className="size-3.5 shrink-0" />
+      <span className="text-xs font-medium">On its way</span>
+    </div>
+  )
+  if (status === "Not yet dispatched") return (
+    <div className="flex items-center gap-1.5 text-muted-foreground">
+      <Clock className="size-3.5 shrink-0" />
+      <span className="text-xs font-medium">Not dispatched</span>
+    </div>
+  )
+  if (status === "Passed the return window") return (
+    <div className="flex items-center gap-1.5 text-destructive">
+      <PackageX className="size-3.5 shrink-0" />
+      <span className="text-xs font-medium">Window expired</span>
+    </div>
+  )
+  if (status === "Returned") return (
+    <Badge variant="secondary" className="text-xs font-medium">Returned</Badge>
+  )
+  return <span className="text-xs text-muted-foreground">{status}</span>
+}
+
 // ─── Loading Screen ────────────────────────────────────────────────────────
 function AuthenticatingScreen() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#FAFAFA]">
-      <Badge variant="secondary" className="gap-2 px-4 py-2 text-sm">
-        <Spinner className="size-4" />
-        Authenticating securely...
-      </Badge>
+    <div className="min-h-screen flex items-center justify-center bg-muted/30">
+      <div className="relative w-full max-w-xs overflow-hidden mx-4">
+        {/* Ghost card underneath for the blur effect */}
+        <Card>
+          <CardHeader>
+            <CardTitle>iBlaze Returns</CardTitle>
+            <CardDescription>Secure customer portal</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Verifying session</span>
+              <span className="font-medium">...</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Loading orders</span>
+              <span className="font-medium">...</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Preparing portal</span>
+              <span className="font-medium">...</span>
+            </div>
+          </CardContent>
+        </Card>
+        {/* Overlay */}
+        <Card className="bg-background/80 absolute inset-0 z-10 backdrop-blur-sm border-0">
+          <CardContent className="flex h-full flex-col items-center justify-center gap-2.5 p-0">
+            <Spinner className="size-5 opacity-60" />
+            <span className="text-muted-foreground text-sm">Authenticating securely...</span>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  )
+}
+
+// ─── Order List Skeletons ─────────────────────────────────────────────────
+function OrderCardSkeleton() {
+  return (
+    <div className="bg-white border border-border rounded-xl p-5 shadow-sm">
+      <div className="flex items-start justify-between mb-3">
+        <div className="space-y-1.5">
+          <Skeleton className="h-4 w-24 rounded" />
+          <Skeleton className="h-3 w-32 rounded" />
+        </div>
+        <Skeleton className="h-4 w-14 rounded" />
+      </div>
+      <div className="flex gap-1.5 mt-3">
+        {[1,2,3].map(i => <Skeleton key={i} className="w-10 h-10 rounded-md" />)}
+      </div>
     </div>
   )
 }
@@ -96,7 +168,7 @@ function HygienePolicy({ onAccept, onDecline }: { onAccept: () => void; onDeclin
   const handleDecline = () => {
     setOpen(false)
     onDecline()
-    toast.warning("Policy declined", { description: "You must accept the returns policy to submit a return." })
+    toast.warning("Policy declined", { description: "You must accept the returns policy to continue." })
   }
 
   const trigger = (
@@ -113,7 +185,7 @@ function HygienePolicy({ onAccept, onDecline }: { onAccept: () => void; onDeclin
   ]
 
   const body = (
-    <div className="space-y-2.5 text-sm">
+    <div className="space-y-2 text-sm">
       {policyItems.map(p => (
         <div key={p.title} className="rounded-lg border bg-muted/30 px-3 py-2.5">
           <p className="font-semibold text-foreground text-xs">{p.title}</p>
@@ -171,68 +243,17 @@ function HygienePolicy({ onAccept, onDecline }: { onAccept: () => void; onDeclin
   )
 }
 
-// ─── Ineligible Items Card (reused in both layouts) ───────────────────────
-function IneligibleCard({ items }: { items: LineItem[] }) {
-  if (items.length === 0) return null
-  return (
-    <Card className={C + " overflow-hidden"}>
-      <CardHeader className="px-5 py-3 border-b">
-        <CardTitle className="text-sm font-semibold">
-          {items.length} item{items.length !== 1 ? "s" : ""} in this order aren&apos;t eligible for return.
-        </CardTitle>
-      </CardHeader>
-      <div className="divide-y divide-border">
-        {items.map(item => {
-          const url = pUrl(item.productHandle)
-          const label =
-            item.returnStatus === "On its way" ? "On its way" :
-            item.returnStatus === "Not yet dispatched" ? "Not dispatched" :
-            item.returnStatus === "Passed the return window" ? "Window expired" :
-            item.returnStatus
-          return (
-            <div key={item.id} className="flex items-center justify-between px-4 py-3 gap-3">
-              <div className="flex items-center gap-3 min-w-0">
-                <a href={url} target="_blank" rel="noopener noreferrer" className="relative shrink-0 block">
-                  <div className="size-12 rounded-lg border border-border bg-white overflow-hidden">
-                    {item.image?.url && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={item.image.url} alt={item.title} className="w-full h-full object-contain p-0.5" />
-                    )}
-                  </div>
-                  <span className="absolute -top-2 -right-2 bg-foreground text-white text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full ring-2 ring-white z-10">
-                    {item.quantity}
-                  </span>
-                </a>
-                <div className="min-w-0">
-                  <a href={url} target="_blank" rel="noopener noreferrer"
-                    className="text-sm font-semibold text-foreground hover:underline block truncate">
-                    {item.title}
-                  </a>
-                  {item.variant?.title && item.variant.title !== "Default Title" && (
-                    <p className="text-xs text-muted-foreground">{item.variant.title}</p>
-                  )}
-                </div>
-              </div>
-              <span className="text-sm text-muted-foreground whitespace-nowrap shrink-0">{label}</span>
-            </div>
-          )
-        })}
-      </div>
-    </Card>
-  )
-}
-
-// ─── Order Card ────────────────────────────────────────────────────────────
+// ─── Order Card (grid view) ────────────────────────────────────────────────
 function OrderCard({ order, onClick }: { order: Order; onClick: () => void }) {
   const uniqueImages = order.processedItems
     .map(i => i.image?.url)
     .filter((url, idx, arr) => url && arr.indexOf(url) === idx)
     .slice(0, 5) as string[]
+  const extra = uniqueImages.length < order.processedItems.length
+    ? order.processedItems.length - uniqueImages.length : 0
   const totalQty = order.processedItems.reduce((s, i) => s + i.quantity, 0)
-  const extra = order.processedItems.length > 5 ? order.processedItems.length - 5 : 0
   const total = parseFloat(order.totalPriceSet.shopMoney.amount)
   const date = new Date(order.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
-
   return (
     <button
       onClick={onClick}
@@ -245,7 +266,7 @@ function OrderCard({ order, onClick }: { order: Order; onClick: () => void }) {
         </div>
         <p className="font-semibold text-[15px] text-foreground">£{total.toFixed(2)}</p>
       </div>
-      <div className="flex items-center gap-1.5 mt-3">
+      <div className="flex items-center gap-1.5">
         {uniqueImages.map((url, i) => (
           <div key={i} className="w-10 h-10 rounded-md border border-border bg-white overflow-hidden shrink-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -269,7 +290,7 @@ function OrderRow({ order, onClick }: { order: Order; onClick: () => void }) {
   const date = new Date(order.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
   const totalQty = order.processedItems.reduce((s, i) => s + i.quantity, 0)
   return (
-    <button onClick={onClick} className="w-full px-5 py-4 flex items-center gap-4 hover:bg-zinc-50 transition-colors text-left group border-b border-border last:border-0">
+    <button onClick={onClick} className="w-full px-5 py-3.5 flex items-center gap-4 hover:bg-zinc-50 transition-colors text-left group border-b border-border last:border-0">
       <div className="flex -space-x-2">
         {images.map((url, i) => (
           <div key={i} className="size-9 rounded-lg border-2 border-white bg-white overflow-hidden shadow-sm">
@@ -280,7 +301,7 @@ function OrderRow({ order, onClick }: { order: Order; onClick: () => void }) {
       </div>
       <div className="flex-1 min-w-0">
         <p className="font-semibold text-sm group-hover:underline">{order.name}</p>
-        <p className="text-xs text-muted-foreground">{date} &bull; {totalQty} items</p>
+        <p className="text-xs text-muted-foreground">{date} &bull; {totalQty} item{totalQty !== 1 ? "s" : ""}</p>
       </div>
       <p className="font-semibold text-sm w-16 text-right">£{total.toFixed(2)}</p>
       <ChevronRight className="size-4 text-muted-foreground shrink-0" />
@@ -304,7 +325,8 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
   const total = parseFloat(order.totalPriceSet.shopMoney.amount)
   const totalQty = order.processedItems.reduce((s, i) => s + i.quantity, 0)
   const pricePerItem = totalQty > 0 ? total / totalQty : 0
-  const refundedAmount = order.totalRefundedSet?.shopMoney?.amount ? parseFloat(order.totalRefundedSet.shopMoney.amount) : 0
+  const refundedAmount = order.totalRefundedSet?.shopMoney?.amount
+    ? parseFloat(order.totalRefundedSet.shopMoney.amount) : 0
   const hasRefund = refundedAmount > 0
 
   const selectedCount = Object.values(selectedItems).filter(v => v.selected).length
@@ -373,9 +395,9 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
         <ArrowLeft className="size-4" /> Back to Orders
       </Button>
 
-      {/* ── Top row: order header (2/3) + refunded card (1/3) ── */}
+      {/* ── Top row: order header 2/3 + refunded 1/3 ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
-        <Card className={C + " lg:col-span-2"}>
+        <Card className={cn(C, "lg:col-span-2")}>
           <CardContent className="px-5 py-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
@@ -406,7 +428,6 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
           </CardContent>
         </Card>
 
-        {/* Refunded card — only shows if there's a refund, otherwise empty col */}
         {hasRefund ? (
           <Card className={C}>
             <CardContent className="px-5 py-4">
@@ -432,25 +453,22 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
           <div className="flex items-center gap-2 min-w-0">
             <ShieldCheck className="size-4 text-muted-foreground shrink-0" />
             <span className="font-medium">Hygiene &amp; Returns Policy</span>
-            <span className="text-muted-foreground hidden sm:inline truncate">— Review and accept before selecting items.</span>
+            <span className="text-muted-foreground hidden sm:inline">— Review and accept before selecting items.</span>
           </div>
           <span className="text-muted-foreground sm:hidden text-xs pl-6">Review and accept our returns policy before selecting items.</span>
-          <HygienePolicy
-            onAccept={() => setPolicyAccepted(true)}
-            onDecline={() => setPolicyAccepted(false)}
-          />
+          <HygienePolicy onAccept={() => setPolicyAccepted(true)} onDecline={() => setPolicyAccepted(false)} />
         </div>
       )}
 
-      {/* ── WITH eligible items: 2-col layout with sidebar ── */}
+      {/* ── Main content: 2-col when eligible, full-width when not ── */}
       {hasEligible ? (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
 
-          {/* Left: eligible + ineligible */}
-          <div className="lg:col-span-2 space-y-4">
+          {/* Left col: eligible table + ineligible table */}
+          <div className="lg:col-span-2 flex flex-col gap-4">
 
-            {/* Eligible */}
-            <Card className={C + " overflow-hidden"}>
+            {/* ── Eligible items table ── */}
+            <Card className={cn(C, "overflow-hidden")}>
               <CardHeader className="px-5 py-3 border-b">
                 <CardTitle className="text-sm font-semibold flex items-center justify-between">
                   Select items to return
@@ -459,133 +477,217 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                   </Badge>
                 </CardTitle>
               </CardHeader>
-              <div className="divide-y divide-border">
-                {eligibleItems.map(item => {
-                  const sel = selectedItems[item.id]
-                  const isLocked = !policyAccepted
-                  const url = pUrl(item.productHandle)
-                  const linePrice = pricePerItem * item.quantity
-                  return (
-                    <div key={item.id} className={cn("px-4 py-3 transition-colors", sel?.selected && "bg-muted/20")}>
-                      <div className="flex items-center gap-3">
-                        <Checkbox
-                          checked={sel?.selected || false}
-                          disabled={isLocked}
-                          onCheckedChange={checked => {
-                            if (isLocked) return
-                            setSelectedItems(prev => ({
-                              ...prev,
-                              [item.id]: checked
-                                ? { selected: true, quantity: 1, reason: "", description: "" }
-                                : { ...prev[item.id], selected: false },
-                            }))
-                          }}
-                          className="shrink-0"
-                        />
-                        <a href={url} target="_blank" rel="noopener noreferrer" className="relative shrink-0 block">
-                          <div className="size-14 rounded-lg overflow-hidden bg-white border border-border">
-                            {item.image?.url && (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img src={item.image.url} alt={item.title} className="w-full h-full object-contain p-0.5" />
-                            )}
-                          </div>
-                          <span className="absolute -top-2 -right-2 bg-foreground text-white text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full ring-2 ring-white z-10">
-                            {item.quantity}
-                          </span>
-                        </a>
-                        <div className="flex-1 min-w-0">
-                          <a href={url} target="_blank" rel="noopener noreferrer"
-                            className="text-sm font-semibold text-foreground hover:underline block truncate">
-                            {item.title}
-                          </a>
-                          {item.variant?.title && item.variant.title !== "Default Title" && (
-                            <p className="text-xs text-muted-foreground">{item.variant.title}</p>
-                          )}
-                        </div>
-                        <p className="text-sm font-semibold whitespace-nowrap shrink-0">£{linePrice.toFixed(2)}</p>
-                      </div>
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="w-10 pl-4 pr-0"></TableHead>
+                    <TableHead>Product</TableHead>
+                    <TableHead className="hidden sm:table-cell">Variant</TableHead>
+                    <TableHead className="text-right pr-4">Price</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {eligibleItems.map(item => {
+                    const sel = selectedItems[item.id]
+                    const isLocked = !policyAccepted
+                    const url = pUrl(item.productHandle)
+                    const linePrice = pricePerItem * item.quantity
+                    return (
+                      <React.Fragment key={item.id}>
+                        <TableRow className={cn(
+                          "transition-colors",
+                          sel?.selected && "bg-muted/20 hover:bg-muted/30",
+                          isLocked && "opacity-60"
+                        )}>
+                          <TableCell className="pl-4 pr-0">
+                            <Checkbox
+                              checked={sel?.selected || false}
+                              disabled={isLocked}
+                              onCheckedChange={checked => {
+                                if (isLocked) return
+                                setSelectedItems(prev => ({
+                                  ...prev,
+                                  [item.id]: checked
+                                    ? { selected: true, quantity: 1, reason: "", description: "" }
+                                    : { ...prev[item.id], selected: false },
+                                }))
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <a href={url} target="_blank" rel="noopener noreferrer" className="relative shrink-0 block">
+                                <div className="size-10 rounded-md overflow-hidden bg-white border border-border">
+                                  {item.image?.url && (
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img src={item.image.url} alt={item.title} className="w-full h-full object-contain p-0.5" />
+                                  )}
+                                </div>
+                                <span className="absolute -top-1.5 -right-1.5 bg-foreground text-white text-[9px] font-bold min-w-[16px] h-[16px] flex items-center justify-center rounded-full ring-2 ring-background z-10">
+                                  {item.quantity}
+                                </span>
+                              </a>
+                              <div>
+                                <a href={url} target="_blank" rel="noopener noreferrer"
+                                  className="font-medium text-sm text-foreground hover:underline block leading-tight">
+                                  {item.title}
+                                </a>
+                                {item.variant?.title && item.variant.title !== "Default Title" && (
+                                  <p className="text-xs text-muted-foreground sm:hidden">{item.variant.title}</p>
+                                )}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">
+                            {item.variant?.title && item.variant.title !== "Default Title"
+                              ? item.variant.title : "—"}
+                          </TableCell>
+                          <TableCell className="text-right pr-4 font-medium text-sm">
+                            £{linePrice.toFixed(2)}
+                          </TableCell>
+                        </TableRow>
 
-                      {sel?.selected && (
-                        <div className="mt-3 ml-[calc(1.25rem+0.75rem+3.5rem+0.75rem)] bg-zinc-50 border border-border rounded-xl p-3 space-y-3">
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="space-y-1">
-                              <label className="text-[11px] font-semibold uppercase tracking-wide">Quantity</label>
-                              <Select
-                                value={String(sel.quantity)}
-                                onValueChange={val => setSelectedItems(prev => ({ ...prev, [item.id]: { ...prev[item.id], quantity: parseInt(val) } }))}
-                              >
-                                <SelectTrigger className="h-8 text-sm bg-white"><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                  {Array.from({ length: item.quantity }, (_, i) => (
-                                    <SelectItem key={i + 1} value={String(i + 1)}>{i + 1}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            <div className="space-y-1">
-                              <label className="text-[11px] font-semibold uppercase tracking-wide">Reason</label>
-                              <Select
-                                value={sel.reason}
-                                onValueChange={val => setSelectedItems(prev => ({ ...prev, [item.id]: { ...prev[item.id], reason: val, description: "" } }))}
-                              >
-                                <SelectTrigger className="h-8 text-sm bg-white"><SelectValue placeholder="Select..." /></SelectTrigger>
-                                <SelectContent>
-                                  {RETURN_REASONS.map(r => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </div>
-                          {sel.reason === "OTHER" && (
-                            <div className="space-y-1">
-                              <label className="text-[11px] font-semibold uppercase tracking-wide">
-                                Describe <span className="text-destructive">*</span>
-                              </label>
-                              <Textarea value={sel.description} onChange={e => setSelectedItems(prev => ({ ...prev, [item.id]: { ...prev[item.id], description: e.target.value } }))} placeholder="Describe your reason..." className="text-sm bg-white min-h-0" rows={2} />
-                            </div>
-                          )}
-                          {sel.reason && sel.reason !== "OTHER" && (
-                            <div className="space-y-1">
-                              <label className="text-[11px] font-semibold uppercase tracking-wide">
-                                Notes <span className="text-muted-foreground font-normal normal-case text-xs">(optional)</span>
-                              </label>
-                              <Textarea value={sel.description} onChange={e => setSelectedItems(prev => ({ ...prev, [item.id]: { ...prev[item.id], description: e.target.value } }))} placeholder="Any additional information..." className="text-sm bg-white min-h-0" rows={2} />
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
+                        {/* Expanded return form */}
+                        {sel?.selected && (
+                          <TableRow className="hover:bg-transparent bg-muted/10">
+                            <TableCell colSpan={4} className="px-4 py-3">
+                              <div className="ml-[calc(1rem+2.5rem+0.75rem)] grid grid-cols-2 gap-3">
+                                <div className="space-y-1">
+                                  <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Quantity</label>
+                                  <Select
+                                    value={String(sel.quantity)}
+                                    onValueChange={val => setSelectedItems(prev => ({ ...prev, [item.id]: { ...prev[item.id], quantity: parseInt(val) } }))}
+                                  >
+                                    <SelectTrigger className="h-8 text-sm bg-white"><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                      {Array.from({ length: item.quantity }, (_, i) => (
+                                        <SelectItem key={i + 1} value={String(i + 1)}>{i + 1}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Reason</label>
+                                  <Select
+                                    value={sel.reason}
+                                    onValueChange={val => setSelectedItems(prev => ({ ...prev, [item.id]: { ...prev[item.id], reason: val, description: "" } }))}
+                                  >
+                                    <SelectTrigger className="h-8 text-sm bg-white"><SelectValue placeholder="Select..." /></SelectTrigger>
+                                    <SelectContent>
+                                      {RETURN_REASONS.map(r => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                {(sel.reason === "OTHER" || sel.reason) && (
+                                  <div className="col-span-2 space-y-1">
+                                    <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                      {sel.reason === "OTHER" ? <>Notes <span className="text-destructive">*</span></> : "Notes (optional)"}
+                                    </label>
+                                    <Textarea
+                                      value={sel.description}
+                                      onChange={e => setSelectedItems(prev => ({ ...prev, [item.id]: { ...prev[item.id], description: e.target.value } }))}
+                                      placeholder={sel.reason === "OTHER" ? "Describe your reason..." : "Any additional information..."}
+                                      className="text-sm bg-white resize-none"
+                                      rows={2}
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </React.Fragment>
+                    )
+                  })}
+                </TableBody>
+              </Table>
             </Card>
 
-            {/* Ineligible (below eligible in left col) */}
-            <IneligibleCard items={ineligibleItems} />
+            {/* ── Ineligible items table (only shown if any) ── */}
+            {ineligibleItems.length > 0 && (
+              <Card className={cn(C, "overflow-hidden")}>
+                <CardHeader className="px-5 py-3 border-b">
+                  <CardTitle className="text-sm font-semibold flex items-center justify-between">
+                    {ineligibleItems.length} item{ineligibleItems.length !== 1 ? "s" : ""} in this order aren&apos;t eligible for return
+                    <Badge variant="secondary" className="text-xs font-medium">{ineligibleItems.length}</Badge>
+                  </CardTitle>
+                </CardHeader>
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="pl-4">Product</TableHead>
+                      <TableHead className="hidden sm:table-cell">Variant</TableHead>
+                      <TableHead className="pr-4 text-right">Reason</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {ineligibleItems.map(item => {
+                      const url = pUrl(item.productHandle)
+                      return (
+                        <TableRow key={item.id} className="opacity-75">
+                          <TableCell className="pl-4">
+                            <div className="flex items-center gap-3">
+                              <a href={url} target="_blank" rel="noopener noreferrer" className="relative shrink-0 block">
+                                <div className="size-10 rounded-md overflow-hidden bg-white border border-border">
+                                  {item.image?.url && (
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img src={item.image.url} alt={item.title} className="w-full h-full object-contain p-0.5" />
+                                  )}
+                                </div>
+                                <span className="absolute -top-1.5 -right-1.5 bg-foreground text-white text-[9px] font-bold min-w-[16px] h-[16px] flex items-center justify-center rounded-full ring-2 ring-background z-10">
+                                  {item.quantity}
+                                </span>
+                              </a>
+                              <div>
+                                <a href={url} target="_blank" rel="noopener noreferrer"
+                                  className="font-medium text-sm text-foreground hover:underline block leading-tight">
+                                  {item.title}
+                                </a>
+                                {item.variant?.title && item.variant.title !== "Default Title" && (
+                                  <p className="text-xs text-muted-foreground sm:hidden">{item.variant.title}</p>
+                                )}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">
+                            {item.variant?.title && item.variant.title !== "Default Title"
+                              ? item.variant.title : "—"}
+                          </TableCell>
+                          <TableCell className="pr-4 text-right">
+                            <IneligibleReason status={item.returnStatus} />
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              </Card>
+            )}
           </div>
 
-          {/* Right: sticky sidebar */}
-          <div className="lg:col-span-1">
-            <div className="lg:sticky lg:top-6 space-y-3">
-              <Card className={C + " overflow-hidden"}>
+          {/* ── Right sidebar — sticky ── */}
+          <div className="lg:col-span-1 self-start sticky top-6">
+            <div className="flex flex-col gap-3">
+              <Card className={cn(C, "overflow-hidden")}>
                 <CardHeader className="px-5 py-3 border-b">
                   <CardTitle className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
                     Refund Estimator
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="px-5 py-4 space-y-3">
-                  <div className="flex justify-between text-sm">
+                <CardContent className="px-5 py-4">
+                  <div className="flex justify-between text-sm mb-3">
                     <span className="text-muted-foreground">{selectedCount} item{selectedCount !== 1 ? "s" : ""} selected</span>
                     <span className="font-medium">£{estimatedRefund.toFixed(2)}</span>
                   </div>
                   <Separator />
-                  <div className="flex justify-between font-semibold">
+                  <div className="flex justify-between font-semibold mt-3 mb-4">
                     <span className="text-sm">Estimated total</span>
                     <span className="text-[#E5403B] text-base">£{estimatedRefund.toFixed(2)}</span>
                   </div>
                   {selectedCount === 0 && (
-                    <p className="text-xs text-center text-muted-foreground">Select items to see your estimate</p>
+                    <p className="text-xs text-center text-muted-foreground mb-3">Select items to see your estimate</p>
                   )}
-                  <div className="space-y-2 pt-1">
+                  <div className="flex flex-col gap-2">
                     <Button
                       className="w-full bg-[#E5403B] hover:bg-[#cc3935] text-white disabled:opacity-50"
                       disabled={!canSubmit || submitting}
@@ -604,16 +706,16 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
               </Card>
 
               <Card className={C}>
-                <CardContent className="px-5 py-4 space-y-2 text-sm">
-                  <p className="font-semibold">Order Summary</p>
-                  <div className="flex justify-between text-muted-foreground">
+                <CardContent className="px-5 py-4">
+                  <p className="font-semibold text-sm mb-2">Order Summary</p>
+                  <div className="flex justify-between text-sm text-muted-foreground mb-1.5">
                     <span>Total paid</span>
                     <span className="font-medium text-foreground">£{total.toFixed(2)} GBP</span>
                   </div>
-                  <div className="flex justify-between text-muted-foreground">
+                  <div className="flex justify-between text-sm text-muted-foreground mb-1.5">
                     <span>Items</span><span>{totalQty}</span>
                   </div>
-                  <div className="flex justify-between text-muted-foreground">
+                  <div className="flex justify-between text-sm text-muted-foreground">
                     <span>Eligible to return</span>
                     <span className="text-green-600 font-medium">{eligibleItems.length}</span>
                   </div>
@@ -624,8 +726,62 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
         </div>
 
       ) : (
-        /* ── No eligible items: full-width, no sidebar ── */
-        <IneligibleCard items={ineligibleItems} />
+        /* ── All ineligible: full-width table, no sidebar ── */
+        <Card className={cn(C, "overflow-hidden")}>
+          <CardHeader className="px-5 py-3 border-b">
+            <CardTitle className="text-sm font-semibold">
+              {ineligibleItems.length} item{ineligibleItems.length !== 1 ? "s" : ""} in this order aren&apos;t eligible for return
+            </CardTitle>
+          </CardHeader>
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="pl-4">Product</TableHead>
+                <TableHead className="hidden sm:table-cell">Variant</TableHead>
+                <TableHead className="pr-4 text-right">Reason</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {ineligibleItems.map(item => {
+                const url = pUrl(item.productHandle)
+                return (
+                  <TableRow key={item.id} className="opacity-75">
+                    <TableCell className="pl-4">
+                      <div className="flex items-center gap-3">
+                        <a href={url} target="_blank" rel="noopener noreferrer" className="relative shrink-0 block">
+                          <div className="size-10 rounded-md overflow-hidden bg-white border border-border">
+                            {item.image?.url && (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={item.image.url} alt={item.title} className="w-full h-full object-contain p-0.5" />
+                            )}
+                          </div>
+                          <span className="absolute -top-1.5 -right-1.5 bg-foreground text-white text-[9px] font-bold min-w-[16px] h-[16px] flex items-center justify-center rounded-full ring-2 ring-background z-10">
+                            {item.quantity}
+                          </span>
+                        </a>
+                        <div>
+                          <a href={url} target="_blank" rel="noopener noreferrer"
+                            className="font-medium text-sm text-foreground hover:underline block leading-tight">
+                            {item.title}
+                          </a>
+                          {item.variant?.title && item.variant.title !== "Default Title" && (
+                            <p className="text-xs text-muted-foreground sm:hidden">{item.variant.title}</p>
+                          )}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">
+                      {item.variant?.title && item.variant.title !== "Default Title" ? item.variant.title : "—"}
+                    </TableCell>
+                    <TableCell className="pr-4 text-right">
+                      <IneligibleReason status={item.returnStatus} />
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+        </Card>
       )}
     </div>
   )
@@ -698,23 +854,31 @@ export default function DashboardClient() {
 
               {error && (
                 <div className="flex items-center gap-3 p-4 rounded-xl bg-destructive/10 text-sm text-destructive">
-                  <XCircle className="size-5 shrink-0" />{error}
+                  <PackageX className="size-5 shrink-0" />{error}
                 </div>
               )}
 
-              {!error && filteredOrders.length === 0 && (
+              {/* Skeleton loaders while orders haven't populated yet */}
+              {!error && !data && (
+                <div className="grid grid-cols-2 xl:grid-cols-3 gap-4">
+                  {Array.from({ length: 6 }).map((_, i) => <OrderCardSkeleton key={i} />)}
+                </div>
+              )}
+
+              {!error && data && filteredOrders.length === 0 && (
                 <div className="text-center py-20">
                   <ShoppingBag className="size-12 text-muted-foreground/30 mx-auto mb-4" />
                   <p className="font-medium text-muted-foreground">No orders found</p>
                 </div>
               )}
 
-              {view === "grid" && (
-                <div className="grid grid-cols-2 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {view === "grid" && filteredOrders.length > 0 && (
+                <div className="grid grid-cols-2 xl:grid-cols-3 gap-4">
                   {filteredOrders.map(o => <OrderCard key={o.id} order={o} onClick={() => setSelectedOrder(o)} />)}
                 </div>
               )}
-              {view === "list" && (
+
+              {view === "list" && filteredOrders.length > 0 && (
                 <Card className={C}>
                   <CardContent className="p-0">
                     {filteredOrders.map(o => <OrderRow key={o.id} order={o} onClick={() => setSelectedOrder(o)} />)}
