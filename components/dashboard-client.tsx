@@ -177,9 +177,7 @@ function ProductThumb({ item }: { item: LineItem }) {
           <img src={item.image.url} alt={item.title} className="w-full h-full object-contain p-0.5" />
         )}
       </div>
-      <span className="absolute -top-1.5 -right-1.5 bg-foreground text-white text-[9px] font-bold min-w-[16px] h-[16px] flex items-center justify-center rounded-full ring-2 ring-background z-10">
-        {item.quantity}
-      </span>
+
     </a>
   )
 }
@@ -481,7 +479,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
               <ExternalLink className="size-3.5" /> View Order Status
             </a>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 border-t border-border divide-x divide-border">
+          <div className="grid grid-cols-4 border-t border-border divide-x divide-border">
             <div className="px-5 py-3"><p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Total Paid</p><p className="font-semibold text-sm mt-0.5">£{total.toFixed(2)}</p></div>
             <div className="px-5 py-3"><p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Eligible</p><p className="font-semibold text-sm mt-0.5 text-green-600">{eligibleItems.length}</p></div>
             <div className="px-5 py-3"><p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Ineligible</p><p className="font-semibold text-sm mt-0.5 text-zinc-500">{ineligibleItems.length}</p></div>
@@ -526,7 +524,8 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                     <TableRow className="hover:bg-transparent">
                       <TableHead className="w-8 pl-4 pr-0"></TableHead>
                       <TableHead className="pl-3">Product</TableHead>
-                      <TableHead className="text-right pr-4">Price</TableHead>
+                      <TableHead className="text-right pr-4 hidden sm:table-cell">Unit</TableHead>
+                      <TableHead className="text-right pr-4">Total</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -540,7 +539,6 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                           <TableRow className={cn(
                             "transition-colors",
                             sel?.selected && "bg-muted/20 hover:bg-muted/30",
-                            isLocked && "opacity-60 cursor-not-allowed"
                           )}>
                             <TableCell className="pl-4 pr-0 py-3">
                               <Checkbox
@@ -566,19 +564,22 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                                     {item.title}
                                   </a>
                                   {item.variant?.title && item.variant.title !== "Default Title" && (
-                                    <p className="text-xs text-muted-foreground mt-0.5">{item.variant.title}</p>
+                                    <span className="inline-block mt-1 text-[11px] bg-muted text-muted-foreground rounded px-1.5 py-0.5 leading-none">{item.variant.title}</span>
                                   )}
                                 </div>
                               </div>
                             </TableCell>
-                            <TableCell className="text-right pr-4 py-3 font-medium text-sm whitespace-nowrap">
+                            <TableCell className="text-right pr-4 py-3 text-sm whitespace-nowrap hidden sm:table-cell text-muted-foreground">
+                              £{pricePerItem.toFixed(2)} × <span className="inline-flex items-center justify-center bg-muted rounded px-1.5 text-[11px] font-semibold text-foreground">{item.quantity}</span>
+                            </TableCell>
+                            <TableCell className="text-right pr-4 py-3 font-semibold text-sm whitespace-nowrap">
                               £{linePrice.toFixed(2)}
                             </TableCell>
                           </TableRow>
 
                           {sel?.selected && (
                             <TableRow className="hover:bg-transparent bg-zinc-50/60">
-                              <TableCell colSpan={3} className="px-4 pb-3 pt-1">
+                              <TableCell colSpan={4} className="px-4 pb-3 pt-1">
                                 <div className="ml-[calc(0.5rem+2.5rem+0.75rem)] grid grid-cols-2 gap-2.5">
                                   <div>
                                     <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">Quantity</label>
@@ -651,29 +652,32 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
       {mounted && hasEligible && createPortal(
         <div
           className="fixed bottom-0 right-0 z-[48] border-t border-border bg-background shadow-[0_-2px_12px_rgba(0,0,0,0.08)]"
-          style={{ left: sidebarMobile ? "0px" : sidebarState === "collapsed" ? "var(--sidebar-width-icon, 3rem)" : "var(--sidebar-width, 18rem)" }}
+          style={{ left: sidebarMobile ? "0px" : sidebarState === "collapsed" ? "3rem" : "18rem" }}
         >
-          <div className="px-4 lg:px-6 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-4">
-              <div>
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Selected</p>
-                <p className="text-sm font-semibold">{selectedCount} item{selectedCount !== 1 ? "s" : ""}</p>
+          <div className="px-4 lg:px-6 py-2.5 flex items-center justify-between gap-2">
+            {/* Left: stats */}
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="shrink-0">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold leading-none mb-0.5">Selected</p>
+                <p className="text-sm font-semibold leading-tight">{selectedCount} item{selectedCount !== 1 ? "s" : ""}</p>
               </div>
-              <Separator orientation="vertical" className="h-8" />
-              <div>
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Estimated refund</p>
-                <p className="text-sm font-bold text-[#E5403B]">£{estimatedRefund.toFixed(2)}</p>
+              <Separator orientation="vertical" className="h-7 shrink-0" />
+              <div className="shrink-0">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold leading-none mb-0.5">Refund</p>
+                <p className="text-sm font-bold text-[#E5403B] leading-tight">£{estimatedRefund.toFixed(2)}</p>
               </div>
               {!policyAccepted && (
-                <div className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground">
+                <div className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
                   <Lock className="size-3.5 shrink-0" />
                   <span>Accept policy to continue</span>
                 </div>
               )}
             </div>
+            {/* Right: actions */}
             <div className="flex items-center gap-2 shrink-0">
-              <Button variant="ghost" size="sm" onClick={onBack} className="text-muted-foreground">Cancel</Button>
+              <Button variant="ghost" size="sm" onClick={onBack} className="text-muted-foreground hidden sm:inline-flex">Cancel</Button>
               <Button
+                size="sm"
                 className="bg-[#E5403B] hover:bg-[#cc3935] text-white disabled:opacity-50"
                 disabled={!canSubmit || submitting}
                 onClick={submitReturn}
