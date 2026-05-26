@@ -16,7 +16,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         {children}
-        <Toaster position="top-right" toastOptions={{ className: "!z-[9999]" }} />
+        <Toaster position="bottom-left" toastOptions={{ className: "!z-[9999]" }} />
       </body>
     </html>
   );
