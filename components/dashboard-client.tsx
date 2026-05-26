@@ -6,7 +6,7 @@ import { toast } from "sonner"
 import {
   ChevronRight, LayoutGrid, List, ArrowLeft,
   RotateCcw, CheckCircle2, ShoppingBag, ShieldCheck,
-  Clock, Truck, PackageX, Lock,
+  Clock, Truck, PackageX, Lock, ExternalLink
 } from "lucide-react"
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
@@ -76,10 +76,9 @@ const RETURN_REASONS = [
   { value: "OTHER", label: "Other" },
 ]
 
-// Card base: kill shadcn's default py-6 gap-6
+// Card base reset for standard grids
 const C = "shadow-sm py-0 gap-0"
-// CardHeader override: kill shadcn's default gap-2 (grid layout)
-const CH = "px-5 py-3 border-b gap-0"
+const CH = "px-6 py-4 border-b gap-0 bg-white"
 
 function pUrl(handle?: string | null) {
   return handle ? `https://iblazevape.co.uk/products/${handle}` : "https://iblazevape.co.uk"
@@ -128,13 +127,13 @@ function ProductThumb({ item }: { item: LineItem }) {
   const url = pUrl(item.productHandle)
   return (
     <a href={url} target="_blank" rel="noopener noreferrer" className="relative shrink-0 block">
-      <div className="size-10 rounded-md overflow-hidden bg-white border border-border">
+      <div className="size-12 rounded-md overflow-hidden bg-white border border-border">
         {item.image?.url && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={item.image.url} alt={item.title} className="w-full h-full object-contain p-0.5" />
+          <img src={item.image.url} alt={item.title} className="w-full h-full object-contain p-1" />
         )}
       </div>
-      <span className="absolute -top-1.5 -right-1.5 bg-foreground text-white text-[9px] font-bold min-w-[16px] h-[16px] flex items-center justify-center rounded-full ring-2 ring-background z-10">
+      <span className="absolute -top-1.5 -right-1.5 bg-foreground text-white text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full ring-2 ring-background z-10">
         {item.quantity}
       </span>
     </a>
@@ -318,6 +317,9 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
 
+  const rawOrderId = order.id.split("/").pop()
+  const orderStatusUrl = `https://account.iblazevape.co.uk/orders/${rawOrderId}?buyer_token_attempted=1&locale=en-GB`
+
   const eligibleItems = order.processedItems.filter(i => i.returnStatus === "Eligible")
   const ineligibleItems = order.processedItems.filter(i => i.returnStatus !== "Eligible")
   const hasEligible = eligibleItems.length > 0
@@ -327,7 +329,6 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
   const pricePerItem = totalQty > 0 ? total / totalQty : 0
   const refundedAmount = order.totalRefundedSet?.shopMoney?.amount
     ? parseFloat(order.totalRefundedSet.shopMoney.amount) : 0
-  const hasRefund = refundedAmount > 0
 
   const selectedCount = Object.values(selectedItems).filter(v => v.selected).length
   const estimatedRefund = Object.entries(selectedItems)
@@ -350,16 +351,15 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
     if (!items.length) return
     setSubmitting(true)
     try {
-      const orderId = order.id.split("/").pop()
       const res = await fetch("/api/submit-return", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId, items }),
+        body: JSON.stringify({ orderId: rawOrderId, items }),
       })
       const result = await res.json()
       if (result.success) {
         setSubmitted(true)
-        setTimeout(() => { window.location.href = `https://account.iblazevape.co.uk/orders/${orderId}` }, 3000)
+        setTimeout(() => { window.location.href = `https://account.iblazevape.co.uk/orders/${rawOrderId}` }, 3000)
       } else {
         toast.error("Submission failed", { description: result.error || "Something went wrong. Please try again." })
       }
@@ -386,260 +386,249 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
   }
 
   return (
-    <div className="space-y-4">
-      <Button variant="ghost" size="sm" onClick={onBack} className="-ml-2 text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="size-4" /> Back to Orders
-      </Button>
-
-      {/* ── Top row: order info | order summary | refunded (all equal height) ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
-
-        {/* Order info — always 1/3 */}
-        <Card className={C}>
-          <CardContent className="px-5 py-4 h-full flex flex-col justify-between">
-            <div>
-              <div className="flex items-center gap-2 flex-wrap mb-1">
-                <h2 className="text-base font-semibold">{order.name}</h2>
-                {order.isDelivered
-                  ? <Badge className="bg-green-100 text-green-700 border-0 text-xs">Delivered</Badge>
-                  : <Badge variant="secondary" className="text-xs">
-                      {order.displayFulfillmentStatus === "IN_PROGRESS" ? "In Transit" :
-                       order.displayFulfillmentStatus === "FULFILLED" ? "Shipped" : "Processing"}
-                    </Badge>}
-              </div>
-              <p className="text-sm text-muted-foreground">
-                {order.isDelivered && order.deliveredAt
-                  ? `Delivered ${new Date(order.deliveredAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`
-                  : new Date(order.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
-              </p>
-              <p className="text-sm font-semibold mt-0.5">
-                £{total.toFixed(2)} GBP &bull; {totalQty} item{totalQty !== 1 ? "s" : ""}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Order summary — always 1/3 */}
-        <Card className={C}>
-          <CardContent className="px-5 py-4 h-full flex flex-col justify-center">
-            <p className="text-xs uppercase tracking-wider font-semibold text-muted-foreground mb-2">Order Summary</p>
-            <div className="flex justify-between text-sm mb-1">
-              <span className="text-muted-foreground">Total paid</span>
-              <span className="font-semibold">£{total.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between text-sm mb-1">
-              <span className="text-muted-foreground">Items</span>
-              <span className="font-medium">{totalQty}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Eligible to return</span>
-              <span className={cn("font-semibold", hasEligible ? "text-green-600" : "text-muted-foreground")}>
-                {eligibleItems.length}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Refunded — always 1/3, shows refund or ineligible count */}
-        {hasRefund ? (
-          <Card className={C}>
-            <CardContent className="px-5 py-4 h-full flex flex-col justify-center">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-base font-bold">£{refundedAmount.toFixed(2)} GBP</span>
-                <Badge variant="outline" className="text-xs font-semibold">Refunded</Badge>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                {refundedAmount >= total ? "You received a full refund." : "You received a partial refund."}
-              </p>
-            </CardContent>
-          </Card>
-        ) : ineligibleItems.length > 0 ? (
-          <Card className={C}>
-            <CardContent className="px-5 py-4 h-full flex flex-col justify-center">
-              <p className="text-xs uppercase tracking-wider font-semibold text-muted-foreground mb-2">Ineligible Items</p>
-              <p className="text-base font-bold">{ineligibleItems.length}</p>
-              <p className="text-sm text-muted-foreground">
-                item{ineligibleItems.length !== 1 ? "s" : ""} can&apos;t be returned
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card className={C}>
-            <CardContent className="px-5 py-4 h-full flex flex-col justify-center">
-              <p className="text-xs uppercase tracking-wider font-semibold text-muted-foreground mb-2">Return Window</p>
-              <p className="text-sm text-muted-foreground">All items are eligible to return.</p>
-            </CardContent>
-          </Card>
-        )}
+    <div className="space-y-6 pb-12">
+      <div>
+        <Button variant="ghost" size="sm" onClick={onBack} className="-ml-2 text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="size-4 mr-1" /> Back to Orders
+        </Button>
       </div>
+
+      {/* ── Premium Order Header Card ── */}
+      <Card className="border-border shadow-sm overflow-hidden mb-2">
+        <div className="bg-zinc-50/50 p-6 md:p-8 flex flex-col md:flex-row md:items-start justify-between gap-6 border-b">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <h1 className="text-2xl font-bold tracking-tight">{order.name}</h1>
+              {order.isDelivered ? (
+                <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-0">Delivered</Badge>
+              ) : (
+                <Badge variant="secondary">
+                  {order.displayFulfillmentStatus === "IN_PROGRESS" ? "In Transit" :
+                   order.displayFulfillmentStatus === "FULFILLED" ? "Shipped" : "Processing"}
+                </Badge>
+              )}
+            </div>
+            <p className="text-muted-foreground text-sm mb-1">
+              {order.isDelivered && order.deliveredAt
+                ? `Delivered on ${new Date(order.deliveredAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`
+                : `Placed on ${new Date(order.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`}
+            </p>
+            <p className="font-medium text-sm">
+              £{total.toFixed(2)} GBP &bull; {totalQty} item{totalQty !== 1 ? "s" : ""}
+            </p>
+          </div>
+          
+          <div className="flex flex-col items-start md:items-end gap-2">
+            <Button asChild className="bg-black hover:bg-zinc-800 text-white w-full md:w-auto shadow-sm">
+              <a href={orderStatusUrl} target="_blank" rel="noopener noreferrer">
+                View Order Status
+                <ExternalLink className="size-4 ml-2 opacity-80" />
+              </a>
+            </Button>
+            <p className="text-[11px] text-muted-foreground flex items-center gap-1.5 md:mr-1">
+              <ShieldCheck className="size-3.5" /> Securely via Shopify
+            </p>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-y md:divide-y-0 border-border bg-white text-sm">
+          <div className="p-5 flex flex-col gap-1.5">
+            <span className="text-muted-foreground text-xs uppercase tracking-wider font-semibold">Total Paid</span>
+            <span className="font-bold text-lg">£{total.toFixed(2)}</span>
+          </div>
+          <div className="p-5 flex flex-col gap-1.5">
+            <span className="text-muted-foreground text-xs uppercase tracking-wider font-semibold">Eligible</span>
+            <span className="font-bold text-lg text-green-600">{eligibleItems.length} item{eligibleItems.length !== 1 ? "s" : ""}</span>
+          </div>
+          <div className="p-5 flex flex-col gap-1.5">
+            <span className="text-muted-foreground text-xs uppercase tracking-wider font-semibold">Ineligible</span>
+            <span className="font-bold text-lg text-zinc-600">{ineligibleItems.length} item{ineligibleItems.length !== 1 ? "s" : ""}</span>
+          </div>
+          <div className="p-5 flex flex-col gap-1.5">
+            <span className="text-muted-foreground text-xs uppercase tracking-wider font-semibold">Refunded</span>
+            <span className="font-bold text-lg text-blue-600">£{refundedAmount.toFixed(2)}</span>
+          </div>
+        </div>
+      </Card>
 
       {/* ── Policy gate ── */}
       {hasEligible && !policyAccepted && (
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border bg-card px-4 py-3 text-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border bg-card px-5 py-4 text-sm shadow-sm">
           <div className="flex items-center gap-2 min-w-0">
             <ShieldCheck className="size-4 text-muted-foreground shrink-0" />
-            <span className="font-medium">Hygiene &amp; Returns Policy</span>
-            <span className="text-muted-foreground hidden sm:inline">— Review and accept before selecting items.</span>
+            <span className="font-medium text-base">Hygiene &amp; Returns Policy</span>
+            <span className="text-muted-foreground hidden sm:inline ml-1">— Review and accept before selecting items.</span>
           </div>
-          <span className="text-muted-foreground sm:hidden text-xs pl-6">Review and accept our returns policy before selecting items.</span>
+          <span className="text-muted-foreground sm:hidden text-sm pl-6">Review and accept our returns policy before selecting items.</span>
           <HygienePolicy onAccept={() => setPolicyAccepted(true)} onDecline={() => setPolicyAccepted(false)} />
         </div>
       )}
 
-      {/* ── Main content: 3-col grid when eligible, full-width when not ── */}
-      {hasEligible ? (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+      {/* ── Main Layout: Tables on Left, Sticky Sidebar on Right ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
 
-          {/* ── Left: eligible + ineligible tables ── */}
-          <div className="lg:col-span-2 flex flex-col gap-4">
+        {/* ── Left Column: Both Tables ── */}
+        <div className="lg:col-span-2 flex flex-col gap-6">
 
-            {/* Eligible items table */}
-            <Card className={cn(C, "overflow-hidden")}>
-              <CardHeader className={CH}>
-                <CardTitle className="text-sm font-semibold flex items-center justify-between">
-                  Select items to return
-                  <Badge className="bg-green-100 text-green-700 border-0 text-xs font-medium">
-                    {eligibleItems.length} eligible
-                  </Badge>
-                </CardTitle>
-              </CardHeader>
-              <Table>
-                <TableHeader>
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead className="w-10 pl-4 pr-0"></TableHead>
-                    <TableHead>Product</TableHead>
-                    <TableHead className="hidden sm:table-cell">Variant</TableHead>
-                    <TableHead className="text-right pr-4">Price</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {eligibleItems.map(item => {
-                    const sel = selectedItems[item.id]
-                    const isLocked = !policyAccepted
-                    const url = pUrl(item.productHandle)
-                    const linePrice = pricePerItem * item.quantity
-                    return (
-                      <React.Fragment key={item.id}>
-                        <TableRow className={cn(
-                          "transition-colors",
-                          sel?.selected && "bg-muted/20 hover:bg-muted/30",
-                          isLocked && "opacity-60 cursor-not-allowed"
-                        )}>
-                          <TableCell className="pl-4 pr-0">
-                            <Checkbox
-                              checked={sel?.selected || false}
-                              disabled={isLocked}
-                              onCheckedChange={checked => {
-                                if (isLocked) return
-                                setSelectedItems(prev => ({
-                                  ...prev,
-                                  [item.id]: checked
-                                    ? { selected: true, quantity: 1, reason: "", description: "" }
-                                    : { ...prev[item.id], selected: false },
-                                }))
-                              }}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-3">
-                              <ProductThumb item={item} />
-                              <div>
-                                <a href={url} target="_blank" rel="noopener noreferrer"
-                                  className="font-medium text-sm text-foreground hover:underline block leading-tight">
-                                  {item.title}
-                                </a>
-                                {item.variant?.title && item.variant.title !== "Default Title" && (
-                                  <p className="text-xs text-muted-foreground sm:hidden">{item.variant.title}</p>
-                                )}
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">
-                            {item.variant?.title && item.variant.title !== "Default Title" ? item.variant.title : "—"}
-                          </TableCell>
-                          <TableCell className="text-right pr-4 font-medium text-sm">£{linePrice.toFixed(2)}</TableCell>
-                        </TableRow>
-
-                        {/* Expanded form row */}
-                        {sel?.selected && (
-                          <TableRow className="hover:bg-transparent bg-muted/10">
-                            <TableCell colSpan={4} className="px-4 pb-3 pt-0">
-                              <div className="ml-[calc(1rem+2.5rem+0.75rem)] grid grid-cols-2 gap-3">
-                                <div>
-                                  <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">Quantity</label>
-                                  <Select
-                                    value={String(sel.quantity)}
-                                    onValueChange={val => setSelectedItems(prev => ({ ...prev, [item.id]: { ...prev[item.id], quantity: parseInt(val) } }))}
-                                  >
-                                    <SelectTrigger className="h-8 text-sm bg-white"><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                      {Array.from({ length: item.quantity }, (_, i) => (
-                                        <SelectItem key={i + 1} value={String(i + 1)}>{i + 1}</SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-                                <div>
-                                  <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">Reason</label>
-                                  <Select
-                                    value={sel.reason}
-                                    onValueChange={val => setSelectedItems(prev => ({ ...prev, [item.id]: { ...prev[item.id], reason: val, description: "" } }))}
-                                  >
-                                    <SelectTrigger className="h-8 text-sm bg-white"><SelectValue placeholder="Select..." /></SelectTrigger>
-                                    <SelectContent>
-                                      {RETURN_REASONS.map(r => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-                                {sel.reason && (
-                                  <div className="col-span-2">
-                                    <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">
-                                      {sel.reason === "OTHER" ? <>Notes <span className="text-destructive">*</span></> : "Notes (optional)"}
-                                    </label>
-                                    <Textarea
-                                      value={sel.description}
-                                      onChange={e => setSelectedItems(prev => ({ ...prev, [item.id]: { ...prev[item.id], description: e.target.value } }))}
-                                      placeholder={sel.reason === "OTHER" ? "Describe your reason..." : "Any additional information..."}
-                                      className="text-sm bg-white resize-none"
-                                      rows={2}
-                                    />
-                                  </div>
-                                )}
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        )}
-                      </React.Fragment>
-                    )
-                  })}
-                </TableBody>
-              </Table>
-            </Card>
-
-            {/* Ineligible items table */}
-            {ineligibleItems.length > 0 && (
-              <Card className={cn(C, "overflow-hidden")}>
-                <CardHeader className={CH}>
-                  <CardTitle className="text-sm font-semibold flex items-center justify-between">
-                    {ineligibleItems.length} item{ineligibleItems.length !== 1 ? "s" : ""} in this order aren&apos;t eligible for return
-                    <Badge variant="secondary" className="text-xs font-medium">{ineligibleItems.length}</Badge>
-                  </CardTitle>
-                </CardHeader>
+          {/* Eligible Items Card */}
+          <Card className={cn(C, "overflow-hidden")}>
+            <CardHeader className={CH}>
+              <CardTitle className="text-base font-semibold flex items-center justify-between">
+                Select items to return
+                <Badge className="bg-green-100 text-green-700 border-0 text-xs font-medium px-2 py-0.5">
+                  {eligibleItems.length} eligible
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            {eligibleItems.length === 0 ? (
+              <div className="p-8 text-center text-muted-foreground text-sm">
+                No items in this order are currently eligible for return.
+              </div>
+            ) : (
+              <div className="max-h-[500px] overflow-y-auto">
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
-                      <TableHead className="pl-4">Product</TableHead>
-                      <TableHead className="hidden sm:table-cell">Variant</TableHead>
-                      <TableHead className="pr-4 text-right">Reason</TableHead>
+                      <TableHead className="w-10 pl-6 pr-0"></TableHead>
+                      <TableHead className="py-4">Product</TableHead>
+                      <TableHead className="hidden sm:table-cell py-4">Variant</TableHead>
+                      <TableHead className="text-right pr-6 py-4">Price</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {eligibleItems.map(item => {
+                      const sel = selectedItems[item.id]
+                      const isLocked = !policyAccepted
+                      const url = pUrl(item.productHandle)
+                      const linePrice = pricePerItem * item.quantity
+                      return (
+                        <React.Fragment key={item.id}>
+                          <TableRow className={cn(
+                            "transition-colors",
+                            sel?.selected && "bg-muted/20 hover:bg-muted/30",
+                            isLocked && "opacity-60 cursor-not-allowed"
+                          )}>
+                            <TableCell className="pl-6 py-4 pr-0">
+                              <Checkbox
+                                checked={sel?.selected || false}
+                                disabled={isLocked}
+                                onCheckedChange={checked => {
+                                  if (isLocked) return
+                                  setSelectedItems(prev => ({
+                                    ...prev,
+                                    [item.id]: checked
+                                      ? { selected: true, quantity: 1, reason: "", description: "" }
+                                      : { ...prev[item.id], selected: false },
+                                  }))
+                                }}
+                              />
+                            </TableCell>
+                            <TableCell className="py-4">
+                              <div className="flex items-center gap-4">
+                                <ProductThumb item={item} />
+                                <div>
+                                  <a href={url} target="_blank" rel="noopener noreferrer"
+                                    className="font-medium text-sm text-foreground hover:underline block leading-tight">
+                                    {item.title}
+                                  </a>
+                                  {item.variant?.title && item.variant.title !== "Default Title" && (
+                                    <p className="text-xs text-muted-foreground sm:hidden mt-1">{item.variant.title}</p>
+                                  )}
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="hidden sm:table-cell text-sm text-muted-foreground py-4">
+                              {item.variant?.title && item.variant.title !== "Default Title" ? item.variant.title : "—"}
+                            </TableCell>
+                            <TableCell className="text-right pr-6 py-4 font-medium text-sm">£{linePrice.toFixed(2)}</TableCell>
+                          </TableRow>
+
+                          {/* Expanded form row */}
+                          {sel?.selected && (
+                            <TableRow className="hover:bg-transparent bg-zinc-50/50">
+                              <TableCell colSpan={4} className="px-6 pb-4 pt-1 border-b">
+                                <div className="ml-[calc(1.5rem+3rem+1rem)] grid grid-cols-2 gap-4">
+                                  <div>
+                                    <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1.5">Quantity</label>
+                                    <Select
+                                      value={String(sel.quantity)}
+                                      onValueChange={val => setSelectedItems(prev => ({ ...prev, [item.id]: { ...prev[item.id], quantity: parseInt(val) } }))}
+                                    >
+                                      <SelectTrigger className="h-9 text-sm bg-white"><SelectValue /></SelectTrigger>
+                                      <SelectContent>
+                                        {Array.from({ length: item.quantity }, (_, i) => (
+                                          <SelectItem key={i + 1} value={String(i + 1)}>{i + 1}</SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                  <div>
+                                    <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1.5">Reason</label>
+                                    <Select
+                                      value={sel.reason}
+                                      onValueChange={val => setSelectedItems(prev => ({ ...prev, [item.id]: { ...prev[item.id], reason: val, description: "" } }))}
+                                    >
+                                      <SelectTrigger className="h-9 text-sm bg-white"><SelectValue placeholder="Select..." /></SelectTrigger>
+                                      <SelectContent>
+                                        {RETURN_REASONS.map(r => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                  {sel.reason && (
+                                    <div className="col-span-2 mt-1">
+                                      <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1.5">
+                                        {sel.reason === "OTHER" ? <>Notes <span className="text-destructive">*</span></> : "Notes (optional)"}
+                                      </label>
+                                      <Textarea
+                                        value={sel.description}
+                                        onChange={e => setSelectedItems(prev => ({ ...prev, [item.id]: { ...prev[item.id], description: e.target.value } }))}
+                                        placeholder={sel.reason === "OTHER" ? "Describe your reason..." : "Any additional information..."}
+                                        className="text-sm bg-white resize-none h-20"
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </React.Fragment>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </Card>
+
+          {/* Ineligible Items Card */}
+          <Card className={cn(C, "overflow-hidden")}>
+            <CardHeader className={CH}>
+              <CardTitle className="text-base font-semibold flex items-center justify-between">
+                {ineligibleItems.length} item{ineligibleItems.length !== 1 ? "s" : ""} aren&apos;t eligible for return
+                <Badge variant="secondary" className="text-xs font-medium px-2 py-0.5">{ineligibleItems.length}</Badge>
+              </CardTitle>
+            </CardHeader>
+            {ineligibleItems.length === 0 ? (
+              <div className="p-8 text-center text-muted-foreground text-sm">
+                All items in this order are currently eligible for return.
+              </div>
+            ) : (
+              <div className="max-h-[500px] overflow-y-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="pl-6 py-4">Product</TableHead>
+                      <TableHead className="hidden sm:table-cell py-4">Variant</TableHead>
+                      <TableHead className="pr-6 py-4 text-right">Reason</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {ineligibleItems.map(item => {
                       const url = pUrl(item.productHandle)
                       return (
-                        <TableRow key={item.id} className="opacity-70">
-                          <TableCell className="pl-4">
-                            <div className="flex items-center gap-3">
+                        <TableRow key={item.id}>
+                          <TableCell className="pl-6 py-4">
+                            <div className="flex items-center gap-4">
                               <ProductThumb item={item} />
                               <div>
                                 <a href={url} target="_blank" rel="noopener noreferrer"
@@ -647,19 +636,19 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                                   {item.title}
                                 </a>
                                 {item.variant?.title && item.variant.title !== "Default Title" && (
-                                  <p className="text-xs text-muted-foreground sm:hidden">{item.variant.title}</p>
+                                  <p className="text-xs text-muted-foreground sm:hidden mt-1">{item.variant.title}</p>
                                 )}
                               </div>
                             </div>
                           </TableCell>
-                          <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">
+                          <TableCell className="hidden sm:table-cell text-sm text-muted-foreground py-4">
                             {item.variant?.title && item.variant.title !== "Default Title" ? item.variant.title : "—"}
                           </TableCell>
-                          <TableCell className="pr-4 text-right">
+                          <TableCell className="pr-6 py-4 text-right">
                             <div className="flex flex-col items-end gap-1.5">
                               <IneligibleReason status={item.returnStatus} />
                               {item.returnReason && item.returnStatus === "Return declined" && (
-                                <span className="text-[11px] text-muted-foreground text-right max-w-[220px] leading-snug whitespace-normal break-words">
+                                <span className="text-[12px] text-muted-foreground text-right max-w-[240px] leading-snug whitespace-normal break-words">
                                   {item.returnReason}
                                 </span>
                               )}
@@ -670,112 +659,58 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                     })}
                   </TableBody>
                 </Table>
-              </Card>
+              </div>
             )}
-          </div>
+          </Card>
 
-          {/* ── Right: sticky refund sidebar ── */}
-          {/* sticky top offset = header (3rem) + page padding (1.5rem) = 4.5rem */}
-          <div className="lg:col-span-1 self-start lg:sticky lg:top-[4.5rem]">
-            <div className="flex flex-col gap-3">
-              <Card className={cn(C, "overflow-hidden")}>
-                <CardHeader className={CH}>
-                  <CardTitle className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
-                    Refund Estimator
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="px-5 py-4">
-                  <div className="flex justify-between text-sm mb-3">
-                    <span className="text-muted-foreground">{selectedCount} item{selectedCount !== 1 ? "s" : ""} selected</span>
-                    <span className="font-medium">£{estimatedRefund.toFixed(2)}</span>
-                  </div>
-                  <Separator />
-                  <div className="flex justify-between font-semibold mt-3 mb-4">
-                    <span className="text-sm">Estimated total</span>
-                    <span className="text-[#E5403B] text-base">£{estimatedRefund.toFixed(2)}</span>
-                  </div>
-                  {selectedCount === 0 && (
-                    <p className="text-xs text-center text-muted-foreground mb-3">Select items to see your estimate</p>
-                  )}
-                  <div className="flex flex-col gap-2">
-                    <Button
-                      className="w-full bg-[#E5403B] hover:bg-[#cc3935] text-white disabled:opacity-50"
-                      disabled={!canSubmit || submitting}
-                      onClick={submitReturn}
-                    >
-                      {submitting
-                        ? <><Spinner className="size-4" />Submitting...</>
-                        : <><RotateCcw className="size-4" />Submit Return Request</>}
-                    </Button>
-                    {!policyAccepted && (
-                      <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
-                        <Lock className="size-3" />
-                        <span>Accept policy to continue</span>
-                      </div>
-                    )}
-                    <Button variant="ghost" className="w-full text-muted-foreground text-sm" onClick={onBack}>Cancel</Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
         </div>
 
-      ) : (
-        /* ── All ineligible: full-width, no sidebar ── */
-        <Card className={cn(C, "overflow-hidden")}>
-          <CardHeader className={CH}>
-            <CardTitle className="text-sm font-semibold">
-              {ineligibleItems.length} item{ineligibleItems.length !== 1 ? "s" : ""} in this order aren&apos;t eligible for return
-            </CardTitle>
-          </CardHeader>
-          <Table>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="pl-4">Product</TableHead>
-                <TableHead className="hidden sm:table-cell">Variant</TableHead>
-                <TableHead className="pr-4 text-right">Reason</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {ineligibleItems.map(item => {
-                const url = pUrl(item.productHandle)
-                return (
-                  <TableRow key={item.id} className="opacity-70">
-                    <TableCell className="pl-4">
-                      <div className="flex items-center gap-3">
-                        <ProductThumb item={item} />
-                        <div>
-                          <a href={url} target="_blank" rel="noopener noreferrer"
-                            className="font-medium text-sm text-foreground hover:underline block leading-tight">
-                            {item.title}
-                          </a>
-                          {item.variant?.title && item.variant.title !== "Default Title" && (
-                            <p className="text-xs text-muted-foreground sm:hidden">{item.variant.title}</p>
-                          )}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">
-                      {item.variant?.title && item.variant.title !== "Default Title" ? item.variant.title : "—"}
-                    </TableCell>
-                    <TableCell className="pr-4 text-right">
-                      <div className="flex flex-col items-end gap-1.5">
-                        <IneligibleReason status={item.returnStatus} />
-                        {item.returnReason && item.returnStatus === "Return declined" && (
-                          <span className="text-[11px] text-muted-foreground text-right max-w-[220px] leading-snug whitespace-normal break-words">
-                            {item.returnReason}
-                          </span>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
-            </TableBody>
-          </Table>
-        </Card>
-      )}
+        {/* ── Right Column: Sticky Refund Sidebar ── */}
+        <div className="lg:col-span-1 self-start lg:sticky lg:top-24">
+          <div className="flex flex-col gap-4">
+            <Card className={cn(C, "overflow-hidden")}>
+              <CardHeader className={CH}>
+                <CardTitle className="text-sm uppercase tracking-wider text-muted-foreground font-semibold">
+                  Refund Estimator
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-6 py-5">
+                <div className="flex justify-between text-sm mb-4">
+                  <span className="text-muted-foreground">{selectedCount} item{selectedCount !== 1 ? "s" : ""} selected</span>
+                  <span className="font-medium">£{estimatedRefund.toFixed(2)}</span>
+                </div>
+                <Separator />
+                <div className="flex justify-between font-semibold mt-4 mb-5">
+                  <span className="text-base">Estimated total</span>
+                  <span className="text-[#E5403B] text-xl">£{estimatedRefund.toFixed(2)}</span>
+                </div>
+                {selectedCount === 0 && (
+                  <p className="text-sm text-center text-muted-foreground mb-4">Select items to see your estimate</p>
+                )}
+                <div className="flex flex-col gap-3">
+                  <Button
+                    size="lg"
+                    className="w-full bg-[#E5403B] hover:bg-[#cc3935] text-white disabled:opacity-50 text-sm"
+                    disabled={!canSubmit || submitting}
+                    onClick={submitReturn}
+                  >
+                    {submitting
+                      ? <><Spinner className="size-4 mr-2" />Submitting...</>
+                      : <><RotateCcw className="size-4 mr-2" />Submit Return Request</>}
+                  </Button>
+                  {!policyAccepted && hasEligible && (
+                    <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground mt-1">
+                      <Lock className="size-3.5" />
+                      <span>Accept policy to continue</span>
+                    </div>
+                  )}
+                  <Button variant="ghost" className="w-full text-muted-foreground text-sm" onClick={onBack}>Cancel Return</Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
@@ -821,36 +756,36 @@ export default function DashboardClient() {
           email={data?.email}
         />
 
-        <div className="flex flex-1 flex-col p-4 lg:p-6 gap-4">
+        <div className="flex flex-1 flex-col p-4 lg:p-8 gap-6">
           {selectedOrder ? (
             <OrderDetail order={selectedOrder} onBack={() => setSelectedOrder(null)} />
           ) : (
             <>
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-lg font-semibold">
+                  <h2 className="text-xl font-bold tracking-tight">
                     {data?.firstName ? `Hi, ${data.firstName} 👋` : "Your Recent Orders"}
                   </h2>
-                  <p className="text-sm text-muted-foreground mt-0.5">Select an order to view details or initiate a return.</p>
+                  <p className="text-sm text-muted-foreground mt-1">Select an order to view details or initiate a return.</p>
                 </div>
-                <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
-                  <Button variant="ghost" size="icon" className={cn("size-7", view === "grid" && "bg-background shadow-sm")} onClick={() => setView("grid")}>
+                <div className="flex items-center gap-1 bg-muted/60 rounded-lg p-1 border">
+                  <Button variant="ghost" size="icon" className={cn("size-8", view === "grid" && "bg-background shadow-sm")} onClick={() => setView("grid")}>
                     <LayoutGrid className="size-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" className={cn("size-7", view === "list" && "bg-background shadow-sm")} onClick={() => setView("list")}>
+                  <Button variant="ghost" size="icon" className={cn("size-8", view === "list" && "bg-background shadow-sm")} onClick={() => setView("list")}>
                     <List className="size-4" />
                   </Button>
                 </div>
               </div>
 
               {error && (
-                <div className="flex items-center gap-3 p-4 rounded-xl bg-destructive/10 text-sm text-destructive">
+                <div className="flex items-center gap-3 p-4 rounded-xl bg-destructive/10 text-sm text-destructive font-medium border border-destructive/20">
                   <PackageX className="size-5 shrink-0" />{error}
                 </div>
               )}
 
               {view === "grid" && (
-                <div className="grid grid-cols-2 xl:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                   {loading
                     ? Array.from({ length: 6 }).map((_, i) => <OrderCardSkeleton key={i} />)
                     : filteredOrders.map(o => <OrderCard key={o.id} order={o} onClick={() => setSelectedOrder(o)} />)
@@ -862,7 +797,7 @@ export default function DashboardClient() {
                 <Card className={C}>
                   <CardContent className="p-0">
                     {filteredOrders.length === 0
-                      ? <div className="text-center py-20"><ShoppingBag className="size-12 text-muted-foreground/30 mx-auto mb-4" /><p className="font-medium text-muted-foreground">No orders found</p></div>
+                      ? <div className="text-center py-24"><ShoppingBag className="size-12 text-muted-foreground/30 mx-auto mb-4" /><p className="font-medium text-muted-foreground">No orders found</p></div>
                       : filteredOrders.map(o => <OrderRow key={o.id} order={o} onClick={() => setSelectedOrder(o)} />)
                     }
                   </CardContent>
@@ -875,24 +810,21 @@ export default function DashboardClient() {
     </SidebarProvider>
   )
 
-  // Auth overlay — renders the full portal blurred behind a centred card
   if (loading) {
     return (
       <div className="relative h-screen w-screen overflow-hidden">
-        {/* Full portal visible but blurred and non-interactive */}
         <div className="pointer-events-none select-none blur-sm brightness-95 h-full w-full">
           {portalContent}
         </div>
-        {/* Overlay */}
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/40 backdrop-blur-xs">
-          <Card className="w-full max-w-xs mx-4 shadow-xl">
-            <CardContent className="flex flex-col items-center justify-center gap-3 py-8">
-              <div className="size-10 rounded-full bg-[#E5403B]/10 flex items-center justify-center">
-                <Spinner className="size-5 text-[#E5403B]" />
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/40 backdrop-blur-sm">
+          <Card className="w-full max-w-xs mx-4 shadow-xl border-border/50">
+            <CardContent className="flex flex-col items-center justify-center gap-4 py-10">
+              <div className="size-12 rounded-full bg-[#E5403B]/10 flex items-center justify-center">
+                <Spinner className="size-6 text-[#E5403B]" />
               </div>
               <div className="text-center">
-                <p className="font-semibold text-sm">Authenticating</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Verifying your session securely...</p>
+                <p className="font-semibold text-base">Authenticating</p>
+                <p className="text-sm text-muted-foreground mt-1">Verifying your session securely...</p>
               </div>
             </CardContent>
           </Card>
