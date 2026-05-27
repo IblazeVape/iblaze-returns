@@ -45,6 +45,7 @@ interface LineItem {
   id: string
   title: string
   quantity: number
+  unitPrice?: number | null
   returnStatus: ReturnStatus
   returnReason?: string
   lineDeliveredAt?: string | null
@@ -63,6 +64,7 @@ interface Order {
   processedItems: LineItem[]
   isDelivered?: boolean
   deliveredAt?: string | null
+  canceledAt?: string | null
 }
 
 interface OrdersData {
@@ -111,7 +113,7 @@ function IneligibleReason({ status, reason, lineDeliveredAt }: {
       <HoverCardTrigger asChild>
         <div className="inline-flex">{badge}</div>
       </HoverCardTrigger>
-      <HoverCardContent side="top" align="end" className="w-72">
+      <HoverCardContent side="top" align="end" className="w-72 px-4 py-3">
         <div className="flex flex-col gap-1">
           <h4 className="font-medium text-sm">{title}</h4>
           <p className="text-sm text-muted-foreground">{body}</p>
@@ -346,7 +348,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
     .filter(([, v]) => v.selected)
     .reduce((sum, [id, v]) => {
       const item = order.processedItems.find(i => i.id === id)
-      return sum + (item ? pricePerItem * v.quantity : 0)
+      return sum + (item ? (item.unitPrice ?? orderAvgPrice) * v.quantity : 0)
     }, 0)
 
   const canSubmit =
@@ -407,6 +409,8 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
             <TableHeader className="sticky top-0 bg-background z-10">
               <TableRow className="hover:bg-transparent">
                 <TableHead className="pl-4">Product</TableHead>
+                <TableHead className="text-right hidden sm:table-cell">Unit</TableHead>
+                <TableHead className="text-right pr-2 hidden sm:table-cell">Total</TableHead>
                 <TableHead className="pr-4 text-right">Status</TableHead>
               </TableRow>
             </TableHeader>
@@ -431,8 +435,20 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                             ) : (
                               <span className="inline-flex items-center justify-center bg-muted rounded text-[11px] font-semibold text-foreground w-[28px] h-[18px] mt-0.5">{item.quantity}</span>
                             )}
+                          <span className="sm:hidden inline-flex items-center gap-1 mt-1 text-[11px] text-muted-foreground tabular-nums">
+                            £{(item.unitPrice ?? orderAvgPrice).toFixed(2)} × {item.quantity}
+                          </span>
                         </div>
                       </div>
+                    </TableCell>
+                    <TableCell className="py-3 text-sm whitespace-nowrap hidden sm:table-cell">
+                      <div className="flex items-center justify-end gap-1.5 tabular-nums">
+                        <span className="text-muted-foreground text-right">£{(item.unitPrice ?? orderAvgPrice).toFixed(2)}&nbsp;×</span>
+                        <span className="inline-flex items-center justify-center bg-muted rounded text-[11px] font-semibold text-foreground w-[28px] h-[18px]">{item.quantity}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="pr-2 py-3 font-semibold text-sm whitespace-nowrap hidden sm:table-cell text-right tabular-nums">
+                      £{((item.unitPrice ?? orderAvgPrice) * item.quantity).toFixed(2)}
                     </TableCell>
                     <TableCell className="pr-4 py-3 text-right">
                       <IneligibleReason
@@ -465,17 +481,21 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
             <div>
               <div className="flex items-center gap-2 mb-0.5">
                 <h2 className="text-base font-semibold">{order.name}</h2>
-                {order.isDelivered
+                {order.canceledAt
+                  ? <Badge className="bg-red-100 text-red-700 hover:bg-red-100 border-0 text-xs">Canceled</Badge>
+                  : order.isDelivered
                   ? <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-0 text-xs">Delivered</Badge>
                   : <Badge variant="secondary" className="text-xs">
-                      {order.displayFulfillmentStatus === "IN_PROGRESS" ? "In Transit"
-                        : order.displayFulfillmentStatus === "FULFILLED" ? "Shipped" : "Processing"}
+                      {order.displayFulfillmentStatus === "IN_PROGRESS" || order.displayFulfillmentStatus === "FULFILLED" || order.displayFulfillmentStatus === "PARTIAL" ? "In Transit"
+                        : order.displayFulfillmentStatus === "UNFULFILLED" ? "Unfulfilled" : "Processing"}
                     </Badge>}
               </div>
               <p className="text-xs text-muted-foreground">
-                {order.isDelivered && order.deliveredAt
+                {order.canceledAt
+                  ? `Canceled ${new Date(order.canceledAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`
+                  : order.isDelivered && order.deliveredAt
                   ? `Delivered ${new Date(order.deliveredAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`
-                  : new Date(order.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
+                  : `Ordered ${new Date(order.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`}
                 {" "}&bull; £{total.toFixed(2)} GBP &bull; {totalQty} item{totalQty !== 1 ? "s" : ""}
               </p>
             </div>
@@ -486,8 +506,8 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
           </div>
           <div className="grid grid-cols-4 border-t border-border divide-x divide-border">
             <div className="px-3 sm:px-5 py-2.5 sm:py-3"><p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Total Paid</p><p className="font-semibold text-sm mt-0.5">£{total.toFixed(2)}</p></div>
-            <div className="px-5 py-3"><p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Eligible</p><p className="font-semibold text-sm mt-0.5 text-green-600">{eligibleItems.length}</p></div>
-            <div className="px-5 py-3"><p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Ineligible</p><p className="font-semibold text-sm mt-0.5 text-zinc-500">{ineligibleItems.length}</p><p className="text-[10px] text-muted-foreground leading-tight">{ineligibleItems.reduce((s,i)=>s+i.quantity,0)} units</p></div>
+            <div className="px-3 sm:px-5 py-2.5 sm:py-3"><p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Eligible</p><p className="font-semibold text-sm mt-0.5 text-green-600">{eligibleItems.length}</p></div>
+            <div className="px-3 sm:px-5 py-2.5 sm:py-3"><p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Ineligible</p><p className="font-semibold text-sm mt-0.5 text-zinc-500">{ineligibleItems.reduce((s,i)=>s+i.quantity,0)}</p></div>
             <div className="px-3 sm:px-5 py-2.5 sm:py-3"><p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Refunded</p><p className="font-semibold text-sm mt-0.5 text-blue-600">£{refundedAmount.toFixed(2)}</p></div>
           </div>
         </Card>
@@ -557,7 +577,8 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                       const sel = selectedItems[item.id]
                       const isLocked = !policyAccepted
                       const url = pUrl(item.productHandle)
-                      const linePrice = pricePerItem * item.quantity
+                      const itemPrice = item.unitPrice ?? orderAvgPrice
+                      const linePrice = itemPrice * item.quantity
                       return (
                         <React.Fragment key={item.id}>
                           <TableRow className={cn(
@@ -592,14 +613,14 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                                   )}
                                   {/* Qty + unit price visible only when Unit col is hidden (mobile) */}
                                   <span className="sm:hidden inline-flex items-center gap-1 mt-1 text-[11px] text-muted-foreground tabular-nums">
-                                    £{pricePerItem.toFixed(2)} × {item.quantity} = <span className="font-semibold text-foreground">£{linePrice.toFixed(2)}</span>
+                                    £{itemPrice.toFixed(2)} × {item.quantity} = <span className="font-semibold text-foreground">£{linePrice.toFixed(2)}</span>
                                   </span>
                                 </div>
                               </div>
                             </TableCell>
                             <TableCell className="pr-4 py-3 text-sm whitespace-nowrap hidden sm:table-cell">
                               <div className="flex items-center justify-end gap-1.5 tabular-nums">
-                                <span className="text-muted-foreground text-right">£{pricePerItem.toFixed(2)}&nbsp;×</span>
+                                <span className="text-muted-foreground text-right">£{itemPrice.toFixed(2)}&nbsp;×</span>
                                 <span className="inline-flex items-center justify-center bg-muted rounded text-[11px] font-semibold text-foreground w-[28px] h-[18px]">{item.quantity}</span>
                               </div>
                             </TableCell>
