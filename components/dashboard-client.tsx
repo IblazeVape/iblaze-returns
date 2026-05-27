@@ -102,10 +102,7 @@ function pUrl(handle?: string | null) {
 
 // ─── Order Status Badges ─────────────────────────────────────────────────────
 function OrderStatusBadges({ order }: { order: Order }) {
-  const {
-    orderStatus, cancelledAt,
-    deliveredCount, dispatchedCount, confirmedCount, notDispatchedCount, totalUnits,
-  } = order
+  const { orderStatus, cancelledAt, deliveredCount, dispatchedCount, confirmedCount, notDispatchedCount, totalUnits } = order
 
   if (cancelledAt) {
     return <Badge className="bg-red-50 text-red-700 hover:bg-red-50 border border-red-200 rounded-md text-xs font-medium">Cancelled</Badge>
@@ -113,38 +110,26 @@ function OrderStatusBadges({ order }: { order: Order }) {
 
   const primary = (() => {
     switch (orderStatus) {
-      case "Delivered":
-        return <Badge className="bg-green-50 text-green-700 hover:bg-green-50 border border-green-200 rounded-md text-xs font-medium">Delivered</Badge>
-      case "Partially delivered":
-        return <Badge className="bg-amber-50 text-amber-700 hover:bg-amber-50 border border-amber-200 rounded-md text-xs font-medium">Partially delivered</Badge>
-      case "On its way":
-        return <Badge className="bg-blue-50 text-blue-700 hover:bg-blue-50 border border-blue-200 rounded-md text-xs font-medium">On its way</Badge>
-      case "Partially dispatched":
-        return <Badge className="bg-blue-50 text-blue-700 hover:bg-blue-50 border border-blue-200 rounded-md text-xs font-medium">Partially dispatched</Badge>
-      case "Confirmed":
-        return <Badge variant="secondary" className="rounded-md text-xs font-medium">Confirmed</Badge>
-      default:
-        return <Badge variant="secondary" className="rounded-md text-xs font-medium">{orderStatus}</Badge>
+      case "Delivered":         return <Badge className="bg-green-50 text-green-700 hover:bg-green-50 border border-green-200 rounded-md text-xs font-medium">Delivered</Badge>
+      case "Partially delivered": return <Badge className="bg-amber-50 text-amber-700 hover:bg-amber-50 border border-amber-200 rounded-md text-xs font-medium">Partially delivered</Badge>
+      case "On its way":        return <Badge className="bg-blue-50 text-blue-700 hover:bg-blue-50 border border-blue-200 rounded-md text-xs font-medium">On its way</Badge>
+      case "Partially dispatched": return <Badge className="bg-blue-50 text-blue-700 hover:bg-blue-50 border border-blue-200 rounded-md text-xs font-medium">Partially dispatched</Badge>
+      case "Confirmed":         return <Badge variant="secondary" className="rounded-md text-xs font-medium">Confirmed</Badge>
+      default:                  return <Badge variant="secondary" className="rounded-md text-xs font-medium">{orderStatus}</Badge>
     }
   })()
 
-  const showStats = totalUnits > 0
-    && orderStatus !== "Delivered"
-    && orderStatus !== "Confirmed"
-    && orderStatus !== "Cancelled"
-
+  const showStats = totalUnits > 0 && orderStatus !== "Delivered" && orderStatus !== "Confirmed" && orderStatus !== "Cancelled"
   const parts: string[] = []
-  if (deliveredCount > 0) parts.push(`${deliveredCount} delivered`)
-  if (dispatchedCount > 0) parts.push(`${dispatchedCount} on its way`)
-  if (confirmedCount > 0) parts.push(`${confirmedCount} confirmed`)
+  if (deliveredCount > 0)   parts.push(`${deliveredCount} delivered`)
+  if (dispatchedCount > 0)  parts.push(`${dispatchedCount} on its way`)
+  if (confirmedCount > 0)   parts.push(`${confirmedCount} confirmed`)
   if (notDispatchedCount > 0) parts.push(`${notDispatchedCount} pending`)
 
   return (
     <div className="flex items-center gap-2 flex-wrap">
       {primary}
-      {showStats && parts.length > 1 && (
-        <span className="text-[11px] text-muted-foreground">{parts.join(" · ")}</span>
-      )}
+      {showStats && parts.length > 1 && <span className="text-[11px] text-muted-foreground">{parts.join(" · ")}</span>}
     </div>
   )
 }
@@ -173,12 +158,11 @@ function IneligibleReason({ status, reason, lineDeliveredAt }: {
     </HoverCard>
   )
 
-  if (status === "Confirmed")          return <OutlineBadge className="bg-zinc-50 text-zinc-500 border-zinc-200">Confirmed</OutlineBadge>
-  if (status === "On its way")         return <OutlineBadge className="bg-amber-50 text-amber-700 border-amber-200">On its way</OutlineBadge>
-  if (status === "Not yet dispatched") return <OutlineBadge className="bg-zinc-50 text-zinc-500 border-zinc-200">Not dispatched</OutlineBadge>
-  if (status === "Refunded")           return <OutlineBadge className="bg-zinc-100 text-zinc-600 border-zinc-300">Refunded</OutlineBadge>
-  if (status === "Cancelled")          return <OutlineBadge className="bg-red-50 text-red-700 border-red-200">Cancelled</OutlineBadge>
-
+  if (status === "Confirmed")            return <OutlineBadge className="bg-zinc-50 text-zinc-500 border-zinc-200">Confirmed</OutlineBadge>
+  if (status === "On its way")           return <OutlineBadge className="bg-amber-50 text-amber-700 border-amber-200">On its way</OutlineBadge>
+  if (status === "Not yet dispatched")   return <OutlineBadge className="bg-zinc-50 text-zinc-500 border-zinc-200">Not dispatched</OutlineBadge>
+  if (status === "Refunded")             return <OutlineBadge className="bg-zinc-100 text-zinc-600 border-zinc-300">Refunded</OutlineBadge>
+  if (status === "Cancelled")            return <OutlineBadge className="bg-red-50 text-red-700 border-red-200">Cancelled</OutlineBadge>
   if (status === "Passed the return window") {
     const badge = (
       <div className="flex flex-col items-end gap-0.5">
@@ -188,14 +172,14 @@ function IneligibleReason({ status, reason, lineDeliveredAt }: {
     )
     return reason ? withHover(badge, "Return window closed", reason) : badge
   }
-  if (status === "Return requested")   return <OutlineBadge className="bg-blue-50 text-blue-700 border-blue-200">Requested</OutlineBadge>
-  if (status === "Return in progress") return <OutlineBadge className="bg-purple-50 text-purple-700 border-purple-200">In progress</OutlineBadge>
+  if (status === "Return requested")     return <OutlineBadge className="bg-blue-50 text-blue-700 border-blue-200">Requested</OutlineBadge>
+  if (status === "Return in progress")   return <OutlineBadge className="bg-purple-50 text-purple-700 border-purple-200">In progress</OutlineBadge>
   if (status === "Return completed" || status === "Returned") return <OutlineBadge className="bg-teal-50 text-teal-700 border-teal-200">Completed</OutlineBadge>
   if (status === "Return declined") {
     const badge = <OutlineBadge className="bg-red-50 text-red-700 border-red-200">Declined</OutlineBadge>
     return reason ? withHover(badge, "Return declined", reason) : badge
   }
-  if (status === "Return cancelled")   return <OutlineBadge className="bg-orange-50 text-orange-600 border-orange-200">Cancelled</OutlineBadge>
+  if (status === "Return cancelled")     return <OutlineBadge className="bg-orange-50 text-orange-600 border-orange-200">Cancelled</OutlineBadge>
   return <span className="text-xs text-muted-foreground">{status}</span>
 }
 
@@ -221,11 +205,9 @@ function OrderCardSkeleton() {
   )
 }
 
-// ─── Shared: shipment item list ───────────────────────────────────────────────
+// ─── Shipment item list — list style (no cards), used in both Dialog and Drawer
 function ShipmentItemList({ shipment, order, className }: {
-  shipment: Shipment
-  order: Order
-  className?: string
+  shipment: Shipment; order: Order; className?: string
 }) {
   const shipmentItems = shipment.items.flatMap(({ id, quantity }) => {
     const li = order.processedItems.find(i => i.id === id)
@@ -234,13 +216,13 @@ function ShipmentItemList({ shipment, order, className }: {
   })
 
   return (
-    <div className={cn("flex flex-col gap-2", className)}>
+    <div className={cn("divide-y divide-border", className)}>
       {shipmentItems.map((item, i) => {
         const itemPrice = item.unitPrice ?? 0
         return (
-          <div key={i} className="flex items-center gap-3 rounded-lg border bg-white px-3 py-2.5">
+          <div key={i} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
             <a href={pUrl(item.productHandle)} target="_blank" rel="noopener noreferrer" className="shrink-0">
-              <div className="size-10 rounded-md overflow-hidden bg-white border border-border hover:border-foreground transition-colors">
+              <div className="size-9 rounded-md overflow-hidden bg-white border border-border hover:border-foreground transition-colors">
                 {item.image?.url && <img src={item.image.url} alt={item.title} className="w-full h-full object-contain p-0.5" />}
               </div>
             </a>
@@ -249,19 +231,17 @@ function ShipmentItemList({ shipment, order, className }: {
                 href={pUrl(item.productHandle)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-medium text-sm hover:underline truncate block"
+                className="font-medium text-sm hover:underline truncate block leading-tight"
               >
                 {item.title}
               </a>
               {item.variant?.title && item.variant.title !== "Default Title" && (
-                <p className="text-xs text-muted-foreground">{item.variant.title}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{item.variant.title}</p>
               )}
             </div>
             <div className="text-right shrink-0">
               <p className="text-sm font-semibold">×{item.shipQty}</p>
-              {itemPrice > 0 && (
-                <p className="text-xs text-muted-foreground">£{(itemPrice * item.shipQty).toFixed(2)}</p>
-              )}
+              {itemPrice > 0 && <p className="text-xs text-muted-foreground">£{(itemPrice * item.shipQty).toFixed(2)}</p>}
             </div>
           </div>
         )
@@ -270,24 +250,24 @@ function ShipmentItemList({ shipment, order, className }: {
   )
 }
 
-// ─── Shared: hygiene policy list ──────────────────────────────────────────────
+// ─── Hygiene policy list — list style, used in both Dialog and Drawer ─────────
 const POLICY_ITEMS = [
-  { title: "Vape Kits & Mods",       desc: "30-day refund period. 30-day warranty from delivery." },
-  { title: "Batteries & Chargers",    desc: "60-day battery warranty. 30-day charger warranty." },
-  { title: "E-Liquids & Disposables", desc: "Must remain sealed and unopened. No returns on opened liquids." },
-  { title: "Tanks & Clearomisers",    desc: "7-day Dead On Arrival window — report faults within 7 days." },
+  { title: "Vape Kits & Mods",        desc: "30-day refund period. 30-day warranty from delivery." },
+  { title: "Batteries & Chargers",     desc: "60-day battery warranty. 30-day charger warranty." },
+  { title: "E-Liquids & Disposables",  desc: "Must remain sealed and unopened. No returns on opened liquids." },
+  { title: "Tanks & Clearomisers",     desc: "7-day Dead On Arrival window — report faults within 7 days." },
 ]
 
 function HygienePolicyList({ className }: { className?: string }) {
   return (
-    <div className={cn("space-y-2", className)}>
+    <div className={cn("divide-y divide-border", className)}>
       {POLICY_ITEMS.map(p => (
-        <div key={p.title} className="rounded-lg border bg-muted/30 px-3 py-2.5">
-          <p className="font-semibold text-xs">{p.title}</p>
+        <div key={p.title} className="py-2.5 first:pt-0">
+          <p className="font-medium text-sm">{p.title}</p>
           <p className="text-xs text-muted-foreground mt-0.5">{p.desc}</p>
         </div>
       ))}
-      <p className="text-xs text-muted-foreground pt-1">
+      <p className="text-xs text-muted-foreground pt-2.5">
         Return postage is at your expense. Tracked service required. Refunds within 5–10 business days.
       </p>
     </div>
@@ -296,22 +276,19 @@ function HygienePolicyList({ className }: { className?: string }) {
 
 // ─── Shipment Items Modal ─────────────────────────────────────────────────────
 function ShipmentItemsModal({ shipment, order, idx }: {
-  shipment: Shipment
-  order: Order
-  idx: number
+  shipment: Shipment; order: Order; idx: number
 }) {
   const [open, setOpen] = React.useState(false)
   const isDesktop = useMediaQuery("(min-width: 768px)")
 
-  const totalUnits  = shipment.items.reduce((a, c) => a + c.quantity, 0)
-  const isDelivered = shipment.displayStatus === "DELIVERED"
+  const totalUnits    = shipment.items.reduce((a, c) => a + c.quantity, 0)
+  const isDelivered   = shipment.displayStatus === "DELIVERED"
   const deliveredDate = shipment.deliveredAt
     ? new Date(shipment.deliveredAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
     : null
 
-  const title       = `Shipment ${idx + 1}`
-  const description = isDelivered && deliveredDate ? `Delivered ${deliveredDate}` : "On its way"
-  const subtitle    = `${description} · ${totalUnits} unit${totalUnits !== 1 ? "s" : ""}`
+  const title    = `Shipment ${idx + 1}`
+  const subtitle = `${isDelivered && deliveredDate ? `Delivered ${deliveredDate}` : "On its way"} · ${totalUnits} unit${totalUnits !== 1 ? "s" : ""}`
 
   const trigger = (
     <button className="flex items-center gap-1 text-xs font-medium text-muted-foreground bg-muted px-2 py-1 rounded-md border border-dashed shrink-0 hover:bg-zinc-100 hover:border-zinc-300 transition-colors cursor-pointer">
@@ -325,12 +302,9 @@ function ShipmentItemsModal({ shipment, order, idx }: {
         <DialogTrigger asChild>{trigger}</DialogTrigger>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Truck className="size-4" /> {title}
-            </DialogTitle>
+            <DialogTitle className="flex items-center gap-2"><Truck className="size-4" /> {title}</DialogTitle>
             <DialogDescription>{subtitle}</DialogDescription>
           </DialogHeader>
-          {/* Content directly after header — no wrapper */}
           <ShipmentItemList shipment={shipment} order={order} />
         </DialogContent>
       </Dialog>
@@ -342,16 +316,13 @@ function ShipmentItemsModal({ shipment, order, idx }: {
       <DrawerTrigger asChild>{trigger}</DrawerTrigger>
       <DrawerContent>
         <DrawerHeader className="text-left">
-          <DrawerTitle className="flex items-center gap-2">
-            <Truck className="size-4" /> {title}
-          </DrawerTitle>
+          <DrawerTitle className="flex items-center gap-2"><Truck className="size-4" /> {title}</DrawerTitle>
           <DrawerDescription>{subtitle}</DrawerDescription>
         </DrawerHeader>
-        {/* Content with px-4 applied directly, matching demo pattern */}
         <ShipmentItemList shipment={shipment} order={order} className="px-4" />
         <DrawerFooter className="pt-2">
-          <DrawerClose asChild>
-            <Button variant="outline">Close</Button>
+          <DrawerClose>
+            <Button variant="outline" className="w-full">Close</Button>
           </DrawerClose>
         </DrawerFooter>
       </DrawerContent>
@@ -360,10 +331,7 @@ function ShipmentItemsModal({ shipment, order, idx }: {
 }
 
 // ─── Hygiene Policy Modal ─────────────────────────────────────────────────────
-function HygienePolicy({ onAccept, onDecline }: {
-  onAccept: () => void
-  onDecline: () => void
-}) {
+function HygienePolicy({ onAccept, onDecline }: { onAccept: () => void; onDecline: () => void }) {
   const [open, setOpen] = useState(false)
   const isDesktop = useMediaQuery("(min-width: 768px)")
 
@@ -394,11 +362,8 @@ function HygienePolicy({ onAccept, onDecline }: {
             <DialogTitle className="flex items-center gap-2">
               <ShieldCheck className="size-4 text-[#E5403B]" /> iBlaze Returns Policy
             </DialogTitle>
-            <DialogDescription>
-              Review our returns policy before selecting items to return.
-            </DialogDescription>
+            <DialogDescription>Review our returns policy before selecting items to return.</DialogDescription>
           </DialogHeader>
-          {/* Content directly after header — no wrapper */}
           <HygienePolicyList />
           {acceptDecline}
         </DialogContent>
@@ -414,16 +379,13 @@ function HygienePolicy({ onAccept, onDecline }: {
           <DrawerTitle className="flex items-center gap-2">
             <ShieldCheck className="size-4 text-[#E5403B]" /> iBlaze Returns Policy
           </DrawerTitle>
-          <DrawerDescription>
-            Review our returns policy before selecting items to return.
-          </DrawerDescription>
+          <DrawerDescription>Review our returns policy before selecting items to return.</DrawerDescription>
         </DrawerHeader>
-        {/* Content with px-4 applied directly, matching demo pattern */}
         <HygienePolicyList className="px-4" />
         <DrawerFooter className="pt-2">
           {acceptDecline}
-          <DrawerClose asChild>
-            <Button variant="outline">Cancel</Button>
+          <DrawerClose>
+            <Button variant="outline" className="w-full">Cancel</Button>
           </DrawerClose>
         </DrawerFooter>
       </DrawerContent>
@@ -432,10 +394,7 @@ function HygienePolicy({ onAccept, onDecline }: {
 }
 
 function OrderCard({ order, onClick }: { order: Order; onClick: () => void }) {
-  const uniqueImages = order.processedItems
-    .map(i => i.image?.url)
-    .filter((u, i, a) => u && a.indexOf(u) === i)
-    .slice(0, 5) as string[]
+  const uniqueImages = order.processedItems.map(i => i.image?.url).filter((u, i, a) => u && a.indexOf(u) === i).slice(0, 5) as string[]
   const extra = order.processedItems.length - uniqueImages.length
   const total = parseFloat(order.totalPriceSet.shopMoney.amount)
   const date  = new Date(order.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
@@ -494,12 +453,12 @@ function OrderRow({ order, onClick }: { order: Order; onClick: () => void }) {
 // ─── Order Detail ─────────────────────────────────────────────────────────────
 function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
   const [policyAccepted, setPolicyAccepted] = useState(false)
-  const [selectedItems, setSelectedItems] = useState<Record<string, { selected: boolean; quantity: number; reason: string; description: string }>>({})
-  const [submitting, setSubmitting] = useState(false)
-  const [submitted, setSubmitted] = useState(false)
-  const [mounted, setMounted] = useState(false)
+  const [selectedItems, setSelectedItems]   = useState<Record<string, { selected: boolean; quantity: number; reason: string; description: string }>>({})
+  const [submitting, setSubmitting]   = useState(false)
+  const [submitted, setSubmitted]     = useState(false)
+  const [mounted, setMounted]         = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
-  const [pageSize, setPageSize] = useState("10")
+  const [pageSize, setPageSize]       = useState("10")
   const [currentPage, setCurrentPage] = useState(1)
 
   useEffect(() => { setMounted(true) }, [])
@@ -507,28 +466,17 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
 
   const rawOrderId     = order.id.split("/").pop()
   const orderStatusUrl = `https://account.iblazevape.co.uk/orders/${rawOrderId}`
-
   const total          = parseFloat(order.totalPriceSet.shopMoney.amount)
   const orderAvgPrice  = order.totalUnits > 0 ? total / order.totalUnits : 0
-  const refundedAmount = order.totalRefundedSet?.shopMoney?.amount
-    ? parseFloat(order.totalRefundedSet.shopMoney.amount)
-    : 0
+  const refundedAmount = order.totalRefundedSet?.shopMoney?.amount ? parseFloat(order.totalRefundedSet.shopMoney.amount) : 0
 
-  // ── Eligible vs Ineligible split ──────────────────────────────────────────
-  const eligibleItems = useMemo(
-    () => order.processedItems.filter(i => i.returnStatus === "Eligible" && i.eligibleQuantity > 0),
-    [order]
-  )
-  const ineligibleItems = useMemo(
-    () => order.processedItems.filter(i => !(i.returnStatus === "Eligible" && i.eligibleQuantity > 0)),
-    [order]
-  )
+  const eligibleItems   = useMemo(() => order.processedItems.filter(i => i.returnStatus === "Eligible" && i.eligibleQuantity > 0), [order])
+  const ineligibleItems = useMemo(() => order.processedItems.filter(i => !(i.returnStatus === "Eligible" && i.eligibleQuantity > 0)), [order])
 
   const hasEligible          = eligibleItems.length > 0 && !order.cancelledAt
   const totalEligibleUnits   = eligibleItems.reduce((s, i) => s + i.eligibleQuantity, 0)
   const totalIneligibleUnits = ineligibleItems.reduce((s, i) => s + i.quantity, 0)
 
-  // ── Search ────────────────────────────────────────────────────────────────
   const matchesSearch = (item: LineItem) => {
     if (!searchQuery) return true
     const q = searchQuery.toLowerCase()
@@ -538,27 +486,21 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
   const filteredEligible   = useMemo(() => eligibleItems.filter(matchesSearch),   [eligibleItems,   searchQuery])
   const filteredIneligible = useMemo(() => ineligibleItems.filter(matchesSearch), [ineligibleItems, searchQuery])
 
-  // ── Tab ───────────────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<"eligible" | "ineligible">("eligible")
   useEffect(() => { setActiveTab("eligible") }, [order.id])
 
   const currentData = activeTab === "eligible" ? filteredEligible : filteredIneligible
-
-  // ── Pagination ────────────────────────────────────────────────────────────
-  const size       = pageSize === "all" ? Math.max(currentData.length, 1) : parseInt(pageSize)
-  const totalPages = Math.ceil(currentData.length / size) || 1
+  const size        = pageSize === "all" ? Math.max(currentData.length, 1) : parseInt(pageSize)
+  const totalPages  = Math.ceil(currentData.length / size) || 1
   const paginatedData = currentData.slice((currentPage - 1) * size, currentPage * size)
 
   useEffect(() => { setCurrentPage(1) }, [activeTab, searchQuery, pageSize])
 
-  // ── Selection ─────────────────────────────────────────────────────────────
   const selectedCount   = Object.values(selectedItems).filter(v => v.selected).length
-  const estimatedRefund = Object.entries(selectedItems)
-    .filter(([, v]) => v.selected)
-    .reduce((sum, [id, v]) => {
-      const item = order.processedItems.find(i => i.id === id)
-      return sum + (item ? (item.unitPrice ?? orderAvgPrice) * v.quantity : 0)
-    }, 0)
+  const estimatedRefund = Object.entries(selectedItems).filter(([, v]) => v.selected).reduce((sum, [id, v]) => {
+    const item = order.processedItems.find(i => i.id === id)
+    return sum + (item ? (item.unitPrice ?? orderAvgPrice) * v.quantity : 0)
+  }, 0)
 
   const canSubmit = selectedCount > 0 && policyAccepted && Object.entries(selectedItems)
     .filter(([, v]) => v.selected)
@@ -577,37 +519,24 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
   const isAllSelected = eligibleItems.length > 0 && selectedCount === eligibleItems.length
 
   const submitReturn = async () => {
-    const items = Object.entries(selectedItems)
-      .filter(([, v]) => v.selected)
-      .map(([lineItemId, v]) => ({ lineItemId, quantity: v.quantity, reason: v.reason, description: v.description }))
+    const items = Object.entries(selectedItems).filter(([, v]) => v.selected).map(([lineItemId, v]) => ({ lineItemId, quantity: v.quantity, reason: v.reason, description: v.description }))
     if (!items.length) return
     setSubmitting(true)
     try {
-      const res = await fetch("/api/submit-return", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId: rawOrderId, items }),
-      })
+      const res = await fetch("/api/submit-return", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ orderId: rawOrderId, items }) })
       const result = await res.json()
       if (result.success) {
         setSubmitted(true)
         setTimeout(() => { window.location.href = orderStatusUrl }, 3000)
-      } else {
-        toast.error("Submission failed", { description: result.error || "Something went wrong." })
-      }
-    } catch {
-      toast.error("Network error", { description: "Please check your connection." })
-    } finally {
-      setSubmitting(false)
-    }
+      } else { toast.error("Submission failed", { description: result.error || "Something went wrong." }) }
+    } catch { toast.error("Network error", { description: "Please check your connection." }) }
+    finally { setSubmitting(false) }
   }
 
   if (submitted) {
     return (
       <div className="max-w-md mx-auto py-20 text-center space-y-4 px-4">
-        <div className="size-16 bg-green-50 rounded-full flex items-center justify-center mx-auto">
-          <CheckCircle2 className="size-8 text-green-500" />
-        </div>
+        <div className="size-16 bg-green-50 rounded-full flex items-center justify-center mx-auto"><CheckCircle2 className="size-8 text-green-500" /></div>
         <h2 className="text-xl font-semibold">Return Requested</h2>
         <p className="text-muted-foreground text-sm">We&apos;ve sent you a confirmation email. Our team will review your return and be in touch.</p>
       </div>
@@ -615,8 +544,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
   }
 
   const headerDateStr = (() => {
-    if (order.cancelledAt)
-      return `Cancelled ${new Date(order.cancelledAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`
+    if (order.cancelledAt) return `Cancelled ${new Date(order.cancelledAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`
     if (order.latestDelivery && order.earliestDelivery) {
       const earliest = new Date(order.earliestDelivery).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
       const latest   = new Date(order.latestDelivery).toLocaleDateString("en-GB",   { day: "numeric", month: "long", year: "numeric" })
@@ -636,40 +564,19 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
         <Card className={cn(C, "overflow-hidden")}>
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 px-5 py-4">
             <div>
-              <div className="flex items-center gap-2 mb-1.5">
-                <h2 className="text-base font-semibold">{order.name}</h2>
-              </div>
+              <div className="flex items-center gap-2 mb-1.5"><h2 className="text-base font-semibold">{order.name}</h2></div>
               <OrderStatusBadges order={order} />
-              <p className="text-xs text-muted-foreground mt-1.5">
-                {headerDateStr} &bull; £{total.toFixed(2)} GBP &bull; {order.totalUnits} item{order.totalUnits !== 1 ? "s" : ""}
-              </p>
+              <p className="text-xs text-muted-foreground mt-1.5">{headerDateStr} &bull; £{total.toFixed(2)} GBP &bull; {order.totalUnits} item{order.totalUnits !== 1 ? "s" : ""}</p>
             </div>
-            <a
-              href={orderStatusUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground hover:underline shrink-0"
-            >
+            <a href={orderStatusUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground hover:underline shrink-0">
               <ExternalLink className="size-3.5" /> View Order Status
             </a>
           </div>
           <div className="grid grid-cols-4 border-t border-border divide-x divide-border">
-            <div className="px-3 sm:px-5 py-2.5 sm:py-3">
-              <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Total Paid</p>
-              <p className="font-semibold text-sm mt-0.5">£{total.toFixed(2)}</p>
-            </div>
-            <div className="px-3 sm:px-5 py-2.5 sm:py-3">
-              <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Eligible</p>
-              <p className="font-semibold text-sm mt-0.5 text-green-600">{totalEligibleUnits}</p>
-            </div>
-            <div className="px-3 sm:px-5 py-2.5 sm:py-3">
-              <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Ineligible</p>
-              <p className="font-semibold text-sm mt-0.5 text-zinc-500">{totalIneligibleUnits}</p>
-            </div>
-            <div className="px-3 sm:px-5 py-2.5 sm:py-3">
-              <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Refunded</p>
-              <p className="font-semibold text-sm mt-0.5 text-blue-600">£{refundedAmount.toFixed(2)}</p>
-            </div>
+            <div className="px-3 sm:px-5 py-2.5 sm:py-3"><p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Total Paid</p><p className="font-semibold text-sm mt-0.5">£{total.toFixed(2)}</p></div>
+            <div className="px-3 sm:px-5 py-2.5 sm:py-3"><p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Eligible</p><p className="font-semibold text-sm mt-0.5 text-green-600">{totalEligibleUnits}</p></div>
+            <div className="px-3 sm:px-5 py-2.5 sm:py-3"><p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Ineligible</p><p className="font-semibold text-sm mt-0.5 text-zinc-500">{totalIneligibleUnits}</p></div>
+            <div className="px-3 sm:px-5 py-2.5 sm:py-3"><p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Refunded</p><p className="font-semibold text-sm mt-0.5 text-blue-600">£{refundedAmount.toFixed(2)}</p></div>
           </div>
         </Card>
 
@@ -683,35 +590,21 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
         {/* ── Shipments & tracking ── */}
         {!order.cancelledAt && order.shipments && order.shipments.length > 0 && (
           <div className="flex flex-col gap-2">
-            <h3 className="text-sm font-semibold flex items-center gap-2">
-              <Truck className="size-4" /> Shipments &amp; Tracking
-            </h3>
+            <h3 className="text-sm font-semibold flex items-center gap-2"><Truck className="size-4" /> Shipments &amp; Tracking</h3>
             <div className="flex overflow-x-auto gap-3 pb-1 snap-x scrollbar-thin">
               {order.shipments.map((shipment, idx) => {
                 const isDelivered   = shipment.displayStatus === "DELIVERED"
                 const deliveredDate = shipment.deliveredAt
                   ? new Date(shipment.deliveredAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
                   : null
-
                 return (
-                  <div
-                    key={shipment.id}
-                    className={cn(
-                      "shrink-0 snap-start border rounded-lg p-4 bg-white shadow-sm flex flex-col gap-3",
-                      order.shipments.length === 1 ? "w-full" : "w-[85vw] sm:w-[380px]"
-                    )}
-                  >
+                  <div key={shipment.id} className={cn("shrink-0 snap-start border rounded-lg p-4 bg-white shadow-sm flex flex-col gap-3", order.shipments.length === 1 ? "w-full" : "w-[85vw] sm:w-[380px]")}>
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2.5">
-                        <div className={cn("p-1.5 rounded-md", isDelivered ? "bg-green-50 text-green-600" : "bg-muted text-muted-foreground")}>
-                          <Truck className="size-4" />
-                        </div>
+                        <div className={cn("p-1.5 rounded-md", isDelivered ? "bg-green-50 text-green-600" : "bg-muted text-muted-foreground")}><Truck className="size-4" /></div>
                         <div>
                           <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Shipment {idx + 1}</p>
-                          <p className="text-sm font-medium">
-                            {isDelivered ? "Delivered" : "On its way"}
-                            {deliveredDate && <span className="text-muted-foreground font-normal"> · {deliveredDate}</span>}
-                          </p>
+                          <p className="text-sm font-medium">{isDelivered ? "Delivered" : "On its way"}{deliveredDate && <span className="text-muted-foreground font-normal"> · {deliveredDate}</span>}</p>
                         </div>
                       </div>
                       <ShipmentItemsModal shipment={shipment} order={order} idx={idx} />
@@ -719,21 +612,12 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                     {shipment.trackingInfo.length > 0 && (
                       <div className="flex flex-col gap-1.5 border-t pt-3">
                         {shipment.trackingInfo.map((track, ti) => (
-                          <div key={ti} className="flex items-center gap-2 text-sm">
+                          <div key={ti} className="flex items-center gap-2">
                             <MapPin className="size-3.5 text-muted-foreground shrink-0" />
                             <span className="text-xs text-muted-foreground">{track.company}:</span>
-                            {track.url ? (
-                              <a
-                                href={track.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-600 font-medium hover:underline inline-flex items-center gap-1 text-xs"
-                              >
-                                {track.number} <ExternalLink className="size-3" />
-                              </a>
-                            ) : (
-                              <span className="font-medium text-foreground text-xs">{track.number}</span>
-                            )}
+                            {track.url
+                              ? <a href={track.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 font-medium hover:underline inline-flex items-center gap-1 text-xs">{track.number} <ExternalLink className="size-3" /></a>
+                              : <span className="font-medium text-foreground text-xs">{track.number}</span>}
                           </div>
                         ))}
                       </div>
@@ -760,27 +644,18 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
         {/* ── Items table ── */}
         {!order.cancelledAt && (
           <Card className={cn(C, "overflow-hidden flex flex-col")}>
-            {/* Toolbar */}
             <div className="px-5 py-3 border-b bg-muted/20 flex flex-col md:flex-row md:items-center justify-between gap-4">
               <Select value={activeTab} onValueChange={(v) => setActiveTab(v as "eligible" | "ineligible")}>
-                <SelectTrigger className="w-[185px] h-9 bg-white">
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger className="w-[185px] h-9 bg-white"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="eligible">Eligible ({totalEligibleUnits})</SelectItem>
                   <SelectItem value="ineligible">Ineligible ({totalIneligibleUnits})</SelectItem>
                 </SelectContent>
               </Select>
-
               <div className="flex items-center gap-2">
                 <div className="relative w-full md:w-64">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search product or variant..."
-                    value={searchQuery}
-                    onChange={e => setSearchQuery(e.target.value)}
-                    className="pl-9 h-9 bg-white"
-                  />
+                  <Input placeholder="Search product or variant..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9 h-9 bg-white" />
                 </div>
                 <Select value={pageSize} onValueChange={setPageSize}>
                   <SelectTrigger className="w-[110px] h-9 bg-white"><SelectValue /></SelectTrigger>
@@ -794,18 +669,13 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
               </div>
             </div>
 
-            {/* Table in ScrollArea */}
             <ScrollArea className="flex-1">
               <Table className="min-w-[560px]">
                 <TableHeader className="bg-background">
                   <TableRow className="hover:bg-transparent">
                     {activeTab === "eligible" && (
                       <TableHead className="w-8 pl-4 pr-0">
-                        <Checkbox
-                          checked={isAllSelected}
-                          onCheckedChange={handleSelectAll}
-                          disabled={!policyAccepted || eligibleItems.length === 0}
-                        />
+                        <Checkbox checked={isAllSelected} onCheckedChange={handleSelectAll} disabled={!policyAccepted || eligibleItems.length === 0} />
                       </TableHead>
                     )}
                     <TableHead className={activeTab === "eligible" ? "pl-3" : "pl-5"}>Product</TableHead>
@@ -817,9 +687,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                 </TableHeader>
                 <TableBody>
                   {paginatedData.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">No items found.</TableCell>
-                    </TableRow>
+                    <TableRow><TableCell colSpan={6} className="h-24 text-center text-muted-foreground">No items found.</TableCell></TableRow>
                   ) : paginatedData.map((item, rowIdx) => {
                     const displayQty = activeTab === "eligible" ? item.eligibleQuantity : item.quantity
                     const sel        = selectedItems[item.id]
@@ -836,12 +704,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                                 disabled={isLocked}
                                 onCheckedChange={c => {
                                   if (isLocked) return
-                                  setSelectedItems(p => ({
-                                    ...p,
-                                    [item.id]: c
-                                      ? { selected: true, quantity: item.eligibleQuantity, reason: "", description: "" }
-                                      : { ...p[item.id], selected: false },
-                                  }))
+                                  setSelectedItems(p => ({ ...p, [item.id]: c ? { selected: true, quantity: item.eligibleQuantity, reason: "", description: "" } : { ...p[item.id], selected: false } }))
                                 }}
                               />
                             </TableCell>
@@ -850,34 +713,17 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                             <div className="flex items-center gap-3">
                               <ProductThumb item={item} />
                               <div className="min-w-0">
-                                <a
-                                  href={pUrl(item.productHandle)}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="font-medium text-sm hover:underline truncate block max-w-[160px]"
-                                >
-                                  {item.title}
-                                </a>
+                                <a href={pUrl(item.productHandle)} target="_blank" rel="noopener noreferrer" className="font-medium text-sm hover:underline truncate block max-w-[160px]">{item.title}</a>
                                 <span className="text-xs text-muted-foreground">£{itemPrice.toFixed(2)} each</span>
                               </div>
                             </div>
                           </TableCell>
-                          <TableCell className="py-3 text-sm">
-                            {item.variant?.title && item.variant.title !== "Default Title"
-                              ? item.variant.title
-                              : <span className="text-muted-foreground">—</span>}
-                          </TableCell>
+                          <TableCell className="py-3 text-sm">{item.variant?.title && item.variant.title !== "Default Title" ? item.variant.title : <span className="text-muted-foreground">—</span>}</TableCell>
                           <TableCell className="py-3 text-sm text-center tabular-nums">{displayQty}</TableCell>
-                          <TableCell className="text-right pr-4 py-3 font-semibold text-sm tabular-nums">
-                            £{(itemPrice * (activeTab === "eligible" ? (sel?.quantity || item.eligibleQuantity) : displayQty)).toFixed(2)}
-                          </TableCell>
+                          <TableCell className="text-right pr-4 py-3 font-semibold text-sm tabular-nums">£{(itemPrice * (activeTab === "eligible" ? (sel?.quantity || item.eligibleQuantity) : displayQty)).toFixed(2)}</TableCell>
                           {activeTab === "ineligible" && (
                             <TableCell className="pr-5 py-3 text-right">
-                              <IneligibleReason
-                                status={item.returnStatus}
-                                reason={item.returnReason}
-                                lineDeliveredAt={item.lineDeliveredAt}
-                              />
+                              <IneligibleReason status={item.returnStatus} reason={item.returnReason} lineDeliveredAt={item.lineDeliveredAt} />
                             </TableCell>
                           )}
                         </TableRow>
@@ -888,46 +734,24 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                               <div className="ml-[calc(0.5rem+2.5rem+0.75rem)] grid grid-cols-2 gap-2.5">
                                 <div>
                                   <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">Return Qty</label>
-                                  <Select
-                                    value={String(sel.quantity)}
-                                    onValueChange={v => setSelectedItems(p => ({ ...p, [item.id]: { ...p[item.id], quantity: parseInt(v) } }))}
-                                  >
+                                  <Select value={String(sel.quantity)} onValueChange={v => setSelectedItems(p => ({ ...p, [item.id]: { ...p[item.id], quantity: parseInt(v) } }))}>
                                     <SelectTrigger className="h-8 text-sm bg-white"><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                      {Array.from({ length: item.eligibleQuantity }, (_, i) => (
-                                        <SelectItem key={i + 1} value={String(i + 1)}>{i + 1}</SelectItem>
-                                      ))}
-                                    </SelectContent>
+                                    <SelectContent>{Array.from({ length: item.eligibleQuantity }, (_, i) => (<SelectItem key={i + 1} value={String(i + 1)}>{i + 1}</SelectItem>))}</SelectContent>
                                   </Select>
                                 </div>
                                 <div>
                                   <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">Reason</label>
-                                  <Select
-                                    value={sel.reason}
-                                    onValueChange={v => setSelectedItems(p => ({ ...p, [item.id]: { ...p[item.id], reason: v } }))}
-                                  >
+                                  <Select value={sel.reason} onValueChange={v => setSelectedItems(p => ({ ...p, [item.id]: { ...p[item.id], reason: v } }))}>
                                     <SelectTrigger className="h-8 text-sm bg-white"><SelectValue placeholder="Select..." /></SelectTrigger>
-                                    <SelectContent>
-                                      {RETURN_REASONS.map(r => (
-                                        <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
-                                      ))}
-                                    </SelectContent>
+                                    <SelectContent>{RETURN_REASONS.map(r => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}</SelectContent>
                                   </Select>
                                 </div>
                                 {sel.reason && (
                                   <div className="col-span-2">
                                     <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">
-                                      {sel.reason === "OTHER"
-                                        ? <>Notes <span className="text-destructive">*</span></>
-                                        : "Notes (optional)"}
+                                      {sel.reason === "OTHER" ? <>Notes <span className="text-destructive">*</span></> : "Notes (optional)"}
                                     </label>
-                                    <Textarea
-                                      value={sel.description}
-                                      onChange={e => setSelectedItems(p => ({ ...p, [item.id]: { ...p[item.id], description: e.target.value } }))}
-                                      placeholder={sel.reason === "OTHER" ? "Describe your reason (required)..." : "Any additional info..."}
-                                      className="text-sm bg-white resize-none"
-                                      rows={2}
-                                    />
+                                    <Textarea value={sel.description} onChange={e => setSelectedItems(p => ({ ...p, [item.id]: { ...p[item.id], description: e.target.value } }))} placeholder={sel.reason === "OTHER" ? "Describe your reason (required)..." : "Any additional info..."} className="text-sm bg-white resize-none" rows={2} />
                                   </div>
                                 )}
                               </div>
@@ -943,9 +767,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
 
             {pageSize !== "all" && currentData.length > size && (
               <div className="p-4 border-t flex items-center justify-between text-sm text-muted-foreground">
-                <span>
-                  Showing {Math.min((currentPage - 1) * size + 1, currentData.length)}–{Math.min(currentPage * size, currentData.length)} of {currentData.length} entries
-                </span>
+                <span>Showing {Math.min((currentPage - 1) * size + 1, currentData.length)}–{Math.min(currentPage * size, currentData.length)} of {currentData.length} entries</span>
                 <div className="flex items-center gap-2">
                   <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>Previous</Button>
                   <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage >= totalPages}>Next</Button>
@@ -958,10 +780,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
 
       {/* ── Portalled sticky footer ── */}
       {mounted && hasEligible && !order.cancelledAt && createPortal(
-        <div
-          className="fixed bottom-0 right-0 z-[48] border-t border-border bg-background shadow-[0_-2px_12px_rgba(0,0,0,0.08)]"
-          style={{ left: sidebarMobile ? "0px" : sidebarState === "collapsed" ? "4.5rem" : "18rem" }}
-        >
+        <div className="fixed bottom-0 right-0 z-[48] border-t border-border bg-background shadow-[0_-2px_12px_rgba(0,0,0,0.08)]" style={{ left: sidebarMobile ? "0px" : sidebarState === "collapsed" ? "4.5rem" : "18rem" }}>
           <div className="px-4 lg:px-6 py-2.5 flex items-center justify-between gap-2">
             <div className="flex items-center gap-3 min-w-0">
               <div className="shrink-0">
@@ -981,15 +800,8 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <Button variant="ghost" size="sm" onClick={onBack} className="text-muted-foreground hidden sm:inline-flex">Cancel</Button>
-              <Button
-                size="sm"
-                className="bg-[#E5403B] hover:bg-[#cc3935] text-white disabled:opacity-50"
-                disabled={!canSubmit || submitting}
-                onClick={submitReturn}
-              >
-                {submitting
-                  ? <><Spinner className="size-4" /> Submitting...</>
-                  : <><RotateCcw className="size-4" /> Submit Return</>}
+              <Button size="sm" className="bg-[#E5403B] hover:bg-[#cc3935] text-white disabled:opacity-50" disabled={!canSubmit || submitting} onClick={submitReturn}>
+                {submitting ? <><Spinner className="size-4" /> Submitting...</> : <><RotateCcw className="size-4" /> Submit Return</>}
               </Button>
             </div>
           </div>
@@ -1001,12 +813,12 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
 }
 
 export default function DashboardClient() {
-  const [data, setData] = useState<OrdersData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [data, setData]               = useState<OrdersData | null>(null)
+  const [loading, setLoading]         = useState(true)
+  const [error, setError]             = useState<string | null>(null)
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
-  const [view, setView] = useState<"grid" | "list">("grid")
-  const [search, setSearch] = useState("")
+  const [view, setView]               = useState<"grid" | "list">("grid")
+  const [search, setSearch]           = useState("")
   const [activeSection, setActiveSection] = useState("#orders")
 
   useEffect(() => {
@@ -1017,28 +829,14 @@ export default function DashboardClient() {
       .finally(() => setLoading(false))
   }, [])
 
-  const filteredOrders = (data?.orders || []).filter(o =>
-    o.name.toLowerCase().includes(search.toLowerCase())
-  )
+  const filteredOrders = (data?.orders || []).filter(o => o.name.toLowerCase().includes(search.toLowerCase()))
   const user = { name: data?.firstName || "Customer", email: data?.email || "" }
 
   const portalContent = (
     <SidebarProvider style={{ "--sidebar-width": "18rem", "--header-height": "3rem" } as React.CSSProperties}>
-      <AppSidebar
-        variant="inset"
-        user={user}
-        onNavigate={s => { setActiveSection(s); setSelectedOrder(null) }}
-        activeSection={activeSection}
-      />
+      <AppSidebar variant="inset" user={user} onNavigate={s => { setActiveSection(s); setSelectedOrder(null) }} activeSection={activeSection} />
       <SidebarInset>
-        <SiteHeader
-          title={selectedOrder ? selectedOrder.name : "My Orders"}
-          search={search}
-          onSearch={setSearch}
-          showSearch={!selectedOrder}
-          firstName={data?.firstName}
-          email={data?.email}
-        />
+        <SiteHeader title={selectedOrder ? selectedOrder.name : "My Orders"} search={search} onSearch={setSearch} showSearch={!selectedOrder} firstName={data?.firstName} email={data?.email} />
         <div className="flex flex-1 flex-col p-4 lg:p-6 gap-4">
           {selectedOrder ? (
             <OrderDetail order={selectedOrder} onBack={() => setSelectedOrder(null)} />
@@ -1046,26 +844,12 @@ export default function DashboardClient() {
             <>
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-lg font-semibold">
-                    {data?.firstName ? `Hi, ${data.firstName} 👋` : "Your Recent Orders"}
-                  </h2>
+                  <h2 className="text-lg font-semibold">{data?.firstName ? `Hi, ${data.firstName} 👋` : "Your Recent Orders"}</h2>
                   <p className="text-sm text-muted-foreground mt-0.5">Select an order to view details or initiate a return.</p>
                 </div>
                 <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
-                  <Button
-                    variant="ghost" size="icon"
-                    className={cn("size-7", view === "grid" && "bg-background shadow-sm")}
-                    onClick={() => setView("grid")}
-                  >
-                    <LayoutGrid className="size-4" />
-                  </Button>
-                  <Button
-                    variant="ghost" size="icon"
-                    className={cn("size-7", view === "list" && "bg-background shadow-sm")}
-                    onClick={() => setView("list")}
-                  >
-                    <List className="size-4" />
-                  </Button>
+                  <Button variant="ghost" size="icon" className={cn("size-7", view === "grid" && "bg-background shadow-sm")} onClick={() => setView("grid")}><LayoutGrid className="size-4" /></Button>
+                  <Button variant="ghost" size="icon" className={cn("size-7", view === "list" && "bg-background shadow-sm")} onClick={() => setView("list")}><List className="size-4" /></Button>
                 </div>
               </div>
 
@@ -1077,9 +861,7 @@ export default function DashboardClient() {
 
               {view === "grid" && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                  {loading
-                    ? Array.from({ length: 6 }).map((_, i) => <OrderCardSkeleton key={i} />)
-                    : filteredOrders.map(o => <OrderCard key={o.id} order={o} onClick={() => setSelectedOrder(o)} />)}
+                  {loading ? Array.from({ length: 6 }).map((_, i) => <OrderCardSkeleton key={i} />) : filteredOrders.map(o => <OrderCard key={o.id} order={o} onClick={() => setSelectedOrder(o)} />)}
                 </div>
               )}
 
@@ -1087,12 +869,7 @@ export default function DashboardClient() {
                 <Card className={C}>
                   <CardContent className="p-0">
                     {filteredOrders.length === 0
-                      ? (
-                        <div className="text-center py-20">
-                          <ShoppingBag className="size-12 text-muted-foreground/30 mx-auto mb-4" />
-                          <p className="font-medium text-muted-foreground">No orders found</p>
-                        </div>
-                      )
+                      ? <div className="text-center py-20"><ShoppingBag className="size-12 text-muted-foreground/30 mx-auto mb-4" /><p className="font-medium text-muted-foreground">No orders found</p></div>
                       : filteredOrders.map(o => <OrderRow key={o.id} order={o} onClick={() => setSelectedOrder(o)} />)}
                   </CardContent>
                 </Card>
@@ -1111,9 +888,7 @@ export default function DashboardClient() {
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/40 backdrop-blur-sm">
           <Card className="w-full max-w-xs mx-4 shadow-xl">
             <div className="flex flex-col items-center justify-center gap-3 py-8 px-6">
-              <div className="size-10 rounded-full bg-[#E5403B]/10 flex items-center justify-center">
-                <Spinner className="size-5 text-[#E5403B]" />
-              </div>
+              <div className="size-10 rounded-full bg-[#E5403B]/10 flex items-center justify-center"><Spinner className="size-5 text-[#E5403B]" /></div>
               <div className="text-center">
                 <p className="font-semibold text-sm">Authenticating</p>
                 <p className="text-xs text-muted-foreground mt-0.5">Verifying your session securely...</p>
