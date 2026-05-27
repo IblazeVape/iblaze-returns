@@ -21,7 +21,6 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -101,31 +100,29 @@ function OutlineBadge({ className, children }: { className: string; children: Re
   )
 }
 
-// ─── Ineligible reason chip — all use consistent outline badge style ───────
+// ─── Ineligible reason chip ────────────────────────────────────────────────
 function IneligibleReason({ status, reason, lineDeliveredAt }: {
   status: ReturnStatus
   reason?: string
   lineDeliveredAt?: string | null
 }) {
-  // Badges with hover card for items that have a detail message
   const withHover = (badge: React.ReactNode, title: string, body: string) => (
     <HoverCard openDelay={100} closeDelay={100}>
       <HoverCardTrigger asChild>
         <div className="inline-flex">{badge}</div>
       </HoverCardTrigger>
-      <HoverCardContent side="top" align="end" className="w-72 px-4 py-3">
+      <HoverCardContent side="top" align="end" className="w-64 px-4 py-3">
         <div className="flex flex-col gap-1">
           <h4 className="font-medium text-sm">{title}</h4>
-          <p className="text-sm text-muted-foreground">{body}</p>
+          {/* break-words handles long strings without spaces */}
+          <p className="text-sm text-muted-foreground break-words overflow-wrap-anywhere">{body}</p>
         </div>
       </HoverCardContent>
     </HoverCard>
   )
 
   if (status === "On its way") return (
-    <div className="flex flex-col items-end gap-0.5">
-      <OutlineBadge className="bg-amber-50 text-amber-700 border-amber-200">On its way</OutlineBadge>
-    </div>
+    <OutlineBadge className="bg-amber-50 text-amber-700 border-amber-200">On its way</OutlineBadge>
   )
 
   if (status === "Not yet dispatched") return (
@@ -179,7 +176,6 @@ function ProductThumb({ item }: { item: LineItem }) {
           <img src={item.image.url} alt={item.title} className="w-full h-full object-contain p-0.5" />
         )}
       </div>
-
     </a>
   )
 }
@@ -343,6 +339,10 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
   const orderAvgPrice = totalQty > 0 ? total / totalQty : 0
   const refundedAmount = order.totalRefundedSet?.shopMoney?.amount ? parseFloat(order.totalRefundedSet.shopMoney.amount) : 0
 
+  // Show total item quantities, not just line item counts
+  const eligibleQty = eligibleItems.reduce((s, i) => s + i.quantity, 0)
+  const ineligibleQty = ineligibleItems.reduce((s, i) => s + i.quantity, 0)
+
   const selectedCount = Object.values(selectedItems).filter(v => v.selected).length
   const estimatedRefund = Object.entries(selectedItems)
     .filter(([, v]) => v.selected)
@@ -396,7 +396,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
     )
   }
 
-  // ── Ineligible table content (shared between layouts) ──
+  // ── Ineligible table content ──
   const IneligibleTableContent = (
     <>
       {ineligibleItems.length === 0 ? (
@@ -404,52 +404,54 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
           All items in this order are eligible for return.
         </div>
       ) : (
-        <ScrollArea className="flex-1 min-h-0">
-          <Table>
+        <div className="flex-1 min-h-0 overflow-auto">
+          <Table className="min-w-[560px]">
             <TableHeader className="sticky top-0 bg-background z-10">
               <TableRow className="hover:bg-transparent">
                 <TableHead className="pl-4">Product</TableHead>
-                <TableHead className="text-right hidden sm:table-cell">Unit</TableHead>
-                <TableHead className="text-right pr-2 hidden sm:table-cell">Total</TableHead>
+                <TableHead>Variant</TableHead>
+                <TableHead className="text-center">Qty</TableHead>
+                <TableHead className="text-right">Total</TableHead>
                 <TableHead className="pr-4 text-right">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {ineligibleItems.map(item => {
                 const url = pUrl(item.productHandle)
+                const itemPrice = item.unitPrice ?? orderAvgPrice
+                const linePrice = itemPrice * item.quantity
                 return (
                   <TableRow key={item.id}>
+                    {/* Product + unit price */}
                     <TableCell className="pl-4 py-3">
                       <div className="flex items-center gap-3">
                         <ProductThumb item={item} />
                         <div className="min-w-0">
                           <a href={url} target="_blank" rel="noopener noreferrer"
-                            className="font-medium text-sm hover:underline block leading-tight truncate max-w-[200px]">
+                            className="font-medium text-sm hover:underline block leading-tight truncate max-w-[160px]">
                             {item.title}
                           </a>
-                          {item.variant?.title && item.variant.title !== "Default Title" ? (
-                              <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
-                                <span className="text-xs text-muted-foreground">{item.variant.title}</span>
-                                <span className="inline-flex items-center justify-center bg-muted rounded text-[11px] font-semibold text-foreground w-[28px] h-[18px]">{item.quantity}</span>
-                              </div>
-                            ) : (
-                              <span className="inline-flex items-center justify-center bg-muted rounded text-[11px] font-semibold text-foreground w-[28px] h-[18px] mt-0.5">{item.quantity}</span>
-                            )}
-                          <span className="sm:hidden inline-flex items-center gap-1 mt-1 text-[11px] text-muted-foreground tabular-nums">
-                            £{(item.unitPrice ?? orderAvgPrice).toFixed(2)} × {item.quantity}
+                          <span className="text-xs text-muted-foreground tabular-nums">
+                            £{itemPrice.toFixed(2)} each
                           </span>
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="py-3 text-sm whitespace-nowrap hidden sm:table-cell">
-                      <div className="flex items-center justify-end gap-1.5 tabular-nums">
-                        <span className="text-muted-foreground text-right">£{(item.unitPrice ?? orderAvgPrice).toFixed(2)}&nbsp;×</span>
-                        <span className="inline-flex items-center justify-center bg-muted rounded text-[11px] font-semibold text-foreground w-[28px] h-[18px]">{item.quantity}</span>
-                      </div>
+                    {/* Variant */}
+                    <TableCell className="py-3 text-sm">
+                      {item.variant?.title && item.variant.title !== "Default Title"
+                        ? <span className="text-foreground">{item.variant.title}</span>
+                        : <span className="text-muted-foreground">—</span>}
                     </TableCell>
-                    <TableCell className="pr-2 py-3 font-semibold text-sm whitespace-nowrap hidden sm:table-cell text-right tabular-nums">
-                      £{((item.unitPrice ?? orderAvgPrice) * item.quantity).toFixed(2)}
+                    {/* Qty */}
+                    <TableCell className="py-3 text-sm text-center tabular-nums">
+                      {item.quantity}
                     </TableCell>
+                    {/* Total */}
+                    <TableCell className="py-3 font-semibold text-sm text-right tabular-nums whitespace-nowrap">
+                      £{linePrice.toFixed(2)}
+                    </TableCell>
+                    {/* Status */}
                     <TableCell className="pr-4 py-3 text-right">
                       <IneligibleReason
                         status={item.returnStatus}
@@ -462,7 +464,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
               })}
             </TableBody>
           </Table>
-        </ScrollArea>
+        </div>
       )}
     </>
   )
@@ -504,11 +506,24 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
               <ExternalLink className="size-3.5" /> View Order Status
             </a>
           </div>
+          {/* Stats — eligible/ineligible show total item quantities */}
           <div className="grid grid-cols-4 border-t border-border divide-x divide-border">
-            <div className="px-3 sm:px-5 py-2.5 sm:py-3"><p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Total Paid</p><p className="font-semibold text-sm mt-0.5">£{total.toFixed(2)}</p></div>
-            <div className="px-3 sm:px-5 py-2.5 sm:py-3"><p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Eligible</p><p className="font-semibold text-sm mt-0.5 text-green-600">{eligibleItems.length}</p></div>
-            <div className="px-3 sm:px-5 py-2.5 sm:py-3"><p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Ineligible</p><p className="font-semibold text-sm mt-0.5 text-zinc-500">{ineligibleItems.reduce((s,i)=>s+i.quantity,0)}</p></div>
-            <div className="px-3 sm:px-5 py-2.5 sm:py-3"><p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Refunded</p><p className="font-semibold text-sm mt-0.5 text-blue-600">£{refundedAmount.toFixed(2)}</p></div>
+            <div className="px-3 sm:px-5 py-2.5 sm:py-3">
+              <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Total Paid</p>
+              <p className="font-semibold text-sm mt-0.5">£{total.toFixed(2)}</p>
+            </div>
+            <div className="px-3 sm:px-5 py-2.5 sm:py-3">
+              <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Eligible</p>
+              <p className="font-semibold text-sm mt-0.5 text-green-600">{eligibleQty}</p>
+            </div>
+            <div className="px-3 sm:px-5 py-2.5 sm:py-3">
+              <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Ineligible</p>
+              <p className="font-semibold text-sm mt-0.5 text-zinc-500">{ineligibleQty}</p>
+            </div>
+            <div className="px-3 sm:px-5 py-2.5 sm:py-3">
+              <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Refunded</p>
+              <p className="font-semibold text-sm mt-0.5 text-blue-600">£{refundedAmount.toFixed(2)}</p>
+            </div>
           </div>
         </Card>
 
@@ -525,15 +540,10 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
           </div>
         )}
 
-        {/* ── Tables ──
-            Both eligible + ineligible: side by side on xl
-            Only eligible:   eligible full width, no ineligible card
-            Only ineligible: ineligible full width, no eligible card
-        ── */}
         {hasEligible ? (
           <div className={ineligibleItems.length > 0 ? "grid grid-cols-1 xl:grid-cols-2 gap-4" : "flex flex-col gap-4"}>
 
-            {/* Eligible — full width when no ineligible items */}
+            {/* ── Eligible table ── */}
             <TableCard
               title="Select items to return"
               badge={
@@ -562,13 +572,14 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
               }
               fullWidth={ineligibleItems.length === 0}
             >
-              <ScrollArea className="flex-1 min-h-0">
-                <Table>
+              <div className="flex-1 min-h-0 overflow-auto">
+                <Table className="min-w-[560px]">
                   <TableHeader className="sticky top-0 bg-background z-10">
                     <TableRow className="hover:bg-transparent">
                       <TableHead className="w-8 pl-4 pr-0"></TableHead>
                       <TableHead className="pl-3">Product</TableHead>
-                      <TableHead className="text-right pr-4 hidden sm:table-cell">Unit</TableHead>
+                      <TableHead>Variant</TableHead>
+                      <TableHead className="text-center">Qty</TableHead>
                       <TableHead className="text-right pr-4">Total</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -585,6 +596,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                             "transition-colors",
                             sel?.selected && "bg-muted/20 hover:bg-muted/30",
                           )}>
+                            {/* Checkbox */}
                             <TableCell className="pl-4 pr-0 py-3">
                               <Checkbox
                                 checked={sel?.selected || false}
@@ -600,38 +612,41 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                                 }}
                               />
                             </TableCell>
+                            {/* Product + unit price */}
                             <TableCell className="pl-3 py-3">
                               <div className="flex items-center gap-3">
                                 <ProductThumb item={item} />
                                 <div className="min-w-0">
                                   <a href={url} target="_blank" rel="noopener noreferrer"
-                                    className="font-medium text-sm hover:underline block leading-tight truncate max-w-[170px]">
+                                    className="font-medium text-sm hover:underline block leading-tight truncate max-w-[150px]">
                                     {item.title}
                                   </a>
-                                  {item.variant?.title && item.variant.title !== "Default Title" && (
-                                    <span className="inline-block mt-1 text-[11px] bg-muted text-muted-foreground rounded px-1.5 py-0.5 leading-none">{item.variant.title}</span>
-                                  )}
-                                  {/* Qty + unit price visible only when Unit col is hidden (mobile) */}
-                                  <span className="sm:hidden inline-flex items-center gap-1 mt-1 text-[11px] text-muted-foreground tabular-nums">
-                                    £{itemPrice.toFixed(2)} × {item.quantity} = <span className="font-semibold text-foreground">£{linePrice.toFixed(2)}</span>
+                                  <span className="text-xs text-muted-foreground tabular-nums">
+                                    £{itemPrice.toFixed(2)} each
                                   </span>
                                 </div>
                               </div>
                             </TableCell>
-                            <TableCell className="pr-4 py-3 text-sm whitespace-nowrap hidden sm:table-cell">
-                              <div className="flex items-center justify-end gap-1.5 tabular-nums">
-                                <span className="text-muted-foreground text-right">£{itemPrice.toFixed(2)}&nbsp;×</span>
-                                <span className="inline-flex items-center justify-center bg-muted rounded text-[11px] font-semibold text-foreground w-[28px] h-[18px]">{item.quantity}</span>
-                              </div>
+                            {/* Variant */}
+                            <TableCell className="py-3 text-sm">
+                              {item.variant?.title && item.variant.title !== "Default Title"
+                                ? <span className="text-foreground">{item.variant.title}</span>
+                                : <span className="text-muted-foreground">—</span>}
                             </TableCell>
-                            <TableCell className="text-right pr-4 py-3 font-semibold text-sm whitespace-nowrap">
+                            {/* Qty */}
+                            <TableCell className="py-3 text-sm text-center tabular-nums">
+                              {item.quantity}
+                            </TableCell>
+                            {/* Total */}
+                            <TableCell className="text-right pr-4 py-3 font-semibold text-sm tabular-nums whitespace-nowrap">
                               £{linePrice.toFixed(2)}
                             </TableCell>
                           </TableRow>
 
+                          {/* Expanded selection row */}
                           {sel?.selected && (
                             <TableRow className="hover:bg-transparent bg-zinc-50/60">
-                              <TableCell colSpan={4} className="px-4 pb-3 pt-1">
+                              <TableCell colSpan={5} className="px-4 pb-3 pt-1">
                                 <div className="ml-[calc(0.5rem+2.5rem+0.75rem)] grid grid-cols-2 gap-2.5">
                                   <div>
                                     <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">Quantity</label>
@@ -674,7 +689,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                     })}
                   </TableBody>
                 </Table>
-              </ScrollArea>
+              </div>
             </TableCard>
 
             {/* Ineligible — only shown when there are ineligible items */}
@@ -700,7 +715,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
         )}
       </div>
 
-      {/* ── Portalled fixed action bar — no blur/glass ── */}
+      {/* ── Portalled fixed action bar ── */}
       {mounted && hasEligible && createPortal(
         <div
           className="fixed bottom-0 right-0 z-[48] border-t border-border bg-background shadow-[0_-2px_12px_rgba(0,0,0,0.08)]"
