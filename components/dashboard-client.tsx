@@ -221,30 +221,20 @@ function OrderCardSkeleton() {
   )
 }
 
-// ─── Shipment Items Modal ─────────────────────────────────────────────────────
-function ShipmentItemsModal({ shipment, order, idx }: { shipment: Shipment; order: Order; idx: number }) {
-  const [open, setOpen] = React.useState(false)
-  const isDesktop = useMediaQuery("(min-width: 768px)")
-
+// ─── Shared: shipment item list ───────────────────────────────────────────────
+function ShipmentItemList({ shipment, order, className }: {
+  shipment: Shipment
+  order: Order
+  className?: string
+}) {
   const shipmentItems = shipment.items.flatMap(({ id, quantity }) => {
     const li = order.processedItems.find(i => i.id === id)
     if (!li) return []
     return [{ ...li, shipQty: quantity }]
   })
 
-  const totalUnits = shipment.items.reduce((a, c) => a + c.quantity, 0)
-  const isDelivered = shipment.displayStatus === "DELIVERED"
-  const deliveredDate = shipment.deliveredAt
-    ? new Date(shipment.deliveredAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
-    : null
-
-  const title = `Shipment ${idx + 1}`
-  const description = isDelivered && deliveredDate
-    ? `Delivered ${deliveredDate}`
-    : "On its way"
-
-  const body = (
-    <div className="flex flex-col gap-2">
+  return (
+    <div className={cn("flex flex-col gap-2", className)}>
       {shipmentItems.map((item, i) => {
         const itemPrice = item.unitPrice ?? 0
         return (
@@ -255,7 +245,12 @@ function ShipmentItemsModal({ shipment, order, idx }: { shipment: Shipment; orde
               </div>
             </a>
             <div className="flex-1 min-w-0">
-              <a href={pUrl(item.productHandle)} target="_blank" rel="noopener noreferrer" className="font-medium text-sm hover:underline truncate block">
+              <a
+                href={pUrl(item.productHandle)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-sm hover:underline truncate block"
+              >
                 {item.title}
               </a>
               {item.variant?.title && item.variant.title !== "Default Title" && (
@@ -264,13 +259,59 @@ function ShipmentItemsModal({ shipment, order, idx }: { shipment: Shipment; orde
             </div>
             <div className="text-right shrink-0">
               <p className="text-sm font-semibold">×{item.shipQty}</p>
-              {itemPrice > 0 && <p className="text-xs text-muted-foreground">£{(itemPrice * item.shipQty).toFixed(2)}</p>}
+              {itemPrice > 0 && (
+                <p className="text-xs text-muted-foreground">£{(itemPrice * item.shipQty).toFixed(2)}</p>
+              )}
             </div>
           </div>
         )
       })}
     </div>
   )
+}
+
+// ─── Shared: hygiene policy list ──────────────────────────────────────────────
+const POLICY_ITEMS = [
+  { title: "Vape Kits & Mods",       desc: "30-day refund period. 30-day warranty from delivery." },
+  { title: "Batteries & Chargers",    desc: "60-day battery warranty. 30-day charger warranty." },
+  { title: "E-Liquids & Disposables", desc: "Must remain sealed and unopened. No returns on opened liquids." },
+  { title: "Tanks & Clearomisers",    desc: "7-day Dead On Arrival window — report faults within 7 days." },
+]
+
+function HygienePolicyList({ className }: { className?: string }) {
+  return (
+    <div className={cn("space-y-2", className)}>
+      {POLICY_ITEMS.map(p => (
+        <div key={p.title} className="rounded-lg border bg-muted/30 px-3 py-2.5">
+          <p className="font-semibold text-xs">{p.title}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{p.desc}</p>
+        </div>
+      ))}
+      <p className="text-xs text-muted-foreground pt-1">
+        Return postage is at your expense. Tracked service required. Refunds within 5–10 business days.
+      </p>
+    </div>
+  )
+}
+
+// ─── Shipment Items Modal ─────────────────────────────────────────────────────
+function ShipmentItemsModal({ shipment, order, idx }: {
+  shipment: Shipment
+  order: Order
+  idx: number
+}) {
+  const [open, setOpen] = React.useState(false)
+  const isDesktop = useMediaQuery("(min-width: 768px)")
+
+  const totalUnits  = shipment.items.reduce((a, c) => a + c.quantity, 0)
+  const isDelivered = shipment.displayStatus === "DELIVERED"
+  const deliveredDate = shipment.deliveredAt
+    ? new Date(shipment.deliveredAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+    : null
+
+  const title       = `Shipment ${idx + 1}`
+  const description = isDelivered && deliveredDate ? `Delivered ${deliveredDate}` : "On its way"
+  const subtitle    = `${description} · ${totalUnits} unit${totalUnits !== 1 ? "s" : ""}`
 
   const trigger = (
     <button className="flex items-center gap-1 text-xs font-medium text-muted-foreground bg-muted px-2 py-1 rounded-md border border-dashed shrink-0 hover:bg-zinc-100 hover:border-zinc-300 transition-colors cursor-pointer">
@@ -284,10 +325,13 @@ function ShipmentItemsModal({ shipment, order, idx }: { shipment: Shipment; orde
         <DialogTrigger asChild>{trigger}</DialogTrigger>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><Truck className="size-4" /> {title}</DialogTitle>
-            <DialogDescription>{description} · {totalUnits} unit{totalUnits !== 1 ? "s" : ""}</DialogDescription>
+            <DialogTitle className="flex items-center gap-2">
+              <Truck className="size-4" /> {title}
+            </DialogTitle>
+            <DialogDescription>{subtitle}</DialogDescription>
           </DialogHeader>
-          {body}
+          {/* Content directly after header — no wrapper */}
+          <ShipmentItemList shipment={shipment} order={order} />
         </DialogContent>
       </Dialog>
     )
@@ -298,10 +342,13 @@ function ShipmentItemsModal({ shipment, order, idx }: { shipment: Shipment; orde
       <DrawerTrigger asChild>{trigger}</DrawerTrigger>
       <DrawerContent>
         <DrawerHeader className="text-left">
-          <DrawerTitle className="flex items-center gap-2"><Truck className="size-4" /> {title}</DrawerTitle>
-          <DrawerDescription>{description} · {totalUnits} unit{totalUnits !== 1 ? "s" : ""}</DrawerDescription>
+          <DrawerTitle className="flex items-center gap-2">
+            <Truck className="size-4" /> {title}
+          </DrawerTitle>
+          <DrawerDescription>{subtitle}</DrawerDescription>
         </DrawerHeader>
-        <div className="px-4 pb-2">{body}</div>
+        {/* Content with px-4 applied directly, matching demo pattern */}
+        <ShipmentItemList shipment={shipment} order={order} className="px-4" />
         <DrawerFooter className="pt-2">
           <DrawerClose asChild>
             <Button variant="outline">Close</Button>
@@ -313,33 +360,17 @@ function ShipmentItemsModal({ shipment, order, idx }: { shipment: Shipment; orde
 }
 
 // ─── Hygiene Policy Modal ─────────────────────────────────────────────────────
-function HygienePolicy({ onAccept, onDecline }: { onAccept: () => void; onDecline: () => void }) {
+function HygienePolicy({ onAccept, onDecline }: {
+  onAccept: () => void
+  onDecline: () => void
+}) {
   const [open, setOpen] = useState(false)
   const isDesktop = useMediaQuery("(min-width: 768px)")
 
-  const handleAccept = () => { setOpen(false); onAccept(); toast.success("Policy accepted") }
+  const handleAccept  = () => { setOpen(false); onAccept();  toast.success("Policy accepted") }
   const handleDecline = () => { setOpen(false); onDecline(); toast.warning("Policy declined") }
 
-  const policyItems = [
-    { title: "Vape Kits & Mods",       desc: "30-day refund period. 30-day warranty from delivery." },
-    { title: "Batteries & Chargers",    desc: "60-day battery warranty. 30-day charger warranty." },
-    { title: "E-Liquids & Disposables", desc: "Must remain sealed and unopened. No returns on opened liquids." },
-    { title: "Tanks & Clearomisers",    desc: "7-day Dead On Arrival window — report faults within 7 days." },
-  ]
-
-  const body = (
-    <div className="space-y-2 text-sm">
-      {policyItems.map(p => (
-        <div key={p.title} className="rounded-lg border bg-muted/30 px-3 py-2.5">
-          <p className="font-semibold text-xs">{p.title}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">{p.desc}</p>
-        </div>
-      ))}
-      <p className="text-xs text-muted-foreground pt-1">Return postage is at your expense. Tracked service required. Refunds within 5–10 business days.</p>
-    </div>
-  )
-
-  const acceptDeclineButtons = (
+  const acceptDecline = (
     <div className="flex gap-2">
       <Button className="flex-1 bg-[#E5403B] hover:bg-[#cc3935] text-white" onClick={handleAccept}>
         <CheckCircle2 className="size-4" /> I Accept
@@ -367,8 +398,9 @@ function HygienePolicy({ onAccept, onDecline }: { onAccept: () => void; onDeclin
               Review our returns policy before selecting items to return.
             </DialogDescription>
           </DialogHeader>
-          {body}
-          {acceptDeclineButtons}
+          {/* Content directly after header — no wrapper */}
+          <HygienePolicyList />
+          {acceptDecline}
         </DialogContent>
       </Dialog>
     )
@@ -386,11 +418,12 @@ function HygienePolicy({ onAccept, onDecline }: { onAccept: () => void; onDeclin
             Review our returns policy before selecting items to return.
           </DrawerDescription>
         </DrawerHeader>
-        <div className="px-4 pb-2">{body}</div>
+        {/* Content with px-4 applied directly, matching demo pattern */}
+        <HygienePolicyList className="px-4" />
         <DrawerFooter className="pt-2">
-          {acceptDeclineButtons}
+          {acceptDecline}
           <DrawerClose asChild>
-            <Button variant="ghost" size="sm">Cancel</Button>
+            <Button variant="outline">Cancel</Button>
           </DrawerClose>
         </DrawerFooter>
       </DrawerContent>
@@ -405,7 +438,7 @@ function OrderCard({ order, onClick }: { order: Order; onClick: () => void }) {
     .slice(0, 5) as string[]
   const extra = order.processedItems.length - uniqueImages.length
   const total = parseFloat(order.totalPriceSet.shopMoney.amount)
-  const date = new Date(order.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+  const date  = new Date(order.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
 
   return (
     <button onClick={onClick} className="group w-full text-left bg-white border border-border rounded-xl p-5 shadow-sm hover:shadow-md hover:border-zinc-300 transition-all duration-150 focus:outline-none flex flex-col justify-between gap-3">
@@ -435,8 +468,8 @@ function OrderCard({ order, onClick }: { order: Order; onClick: () => void }) {
 
 function OrderRow({ order, onClick }: { order: Order; onClick: () => void }) {
   const images = order.processedItems.map(i => i.image?.url).filter(Boolean).slice(0, 3) as string[]
-  const total = parseFloat(order.totalPriceSet.shopMoney.amount)
-  const date = new Date(order.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+  const total  = parseFloat(order.totalPriceSet.shopMoney.amount)
+  const date   = new Date(order.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
 
   return (
     <button onClick={onClick} className="w-full px-5 py-3.5 flex items-center gap-4 hover:bg-zinc-50 transition-colors text-left group border-b border-border last:border-0">
@@ -472,11 +505,11 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
   useEffect(() => { setMounted(true) }, [])
   const { state: sidebarState, isMobile: sidebarMobile } = useSidebar()
 
-  const rawOrderId = order.id.split("/").pop()
+  const rawOrderId     = order.id.split("/").pop()
   const orderStatusUrl = `https://account.iblazevape.co.uk/orders/${rawOrderId}`
 
-  const total = parseFloat(order.totalPriceSet.shopMoney.amount)
-  const orderAvgPrice = order.totalUnits > 0 ? total / order.totalUnits : 0
+  const total          = parseFloat(order.totalPriceSet.shopMoney.amount)
+  const orderAvgPrice  = order.totalUnits > 0 ? total / order.totalUnits : 0
   const refundedAmount = order.totalRefundedSet?.shopMoney?.amount
     ? parseFloat(order.totalRefundedSet.shopMoney.amount)
     : 0
@@ -491,12 +524,11 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
     [order]
   )
 
-  const hasEligible = eligibleItems.length > 0 && !order.cancelledAt
-
+  const hasEligible          = eligibleItems.length > 0 && !order.cancelledAt
   const totalEligibleUnits   = eligibleItems.reduce((s, i) => s + i.eligibleQuantity, 0)
   const totalIneligibleUnits = ineligibleItems.reduce((s, i) => s + i.quantity, 0)
 
-  // ── Search filter ─────────────────────────────────────────────────────────
+  // ── Search ────────────────────────────────────────────────────────────────
   const matchesSearch = (item: LineItem) => {
     if (!searchQuery) return true
     const q = searchQuery.toLowerCase()
@@ -506,21 +538,21 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
   const filteredEligible   = useMemo(() => eligibleItems.filter(matchesSearch),   [eligibleItems,   searchQuery])
   const filteredIneligible = useMemo(() => ineligibleItems.filter(matchesSearch), [ineligibleItems, searchQuery])
 
-  // ── Tab state: "eligible" | "ineligible" ─────────────────────────────────
+  // ── Tab ───────────────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<"eligible" | "ineligible">("eligible")
   useEffect(() => { setActiveTab("eligible") }, [order.id])
 
   const currentData = activeTab === "eligible" ? filteredEligible : filteredIneligible
 
   // ── Pagination ────────────────────────────────────────────────────────────
-  const size = pageSize === "all" ? Math.max(currentData.length, 1) : parseInt(pageSize)
+  const size       = pageSize === "all" ? Math.max(currentData.length, 1) : parseInt(pageSize)
   const totalPages = Math.ceil(currentData.length / size) || 1
   const paginatedData = currentData.slice((currentPage - 1) * size, currentPage * size)
 
   useEffect(() => { setCurrentPage(1) }, [activeTab, searchQuery, pageSize])
 
-  // ── Selection state ───────────────────────────────────────────────────────
-  const selectedCount  = Object.values(selectedItems).filter(v => v.selected).length
+  // ── Selection ─────────────────────────────────────────────────────────────
+  const selectedCount   = Object.values(selectedItems).filter(v => v.selected).length
   const estimatedRefund = Object.entries(selectedItems)
     .filter(([, v]) => v.selected)
     .reduce((sum, [id, v]) => {
@@ -656,7 +688,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
             </h3>
             <div className="flex overflow-x-auto gap-3 pb-1 snap-x scrollbar-thin">
               {order.shipments.map((shipment, idx) => {
-                const isDelivered = shipment.displayStatus === "DELIVERED"
+                const isDelivered   = shipment.displayStatus === "DELIVERED"
                 const deliveredDate = shipment.deliveredAt
                   ? new Date(shipment.deliveredAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
                   : null
@@ -682,7 +714,6 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                           </p>
                         </div>
                       </div>
-                      {/* Clickable units badge — opens ShipmentItemsModal */}
                       <ShipmentItemsModal shipment={shipment} order={order} idx={idx} />
                     </div>
                     {shipment.trackingInfo.length > 0 && (
@@ -731,18 +762,13 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
           <Card className={cn(C, "overflow-hidden flex flex-col")}>
             {/* Toolbar */}
             <div className="px-5 py-3 border-b bg-muted/20 flex flex-col md:flex-row md:items-center justify-between gap-4">
-              {/* Eligible / Ineligible toggle — same Select style as "Show 10" */}
               <Select value={activeTab} onValueChange={(v) => setActiveTab(v as "eligible" | "ineligible")}>
                 <SelectTrigger className="w-[185px] h-9 bg-white">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="eligible">
-                    Eligible ({totalEligibleUnits})
-                  </SelectItem>
-                  <SelectItem value="ineligible">
-                    Ineligible ({totalIneligibleUnits})
-                  </SelectItem>
+                  <SelectItem value="eligible">Eligible ({totalEligibleUnits})</SelectItem>
+                  <SelectItem value="ineligible">Ineligible ({totalIneligibleUnits})</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -768,7 +794,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
               </div>
             </div>
 
-            {/* Table wrapped in ScrollArea */}
+            {/* Table in ScrollArea */}
             <ScrollArea className="flex-1">
               <Table className="min-w-[560px]">
                 <TableHeader className="bg-background">
@@ -792,15 +818,13 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                 <TableBody>
                   {paginatedData.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                        No items found.
-                      </TableCell>
+                      <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">No items found.</TableCell>
                     </TableRow>
                   ) : paginatedData.map((item, rowIdx) => {
                     const displayQty = activeTab === "eligible" ? item.eligibleQuantity : item.quantity
-                    const sel = selectedItems[item.id]
-                    const isLocked = !policyAccepted && activeTab === "eligible"
-                    const itemPrice = item.unitPrice ?? orderAvgPrice
+                    const sel        = selectedItems[item.id]
+                    const isLocked   = !policyAccepted && activeTab === "eligible"
+                    const itemPrice  = item.unitPrice ?? orderAvgPrice
 
                     return (
                       <React.Fragment key={`${item.id}-${rowIdx}`}>
@@ -858,7 +882,6 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                           )}
                         </TableRow>
 
-                        {/* Inline return options row — eligible tab only */}
                         {sel?.selected && activeTab === "eligible" && (
                           <TableRow className="bg-zinc-50/60 hover:bg-zinc-50/60">
                             <TableCell colSpan={5} className="px-4 pb-3 pt-1">
@@ -918,7 +941,6 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
               </Table>
             </ScrollArea>
 
-            {/* Pagination footer */}
             {pageSize !== "all" && currentData.length > size && (
               <div className="p-4 border-t flex items-center justify-between text-sm text-muted-foreground">
                 <span>
