@@ -31,6 +31,7 @@ import { Drawer, DrawerClose, DrawerContent, DrawerFooter, DrawerHeader, DrawerT
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { cn } from "@/lib/utils"
 
+// ─── Types ────────────────────────────────────────────────────────────────────
 type ReturnStatus =
   | "Eligible" | "Not yet dispatched" | "Confirmed" | "On its way"
   | "Passed the return window" | "Returned" | "Refunded"
@@ -38,14 +39,48 @@ type ReturnStatus =
   | "Return declined" | "Return cancelled" | "Cancelled"
 
 interface LineItem {
-  id: string; title: string; quantity: number; eligibleQuantity: number; refundedQuantity: number; activeReturnQuantity: number; unitPrice?: number | null; returnStatus: ReturnStatus; returnReason?: string; lineDeliveredAt?: string | null; productHandle?: string | null; image?: { url: string } | null; variant?: { title: string } | null;
+  id: string
+  title: string
+  quantity: number
+  eligibleQuantity: number
+  refundedQuantity: number
+  activeReturnQuantity: number
+  unitPrice?: number | null
+  returnStatus: ReturnStatus
+  returnReason?: string
+  lineDeliveredAt?: string | null
+  productHandle?: string | null
+  image?: { url: string } | null
+  variant?: { title: string } | null
 }
 
 interface ShipmentTracking { company: string; number: string; url: string }
-interface Shipment { id: string; displayStatus: string; deliveredAt: string | null; trackingInfo: ShipmentTracking[]; items: { id: string; quantity: number }[]; }
+interface Shipment {
+  id: string
+  displayStatus: string
+  deliveredAt: string | null
+  trackingInfo: ShipmentTracking[]
+  items: { id: string; quantity: number }[]
+}
 
 interface Order {
-  id: string; name: string; createdAt: string; cancelledAt?: string | null; displayFulfillmentStatus: string; totalPriceSet: { shopMoney: { amount: string; currencyCode: string } }; totalRefundedSet?: { shopMoney: { amount: string } } | null; processedItems: LineItem[]; shipments: Shipment[]; orderStatus: string; deliveredCount: number; dispatchedCount: number; confirmedCount: number; notDispatchedCount: number; totalUnits: number; earliestDelivery?: string | null; latestDelivery?: string | null;
+  id: string
+  name: string
+  createdAt: string
+  cancelledAt?: string | null
+  displayFulfillmentStatus: string
+  totalPriceSet: { shopMoney: { amount: string; currencyCode: string } }
+  totalRefundedSet?: { shopMoney: { amount: string } } | null
+  processedItems: LineItem[]
+  shipments: Shipment[]
+  orderStatus: string
+  deliveredCount: number
+  dispatchedCount: number
+  confirmedCount: number
+  notDispatchedCount: number
+  totalUnits: number
+  earliestDelivery?: string | null
+  latestDelivery?: string | null
 }
 
 interface OrdersData { firstName: string; email: string; orders: Order[] }
@@ -61,24 +96,43 @@ const RETURN_REASONS = [
 
 const C = "shadow-sm py-0 gap-0"
 
-function pUrl(handle?: string | null) { return handle ? `https://iblazevape.co.uk/products/${handle}` : "https://iblazevape.co.uk" }
+function pUrl(handle?: string | null) {
+  return handle ? `https://iblazevape.co.uk/products/${handle}` : "https://iblazevape.co.uk"
+}
 
+// ─── Order Status Badges ─────────────────────────────────────────────────────
 function OrderStatusBadges({ order }: { order: Order }) {
-  const { orderStatus, cancelledAt, deliveredCount, dispatchedCount, confirmedCount, notDispatchedCount, totalUnits } = order
-  if (cancelledAt) return <Badge className="bg-red-50 text-red-700 hover:bg-red-50 border border-red-200 rounded-md text-xs font-medium">Cancelled</Badge>
+  const {
+    orderStatus, cancelledAt,
+    deliveredCount, dispatchedCount, confirmedCount, notDispatchedCount, totalUnits,
+  } = order
+
+  if (cancelledAt) {
+    return <Badge className="bg-red-50 text-red-700 hover:bg-red-50 border border-red-200 rounded-md text-xs font-medium">Cancelled</Badge>
+  }
 
   const primary = (() => {
     switch (orderStatus) {
-      case "Delivered": return <Badge className="bg-green-50 text-green-700 hover:bg-green-50 border border-green-200 rounded-md text-xs font-medium">Delivered</Badge>
-      case "Partially delivered": return <Badge className="bg-amber-50 text-amber-700 hover:bg-amber-50 border border-amber-200 rounded-md text-xs font-medium">Partially delivered</Badge>
-      case "On its way": return <Badge className="bg-blue-50 text-blue-700 hover:bg-blue-50 border border-blue-200 rounded-md text-xs font-medium">On its way</Badge>
-      case "Partially dispatched": return <Badge className="bg-blue-50 text-blue-700 hover:bg-blue-50 border border-blue-200 rounded-md text-xs font-medium">Partially dispatched</Badge>
-      case "Confirmed": return <Badge variant="secondary" className="rounded-md text-xs font-medium">Confirmed</Badge>
-      default: return <Badge variant="secondary" className="rounded-md text-xs font-medium">{orderStatus}</Badge>
+      case "Delivered":
+        return <Badge className="bg-green-50 text-green-700 hover:bg-green-50 border border-green-200 rounded-md text-xs font-medium">Delivered</Badge>
+      case "Partially delivered":
+        return <Badge className="bg-amber-50 text-amber-700 hover:bg-amber-50 border border-amber-200 rounded-md text-xs font-medium">Partially delivered</Badge>
+      case "On its way":
+        return <Badge className="bg-blue-50 text-blue-700 hover:bg-blue-50 border border-blue-200 rounded-md text-xs font-medium">On its way</Badge>
+      case "Partially dispatched":
+        return <Badge className="bg-blue-50 text-blue-700 hover:bg-blue-50 border border-blue-200 rounded-md text-xs font-medium">Partially dispatched</Badge>
+      case "Confirmed":
+        return <Badge variant="secondary" className="rounded-md text-xs font-medium">Confirmed</Badge>
+      default:
+        return <Badge variant="secondary" className="rounded-md text-xs font-medium">{orderStatus}</Badge>
     }
   })()
 
-  const showStats = totalUnits > 0 && orderStatus !== "Delivered" && orderStatus !== "Confirmed" && orderStatus !== "Cancelled"
+  const showStats = totalUnits > 0
+    && orderStatus !== "Delivered"
+    && orderStatus !== "Confirmed"
+    && orderStatus !== "Cancelled"
+
   const parts: string[] = []
   if (deliveredCount > 0) parts.push(`${deliveredCount} delivered`)
   if (dispatchedCount > 0) parts.push(`${dispatchedCount} on its way`)
@@ -88,29 +142,50 @@ function OrderStatusBadges({ order }: { order: Order }) {
   return (
     <div className="flex items-center gap-2 flex-wrap">
       {primary}
-      {showStats && parts.length > 1 && <span className="text-[11px] text-muted-foreground">{parts.join(" · ")}</span>}
+      {showStats && parts.length > 1 && (
+        <span className="text-[11px] text-muted-foreground">{parts.join(" · ")}</span>
+      )}
     </div>
   )
 }
 
+// ─── Ineligible Badge ────────────────────────────────────────────────────────
 function OutlineBadge({ className, children }: { className: string; children: React.ReactNode }) {
-  return <span className={cn("inline-flex items-center justify-center rounded-md border px-2 py-0.5 text-[11px] font-medium whitespace-nowrap", className)}>{children}</span>
+  return (
+    <span className={cn("inline-flex items-center justify-center rounded-md border px-2 py-0.5 text-[11px] font-medium whitespace-nowrap", className)}>
+      {children}
+    </span>
+  )
 }
 
-function IneligibleReason({ status, reason, lineDeliveredAt }: { status: ReturnStatus; reason?: string; lineDeliveredAt?: string | null }) {
+function IneligibleReason({ status, reason, lineDeliveredAt }: {
+  status: ReturnStatus; reason?: string; lineDeliveredAt?: string | null
+}) {
   const withHover = (badge: React.ReactNode, title: string, body: string) => (
     <HoverCard openDelay={100} closeDelay={100}>
       <HoverCardTrigger asChild><div className="inline-flex">{badge}</div></HoverCardTrigger>
-      <HoverCardContent side="top" align="end" className="w-64 px-4 py-3"><div className="flex flex-col gap-1"><h4 className="font-medium text-sm">{title}</h4><p className="text-sm text-muted-foreground break-words">{body}</p></div></HoverCardContent>
+      <HoverCardContent side="top" align="end" className="w-64 px-4 py-3">
+        <div className="flex flex-col gap-1">
+          <h4 className="font-medium text-sm">{title}</h4>
+          <p className="text-sm text-muted-foreground break-words">{body}</p>
+        </div>
+      </HoverCardContent>
     </HoverCard>
   )
+
   if (status === "Confirmed")        return <OutlineBadge className="bg-zinc-50 text-zinc-500 border-zinc-200">Confirmed</OutlineBadge>
   if (status === "On its way")       return <OutlineBadge className="bg-amber-50 text-amber-700 border-amber-200">On its way</OutlineBadge>
   if (status === "Not yet dispatched") return <OutlineBadge className="bg-zinc-50 text-zinc-500 border-zinc-200">Not dispatched</OutlineBadge>
   if (status === "Refunded")         return <OutlineBadge className="bg-zinc-100 text-zinc-600 border-zinc-300">Refunded</OutlineBadge>
   if (status === "Cancelled")        return <OutlineBadge className="bg-red-50 text-red-700 border-red-200">Cancelled</OutlineBadge>
+
   if (status === "Passed the return window") {
-    const badge = <div className="flex flex-col items-end gap-0.5"><OutlineBadge className="bg-red-50 text-red-700 border-red-200">Window expired</OutlineBadge>{lineDeliveredAt && <span className="text-[10px] text-muted-foreground">Arrived {lineDeliveredAt}</span>}</div>
+    const badge = (
+      <div className="flex flex-col items-end gap-0.5">
+        <OutlineBadge className="bg-red-50 text-red-700 border-red-200">Window expired</OutlineBadge>
+        {lineDeliveredAt && <span className="text-[10px] text-muted-foreground">Arrived {lineDeliveredAt}</span>}
+      </div>
+    )
     return reason ? withHover(badge, "Return window closed", reason) : badge
   }
   if (status === "Return requested")  return <OutlineBadge className="bg-blue-50 text-blue-700 border-blue-200">Requested</OutlineBadge>
@@ -120,6 +195,7 @@ function IneligibleReason({ status, reason, lineDeliveredAt }: { status: ReturnS
     const badge = <OutlineBadge className="bg-red-50 text-red-700 border-red-200">Declined</OutlineBadge>
     return reason ? withHover(badge, "Return declined", reason) : badge
   }
+  if (status === "Return cancelled")  return <OutlineBadge className="bg-orange-50 text-orange-600 border-orange-200">Cancelled</OutlineBadge>
   return <span className="text-xs text-muted-foreground">{status}</span>
 }
 
@@ -133,98 +209,83 @@ function ProductThumb({ item }: { item: LineItem }) {
   )
 }
 
+// ─── Skeleton View ────────────────────────────────────────────────────────────
 function OrderCardSkeleton() {
   return (
     <div className="bg-white border border-border rounded-xl p-5">
-      <div className="flex items-start justify-between mb-3"><div className="space-y-1.5"><Skeleton className="h-4 w-24" /><Skeleton className="h-3 w-32" /></div><Skeleton className="h-4 w-14" /></div>
+      <div className="flex items-start justify-between mb-3">
+        <div className="space-y-1.5"><Skeleton className="h-4 w-24" /><Skeleton className="h-3 w-32" /></div>
+        <Skeleton className="h-4 w-14" />
+      </div>
       <div className="flex gap-1.5">{[1,2,3].map(i => <Skeleton key={i} className="w-10 h-10 rounded-md" />)}</div>
     </div>
   )
 }
 
+// ─── Hygiene Policy Module ───────────────────────────────────────────────────
 function HygienePolicy({ onAccept, onDecline }: { onAccept: () => void; onDecline: () => void }) {
   const [open, setOpen] = useState(false)
   const isDesktop = useMediaQuery("(min-width: 768px)")
+
   const handleAccept = () => { setOpen(false); onAccept(); toast.success("Policy accepted") }
   const handleDecline = () => { setOpen(false); onDecline(); toast.warning("Policy declined") }
+
   const policyItems = [
-    { title: "Vape Kits & Mods", desc: "30-day refund period. 30-day warranty from delivery." },
-    { title: "Batteries & Chargers", desc: "60-day battery warranty. 30-day charger warranty." },
-    { title: "E-Liquids & Disposables", desc: "Must remain sealed and unopened. No returns on opened liquids." },
-    { title: "Tanks & Clearomisers", desc: "7-day Dead On Arrival window — report faults within 7 days." },
+    { title: "Vape Kits & Mods",          desc: "30-day refund period. 30-day warranty from delivery." },
+    { title: "Batteries & Chargers",       desc: "60-day battery warranty. 30-day charger warranty." },
+    { title: "E-Liquids & Disposables",    desc: "Must remain sealed and unopened. No returns on opened liquids." },
+    { title: "Tanks & Clearomisers",       desc: "7-day Dead On Arrival window — report faults within 7 days." },
   ]
   const body = (
     <div className="space-y-2 text-sm">
-      {policyItems.map(p => (<div key={p.title} className="rounded-lg border bg-muted/30 px-3 py-2.5"><p className="font-semibold text-xs">{p.title}</p><p className="text-xs text-muted-foreground mt-0.5">{p.desc}</p></div>))}
+      {policyItems.map(p => (
+        <div key={p.title} className="rounded-lg border bg-muted/30 px-3 py-2.5">
+          <p className="font-semibold text-xs">{p.title}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{p.desc}</p>
+        </div>
+      ))}
       <p className="text-xs text-muted-foreground pt-1">Return postage is at your expense. Tracked service required. Refunds within 5–10 business days.</p>
     </div>
   )
   const footer = (
-    <div className="flex gap-2 pt-2"><Button className="flex-1 bg-[#E5403B] hover:bg-[#cc3935] text-white" onClick={handleAccept}><CheckCircle2 className="size-4" /> I Accept</Button><Button variant="outline" className="flex-1" onClick={handleDecline}>Decline</Button></div>
+    <div className="flex gap-2 pt-2">
+      <Button className="flex-1 bg-[#E5403B] hover:bg-[#cc3935] text-white" onClick={handleAccept}><CheckCircle2 className="size-4" /> I Accept</Button>
+      <Button variant="outline" className="flex-1" onClick={handleDecline}>Decline</Button>
+    </div>
   )
   const trigger = <Button size="sm" className="bg-[#E5403B] hover:bg-[#cc3935] text-white shrink-0">Review &amp; Accept</Button>
 
-  return isDesktop ? (
-    <Dialog open={open} onOpenChange={setOpen}><DialogTrigger asChild>{trigger}</DialogTrigger><DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle className="flex items-center gap-2"><ShieldCheck className="size-4 text-[#E5403B]" /> iBlaze Returns Policy</DialogTitle></DialogHeader>{body}{footer}</DialogContent></Dialog>
-  ) : (
-    <Drawer open={open} onOpenChange={setOpen}><DrawerTrigger asChild>{trigger}</DrawerTrigger><DrawerContent><DrawerHeader><DrawerTitle className="flex items-center gap-2"><ShieldCheck className="size-4 text-[#E5403B]" /> iBlaze Returns Policy</DialogTitle></DrawerHeader><div className="px-4 pb-2">{body}</div><DrawerFooter>{footer}<DrawerClose asChild><Button variant="ghost" size="sm">Cancel</Button></DrawerClose></DrawerFooter></DrawerContent></Drawer>
+  if (isDesktop) return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader><DialogTitle className="flex items-center gap-2"><ShieldCheck className="size-4 text-[#E5403B]" /> iBlaze Returns Policy</DialogTitle></DialogHeader>
+        {body}{footer}
+      </DialogContent>
+    </Dialog>
   )
-}
-
-function OrderCard({ order, onClick }: { order: Order; onClick: () => void }) {
-  const uniqueImages = order.processedItems.map(i => i.image?.url).filter((u, i, a) => u && a.indexOf(u) === i).slice(0, 5) as string[]
-  const extra = order.processedItems.length - uniqueImages.length
-  const total = parseFloat(order.totalPriceSet.shopMoney.amount)
-  const date = new Date(order.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
-
   return (
-    <button onClick={onClick} className="group w-full text-left bg-white border border-border rounded-xl p-5 shadow-sm hover:shadow-md hover:border-zinc-300 transition-all duration-150 focus:outline-none flex flex-col justify-between gap-3">
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="font-semibold text-[15px] group-hover:underline">{order.name}</p>
-          <p className="text-[13px] text-muted-foreground mt-0.5">{date} &bull; {order.totalUnits} item{order.totalUnits !== 1 ? "s" : ""}</p>
-          <div className="mt-1.5"><OrderStatusBadges order={order} /></div>
-        </div>
-        <p className="font-semibold text-[15px] shrink-0">£{total.toFixed(2)}</p>
-      </div>
-      <div className="flex items-center gap-1.5">
-        {uniqueImages.map((url, i) => <div key={i} className="w-10 h-10 rounded-md border border-border bg-white overflow-hidden shrink-0"><img src={url} alt="" className="w-full h-full object-contain p-0.5" /></div>)}
-        {extra > 0 && <div className="w-10 h-10 rounded-md border border-border bg-zinc-50 flex items-center justify-center shrink-0"><span className="text-[11px] font-bold text-muted-foreground">+{extra}</span></div>}
-      </div>
-    </button>
+    <Drawer open={open} onOpenChange={setOpen}>
+      <DrawerTrigger asChild>{trigger}</DrawerTrigger>
+      <DrawerContent>
+        <DrawerHeader><DrawerTitle className="flex items-center gap-2"><ShieldCheck className="size-4 text-[#E5403B]" /> iBlaze Returns Policy</DrawerTitle></DrawerHeader>
+        <div className="px-4 pb-2">{body}</div>
+        <DrawerFooter>{footer}<DrawerClose asChild><Button variant="ghost" size="sm">Cancel</Button></DrawerClose></DrawerFooter>
+      </DrawerContent>
+    </Drawer>
   )
 }
 
-function OrderRow({ order, onClick }: { order: Order; onClick: () => void }) {
-  const images = order.processedItems.map(i => i.image?.url).filter(Boolean).slice(0, 3) as string[]
-  const total = parseFloat(order.totalPriceSet.shopMoney.amount)
-  const date = new Date(order.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
-
-  return (
-    <button onClick={onClick} className="w-full px-5 py-3.5 flex items-center gap-4 hover:bg-zinc-50 transition-colors text-left group border-b border-border last:border-0">
-      <div className="flex -space-x-2">{images.map((url, i) => <div key={i} className="size-9 rounded-lg border-2 border-white bg-white overflow-hidden shadow-sm"><img src={url} alt="" className="w-full h-full object-contain" /></div>)}</div>
-      <div className="flex-1 min-w-0">
-        <p className="font-semibold text-sm group-hover:underline">{order.name}</p>
-        <p className="text-xs text-muted-foreground">{date} &bull; {order.totalUnits} item{order.totalUnits !== 1 ? "s" : ""}</p>
-        <div className="mt-1"><OrderStatusBadges order={order} /></div>
-      </div>
-      <p className="font-semibold text-sm w-16 text-right shrink-0">£{total.toFixed(2)}</p>
-      <ChevronRight className="size-4 text-muted-foreground shrink-0" />
-    </button>
-  )
-}
-
+// ─── Order Detail Component ────────────────────────────────────────────────
 function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
   const [policyAccepted, setPolicyAccepted] = useState(false)
   const [selectedItems, setSelectedItems] = useState<Record<string, { selected: boolean; quantity: number; reason: string; description: string }>>({})
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
-  const [mounted, setMounted] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [pageSize, setPageSize] = useState("10")
   const [currentPage, setCurrentPage] = useState(1)
   
-  useEffect(() => { setMounted(true) }, [])
   const { state: sidebarState, isMobile: sidebarMobile } = useSidebar()
 
   const rawOrderId = order.id.split("/").pop()
@@ -326,7 +387,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
       <div className={cn("flex flex-col gap-4", hasEligible && "pb-[120px] sm:pb-[64px]")}>
         <Button variant="ghost" size="sm" onClick={onBack} className="-ml-2 text-muted-foreground hover:text-foreground w-fit"><ArrowLeft className="size-4" /> Back to Orders</Button>
 
-        {/* ── Order header card ── */}
+        {/* ── Order Header Panel ── */}
         <Card className={cn(C, "overflow-hidden")}>
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 px-5 py-4">
             <div>
@@ -351,7 +412,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
           </div>
         )}
 
-        {/* ── Shipments & tracking ── */}
+        {/* ── Scrollable Compact Shipments ── */}
         {!order.cancelledAt && order.shipments && order.shipments.length > 0 && (
           <div className="flex flex-col gap-2">
             <h3 className="text-sm font-semibold flex items-center gap-2"><Truck className="size-4" /> Shipments &amp; Tracking</h3>
@@ -398,7 +459,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
           </div>
         )}
 
-        {/* ── Items table ── */}
+        {/* ── Unified Vercel Button Group Item Dashboard ── */}
         {!order.cancelledAt && (
           <Card className={cn(C, "overflow-hidden flex flex-col")}>
             <div className="px-5 py-3 border-b bg-muted/20 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -494,6 +555,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
               </Table>
             </div>
 
+            {/* Smart pagination cleanup */}
             {pageSize !== "all" && currentData.length > size && (
               <div className="p-4 border-t flex items-center justify-between text-sm text-muted-foreground">
                 <span>Showing {Math.min((currentPage - 1) * size + 1, currentData.length)}–{Math.min(currentPage * size, currentData.length)} of {currentData.length} entries</span>
@@ -507,7 +569,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
         )}
       </div>
 
-      {/* ── Action bar ── */}
+      {/* ── Portalled Drawer / Slider System ── */}
       {mounted && hasEligible && !order.cancelledAt && createPortal(
         <div className="fixed bottom-0 right-0 z-[48] border-t border-border bg-background shadow-[0_-2px_12px_rgba(0,0,0,0.08)]" style={{ left: sidebarMobile ? "0px" : sidebarState === "collapsed" ? "4.5rem" : "18rem" }}>
           <div className="px-4 lg:px-6 py-2.5 flex items-center justify-between gap-2">
