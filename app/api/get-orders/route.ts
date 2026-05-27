@@ -173,16 +173,13 @@ export async function GET(request: NextRequest) {
 
       // ── 4. Per-line-item delivery state ───────────────────────────────────
       type LineDelivery = {
-        isDelivered: boolean;
-        isConfirmed: boolean;  
-        inTransit: boolean;    
-        isDispatched: boolean; 
-        deliveredAt: Date | null;
+        deliveredQty: number;
+        inTransitQty: number;
+        confirmedQty: number;
+        latestDeliveredAt: Date | null;
       };
       
       const lineItemDelivery: Record<string, LineDelivery> = {};
-      
-      // Explicitly typed as Date | null to fix the Vercel TypeScript issue
       let earliestDelivery = null as Date | null;
       let latestDelivery = null as Date | null;
 
@@ -190,72 +187,60 @@ export async function GET(request: NextRequest) {
       for (const f of (order.fulfillments || [])) {
         const s = f.displayStatus;
         const isDelivered = s === "DELIVERED";
+        const isConfirmed = s === "CONFIRMED" || s === "SUBMITTED" || s === "LABEL_PURCHASED" || s === "LABEL_PRINTED";
+        const inTransit = s === "IN_TRANSIT" || s === "OUT_FOR_DELIVERY" || s === "ATTEMPTED_DELIVERY" || s === "READY_FOR_PICKUP" || s === "PICKED_UP" || s === "FULFILLED" || s === "MARKED_AS_FULFILLED";
 
-        const isConfirmed =
-          s === "CONFIRMED" ||
-          s === "SUBMITTED" ||
-          s === "LABEL_PURCHASED" ||
-          s === "LABEL_PRINTED";
-
-        const inTransit =
-          s === "IN_TRANSIT" ||
-          s === "OUT_FOR_DELIVERY" ||
-          s === "ATTEMPTED_DELIVERY" ||
-          s === "READY_FOR_PICKUP" ||
-          s === "PICKED_UP" ||
-          s === "FULFILLED" ||
-          s === "MARKED_AS_FULFILLED";
-
-        const isDispatched = isDelivered || inTransit || isConfirmed;
-
-        let deliveredAt: Date | null = null;
+        let dDate: Date | null = null;
         if (isDelivered) {
-          deliveredAt = f.deliveredAt ? new Date(f.deliveredAt) : new Date(f.updatedAt);
-          // Safely set earliest and latest timestamps outside the mapping closure
-          if (!earliestDelivery || deliveredAt < earliestDelivery) earliestDelivery = deliveredAt;
-          if (!latestDelivery || deliveredAt > latestDelivery) latestDelivery = deliveredAt;
+          dDate = f.deliveredAt ? new Date(f.deliveredAt) : new Date(f.updatedAt);
+          if (!earliestDelivery || dDate < earliestDelivery) earliestDelivery = dDate;
+          if (!latestDelivery || dDate > latestDelivery) latestDelivery = dDate;
         }
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         for (const edge of (f.fulfillmentLineItems?.edges || [])) {
           const liId = edge.node.lineItem.id;
-          const existing = lineItemDelivery[liId];
-          if (!existing || (!existing.isDelivered && isDelivered)) {
-            lineItemDelivery[liId] = {
-              isDelivered,
-              isConfirmed: isConfirmed && !inTransit && !isDelivered,
-              inTransit,
-              isDispatched,
-              deliveredAt,
-            };
+          const qty = edge.node.quantity;
+          
+          if (!lineItemDelivery[liId]) {
+            lineItemDelivery[liId] = { deliveredQty: 0, inTransitQty: 0, confirmedQty: 0, latestDeliveredAt: null };
+          }
+          
+          if (isDelivered) {
+            lineItemDelivery[liId].deliveredQty += qty;
+            if (!lineItemDelivery[liId].latestDeliveredAt || (dDate && dDate > lineItemDelivery[liId].latestDeliveredAt!)) {
+              lineItemDelivery[liId].latestDeliveredAt = dDate;
+            }
+          } else if (inTransit) {
+            lineItemDelivery[liId].inTransitQty += qty;
+          } else if (isConfirmed) {
+            lineItemDelivery[liId].confirmedQty += qty;
           }
         }
       }
 
       // ── 5. Map each line item ─────────────────────────────────────────────
       const now = new Date();
+      let totalUnits = 0;
       let deliveredCount = 0;
       let dispatchedCount = 0;  
       let confirmedCount = 0;   
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const items = order.lineItems.edges.map(({ node: item }: any) => {
-        const delivery = lineItemDelivery[item.id];
+        totalUnits += item.quantity;
+        const delivery = lineItemDelivery[item.id] || { deliveredQty: 0, inTransitQty: 0, confirmedQty: 0, latestDeliveredAt: null };
         const bestReturn = itemReturnStatus[item.id];
+
+        deliveredCount += delivery.deliveredQty;
+        dispatchedCount += delivery.inTransitQty;
+        confirmedCount += delivery.confirmedQty;
 
         const refQty = refundedQuantities[item.id] || 0;
         const retQty = activeReturnQty[item.id] || 0;
 
         const unavailableQty = Math.min(item.quantity, refQty + retQty);
-        const eligibleQuantity = Math.max(0, item.quantity - unavailableQty);
-
-        if (delivery?.isDelivered) {
-          deliveredCount++;
-        } else if (delivery?.inTransit) {
-          dispatchedCount++;
-        } else if (delivery?.isConfirmed) {
-          confirmedCount++;
-        }
+        const conceptuallyEligibleQty = Math.max(0, delivery.deliveredQty - unavailableQty);
 
         let returnStatus: string;
         let returnReason: string;
@@ -263,60 +248,52 @@ export async function GET(request: NextRequest) {
         if (order.cancelledAt) {
           returnStatus = "Cancelled";
           returnReason = "This order was cancelled.";
-        } else if (bestReturn) {
-          const statusMap: Record<string, string> = {
-            REQUESTED: "Return requested",
-            OPEN:      "Return in progress",
-            CLOSED:    "Return completed",
-            DECLINED:  "Return declined",
-            CANCELED:  "Return cancelled",
-          };
-          returnStatus = statusMap[bestReturn.status] || "Return in progress";
-
-          if (bestReturn.status === "DECLINED") {
-            const note = (bestReturn.declineNote || "").trim();
-            if (note) returnReason = note;
-            else if (bestReturn.declineReason === "RETURN_PERIOD_ENDED")
-              returnReason = "Your return request was declined because it is outside the return window.";
-            else if (bestReturn.declineReason === "FINAL_SALE")
-              returnReason = "Your return request was declined because the item is a final sale.";
-            else returnReason = "Your return request was declined.";
-          } else {
-            returnReason = "You have an active or completed return for this item.";
-            if (eligibleQuantity > 0 && !["OPEN", "REQUESTED"].includes(bestReturn.status)) {
-              returnStatus = "Eligible";
-              returnReason = "";
-            }
-          }
-        } else if (eligibleQuantity <= 0 && refQty > 0) {
-          returnStatus = "Refunded";
-          returnReason = "This item has already been fully refunded.";
-        } else if (!delivery || !delivery.isDispatched) {
-          returnStatus = "Not yet dispatched";
-          returnReason = "This item hasn't been dispatched yet — check back once it ships.";
-        } else if (delivery.isConfirmed && !delivery.inTransit && !delivery.isDelivered) {
-          returnStatus = "Confirmed";
-          returnReason = "We're preparing your items for shipping.";
-        } else if (delivery.inTransit && !delivery.isDelivered) {
-          returnStatus = "On its way";
-          returnReason = "Your parcel is on its way. Your 30-day return window starts once it's delivered.";
-        } else if (delivery.isDelivered) {
-          if (delivery.deliveredAt) {
-            const daysSince = (now.getTime() - delivery.deliveredAt.getTime()) / (1000 * 60 * 60 * 24);
-            if (daysSince > 30) {
-              returnStatus = "Passed the return window";
-              returnReason = `Delivered on ${delivery.deliveredAt.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })} — outside the 30-day return window.`;
+        } else if (Math.max(0, item.quantity - unavailableQty) <= 0) {
+          if (bestReturn) {
+            const statusMap: Record<string, string> = {
+              REQUESTED: "Return requested", OPEN: "Return in progress", CLOSED: "Return completed", DECLINED: "Return declined", CANCELED: "Return cancelled",
+            };
+            returnStatus = statusMap[bestReturn.status] || "Return in progress";
+            if (bestReturn.status === "DECLINED") {
+              const note = (bestReturn.declineNote || "").trim();
+              if (note) returnReason = note;
+              else if (bestReturn.declineReason === "RETURN_PERIOD_ENDED") returnReason = "Your return request was declined because it is outside the return window.";
+              else if (bestReturn.declineReason === "FINAL_SALE") returnReason = "Your return request was declined because the item is a final sale.";
+              else returnReason = "Your return request was declined.";
             } else {
-              returnStatus = "Eligible";
-              returnReason = "";
+              returnReason = "You have an active or completed return for this item.";
             }
           } else {
-            returnStatus = "Eligible";
-            returnReason = "";
+            returnStatus = "Refunded";
+            returnReason = "This item has already been fully refunded.";
           }
         } else {
-          returnStatus = "Not yet dispatched";
-          returnReason = "This item hasn't been dispatched yet.";
+          if (conceptuallyEligibleQty > 0) {
+             if (delivery.latestDeliveredAt) {
+               const daysSince = (now.getTime() - delivery.latestDeliveredAt.getTime()) / (1000 * 60 * 60 * 24);
+               if (daysSince > 30) {
+                 returnStatus = "Passed the return window";
+                 returnReason = `Delivered on ${delivery.latestDeliveredAt.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })} — outside the 30-day return window.`;
+               } else {
+                 returnStatus = "Eligible";
+                 returnReason = "";
+               }
+             } else {
+               returnStatus = "Eligible";
+               returnReason = "";
+             }
+          } else {
+             if (delivery.inTransitQty > 0) {
+                returnStatus = "On its way";
+                returnReason = "Your parcel is on its way. Your 30-day return window starts once it's delivered.";
+             } else if (delivery.confirmedQty > 0) {
+                returnStatus = "Confirmed";
+                returnReason = "We're preparing your items for shipping.";
+             } else {
+                returnStatus = "Not yet dispatched";
+                returnReason = "This item hasn't been dispatched yet — check back once it ships.";
+             }
+          }
         }
 
         return {
@@ -325,28 +302,27 @@ export async function GET(request: NextRequest) {
           unitPrice: item.discountedUnitPriceSet?.shopMoney?.amount
             ? parseFloat(item.discountedUnitPriceSet.shopMoney.amount)
             : null,
-          eligibleQuantity,
+          eligibleQuantity: returnStatus === "Eligible" ? conceptuallyEligibleQty : 0,
           refundedQuantity: refQty,
           activeReturnQuantity: retQty,
           returnStatus,
           returnReason,
-          lineDeliveredAt: delivery?.isDelivered && delivery.deliveredAt
-            ? delivery.deliveredAt.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+          lineDeliveredAt: delivery.latestDeliveredAt
+            ? delivery.latestDeliveredAt.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
             : null,
         };
       });
 
-      const totalLineItems = items.length;
-      const notDispatchedCount = totalLineItems - deliveredCount - dispatchedCount - confirmedCount;
+      const notDispatchedCount = Math.max(0, totalUnits - deliveredCount - dispatchedCount - confirmedCount);
 
       let orderStatus: string;
       if (order.cancelledAt) {
         orderStatus = "Cancelled";
-      } else if (deliveredCount === totalLineItems && totalLineItems > 0) {
+      } else if (deliveredCount === totalUnits && totalUnits > 0) {
         orderStatus = "Delivered";
       } else if (deliveredCount > 0) {
         orderStatus = "Partially delivered";
-      } else if (dispatchedCount > 0 && dispatchedCount + confirmedCount === totalLineItems) {
+      } else if (dispatchedCount > 0 && (dispatchedCount + confirmedCount + deliveredCount) === totalUnits) {
         orderStatus = "On its way";
       } else if (dispatchedCount > 0) {
         orderStatus = "Partially dispatched";
@@ -365,9 +341,9 @@ export async function GET(request: NextRequest) {
         dispatchedCount,
         confirmedCount,
         notDispatchedCount,
-        totalLineItems,
-        earliestDelivery: earliestDelivery?.toISOString() ?? null,
-        latestDelivery: latestDelivery?.toISOString() ?? null,
+        totalUnits,
+        earliestDelivery: earliestDelivery ? earliestDelivery.toISOString() : null,
+        latestDelivery: latestDelivery ? latestDelivery.toISOString() : null,
       };
     });
 
