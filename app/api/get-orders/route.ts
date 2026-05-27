@@ -24,16 +24,12 @@ export async function GET(request: NextRequest) {
                     id name createdAt cancelledAt displayFulfillmentStatus displayFinancialStatus
                     totalPriceSet { shopMoney { amount currencyCode } }
                     totalRefundedSet { shopMoney { amount } }
-                    refunds(first: 10) {
-                      edges {
-                        node {
-                          refundLineItems(first: 50) {
-                            edges {
-                              node {
-                                quantity
-                                lineItem { id }
-                              }
-                            }
+                    refunds {
+                      refundLineItems(first: 50) {
+                        edges {
+                          node {
+                            quantity
+                            lineItem { id }
                           }
                         }
                       }
@@ -55,7 +51,7 @@ export async function GET(request: NextRequest) {
                         }
                       }
                     }
-                    fulfillments(first: 10) {
+                    fulfillments {
                       id displayStatus deliveredAt updatedAt
                       trackingInfo { company number url }
                       fulfillmentLineItems(first: 50) {
@@ -97,10 +93,12 @@ export async function GET(request: NextRequest) {
     const processedOrders = rawOrders.map((order: any) => {
       // ── 1. Calculate Refunded & Returned Quantities ───────────────────
       const refundedQuantities: Record<string, number> = {};
+      
+      // Refunds is a plain array, refundLineItems is a connection
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (order.refunds?.edges || []).forEach((ref: any) => {
+      (order.refunds || []).forEach((ref: any) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (ref.node.refundLineItems?.edges || []).forEach((rli: any) => {
+        (ref.refundLineItems?.edges || []).forEach((rli: any) => {
           const id = rli.node.lineItem?.id;
           if (id) {
             refundedQuantities[id] = (refundedQuantities[id] || 0) + rli.node.quantity;
@@ -111,6 +109,7 @@ export async function GET(request: NextRequest) {
       const returnQuantities: Record<string, number> = {};
       const itemReturnStatus: Record<string, { status: string; declineReason?: string; declineNote?: string }> = {};
       
+      // Returns is a connection
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (order.returns?.edges || []).forEach((retEdge: any) => {
         const ret = retEdge.node;
@@ -133,6 +132,7 @@ export async function GET(request: NextRequest) {
       });
 
       // ── 2. Build Shipments ───────────────────────
+      // Fulfillments is a plain array
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const shipments = (order.fulfillments || []).map((f: any) => ({
         id: f.id,
