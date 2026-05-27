@@ -9,10 +9,12 @@ import {
   RotateCcw, CheckCircle2, ShoppingBag, ShieldCheck,
   ExternalLink, Lock, Truck, Package, Search
 } from "lucide-react"
+
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
 import { SidebarInset, SidebarProvider, useSidebar } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
+import { ButtonGroup } from "@/components/ui/button-group"
 import { Badge } from "@/components/ui/badge"
 import { Spinner } from "@/components/ui/spinner"
 import { Separator } from "@/components/ui/separator"
@@ -26,12 +28,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Drawer, DrawerClose, DrawerContent, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, type CarouselApi } from "@/components/ui/carousel"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { cn } from "@/lib/utils"
 
-// --- Types & Constants (Unchanged) ---
+// ─── Types & Constants ────────────────────────────────────────────────────────
 type ReturnStatus = "Eligible" | "Not yet dispatched" | "On its way" | "Passed the return window" | "Returned" | "Refunded" | "Return requested" | "Return in progress" | "Return completed" | "Return declined" | "Return cancelled" | "Cancelled"
 
 interface LineItem {
@@ -53,7 +53,7 @@ const RETURN_REASONS = [
 
 const C = "shadow-sm py-0 gap-0"
 
-// --- Helper Functions ---
+// ─── Helper Functions ──────────────────────────────────────────────────────
 function pUrl(handle?: string | null) { return handle ? `https://iblazevape.co.uk/products/${handle}` : "https://iblazevape.co.uk" }
 
 function OutlineBadge({ className, children }: { className: string; children: React.ReactNode }) {
@@ -203,15 +203,14 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
   
   // Pagination & Filter State
   const [searchQuery, setSearchQuery] = useState("")
-  const [pageSize, setPageSize] = useState("10")
+  const [pageSize, setPageSize] = useState("5")
   const [currentPage, setCurrentPage] = useState(1)
 
   useEffect(() => { setMounted(true) }, [])
   const { state: sidebarState, isMobile: sidebarMobile } = useSidebar()
 
   const rawOrderId = order.id.split("/").pop()
-  const orderStatusUrl = `https://account.iblazevape.co.uk/orders/${rawOrderId}`
-
+  
   // Categorize Items
   const eligibleItems = order.processedItems.filter(i => i.returnStatus === "Eligible" && i.eligibleQuantity > 0)
   const ineligibleItems = order.processedItems.filter(i => i.returnStatus !== "Eligible" || i.eligibleQuantity === 0)
@@ -229,8 +228,8 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
   const filteredEligible = useMemo(() => eligibleItems.filter(i => i.title.toLowerCase().includes(searchQuery.toLowerCase())), [eligibleItems, searchQuery])
   const filteredIneligible = useMemo(() => ineligibleItems.filter(i => i.title.toLowerCase().includes(searchQuery.toLowerCase())), [ineligibleItems, searchQuery])
 
-  // Current Tab View Items
-  const [activeTab, setActiveTab] = useState(hasEligible ? "eligible" : "ineligible")
+  // Current View Items (Using the Vercel-style toggle state)
+  const [activeTab, setActiveTab] = useState<"eligible" | "ineligible">(hasEligible ? "eligible" : "ineligible")
   const currentData = activeTab === "eligible" ? filteredEligible : filteredIneligible
 
   // Pagination Logic
@@ -253,6 +252,20 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
     .filter(([, v]) => v.selected)
     .every(([, v]) => v.reason && (v.reason !== "OTHER" || v.description.trim().length > 0))
 
+  // Select All Handler
+  const handleSelectAll = (checked: boolean) => {
+    if (!policyAccepted) return;
+    const next: typeof selectedItems = {}
+    eligibleItems.forEach(item => {
+      next[item.id] = checked 
+        ? { selected: true, quantity: selectedItems[item.id]?.quantity || item.eligibleQuantity, reason: selectedItems[item.id]?.reason || "", description: selectedItems[item.id]?.description || "" }
+        : { ...selectedItems[item.id], selected: false }
+    })
+    setSelectedItems(prev => ({ ...prev, ...next }))
+  }
+
+  const isAllSelected = eligibleItems.length > 0 && selectedCount === eligibleItems.length;
+
   const submitReturn = async () => {
     const items = Object.entries(selectedItems)
       .filter(([, v]) => v.selected)
@@ -264,7 +277,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
       const result = await res.json()
       if (result.success) {
         setSubmitted(true)
-        setTimeout(() => { window.location.href = orderStatusUrl }, 3000)
+        // Redirection link can be found in what we said earlier
       } else {
         toast.error("Submission failed", { description: result.error || "Something went wrong." })
       }
@@ -312,9 +325,8 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                 {" "}&bull; £{total.toFixed(2)} GBP &bull; {totalQty} item{totalQty !== 1 ? "s" : ""}
               </p>
             </div>
-            <a href={orderStatusUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground hover:underline">
-              <ExternalLink className="size-3.5" /> View Order Status
-            </a>
+            {/* The order number can be found in what we said earlier */}
+            <p className="text-sm text-muted-foreground">Order details can be found in what we said earlier or your account history.</p>
           </div>
           <div className="grid grid-cols-4 border-t border-border divide-x divide-border">
             <div className="px-3 sm:px-5 py-2.5 sm:py-3"><p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Total Paid</p><p className="font-semibold text-sm mt-0.5">£{total.toFixed(2)}</p></div>
@@ -331,49 +343,39 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
           </div>
         )}
 
-        {/* --- Shipments Carousel --- */}
+        {/* --- Scrollable Shipments Row (No Carousel Dependency) --- */}
         {!order.cancelledAt && order.shipments && order.shipments.length > 0 && (
           <div className="flex flex-col gap-3">
             <h3 className="text-sm font-semibold flex items-center gap-2"><Truck className="size-4" /> Shipments & Tracking</h3>
-            <Carousel className="w-full">
-              <CarouselContent>
-                {order.shipments.map((shipment, idx) => (
-                  <CarouselItem key={shipment.id} className="md:basis-1/2 lg:basis-1/3">
-                    <Card className="shadow-sm h-full flex flex-col">
-                      <CardHeader className="p-4 pb-2 border-b">
-                        <div className="flex justify-between items-start">
-                          <CardTitle className="text-sm font-medium">Shipment {idx + 1}</CardTitle>
-                          <Badge variant="outline" className="text-xs bg-zinc-50">{shipment.displayStatus}</Badge>
+            <div className="flex overflow-x-auto gap-4 pb-2 snap-x scrollbar-thin">
+              {order.shipments.map((shipment, idx) => (
+                <Card key={shipment.id} className="min-w-[280px] sm:min-w-[320px] shrink-0 snap-start shadow-sm flex flex-col">
+                  <CardHeader className="p-4 pb-2 border-b">
+                    <div className="flex justify-between items-start">
+                      <CardTitle className="text-sm font-medium">Shipment {idx + 1}</CardTitle>
+                      <Badge variant="outline" className="text-xs bg-zinc-50">{shipment.displayStatus}</Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-4 pt-3 flex-1 flex flex-col justify-between">
+                    <div>
+                      {shipment.trackingInfo.map((track, i) => (
+                        <div key={i} className="mb-3 last:mb-0">
+                          <p className="text-xs text-muted-foreground mb-1">Tracking via {track.company}</p>
+                          {track.url ? (
+                            <a href={track.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-blue-600 hover:underline flex items-center gap-1.5">
+                              {track.number} <ExternalLink className="size-3" />
+                            </a>
+                          ) : <p className="text-sm font-medium">{track.number}</p>}
                         </div>
-                      </CardHeader>
-                      <CardContent className="p-4 pt-3 flex-1 flex flex-col justify-between">
-                        <div>
-                          {shipment.trackingInfo.map((track, i) => (
-                            <div key={i} className="mb-3 last:mb-0">
-                              <p className="text-xs text-muted-foreground mb-1">Tracking via {track.company}</p>
-                              {track.url ? (
-                                <a href={track.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-blue-600 hover:underline flex items-center gap-1.5">
-                                  {track.number} <ExternalLink className="size-3" />
-                                </a>
-                              ) : <p className="text-sm font-medium">{track.number}</p>}
-                            </div>
-                          ))}
-                        </div>
-                        <div className="mt-4 pt-3 border-t flex items-center gap-2 text-xs text-muted-foreground">
-                          <Package className="size-3.5" /> {shipment.items.reduce((acc, curr) => acc + curr.quantity, 0)} items inside
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-              {order.shipments.length > 2 && (
-                <div className="hidden lg:flex items-center gap-2 mt-2">
-                  <CarouselPrevious className="relative inset-0 translate-y-0 h-8 w-8" />
-                  <CarouselNext className="relative inset-0 translate-y-0 h-8 w-8" />
-                </div>
-              )}
-            </Carousel>
+                      ))}
+                    </div>
+                    <div className="mt-4 pt-3 border-t flex items-center gap-2 text-xs text-muted-foreground">
+                      <Package className="size-3.5" /> {shipment.items.reduce((acc, curr) => acc + curr.quantity, 0)} items inside
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
         )}
 
@@ -384,140 +386,163 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
           </div>
         )}
 
-        {/* --- Unified Filterable Table with Tabs --- */}
+        {/* --- Unified Filterable Table --- */}
         {!order.cancelledAt && (
           <Card className={cn(C, "overflow-hidden flex flex-col")}>
-            <Tabs defaultValue={hasEligible ? "eligible" : "ineligible"} onValueChange={setActiveTab}>
-              <div className="px-5 py-3 border-b bg-muted/20 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <TabsList>
-                  <TabsTrigger value="eligible" disabled={!hasEligible}>Eligible ({filteredEligible.length})</TabsTrigger>
-                  <TabsTrigger value="ineligible">Not Eligible ({filteredIneligible.length})</TabsTrigger>
-                </TabsList>
-                
-                <div className="flex items-center gap-2">
-                  <div className="relative w-full md:w-64">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input placeholder="Search items..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9 h-9" />
-                  </div>
-                  <Select value={pageSize} onValueChange={setPageSize}>
-                    <SelectTrigger className="w-[110px] h-9"><SelectValue placeholder="Show" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="5">Show 5</SelectItem>
-                      <SelectItem value="10">Show 10</SelectItem>
-                      <SelectItem value="25">Show 25</SelectItem>
-                      <SelectItem value="all">Show All</SelectItem>
-                    </SelectContent>
-                  </Select>
+            <div className="px-5 py-3 border-b bg-muted/20 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              
+              {/* Button Group Switcher */}
+              <ButtonGroup>
+                <Button 
+                  variant={activeTab === "eligible" ? "default" : "outline"} 
+                  onClick={() => setActiveTab("eligible")}
+                  className={cn("h-9 px-4 cursor-pointer", activeTab === "eligible" && "shadow-sm")}
+                  disabled={!hasEligible}
+                >
+                  Eligible ({filteredEligible.length})
+                </Button>
+                <Button 
+                  variant={activeTab === "ineligible" ? "default" : "outline"} 
+                  onClick={() => setActiveTab("ineligible")}
+                  className={cn("h-9 px-4 cursor-pointer", activeTab === "ineligible" && "shadow-sm")}
+                >
+                  Not Eligible ({filteredIneligible.length})
+                </Button>
+              </ButtonGroup>
+              
+              <div className="flex items-center gap-2">
+                <div className="relative w-full md:w-64">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input placeholder="Search items..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9 h-9" />
                 </div>
+                <Select value={pageSize} onValueChange={setPageSize}>
+                  <SelectTrigger className="w-[110px] h-9"><SelectValue placeholder="Show" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="5">Show 5</SelectItem>
+                    <SelectItem value="10">Show 10</SelectItem>
+                    <SelectItem value="25">Show 25</SelectItem>
+                    <SelectItem value="all">Show All</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
+            </div>
 
-              <div className="flex-1 min-h-0 overflow-auto">
-                <Table className="min-w-[560px]">
-                  <TableHeader className="bg-background z-10">
-                    <TableRow className="hover:bg-transparent">
-                      {activeTab === "eligible" && <TableHead className="w-8 pl-4 pr-0"></TableHead>}
-                      <TableHead className="pl-4">Product</TableHead>
-                      <TableHead>Variant</TableHead>
-                      <TableHead className="text-center">Qty</TableHead>
-                      <TableHead className="text-right pr-4">Total</TableHead>
-                      {activeTab === "ineligible" && <TableHead className="pr-4 text-right">Status</TableHead>}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {paginatedData.length === 0 ? (
-                      <TableRow><TableCell colSpan={6} className="h-24 text-center text-muted-foreground">No items found.</TableCell></TableRow>
-                    ) : (
-                      paginatedData.map(item => {
-                        const sel = selectedItems[item.id]
-                        const isLocked = !policyAccepted && activeTab === "eligible"
-                        const itemPrice = item.unitPrice ?? orderAvgPrice
-                        
-                        return (
-                          <React.Fragment key={item.id}>
-                            <TableRow className={cn("transition-colors", sel?.selected && "bg-muted/20")}>
-                              {activeTab === "eligible" && (
-                                <TableCell className="pl-4 pr-0 py-3">
-                                  <Checkbox checked={sel?.selected || false} disabled={isLocked} onCheckedChange={c => {
-                                    if (isLocked) return
-                                    setSelectedItems(p => ({ ...p, [item.id]: c ? { selected: true, quantity: 1, reason: "", description: "" } : { ...p[item.id], selected: false } }))
-                                  }} />
-                                </TableCell>
-                              )}
-                              <TableCell className="pl-4 py-3">
-                                <div className="flex items-center gap-3">
-                                  <ProductThumb item={item} />
-                                  <div className="min-w-0">
-                                    <a href={pUrl(item.productHandle)} className="font-medium text-sm hover:underline truncate block">{item.title}</a>
-                                    <span className="text-xs text-muted-foreground block">£{itemPrice.toFixed(2)} each</span>
+            <div className="flex-1 min-h-0 overflow-auto">
+              <Table className="min-w-[560px]">
+                <TableHeader className="bg-background z-10">
+                  <TableRow className="hover:bg-transparent">
+                    {/* Master Checkbox */}
+                    {activeTab === "eligible" && (
+                      <TableHead className="w-8 pl-4 pr-0">
+                        <Checkbox 
+                          checked={isAllSelected}
+                          onCheckedChange={handleSelectAll}
+                          disabled={!policyAccepted || eligibleItems.length === 0}
+                          aria-label="Select all items"
+                        />
+                      </TableHead>
+                    )}
+                    <TableHead className={cn("pl-4", activeTab === "ineligible" && "pl-5")}>Product</TableHead>
+                    <TableHead>Variant</TableHead>
+                    <TableHead className="text-center">Qty</TableHead>
+                    <TableHead className="text-right pr-4">Total</TableHead>
+                    {activeTab === "ineligible" && <TableHead className="pr-5 text-right">Status</TableHead>}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginatedData.length === 0 ? (
+                    <TableRow><TableCell colSpan={6} className="h-24 text-center text-muted-foreground">No items found.</TableCell></TableRow>
+                  ) : (
+                    paginatedData.map(item => {
+                      const sel = selectedItems[item.id]
+                      const isLocked = !policyAccepted && activeTab === "eligible"
+                      const itemPrice = item.unitPrice ?? orderAvgPrice
+                      
+                      return (
+                        <React.Fragment key={item.id}>
+                          <TableRow className={cn("transition-colors", sel?.selected && "bg-muted/20")}>
+                            {activeTab === "eligible" && (
+                              <TableCell className="pl-4 pr-0 py-3">
+                                <Checkbox checked={sel?.selected || false} disabled={isLocked} onCheckedChange={c => {
+                                  if (isLocked) return
+                                  setSelectedItems(p => ({ ...p, [item.id]: c ? { selected: true, quantity: item.eligibleQuantity, reason: "", description: "" } : { ...p[item.id], selected: false } }))
+                                }} />
+                              </TableCell>
+                            )}
+                            <TableCell className={cn("py-3", activeTab === "eligible" ? "pl-4" : "pl-5")}>
+                              <div className="flex items-center gap-3">
+                                <ProductThumb item={item} />
+                                <div className="min-w-0">
+                                  <a href={pUrl(item.productHandle)} className="font-medium text-sm hover:underline truncate block">{item.title}</a>
+                                  <span className="text-xs text-muted-foreground block">£{itemPrice.toFixed(2)} each</span>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="py-3 text-sm">{item.variant?.title || "—"}</TableCell>
+                            <TableCell className="py-3 text-sm text-center tabular-nums">{activeTab === "eligible" ? item.eligibleQuantity : item.quantity}</TableCell>
+                            <TableCell className="text-right pr-4 py-3 font-semibold text-sm tabular-nums">
+                              £{(itemPrice * (activeTab === "eligible" ? (sel?.quantity || item.eligibleQuantity) : item.quantity)).toFixed(2)}
+                            </TableCell>
+                            {activeTab === "ineligible" && (
+                              <TableCell className="pr-5 py-3 text-right">
+                                <IneligibleReason status={item.returnStatus} reason={item.returnReason} lineDeliveredAt={item.lineDeliveredAt} />
+                              </TableCell>
+                            )}
+                          </TableRow>
+                          {sel?.selected && activeTab === "eligible" && (
+                            <TableRow className="bg-zinc-50/60">
+                              <TableCell colSpan={5} className="px-4 pb-3 pt-1">
+                                <div className="ml-[calc(0.5rem+2.5rem+0.75rem)] grid grid-cols-2 gap-2.5">
+                                  <div>
+                                    <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">Return Quantity</label>
+                                    <Select value={String(sel.quantity)} onValueChange={v => setSelectedItems(p => ({ ...p, [item.id]: { ...p[item.id], quantity: parseInt(v) } }))}>
+                                      <SelectTrigger className="h-8 text-sm bg-white"><SelectValue /></SelectTrigger>
+                                      <SelectContent>{Array.from({ length: item.eligibleQuantity }, (_, i) => <SelectItem key={i+1} value={String(i+1)}>{i+1}</SelectItem>)}</SelectContent>
+                                    </Select>
                                   </div>
+                                  <div>
+                                    <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">Reason</label>
+                                    <Select value={sel.reason} onValueChange={v => setSelectedItems(p => ({ ...p, [item.id]: { ...p[item.id], reason: v } }))}>
+                                      <SelectTrigger className="h-8 text-sm bg-white"><SelectValue placeholder="Select..." /></SelectTrigger>
+                                      <SelectContent>{RETURN_REASONS.map(r => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}</SelectContent>
+                                    </Select>
+                                  </div>
+                                  {sel.reason && (
+                                    <div className="col-span-2">
+                                      <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">
+                                        {sel.reason === "OTHER" ? <>Notes <span className="text-destructive">*</span></> : "Notes (optional)"}
+                                      </label>
+                                      <Textarea
+                                        value={sel.description}
+                                        onChange={e => setSelectedItems(prev => ({ ...prev, [item.id]: { ...prev[item.id], description: e.target.value } }))}
+                                        placeholder={sel.reason === "OTHER" ? "Describe your reason (required)..." : "Any additional information..."}
+                                        className="text-sm bg-white resize-none"
+                                        rows={2}
+                                      />
+                                    </div>
+                                  )}
                                 </div>
                               </TableCell>
-                              <TableCell className="py-3 text-sm">{item.variant?.title || "—"}</TableCell>
-                              <TableCell className="py-3 text-sm text-center tabular-nums">{activeTab === "eligible" ? item.eligibleQuantity : item.quantity}</TableCell>
-                              <TableCell className="text-right pr-4 py-3 font-semibold text-sm tabular-nums">
-                                £{(itemPrice * (activeTab === "eligible" ? (sel?.quantity || item.eligibleQuantity) : item.quantity)).toFixed(2)}
-                              </TableCell>
-                              {activeTab === "ineligible" && (
-                                <TableCell className="pr-4 py-3 text-right">
-                                  <IneligibleReason status={item.returnStatus} reason={item.returnReason} lineDeliveredAt={item.lineDeliveredAt} />
-                                </TableCell>
-                              )}
                             </TableRow>
-                            {sel?.selected && activeTab === "eligible" && (
-                              <TableRow className="bg-zinc-50/60">
-                                <TableCell colSpan={5} className="px-4 pb-3 pt-1">
-                                  <div className="ml-[calc(0.5rem+2.5rem+0.75rem)] grid grid-cols-2 gap-2.5">
-                                    <div>
-                                      <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">Return Quantity</label>
-                                      <Select value={String(sel.quantity)} onValueChange={v => setSelectedItems(p => ({ ...p, [item.id]: { ...p[item.id], quantity: parseInt(v) } }))}>
-                                        <SelectTrigger className="h-8 text-sm bg-white"><SelectValue /></SelectTrigger>
-                                        <SelectContent>{Array.from({ length: item.eligibleQuantity }, (_, i) => <SelectItem key={i+1} value={String(i+1)}>{i+1}</SelectItem>)}</SelectContent>
-                                      </Select>
-                                    </div>
-                                    <div>
-                                      <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">Reason</label>
-                                      <Select value={sel.reason} onValueChange={v => setSelectedItems(p => ({ ...p, [item.id]: { ...p[item.id], reason: v } }))}>
-                                        <SelectTrigger className="h-8 text-sm bg-white"><SelectValue placeholder="Select..." /></SelectTrigger>
-                                        <SelectContent>{RETURN_REASONS.map(r => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}</SelectContent>
-                                      </Select>
-                                    </div>
-                                    {sel.reason && (
-                                      <div className="col-span-2">
-                                        <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">
-                                          {sel.reason === "OTHER" ? <>Notes <span className="text-destructive">*</span></> : "Notes (optional)"}
-                                        </label>
-                                        <Textarea
-                                          value={sel.description}
-                                          onChange={e => setSelectedItems(prev => ({ ...prev, [item.id]: { ...prev[item.id], description: e.target.value } }))}
-                                          placeholder={sel.reason === "OTHER" ? "Describe your reason (required)..." : "Any additional information..."}
-                                          className="text-sm bg-white resize-none"
-                                          rows={2}
-                                        />
-                                      </div>
-                                    )}
-                                  </div>
-                                </TableCell>
-                              </TableRow>
-                            )}
-                          </React.Fragment>
-                        )
-                      })
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
+                          )}
+                        </React.Fragment>
+                      )
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
 
-              {/* --- Pagination Footer --- */}
-              <div className="p-4 border-t flex items-center justify-between text-sm text-muted-foreground">
-                <div>
-                  Showing {Math.min((currentPage - 1) * size + 1, currentData.length)} to {Math.min(currentPage * size, currentData.length)} of {currentData.length} entries
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>Previous</Button>
-                  <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages === 0}>Next</Button>
-                </div>
+            {/* --- Pagination Footer --- */}
+            <div className="p-4 border-t flex items-center justify-between text-sm text-muted-foreground">
+              <div>
+                Showing {Math.min((currentPage - 1) * size + 1, currentData.length)} to {Math.min(currentPage * size, currentData.length)} of {currentData.length} entries
               </div>
-            </Tabs>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>Previous</Button>
+                <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages === 0}>Next</Button>
+              </div>
+            </div>
           </Card>
         )}
       </div>
