@@ -33,10 +33,19 @@ import { cn } from "@/lib/utils"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type ReturnStatus =
-  | "Eligible" | "Not yet dispatched" | "Confirmed" | "On its way"
-  | "Passed the return window" | "Returned" | "Refunded"
-  | "Return requested" | "Return in progress" | "Return completed"
-  | "Return declined" | "Return cancelled" | "Cancelled"
+  | "Eligible"
+  | "Not yet dispatched"
+  | "Confirmed"
+  | "On its way"
+  | "Passed the return window"
+  | "Returned"
+  | "Refunded"
+  | "Return requested"
+  | "Return in progress"
+  | "Return completed"
+  | "Return declined"
+  | "Return cancelled"
+  | "Cancelled"
 
 interface LineItem {
   id: string
@@ -73,12 +82,13 @@ interface Order {
   totalRefundedSet?: { shopMoney: { amount: string } } | null
   processedItems: LineItem[]
   shipments: Shipment[]
+  // Computed by route.ts
   orderStatus: string
   deliveredCount: number
   dispatchedCount: number
   confirmedCount: number
   notDispatchedCount: number
-  totalUnits: number
+  totalLineItems: number
   earliestDelivery?: string | null
   latestDelivery?: string | null
 }
@@ -101,10 +111,11 @@ function pUrl(handle?: string | null) {
 }
 
 // ─── Order Status Badges ─────────────────────────────────────────────────────
+// Primary badge + optional "X delivered · Y on its way · Z pending" stat line
 function OrderStatusBadges({ order }: { order: Order }) {
   const {
     orderStatus, cancelledAt,
-    deliveredCount, dispatchedCount, confirmedCount, notDispatchedCount, totalUnits,
+    deliveredCount, dispatchedCount, confirmedCount, notDispatchedCount, totalLineItems,
   } = order
 
   if (cancelledAt) {
@@ -128,7 +139,8 @@ function OrderStatusBadges({ order }: { order: Order }) {
     }
   })()
 
-  const showStats = totalUnits > 0
+  // Only show stat line when order is mixed state
+  const showStats = totalLineItems > 0
     && orderStatus !== "Delivered"
     && orderStatus !== "Confirmed"
     && orderStatus !== "Cancelled"
@@ -281,6 +293,7 @@ function OrderCard({ order, onClick }: { order: Order; onClick: () => void }) {
     .filter((u, i, a) => u && a.indexOf(u) === i)
     .slice(0, 5) as string[]
   const extra = order.processedItems.length - uniqueImages.length
+  const totalQty = order.processedItems.reduce((s, i) => s + i.quantity, 0)
   const total = parseFloat(order.totalPriceSet.shopMoney.amount)
   const date = new Date(order.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
 
@@ -289,7 +302,7 @@ function OrderCard({ order, onClick }: { order: Order; onClick: () => void }) {
       <div className="flex items-start justify-between">
         <div>
           <p className="font-semibold text-[15px] group-hover:underline">{order.name}</p>
-          <p className="text-[13px] text-muted-foreground mt-0.5">{date} &bull; {order.totalUnits} item{order.totalUnits !== 1 ? "s" : ""}</p>
+          <p className="text-[13px] text-muted-foreground mt-0.5">{date} &bull; {totalQty} item{totalQty !== 1 ? "s" : ""}</p>
           <div className="mt-1.5"><OrderStatusBadges order={order} /></div>
         </div>
         <p className="font-semibold text-[15px] shrink-0">£{total.toFixed(2)}</p>
@@ -314,6 +327,7 @@ function OrderRow({ order, onClick }: { order: Order; onClick: () => void }) {
   const images = order.processedItems.map(i => i.image?.url).filter(Boolean).slice(0, 3) as string[]
   const total = parseFloat(order.totalPriceSet.shopMoney.amount)
   const date = new Date(order.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+  const totalQty = order.processedItems.reduce((s, i) => s + i.quantity, 0)
 
   return (
     <button onClick={onClick} className="w-full px-5 py-3.5 flex items-center gap-4 hover:bg-zinc-50 transition-colors text-left group border-b border-border last:border-0">
@@ -326,7 +340,7 @@ function OrderRow({ order, onClick }: { order: Order; onClick: () => void }) {
       </div>
       <div className="flex-1 min-w-0">
         <p className="font-semibold text-sm group-hover:underline">{order.name}</p>
-        <p className="text-xs text-muted-foreground">{date} &bull; {order.totalUnits} item{order.totalUnits !== 1 ? "s" : ""}</p>
+        <p className="text-xs text-muted-foreground">{date} &bull; {totalQty} item{totalQty !== 1 ? "s" : ""}</p>
         <div className="mt-1"><OrderStatusBadges order={order} /></div>
       </div>
       <p className="font-semibold text-sm w-16 text-right shrink-0">£{total.toFixed(2)}</p>
@@ -345,7 +359,8 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
   const [searchQuery, setSearchQuery] = useState("")
   const [pageSize, setPageSize] = useState("10")
   const [currentPage, setCurrentPage] = useState(1)
-  
+  const [activeTab, setActiveTab] = useState<"eligible" | "ineligible">("eligible")
+
   useEffect(() => { setMounted(true) }, [])
   const { state: sidebarState, isMobile: sidebarMobile } = useSidebar()
 
@@ -353,38 +368,64 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
   const orderStatusUrl = `https://account.iblazevape.co.uk/orders/${rawOrderId}`
 
   const total = parseFloat(order.totalPriceSet.shopMoney.amount)
-  const orderAvgPrice = order.totalUnits > 0 ? total / order.totalUnits : 0
-  const refundedAmount = order.totalRefundedSet?.shopMoney?.amount ? parseFloat(order.totalRefundedSet.shopMoney.amount) : 0
+  const totalQty = order.processedItems.reduce((s, i) => s + i.quantity, 0)
+  const orderAvgPrice = totalQty > 0 ? total / totalQty : 0
+  const refundedAmount = order.totalRefundedSet?.shopMoney?.amount
+    ? parseFloat(order.totalRefundedSet.shopMoney.amount)
+    : 0
 
-  const eligibleItems = useMemo(() => order.processedItems.filter(i => i.returnStatus === "Eligible" && i.eligibleQuantity > 0), [order])
+  // Eligible items = returnStatus "Eligible" and eligibleQuantity > 0
+  const eligibleItems = useMemo(
+    () => order.processedItems.filter(i => i.returnStatus === "Eligible" && i.eligibleQuantity > 0),
+    [order]
+  )
   const hasEligible = eligibleItems.length > 0 && !order.cancelledAt
 
-  const allRows = useMemo(() => {
-    return order.processedItems.map(item => ({
-      ...item,
-      displayQty: item.quantity,
-      displayStatus: item.returnStatus
-    }))
+  // ── Ineligible rows: ALL non-eligible quantity, including refunded portions ─
+  // This is the key fix for missing items: if an item is "Eligible" but has
+  // refundedQuantity > 0, the refunded portion is shown separately in this table.
+  type IneligibleRow = LineItem & { displayQty: number; displayStatus: ReturnStatus }
+  const ineligibleRows = useMemo<IneligibleRow[]>(() => {
+    const rows: IneligibleRow[] = []
+    for (const item of order.processedItems) {
+      if (item.returnStatus === "Eligible" && item.eligibleQuantity > 0) {
+        // Eligible item — show any refunded portion as a separate "Refunded" row
+        const refundedPortion = item.quantity - item.eligibleQuantity
+        if (refundedPortion > 0) {
+          rows.push({ ...item, displayQty: refundedPortion, displayStatus: "Refunded" })
+        }
+      } else {
+        // Fully ineligible item
+        rows.push({ ...item, displayQty: item.quantity, displayStatus: item.returnStatus as ReturnStatus })
+      }
+    }
+    return rows
   }, [order])
 
+  // Unit counts for header stats
   const totalEligibleUnits = eligibleItems.reduce((s, i) => s + i.eligibleQuantity, 0)
-  const totalIneligibleUnits = order.totalUnits - totalEligibleUnits
+  // Ineligible units = everything not eligible (total - eligible)
+  const totalIneligibleUnits = totalQty - totalEligibleUnits
 
+  // Search: match product title OR variant title (case-insensitive)
   const matchesSearch = (item: LineItem) => {
     if (!searchQuery) return true
     const q = searchQuery.toLowerCase()
-    return item.title.toLowerCase().includes(q) || (item.variant?.title || "").toLowerCase().includes(q)
+    return (
+      item.title.toLowerCase().includes(q) ||
+      (item.variant?.title || "").toLowerCase().includes(q)
+    )
   }
 
-  const filteredEligible = useMemo(() => eligibleItems.filter(matchesSearch), [eligibleItems, searchQuery])
-  const filteredAll = useMemo(() => allRows.filter(r => matchesSearch(r)), [allRows, searchQuery])
+  const filteredEligible   = useMemo(() => eligibleItems.filter(matchesSearch),   [eligibleItems, searchQuery])
+  const filteredIneligible = useMemo(() => ineligibleRows.filter(r => matchesSearch(r)), [ineligibleRows, searchQuery])
 
-  const [activeTab, setActiveTab] = useState<"eligible" | "all">(hasEligible ? "eligible" : "all")
+  // Default tab: eligible if any exist, else ineligible
+  useEffect(() => {
+    setActiveTab(hasEligible ? "eligible" : "ineligible")
+  }, [hasEligible])
 
-  // Fallback to "all" if the order has no eligible items
-  useEffect(() => { setActiveTab(hasEligible ? "eligible" : "all") }, [hasEligible])
-
-  const currentData = activeTab === "eligible" ? filteredEligible : filteredAll
+  const currentData = activeTab === "eligible" ? filteredEligible : filteredIneligible
   const size = pageSize === "all" ? Math.max(currentData.length, 1) : parseInt(pageSize)
   const totalPages = Math.ceil(currentData.length / size) || 1
   const paginatedData = currentData.slice((currentPage - 1) * size, currentPage * size)
@@ -409,7 +450,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
     const next: typeof selectedItems = {}
     eligibleItems.forEach(item => {
       next[item.id] = checked
-        ? { selected: true, quantity: item.eligibleQuantity, reason: selectedItems[item.id]?.reason || "", description: selectedItems[item.id]?.description || "" }
+        ? { selected: true, quantity: selectedItems[item.id]?.quantity || item.eligibleQuantity, reason: selectedItems[item.id]?.reason || "", description: selectedItems[item.id]?.description || "" }
         : { ...selectedItems[item.id], selected: false }
     })
     setSelectedItems(prev => ({ ...prev, ...next }))
@@ -454,8 +495,11 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
     )
   }
 
+  // Order header date: show delivery date if known, otherwise ordered date
   const headerDateStr = (() => {
-    if (order.cancelledAt) return `Cancelled ${new Date(order.cancelledAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`
+    if (order.cancelledAt) {
+      return `Cancelled ${new Date(order.cancelledAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`
+    }
     if (order.latestDelivery && order.earliestDelivery) {
       const earliest = new Date(order.earliestDelivery).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
       const latest   = new Date(order.latestDelivery).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
@@ -464,6 +508,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
     return `Ordered ${new Date(order.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`
   })()
 
+  // Shipment display status label
   const shipmentLabel = (status: string): string => {
     if (status === "DELIVERED") return "Delivered"
     if (["IN_TRANSIT", "OUT_FOR_DELIVERY", "ATTEMPTED_DELIVERY", "PICKED_UP", "FULFILLED", "MARKED_AS_FULFILLED"].includes(status)) return "On its way"
@@ -487,7 +532,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
               </div>
               <OrderStatusBadges order={order} />
               <p className="text-xs text-muted-foreground mt-1.5">
-                {headerDateStr} &bull; £{total.toFixed(2)} GBP &bull; {order.totalUnits} item{order.totalUnits !== 1 ? "s" : ""}
+                {headerDateStr} &bull; £{total.toFixed(2)} GBP &bull; {totalQty} item{totalQty !== 1 ? "s" : ""}
               </p>
             </div>
             <a href={orderStatusUrl} target="_blank" rel="noopener noreferrer"
@@ -527,7 +572,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
         {!order.cancelledAt && order.shipments && order.shipments.length > 0 && (
           <div className="flex flex-col gap-2">
             <h3 className="text-sm font-semibold flex items-center gap-2"><Truck className="size-4" /> Shipments &amp; Tracking</h3>
-            <div className="flex overflow-x-auto gap-3 pb-1 snap-x scrollbar-thin">
+            <div className="flex overflow-x-auto gap-3 pb-1 snap-x">
               {order.shipments.map((shipment, idx) => {
                 const isDelivered = shipment.displayStatus === "DELIVERED"
                 const label = shipmentLabel(shipment.displayStatus)
@@ -563,14 +608,10 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                           <div key={ti} className="flex items-center gap-2 text-sm">
                             <MapPin className="size-3.5 text-muted-foreground shrink-0" />
                             <span className="text-xs text-muted-foreground">{track.company}:</span>
-                            {track.url ? (
-                              <a href={track.url} target="_blank" rel="noopener noreferrer"
-                                className="text-blue-600 font-medium hover:underline inline-flex items-center gap-1 text-xs">
-                                {track.number} <ExternalLink className="size-3" />
-                              </a>
-                            ) : (
-                              <span className="font-medium text-foreground text-xs">{track.number}</span>
-                            )}
+                            <a href={track.url} target="_blank" rel="noopener noreferrer"
+                              className="text-blue-600 font-medium hover:underline inline-flex items-center gap-1 text-xs">
+                              {track.number} <ExternalLink className="size-3" />
+                            </a>
                           </div>
                         ))}
                       </div>
@@ -603,18 +644,18 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                 <Button
                   variant={activeTab === "eligible" ? "secondary" : "outline"}
                   onClick={() => setActiveTab("eligible")}
-                  className={cn("h-9 px-4 cursor-pointer transition-all", activeTab === "eligible" && "shadow-sm border-muted-foreground/20")}
+                  className="h-9 px-4 cursor-pointer"
                   disabled={!hasEligible}
                 >
                   <ListFilter className="size-4 mr-2" />
                   Eligible ({totalEligibleUnits})
                 </Button>
                 <Button
-                  variant={activeTab === "all" ? "secondary" : "outline"}
-                  onClick={() => setActiveTab("all")}
-                  className={cn("h-9 px-4 cursor-pointer transition-all", activeTab === "all" && "shadow-sm border-muted-foreground/20")}
+                  variant={activeTab === "ineligible" ? "secondary" : "outline"}
+                  onClick={() => setActiveTab("ineligible")}
+                  className="h-9 px-4 cursor-pointer"
                 >
-                  Show All ({order.totalUnits})
+                  Not Eligible ({totalIneligibleUnits})
                 </Button>
               </ButtonGroup>
 
@@ -658,7 +699,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                     <TableHead>Variant</TableHead>
                     <TableHead className="text-center">Qty</TableHead>
                     <TableHead className="text-right pr-4">Total</TableHead>
-                    {activeTab === "all" && <TableHead className="pr-5 text-right">Status</TableHead>}
+                    {activeTab === "ineligible" && <TableHead className="pr-5 text-right">Status</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -667,6 +708,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                       <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">No items found.</TableCell>
                     </TableRow>
                   ) : paginatedData.map((row, rowIdx) => {
+                    // For ineligible tab, row may have displayQty / displayStatus
                     const item = row as LineItem & { displayQty?: number; displayStatus?: ReturnStatus }
                     const displayQty = item.displayQty ?? (activeTab === "eligible" ? item.eligibleQuantity : item.quantity)
                     const displayStatus = item.displayStatus ?? item.returnStatus as ReturnStatus
@@ -713,7 +755,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                           <TableCell className="text-right pr-4 py-3 font-semibold text-sm tabular-nums">
                             £{(itemPrice * (activeTab === "eligible" ? (sel?.quantity || item.eligibleQuantity) : displayQty)).toFixed(2)}
                           </TableCell>
-                          {activeTab === "all" && (
+                          {activeTab === "ineligible" && (
                             <TableCell className="pr-5 py-3 text-right">
                               <IneligibleReason status={displayStatus} reason={item.returnReason} lineDeliveredAt={item.lineDeliveredAt} />
                             </TableCell>
@@ -776,11 +818,11 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
               </Table>
             </div>
 
-            {/* Pagination is totally hidden when pageSize is "all" */}
+            {/* Pagination */}
             {pageSize !== "all" && currentData.length > size && (
               <div className="p-4 border-t flex items-center justify-between text-sm text-muted-foreground">
                 <span>
-                  Showing {Math.min((currentPage - 1) * size + 1, currentData.length)}–{Math.min(currentPage * size, currentData.length)} of {currentData.length} entries
+                  Showing {Math.min((currentPage - 1) * size + 1, currentData.length)}–{Math.min(currentPage * size, currentData.length)} of {currentData.length}
                 </span>
                 <div className="flex items-center gap-2">
                   <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>Previous</Button>
