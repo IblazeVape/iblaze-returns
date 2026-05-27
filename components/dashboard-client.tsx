@@ -423,9 +423,14 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                             className="font-medium text-sm hover:underline block leading-tight truncate max-w-[200px]">
                             {item.title}
                           </a>
-                          {item.variant?.title && item.variant.title !== "Default Title" && (
-                            <p className="text-xs text-muted-foreground mt-0.5">{item.variant.title}</p>
-                          )}
+                          {item.variant?.title && item.variant.title !== "Default Title" ? (
+                              <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                                <span className="text-xs text-muted-foreground">{item.variant.title}</span>
+                                <span className="inline-flex items-center justify-center bg-muted rounded text-[11px] font-semibold text-foreground w-[28px] h-[18px]">{item.quantity}</span>
+                              </div>
+                            ) : (
+                              <span className="inline-flex items-center justify-center bg-muted rounded text-[11px] font-semibold text-foreground w-[28px] h-[18px] mt-0.5">{item.quantity}</span>
+                            )}
                         </div>
                       </div>
                     </TableCell>
@@ -480,10 +485,10 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
             </a>
           </div>
           <div className="grid grid-cols-4 border-t border-border divide-x divide-border">
-            <div className="px-5 py-3"><p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Total Paid</p><p className="font-semibold text-sm mt-0.5">£{total.toFixed(2)}</p></div>
+            <div className="px-3 sm:px-5 py-2.5 sm:py-3"><p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Total Paid</p><p className="font-semibold text-sm mt-0.5">£{total.toFixed(2)}</p></div>
             <div className="px-5 py-3"><p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Eligible</p><p className="font-semibold text-sm mt-0.5 text-green-600">{eligibleItems.length}</p></div>
-            <div className="px-5 py-3"><p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Ineligible</p><p className="font-semibold text-sm mt-0.5 text-zinc-500">{ineligibleItems.length}</p></div>
-            <div className="px-5 py-3"><p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Refunded</p><p className="font-semibold text-sm mt-0.5 text-blue-600">£{refundedAmount.toFixed(2)}</p></div>
+            <div className="px-5 py-3"><p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Ineligible</p><p className="font-semibold text-sm mt-0.5 text-zinc-500">{ineligibleItems.length}</p><p className="text-[10px] text-muted-foreground leading-tight">{ineligibleItems.reduce((s,i)=>s+i.quantity,0)} units</p></div>
+            <div className="px-3 sm:px-5 py-2.5 sm:py-3"><p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Refunded</p><p className="font-semibold text-sm mt-0.5 text-blue-600">£{refundedAmount.toFixed(2)}</p></div>
           </div>
         </Card>
 
@@ -512,9 +517,28 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
             <TableCard
               title="Select items to return"
               badge={
-                <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-0 text-xs font-medium h-5 w-5 p-0 flex items-center justify-center rounded-full">
-                  {eligibleItems.length}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      if (!policyAccepted) return
+                      const allSelected = eligibleItems.every(i => selectedItems[i.id]?.selected)
+                      const next: typeof selectedItems = {}
+                      eligibleItems.forEach(i => {
+                        next[i.id] = allSelected
+                          ? { ...selectedItems[i.id], selected: false }
+                          : { selected: true, quantity: selectedItems[i.id]?.quantity || 1, reason: selectedItems[i.id]?.reason || "", description: selectedItems[i.id]?.description || "" }
+                      })
+                      setSelectedItems(prev => ({ ...prev, ...next }))
+                    }}
+                    disabled={!policyAccepted}
+                    className="text-xs text-[#E5403B] hover:underline disabled:opacity-40 disabled:cursor-not-allowed font-medium"
+                  >
+                    {eligibleItems.every(i => selectedItems[i.id]?.selected) ? "Deselect all" : "Select all"}
+                  </button>
+                  <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-0 text-xs font-medium h-5 w-5 p-0 flex items-center justify-center rounded-full">
+                    {eligibleItems.length}
+                  </Badge>
+                </div>
               }
               fullWidth={ineligibleItems.length === 0}
             >
@@ -566,13 +590,17 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                                   {item.variant?.title && item.variant.title !== "Default Title" && (
                                     <span className="inline-block mt-1 text-[11px] bg-muted text-muted-foreground rounded px-1.5 py-0.5 leading-none">{item.variant.title}</span>
                                   )}
+                                  {/* Qty + unit price visible only when Unit col is hidden (mobile) */}
+                                  <span className="sm:hidden inline-flex items-center gap-1 mt-1 text-[11px] text-muted-foreground tabular-nums">
+                                    £{pricePerItem.toFixed(2)} × {item.quantity} = <span className="font-semibold text-foreground">£{linePrice.toFixed(2)}</span>
+                                  </span>
                                 </div>
                               </div>
                             </TableCell>
                             <TableCell className="pr-4 py-3 text-sm whitespace-nowrap hidden sm:table-cell">
-                              <div className="flex items-center justify-end gap-1.5">
-                                <span className="text-muted-foreground">£{pricePerItem.toFixed(2)} ×</span>
-                                <span className="inline-flex items-center justify-center bg-muted rounded px-1.5 text-[11px] font-semibold text-foreground min-w-[22px]">{item.quantity}</span>
+                              <div className="flex items-center justify-end gap-1.5 tabular-nums">
+                                <span className="text-muted-foreground text-right">£{pricePerItem.toFixed(2)}&nbsp;×</span>
+                                <span className="inline-flex items-center justify-center bg-muted rounded text-[11px] font-semibold text-foreground w-[28px] h-[18px]">{item.quantity}</span>
                               </div>
                             </TableCell>
                             <TableCell className="text-right pr-4 py-3 font-semibold text-sm whitespace-nowrap">
