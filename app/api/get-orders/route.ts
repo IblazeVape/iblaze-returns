@@ -2,10 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { validateSession } from "@/lib/auth";
 import { shopifyAdmin } from "@/lib/shopify";
 
-// NOTE: Order.fulfillments is a PLAIN ARRAY — not a connection, do NOT use edges/node
-// fulfillmentLineItems IS a connection — use edges { node { ... } }
-// returnLineItems node must use ... on ReturnLineItem { } inline fragment
-
 export async function GET(request: NextRequest) {
   try {
     const cookieHeader = request.headers.get("cookie");
@@ -28,22 +24,30 @@ export async function GET(request: NextRequest) {
                     id name createdAt cancelledAt displayFulfillmentStatus displayFinancialStatus
                     totalPriceSet { shopMoney { amount currencyCode } }
                     totalRefundedSet { shopMoney { amount } }
+                    refunds(first: 10) {
+                      edges {
+                        node {
+                          refundLineItems(first: 50) {
+                            edges {
+                              node {
+                                quantity
+                                lineItem { id }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
                     returns(first: 10) {
                       edges {
                         node {
-                          id
-                          status
-                          decline {
-                            reason
-                            note
-                          }
+                          id status decline { reason note }
                           returnLineItems(first: 50) {
                             edges {
                               node {
                                 ... on ReturnLineItem {
-                                  fulfillmentLineItem {
-                                    lineItem { id }
-                                  }
+                                  quantity
+                                  fulfillmentLineItem { lineItem { id } }
                                 }
                               }
                             }
@@ -51,16 +55,13 @@ export async function GET(request: NextRequest) {
                         }
                       }
                     }
-                    fulfillments {
-                      id
-                      displayStatus
-                      deliveredAt
-                      updatedAt
+                    fulfillments(first: 10) {
+                      id displayStatus deliveredAt updatedAt
+                      trackingInfo { company number url }
                       fulfillmentLineItems(first: 50) {
                         edges {
                           node {
-                            lineItem { id }
-                            quantity
+                            lineItem { id } quantity
                           }
                         }
                       }
@@ -70,9 +71,7 @@ export async function GET(request: NextRequest) {
                         node {
                           id title quantity
                           discountedUnitPriceSet { shopMoney { amount } }
-                          product { handle }
-                          image { url }
-                          variant { title }
+                          product { handle } image { url } variant { title }
                         }
                       }
                     }
@@ -91,97 +90,61 @@ export async function GET(request: NextRequest) {
     }
 
     const firstName = customers[0].node.firstName || "";
-    const rawOrders = customers[0].node.orders.edges.map((e: { node: unknown }) => e.node);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rawOrders = customers[0].node.orders.edges.map((e: any) => e.node);
 
-    const processedOrders = rawOrders.map((order: {
-      id: string;
-      name: string;
-      createdAt: string;
-      cancelledAt: string | null;
-      displayFulfillmentStatus: string;
-      displayFinancialStatus: string;
-      totalPriceSet: { shopMoney: { amount: string; currencyCode: string } };
-      totalRefundedSet?: { shopMoney: { amount: string } } | null;
-      returns?: {
-        edges: Array<{
-          node: {
-            id: string;
-            status: string;
-            decline?: { reason: string; note: string } | null;
-            returnLineItems: {
-              edges: Array<{
-                node: {
-                  fulfillmentLineItem?: { lineItem?: { id: string } };
-                };
-              }>;
-            };
-          };
-        }>;
-      };
-      fulfillments: Array<{
-        id: string;
-        displayStatus: string;
-        deliveredAt: string | null;
-        updatedAt: string;
-        fulfillmentLineItems: {
-          edges: Array<{ node: { lineItem: { id: string }; quantity: number } }>;
-        };
-      }>;
-      lineItems: {
-        edges: Array<{
-          node: {
-            id: string;
-            title: string;
-            quantity: number;
-            discountedUnitPriceSet: { shopMoney: { amount: string } } | null;
-            product: { handle: string } | null;
-            image: { url: string } | null;
-            variant: { title: string } | null;
-          };
-        }>;
-      };
-    }) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const processedOrders = rawOrders.map((order: any) => {
+      // ── 1. Calculate Refunded & Returned Quantities ───────────────────
+      const refundedQuantities: Record<string, number> = {};
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (order.refunds?.edges || []).forEach((ref: any) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (ref.node.refundLineItems?.edges || []).forEach((rli: any) => {
+          const id = rli.node.lineItem?.id;
+          if (id) {
+            refundedQuantities[id] = (refundedQuantities[id] || 0) + rli.node.quantity;
+          }
+        });
+      });
 
-      // ── 1. Collect full return history per line item ───────────────────
-      const itemReturnHistory: Record<string, Array<{
-        returnId: string;
-        status: string;
-        declineReason?: string;
-        declineNote?: string;
-        index: number;
-      }>> = {};
-
-      (order.returns?.edges || []).forEach((retEdge, index) => {
+      const returnQuantities: Record<string, number> = {};
+      const itemReturnStatus: Record<string, { status: string; declineReason?: string; declineNote?: string }> = {};
+      
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (order.returns?.edges || []).forEach((retEdge: any) => {
         const ret = retEdge.node;
+        const isActiveReturn = ret.status !== "DECLINED" && ret.status !== "CANCELED";
+        
         for (const rliEdge of ret.returnLineItems?.edges || []) {
           const lineItemId = rliEdge.node.fulfillmentLineItem?.lineItem?.id;
           if (!lineItemId) continue;
-          if (!itemReturnHistory[lineItemId]) itemReturnHistory[lineItemId] = [];
-          itemReturnHistory[lineItemId].push({
-            returnId: ret.id,
+          
+          if (isActiveReturn) {
+            returnQuantities[lineItemId] = (returnQuantities[lineItemId] || 0) + rliEdge.node.quantity;
+          }
+
+          itemReturnStatus[lineItemId] = {
             status: ret.status,
             declineReason: ret.decline?.reason,
             declineNote: ret.decline?.note,
-            index,
-          });
+          };
         }
       });
 
-      // Log for Vercel debugging
-      if (Object.keys(itemReturnHistory).length > 0) {
-        console.log(`RETURN HISTORY for ${order.name}:`, JSON.stringify(itemReturnHistory, null, 2));
-      }
-
-      // ── 2. Pick winning return status per line item ────────────────────
-      const itemReturnStatus: Record<string, { status: string; declineReason?: string; declineNote?: string }> = {};
-      for (const [lineItemId, history] of Object.entries(itemReturnHistory)) {
-        const latest = history[history.length - 1];
-        itemReturnStatus[lineItemId] = {
-          status: latest.status,
-          declineReason: latest.declineReason,
-          declineNote: latest.declineNote,
-        };
-      }
+      // ── 2. Build Shipments ───────────────────────
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const shipments = (order.fulfillments || []).map((f: any) => ({
+        id: f.id,
+        displayStatus: f.displayStatus,
+        deliveredAt: f.deliveredAt ? new Date(f.deliveredAt).toISOString() : null,
+        trackingInfo: f.trackingInfo || [],
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        items: f.fulfillmentLineItems?.edges.map((e: any) => ({
+          id: e.node.lineItem.id,
+          quantity: e.node.quantity
+        })) || []
+      }));
 
       // ── 3. Build per-line-item delivery tracking ───────────────────────
       type LineDelivery = { isDelivered: boolean; deliveredAt: Date | null; inTransit: boolean; isDispatched: boolean; };
@@ -190,23 +153,12 @@ export async function GET(request: NextRequest) {
       for (const fulfillment of order.fulfillments || []) {
         const status = fulfillment.displayStatus;
         const isDelivered = status === "DELIVERED";
-        const inTransit =
-          status === "IN_TRANSIT" ||
-          status === "OUT_FOR_DELIVERY" ||
-          status === "ATTEMPTED_DELIVERY" ||
-          status === "READY_FOR_PICKUP" ||
-          status === "PICKED_UP" ||
-          status === "FULFILLED" ||
-          status === "LABEL_PRINTED" ||
-          status === "LABEL_PURCHASED" ||
-          status === "MARKED_AS_FULFILLED";
+        const inTransit = ["IN_TRANSIT", "OUT_FOR_DELIVERY", "ATTEMPTED_DELIVERY", "READY_FOR_PICKUP", "PICKED_UP", "FULFILLED", "LABEL_PRINTED", "LABEL_PURCHASED", "MARKED_AS_FULFILLED"].includes(status);
         const isDispatched = isDelivered || inTransit || status === "SUBMITTED";
 
         let deliveredAt: Date | null = null;
         if (isDelivered) {
-          deliveredAt = fulfillment.deliveredAt
-            ? new Date(fulfillment.deliveredAt)
-            : new Date(fulfillment.updatedAt);
+          deliveredAt = fulfillment.deliveredAt ? new Date(fulfillment.deliveredAt) : new Date(fulfillment.updatedAt);
         }
 
         for (const edge of fulfillment.fulfillmentLineItems?.edges || []) {
@@ -218,22 +170,31 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      // ── 4. Map each line item to a return status ───────────────────────
+      // ── 4. Map each line item ───────────────────────
       const now = new Date();
       let orderIsDelivered = false;
       let orderDeliveredAt = null as Date | null;
 
-      const items = order.lineItems.edges.map(({ node: item }) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const items = order.lineItems.edges.map(({ node: item }: any) => {
         const delivery = lineItemDelivery[item.id];
         const existingReturn = itemReturnStatus[item.id];
+
+        const refQty = refundedQuantities[item.id] || 0;
+        const retQty = returnQuantities[item.id] || 0;
+        const unavailableQty = Math.max(refQty, retQty); 
+        const eligibleQuantity = Math.max(0, item.quantity - unavailableQty);
 
         let returnStatus: string;
         let returnReason: string;
 
-        if (existingReturn) {
+        if (order.cancelledAt) {
+          returnStatus = "Cancelled";
+          returnReason = "This order was cancelled.";
+        } else if (existingReturn) {
           const statusMap: Record<string, string> = {
             REQUESTED: "Return requested",
-            OPEN:      "Return approved",
+            OPEN:      "Return in progress",
             CLOSED:    "Return completed",
             DECLINED:  "Return declined",
             CANCELED:  "Return cancelled",
@@ -243,19 +204,20 @@ export async function GET(request: NextRequest) {
           if (existingReturn.status === "DECLINED") {
             const dNote = (existingReturn.declineNote || "").trim();
             const dReason = existingReturn.declineReason;
-            if (dNote) {
-              returnReason = dNote;
-            } else if (dReason === "RETURN_PERIOD_ENDED") {
-              returnReason = "Your return request was declined because it is outside the return window.";
-            } else if (dReason === "FINAL_SALE") {
-              returnReason = "Your return request was declined because the item is a final sale.";
-            } else {
-              returnReason = "Your return request was declined.";
-            }
+            if (dNote) returnReason = dNote;
+            else if (dReason === "RETURN_PERIOD_ENDED") returnReason = "Your return request was declined because it is outside the return window.";
+            else if (dReason === "FINAL_SALE") returnReason = "Your return request was declined because the item is a final sale.";
+            else returnReason = "Your return request was declined.";
           } else {
-            returnReason = "You have already submitted a return request for this item.";
+            returnReason = `You have an active or completed return for ${retQty} of these items.`;
+            if (eligibleQuantity > 0) {
+               returnStatus = "Eligible"; 
+               returnReason = "";
+            }
           }
-
+        } else if (eligibleQuantity <= 0) {
+          returnStatus = "Refunded";
+          returnReason = "This item has already been refunded.";
         } else if (!delivery || !delivery.isDispatched) {
           returnStatus = "Not yet dispatched";
           returnReason = "This item hasn't been dispatched yet — check back once it ships.";
@@ -284,25 +246,24 @@ export async function GET(request: NextRequest) {
           returnReason = "This item hasn't been dispatched yet.";
         }
 
-        const lineDeliveredAt = delivery?.isDelivered && delivery.deliveredAt
-          ? delivery.deliveredAt.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
-          : null;
-
         return {
           ...item,
           productHandle: item.product?.handle || null,
-          unitPrice: item.discountedUnitPriceSet?.shopMoney?.amount
-            ? parseFloat(item.discountedUnitPriceSet.shopMoney.amount)
-            : null,
+          unitPrice: item.discountedUnitPriceSet?.shopMoney?.amount ? parseFloat(item.discountedUnitPriceSet.shopMoney.amount) : null,
+          eligibleQuantity,
+          refundedQuantity: refQty,
           returnStatus,
           returnReason,
-          lineDeliveredAt,
+          lineDeliveredAt: delivery?.isDelivered && delivery.deliveredAt
+            ? delivery.deliveredAt.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+            : null,
         };
       });
 
       return {
         ...order,
         processedItems: items,
+        shipments,
         isDelivered: orderIsDelivered,
         deliveredAt: orderDeliveredAt?.toISOString() ?? null,
       };
