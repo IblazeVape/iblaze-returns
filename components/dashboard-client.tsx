@@ -340,7 +340,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
 
   const total = parseFloat(order.totalPriceSet.shopMoney.amount)
   const totalQty = order.processedItems.reduce((s, i) => s + i.quantity, 0)
-  const pricePerItem = totalQty > 0 ? total / totalQty : 0
+  const orderAvgPrice = totalQty > 0 ? total / totalQty : 0
   const refundedAmount = order.totalRefundedSet?.shopMoney?.amount ? parseFloat(order.totalRefundedSet.shopMoney.amount) : 0
 
   const selectedCount = Object.values(selectedItems).filter(v => v.selected).length
