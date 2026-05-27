@@ -22,7 +22,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
@@ -209,7 +209,6 @@ function ProductThumb({ item }: { item: LineItem }) {
   )
 }
 
-// ─── Skeleton View ────────────────────────────────────────────────────────────
 function OrderCardSkeleton() {
   return (
     <div className="bg-white border border-border rounded-xl p-5">
@@ -222,7 +221,6 @@ function OrderCardSkeleton() {
   )
 }
 
-// ─── Hygiene Policy Module ───────────────────────────────────────────────────
 function HygienePolicy({ onAccept, onDecline }: { onAccept: () => void; onDecline: () => void }) {
   const [open, setOpen] = useState(false)
   const isDesktop = useMediaQuery("(min-width: 768px)")
@@ -276,16 +274,78 @@ function HygienePolicy({ onAccept, onDecline }: { onAccept: () => void; onDeclin
   )
 }
 
-// ─── Order Detail Component ────────────────────────────────────────────────
+function OrderCard({ order, onClick }: { order: Order; onClick: () => void }) {
+  const uniqueImages = order.processedItems
+    .map(i => i.image?.url)
+    .filter((u, i, a) => u && a.indexOf(u) === i)
+    .slice(0, 5) as string[]
+  const extra = order.processedItems.length - uniqueImages.length
+  const total = parseFloat(order.totalPriceSet.shopMoney.amount)
+  const date = new Date(order.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+
+  return (
+    <button onClick={onClick} className="group w-full text-left bg-white border border-border rounded-xl p-5 shadow-sm hover:shadow-md hover:border-zinc-300 transition-all duration-150 focus:outline-none flex flex-col justify-between gap-3">
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="font-semibold text-[15px] group-hover:underline">{order.name}</p>
+          <p className="text-[13px] text-muted-foreground mt-0.5">{date} &bull; {order.totalUnits} item{order.totalUnits !== 1 ? "s" : ""}</p>
+          <div className="mt-1.5"><OrderStatusBadges order={order} /></div>
+        </div>
+        <p className="font-semibold text-[15px] shrink-0">£{total.toFixed(2)}</p>
+      </div>
+      <div className="flex items-center gap-1.5">
+        {uniqueImages.map((url, i) => (
+          <div key={i} className="w-10 h-10 rounded-md border border-border bg-white overflow-hidden shrink-0">
+            <img src={url} alt="" className="w-full h-full object-contain p-0.5" />
+          </div>
+        ))}
+        {extra > 0 && (
+          <div className="w-10 h-10 rounded-md border border-border bg-zinc-50 flex items-center justify-center shrink-0">
+            <span className="text-[11px] font-bold text-muted-foreground">+{extra}</span>
+          </div>
+        )}
+      </div>
+    </button>
+  )
+}
+
+function OrderRow({ order, onClick }: { order: Order; onClick: () => void }) {
+  const images = order.processedItems.map(i => i.image?.url).filter(Boolean).slice(0, 3) as string[]
+  const total = parseFloat(order.totalPriceSet.shopMoney.amount)
+  const date = new Date(order.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+
+  return (
+    <button onClick={onClick} className="w-full px-5 py-3.5 flex items-center gap-4 hover:bg-zinc-50 transition-colors text-left group border-b border-border last:border-0">
+      <div className="flex -space-x-2">
+        {images.map((url, i) => (
+          <div key={i} className="size-9 rounded-lg border-2 border-white bg-white overflow-hidden shadow-sm">
+            <img src={url} alt="" className="w-full h-full object-contain" />
+          </div>
+        ))}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="font-semibold text-sm group-hover:underline">{order.name}</p>
+        <p className="text-xs text-muted-foreground">{date} &bull; {order.totalUnits} item{order.totalUnits !== 1 ? "s" : ""}</p>
+        <div className="mt-1"><OrderStatusBadges order={order} /></div>
+      </div>
+      <p className="font-semibold text-sm w-16 text-right shrink-0">£{total.toFixed(2)}</p>
+      <ChevronRight className="size-4 text-muted-foreground shrink-0" />
+    </button>
+  )
+}
+
+// ─── Order Detail ─────────────────────────────────────────────────────────────
 function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
   const [policyAccepted, setPolicyAccepted] = useState(false)
   const [selectedItems, setSelectedItems] = useState<Record<string, { selected: boolean; quantity: number; reason: string; description: string }>>({})
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [pageSize, setPageSize] = useState("10")
   const [currentPage, setCurrentPage] = useState(1)
   
+  useEffect(() => { setMounted(true) }, [])
   const { state: sidebarState, isMobile: sidebarMobile } = useSidebar()
 
   const rawOrderId = order.id.split("/").pop()
@@ -387,7 +447,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
       <div className={cn("flex flex-col gap-4", hasEligible && "pb-[120px] sm:pb-[64px]")}>
         <Button variant="ghost" size="sm" onClick={onBack} className="-ml-2 text-muted-foreground hover:text-foreground w-fit"><ArrowLeft className="size-4" /> Back to Orders</Button>
 
-        {/* ── Order Header Panel ── */}
+        {/* ── Order header card ── */}
         <Card className={cn(C, "overflow-hidden")}>
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 px-5 py-4">
             <div>
@@ -412,7 +472,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
           </div>
         )}
 
-        {/* ── Scrollable Compact Shipments ── */}
+        {/* ── Shipments & tracking ── */}
         {!order.cancelledAt && order.shipments && order.shipments.length > 0 && (
           <div className="flex flex-col gap-2">
             <h3 className="text-sm font-semibold flex items-center gap-2"><Truck className="size-4" /> Shipments &amp; Tracking</h3>
@@ -452,6 +512,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
           </div>
         )}
 
+        {/* ── Policy gate ── */}
         {hasEligible && !policyAccepted && (
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border bg-card px-4 py-3 text-sm">
             <div className="flex items-center gap-2 min-w-0"><ShieldCheck className="size-4 text-muted-foreground shrink-0" /><span className="font-medium">Hygiene &amp; Returns Policy</span><span className="text-muted-foreground hidden sm:inline">— Review and accept before selecting items.</span></div>
@@ -459,7 +520,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
           </div>
         )}
 
-        {/* ── Unified Vercel Button Group Item Dashboard ── */}
+        {/* ── Items table ── */}
         {!order.cancelledAt && (
           <Card className={cn(C, "overflow-hidden flex flex-col")}>
             <div className="px-5 py-3 border-b bg-muted/20 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -555,7 +616,6 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
               </Table>
             </div>
 
-            {/* Smart pagination cleanup */}
             {pageSize !== "all" && currentData.length > size && (
               <div className="p-4 border-t flex items-center justify-between text-sm text-muted-foreground">
                 <span>Showing {Math.min((currentPage - 1) * size + 1, currentData.length)}–{Math.min(currentPage * size, currentData.length)} of {currentData.length} entries</span>
