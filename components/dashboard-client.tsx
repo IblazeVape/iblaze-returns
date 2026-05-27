@@ -321,7 +321,7 @@ function ShipmentItemsModal({ shipment, order, idx }: {
         </DrawerHeader>
         <ShipmentItemList shipment={shipment} order={order} className="px-4" />
         <DrawerFooter className="pt-2">
-          <DrawerClose>
+          <DrawerClose asChild>
             <Button variant="outline" className="w-full">Close</Button>
           </DrawerClose>
         </DrawerFooter>
@@ -384,7 +384,7 @@ function HygienePolicy({ onAccept, onDecline }: { onAccept: () => void; onDeclin
         <HygienePolicyList className="px-4" />
         <DrawerFooter className="pt-2">
           {acceptDecline}
-          <DrawerClose>
+          <DrawerClose asChild>
             <Button variant="outline" className="w-full">Cancel</Button>
           </DrawerClose>
         </DrawerFooter>
