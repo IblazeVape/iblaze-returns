@@ -57,7 +57,7 @@ const C = "shadow-sm py-0 gap-0"
 function pUrl(handle?: string | null) { return handle ? `https://iblazevape.co.uk/products/${handle}` : "https://iblazevape.co.uk" }
 
 function OutlineBadge({ className, children }: { className: string; children: React.ReactNode }) {
-  return <span className={cn("inline-flex items-center justify-center rounded-full border px-2 py-0.5 text-[11px] font-medium whitespace-nowrap", className)}>{children}</span>
+  return <span className={cn("inline-flex items-center justify-center rounded-md border px-2 py-0.5 text-[11px] font-medium whitespace-nowrap", className)}>{children}</span>
 }
 
 function IneligibleReason({ status, reason, lineDeliveredAt }: { status: ReturnStatus; reason?: string; lineDeliveredAt?: string | null }) {
@@ -106,7 +106,6 @@ function OrderCardSkeleton() {
   )
 }
 
-// Fixed: Added missing HygienePolicy Component inside the file so it builds correctly
 function HygienePolicy({ onAccept, onDecline }: { onAccept: () => void; onDecline: () => void }) {
   const [open, setOpen] = useState(false)
   const isDesktop = useMediaQuery("(min-width: 768px)")
@@ -204,7 +203,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
   
   // Pagination & Filter State
   const [searchQuery, setSearchQuery] = useState("")
-  const [pageSize, setPageSize] = useState("5")
+  const [pageSize, setPageSize] = useState("10")
   const [currentPage, setCurrentPage] = useState(1)
 
   useEffect(() => { setMounted(true) }, [])
@@ -222,7 +221,6 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
   const orderAvgPrice = totalQty > 0 ? total / totalQty : 0
   const refundedAmount = order.totalRefundedSet?.shopMoney?.amount ? parseFloat(order.totalRefundedSet.shopMoney.amount) : 0
 
-  // Calculate actual unit counts for the Vercel button switcher
   const totalEligibleUnits = eligibleItems.reduce((s, i) => s + i.eligibleQuantity, 0)
   const totalIneligibleUnits = order.processedItems.reduce((s, i) => s + (i.quantity - (i.returnStatus === "Eligible" ? i.eligibleQuantity : 0)), 0)
 
@@ -250,7 +248,6 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
     .filter(([, v]) => v.selected)
     .every(([, v]) => v.reason && (v.reason !== "OTHER" || v.description.trim().length > 0))
 
-  // Select All Handler - Restored to work directly with table header
   const handleSelectAll = (checked: boolean) => {
     if (!policyAccepted) return;
     const next: typeof selectedItems = {}
@@ -296,21 +293,23 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
     )
   }
 
-  // Advanced Order Badge Logic
+  // Enhanced Order Badge Logic (Accurate partial dispatch handling)
   let orderStatusBadge;
   const dispatchCount = order.shipments?.length || 0;
   const shippedItemsCount = order.shipments?.reduce((acc, s) => acc + s.items.reduce((sum, i) => sum + i.quantity, 0), 0) || 0;
+  const isFullyDispatched = shippedItemsCount >= totalQty || order.displayFulfillmentStatus === "FULFILLED";
+  const allDelivered = dispatchCount > 0 && order.shipments.every(s => s.displayStatus === "DELIVERED");
 
   if (order.cancelledAt) {
-    orderStatusBadge = <Badge className="bg-red-100 text-red-700 hover:bg-red-100 border-0 text-xs">Cancelled</Badge>
-  } else if (order.isDelivered && shippedItemsCount === totalQty) {
-    orderStatusBadge = <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-0 text-xs">Delivered</Badge>
-  } else if (dispatchCount > 0 && shippedItemsCount < totalQty) {
-    orderStatusBadge = <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-0 text-xs">Partially Dispatched</Badge>
-  } else if (order.displayFulfillmentStatus === "UNFULFILLED" || order.displayFulfillmentStatus === "IN_PROGRESS") {
-    orderStatusBadge = <Badge variant="secondary" className="text-xs">Confirmed</Badge>
+    orderStatusBadge = <Badge className="bg-red-50 text-red-700 hover:bg-red-50 border border-red-200 rounded-md text-xs">Cancelled</Badge>;
+  } else if (isFullyDispatched && allDelivered) {
+    orderStatusBadge = <Badge className="bg-green-50 text-green-700 hover:bg-green-50 border border-green-200 rounded-md text-xs">Delivered</Badge>;
+  } else if (dispatchCount > 0 && !isFullyDispatched) {
+    orderStatusBadge = <Badge className="bg-amber-50 text-amber-700 hover:bg-amber-50 border border-amber-200 rounded-md text-xs">Partially Dispatched</Badge>;
+  } else if (dispatchCount > 0) {
+    orderStatusBadge = <Badge className="bg-blue-50 text-blue-700 hover:bg-blue-50 border border-blue-200 rounded-md text-xs">On its way</Badge>;
   } else {
-    orderStatusBadge = <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-100 border-0 text-xs">On its way</Badge>
+    orderStatusBadge = <Badge variant="secondary" className="rounded-md text-xs">Confirmed</Badge>;
   }
 
   return (
@@ -352,23 +351,22 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
           </div>
         )}
 
-        {/* --- Compact Shipments & Tracking Component --- */}
-        {/* Only displays if there is at least one active shipment/dispatch */}
+        {/* --- Compact Shipments & Tracking Strip Row --- */}
         {!order.cancelledAt && order.shipments && order.shipments.length > 0 && (
           <div className="flex flex-col gap-2">
             <h3 className="text-sm font-semibold flex items-center gap-2"><Truck className="size-4" /> Shipments & Tracking</h3>
-            <div className={cn(
-              "grid gap-3 w-full",
-              order.shipments.length === 1 ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2"
-            )}>
+            <div className="flex overflow-x-auto gap-4 pb-2 w-full snap-x scrollbar-hide">
               {order.shipments.map((shipment, idx) => (
-                <div key={shipment.id} className="flex flex-col sm:flex-row sm:items-center justify-between border rounded-lg p-3.5 bg-white shadow-sm border-border gap-4">
+                <div key={shipment.id} className={cn(
+                  "flex flex-col sm:flex-row sm:items-center justify-between border rounded-lg p-3.5 bg-white shadow-sm border-border gap-4 shrink-0 snap-start",
+                  order.shipments.length === 1 ? "w-full" : "w-[85vw] sm:w-[360px] md:w-[420px]"
+                )}>
                   <div className="flex items-center gap-3.5 min-w-0">
                     <div className="p-2 rounded-md bg-muted text-muted-foreground"><Truck className="size-4 shrink-0" /></div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2.5">
                         <span className="font-semibold text-xs text-muted-foreground uppercase tracking-wider">Shipment {idx + 1}</span>
-                        <Badge variant="outline" className="text-[10px] h-5 px-1.5 font-medium">{shipment.displayStatus}</Badge>
+                        <Badge variant="outline" className="text-[10px] h-5 px-1.5 font-medium rounded-md">{shipment.displayStatus}</Badge>
                       </div>
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm mt-1.5 text-muted-foreground">
                         {shipment.trackingInfo.map((track, i) => (
@@ -405,7 +403,6 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
           <Card className={cn(C, "overflow-hidden flex flex-col")}>
             <div className="px-5 py-3 border-b bg-muted/20 flex flex-col md:flex-row md:items-center justify-between gap-4">
               
-              {/* Vercel-style ButtonGroup Switcher */}
               <ButtonGroup>
                 <Button 
                   variant={activeTab === "eligible" ? "secondary" : "outline"} 
@@ -446,7 +443,6 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
               <Table className="min-w-[560px]">
                 <TableHeader className="bg-background z-10">
                   <TableRow className="hover:bg-transparent">
-                    {/* Master Checkbox Re-Added */}
                     {activeTab === "eligible" && (
                       <TableHead className="w-8 pl-4 pr-0">
                         <Checkbox 
@@ -548,16 +544,18 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
               </Table>
             </div>
 
-            {/* --- Pagination Footer --- */}
-            <div className="p-4 border-t flex items-center justify-between text-sm text-muted-foreground">
-              <div>
-                Showing {Math.min((currentPage - 1) * size + 1, currentData.length)} to {Math.min(currentPage * size, currentData.length)} of {currentData.length} entries
+            {/* --- Smart Pagination Footer --- */}
+            {pageSize !== "all" && (
+              <div className="p-4 border-t flex items-center justify-between text-sm text-muted-foreground">
+                <div>
+                  Showing {Math.min((currentPage - 1) * size + 1, currentData.length)} to {Math.min(currentPage * size, currentData.length)} of {currentData.length} entries
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>Previous</Button>
+                  <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages === 0}>Next</Button>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>Previous</Button>
-                <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages === 0}>Next</Button>
-              </div>
-            </div>
+            )}
           </Card>
         )}
       </div>
