@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
               orders(first: 20, sortKey: CREATED_AT, reverse: true) {
                 edges {
                   node {
-                    id name createdAt canceledAt displayFulfillmentStatus financialStatus
+                    id name createdAt cancelledAt displayFulfillmentStatus displayFinancialStatus
                     totalPriceSet { shopMoney { amount currencyCode } }
                     totalRefundedSet { shopMoney { amount } }
                     returns(first: 10) {
@@ -97,9 +97,9 @@ export async function GET(request: NextRequest) {
       id: string;
       name: string;
       createdAt: string;
-      canceledAt: string | null;
+      cancelledAt: string | null;
       displayFulfillmentStatus: string;
-      financialStatus: string;
+      displayFinancialStatus: string;
       totalPriceSet: { shopMoney: { amount: string; currencyCode: string } };
       totalRefundedSet?: { shopMoney: { amount: string } } | null;
       returns?: {
@@ -306,7 +306,6 @@ export async function GET(request: NextRequest) {
         processedItems: items,
         isDelivered: orderIsDelivered,
         deliveredAt: orderDeliveredAt?.toISOString() ?? null,
-        canceledAt: order.canceledAt ?? null,
       };
     });
 
