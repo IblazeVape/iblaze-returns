@@ -27,7 +27,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer"
+import { Drawer, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { cn } from "@/lib/utils"
 
@@ -321,9 +321,7 @@ function ShipmentItemsModal({ shipment, order, idx }: {
         </DrawerHeader>
         <ShipmentItemList shipment={shipment} order={order} className="px-4" />
         <DrawerFooter className="pt-2">
-          <DrawerClose asChild>
-            <Button variant="outline" className="w-full">Close</Button>
-          </DrawerClose>
+          <Button variant="outline" className="w-full" onClick={() => setOpen(false)}>Close</Button>
         </DrawerFooter>
       </DrawerContent>
     </Drawer>
@@ -384,9 +382,7 @@ function HygienePolicy({ onAccept, onDecline }: { onAccept: () => void; onDeclin
         <HygienePolicyList className="px-4" />
         <DrawerFooter className="pt-2">
           {acceptDecline}
-          <DrawerClose asChild>
-            <Button variant="outline" className="w-full">Cancel</Button>
-          </DrawerClose>
+          <Button variant="outline" className="w-full" onClick={() => setOpen(false)}>Cancel</Button>
         </DrawerFooter>
       </DrawerContent>
     </Drawer>
