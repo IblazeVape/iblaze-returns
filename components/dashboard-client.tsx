@@ -2,12 +2,12 @@
 
 import * as React from "react"
 import { createPortal } from "react-dom"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { toast } from "sonner"
 import {
   ChevronRight, LayoutGrid, List, ArrowLeft,
   RotateCcw, CheckCircle2, ShoppingBag, ShieldCheck,
-  ExternalLink, Lock, Truck, Package
+  ExternalLink, Lock, Truck, Package, Search
 } from "lucide-react"
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
@@ -18,6 +18,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -25,106 +26,45 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Drawer, DrawerClose, DrawerContent, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, type CarouselApi } from "@/components/ui/carousel"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { cn } from "@/lib/utils"
 
-type ReturnStatus =
-  | "Eligible"
-  | "Not yet dispatched"
-  | "On its way"
-  | "Passed the return window"
-  | "Returned"
-  | "Refunded"
-  | "Return requested"
-  | "Return in progress"
-  | "Return completed"
-  | "Return declined"
-  | "Return cancelled"
-  | "Cancelled"
+// --- Types & Constants (Unchanged) ---
+type ReturnStatus = "Eligible" | "Not yet dispatched" | "On its way" | "Passed the return window" | "Returned" | "Refunded" | "Return requested" | "Return in progress" | "Return completed" | "Return declined" | "Return cancelled" | "Cancelled"
 
 interface LineItem {
-  id: string
-  title: string
-  quantity: number
-  eligibleQuantity: number
-  refundedQuantity: number
-  unitPrice?: number | null
-  returnStatus: ReturnStatus
-  returnReason?: string
-  lineDeliveredAt?: string | null
-  productHandle?: string | null
-  image?: { url: string } | null
-  variant?: { title: string } | null
+  id: string; title: string; quantity: number; eligibleQuantity: number; refundedQuantity: number; unitPrice?: number | null; returnStatus: ReturnStatus; returnReason?: string; lineDeliveredAt?: string | null; productHandle?: string | null; image?: { url: string } | null; variant?: { title: string } | null;
 }
 
-interface ShipmentTracking {
-  company: string
-  number: string
-  url: string
-}
-
-interface Shipment {
-  id: string
-  displayStatus: string
-  deliveredAt: string | null
-  trackingInfo: ShipmentTracking[]
-  items: { id: string; quantity: number }[]
-}
+interface ShipmentTracking { company: string; number: string; url: string; }
+interface Shipment { id: string; displayStatus: string; deliveredAt: string | null; trackingInfo: ShipmentTracking[]; items: { id: string; quantity: number }[]; }
 
 interface Order {
-  id: string
-  name: string
-  createdAt: string
-  displayFulfillmentStatus: string
-  totalPriceSet: { shopMoney: { amount: string; currencyCode: string } }
-  totalRefundedSet?: { shopMoney: { amount: string } } | null
-  processedItems: LineItem[]
-  shipments: Shipment[]
-  isDelivered?: boolean
-  deliveredAt?: string | null
-  cancelledAt?: string | null
+  id: string; name: string; createdAt: string; displayFulfillmentStatus: string; totalPriceSet: { shopMoney: { amount: string; currencyCode: string } }; totalRefundedSet?: { shopMoney: { amount: string } } | null; processedItems: LineItem[]; shipments: Shipment[]; isDelivered?: boolean; deliveredAt?: string | null; cancelledAt?: string | null;
 }
 
-interface OrdersData {
-  firstName: string
-  email: string
-  orders: Order[]
-}
+interface OrdersData { firstName: string; email: string; orders: Order[]; }
 
 const RETURN_REASONS = [
-  { value: "CHANGED_MIND",     label: "Changed my mind" },
-  { value: "WRONG_ITEM",       label: "Wrong item received" },
-  { value: "FAULTY",           label: "Faulty / not working" },
-  { value: "DAMAGED",          label: "Damaged in transit" },
-  { value: "NOT_AS_DESCRIBED", label: "Not as described" },
-  { value: "OTHER",            label: "Other" },
+  { value: "CHANGED_MIND", label: "Changed my mind" }, { value: "WRONG_ITEM", label: "Wrong item received" }, { value: "FAULTY", label: "Faulty / not working" }, { value: "DAMAGED", label: "Damaged in transit" }, { value: "NOT_AS_DESCRIBED", label: "Not as described" }, { value: "OTHER", label: "Other" },
 ]
 
 const C = "shadow-sm py-0 gap-0"
-const TABLE_H = "xl:h-[480px]"
 
-function pUrl(handle?: string | null) {
-  return handle ? `https://iblazevape.co.uk/products/${handle}` : "https://iblazevape.co.uk"
-}
+// --- Helper Functions ---
+function pUrl(handle?: string | null) { return handle ? `https://iblazevape.co.uk/products/${handle}` : "https://iblazevape.co.uk" }
 
 function OutlineBadge({ className, children }: { className: string; children: React.ReactNode }) {
-  return (
-    <span className={cn("inline-flex items-center justify-center rounded-full border px-2 py-0.5 text-[11px] font-medium whitespace-nowrap", className)}>
-      {children}
-    </span>
-  )
+  return <span className={cn("inline-flex items-center justify-center rounded-full border px-2 py-0.5 text-[11px] font-medium whitespace-nowrap", className)}>{children}</span>
 }
 
 function IneligibleReason({ status, reason, lineDeliveredAt }: { status: ReturnStatus; reason?: string; lineDeliveredAt?: string | null }) {
   const withHover = (badge: React.ReactNode, title: string, body: string) => (
     <HoverCard openDelay={100} closeDelay={100}>
       <HoverCardTrigger asChild><div className="inline-flex">{badge}</div></HoverCardTrigger>
-      <HoverCardContent side="top" align="end" className="w-64 px-4 py-3">
-        <div className="flex flex-col gap-1">
-          <h4 className="font-medium text-sm">{title}</h4>
-          <p className="text-sm text-muted-foreground break-words overflow-wrap-anywhere">{body}</p>
-        </div>
-      </HoverCardContent>
+      <HoverCardContent side="top" align="end" className="w-64 px-4 py-3"><div className="flex flex-col gap-1"><h4 className="font-medium text-sm">{title}</h4><p className="text-sm text-muted-foreground break-words overflow-wrap-anywhere">{body}</p></div></HoverCardContent>
     </HoverCard>
   )
 
@@ -132,34 +72,24 @@ function IneligibleReason({ status, reason, lineDeliveredAt }: { status: ReturnS
   if (status === "Not yet dispatched") return <OutlineBadge className="bg-zinc-50 text-zinc-500 border-zinc-200">Not dispatched</OutlineBadge>
   if (status === "Refunded") return <OutlineBadge className="bg-zinc-100 text-zinc-600 border-zinc-300">Refunded</OutlineBadge>
   if (status === "Cancelled") return <OutlineBadge className="bg-red-50 text-red-700 border-red-200">Cancelled</OutlineBadge>
-
   if (status === "Passed the return window") {
-    const badge = (
-      <div className="flex flex-col items-end gap-0.5">
-        <OutlineBadge className="bg-red-50 text-red-700 border-red-200">Window expired</OutlineBadge>
-        {lineDeliveredAt && <span className="text-[10px] text-muted-foreground">Arrived {lineDeliveredAt}</span>}
-      </div>
-    )
+    const badge = <div className="flex flex-col items-end gap-0.5"><OutlineBadge className="bg-red-50 text-red-700 border-red-200">Window expired</OutlineBadge>{lineDeliveredAt && <span className="text-[10px] text-muted-foreground">Arrived {lineDeliveredAt}</span>}</div>
     return reason ? withHover(badge, "Return window closed", reason) : badge
   }
-
   if (status === "Return requested") return <OutlineBadge className="bg-blue-50 text-blue-700 border-blue-200">Requested</OutlineBadge>
   if (status === "Return in progress") return <OutlineBadge className="bg-purple-50 text-purple-700 border-purple-200">In Progress</OutlineBadge>
   if (status === "Return completed" || status === "Returned") return <OutlineBadge className="bg-teal-50 text-teal-700 border-teal-200">Completed</OutlineBadge>
-  
   if (status === "Return declined") {
     const badge = <OutlineBadge className="bg-red-50 text-red-700 border-red-200">Declined</OutlineBadge>
     return reason ? withHover(badge, "Return declined", reason) : badge
   }
-
   if (status === "Return cancelled") return <OutlineBadge className="bg-orange-50 text-orange-600 border-orange-200">Cancelled</OutlineBadge>
   return <span className="text-xs text-muted-foreground">{status}</span>
 }
 
 function ProductThumb({ item }: { item: LineItem }) {
-  const url = pUrl(item.productHandle)
   return (
-    <a href={url} target="_blank" rel="noopener noreferrer" className="relative shrink-0 block">
+    <a href={pUrl(item.productHandle)} target="_blank" rel="noopener noreferrer" className="relative shrink-0 block">
       <div className="size-10 rounded-md overflow-hidden bg-white border border-border hover:border-foreground transition-colors duration-150">
         {item.image?.url && <img src={item.image.url} alt={item.title} className="w-full h-full object-contain p-0.5" />}
       </div>
@@ -170,10 +100,7 @@ function ProductThumb({ item }: { item: LineItem }) {
 function OrderCardSkeleton() {
   return (
     <div className="bg-white border border-border rounded-xl p-5">
-      <div className="flex items-start justify-between mb-3">
-        <div className="space-y-1.5"><Skeleton className="h-4 w-24" /><Skeleton className="h-3 w-32" /></div>
-        <Skeleton className="h-4 w-14" />
-      </div>
+      <div className="flex items-start justify-between mb-3"><div className="space-y-1.5"><Skeleton className="h-4 w-24" /><Skeleton className="h-3 w-32" /></div><Skeleton className="h-4 w-14" /></div>
       <div className="flex gap-1.5">{[1,2,3].map(i => <Skeleton key={i} className="w-10 h-10 rounded-md" />)}</div>
     </div>
   )
@@ -187,18 +114,15 @@ function HygienePolicy({ onAccept, onDecline }: { onAccept: () => void; onDeclin
   const handleDecline = () => { setOpen(false); onDecline(); toast.warning("Policy declined", { description: "You must accept the returns policy to continue." }) }
 
   const policyItems = [
-    { title: "Vape Kits & Mods",       desc: "30-day refund period. 30-day warranty from delivery." },
-    { title: "Batteries & Chargers",   desc: "60-day battery warranty. 30-day charger warranty." },
-    { title: "E-Liquids & Disposables",desc: "Must remain sealed and unopened. No returns on opened liquids." },
-    { title: "Tanks & Clearomisers",   desc: "7-day Dead On Arrival window — report faults within 7 days." },
+    { title: "Vape Kits & Mods", desc: "30-day refund period. 30-day warranty from delivery." },
+    { title: "Batteries & Chargers", desc: "60-day battery warranty. 30-day charger warranty." },
+    { title: "E-Liquids & Disposables", desc: "Must remain sealed and unopened. No returns on opened liquids." },
+    { title: "Tanks & Clearomisers", desc: "7-day Dead On Arrival window — report faults within 7 days." },
   ]
   const body = (
     <div className="space-y-2 text-sm">
       {policyItems.map(p => (
-        <div key={p.title} className="rounded-lg border bg-muted/30 px-3 py-2.5">
-          <p className="font-semibold text-xs">{p.title}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">{p.desc}</p>
-        </div>
+        <div key={p.title} className="rounded-lg border bg-muted/30 px-3 py-2.5"><p className="font-semibold text-xs">{p.title}</p><p className="text-xs text-muted-foreground mt-0.5">{p.desc}</p></div>
       ))}
       <p className="text-xs text-muted-foreground pt-1">Return postage is at your expense. Tracked service required. Refunds within 5–10 business days.</p>
     </div>
@@ -239,20 +163,13 @@ function OrderCard({ order, onClick }: { order: Order; onClick: () => void }) {
   const total = parseFloat(order.totalPriceSet.shopMoney.amount)
   const date = new Date(order.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
   return (
-    <button onClick={onClick} className="group w-full text-left bg-white border border-border rounded-xl p-5 shadow-sm hover:shadow-md hover:border-zinc-300 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-ring/30 flex flex-col justify-between">
+    <button onClick={onClick} className="group w-full text-left bg-white border border-border rounded-xl p-5 shadow-sm hover:shadow-md hover:border-zinc-300 transition-all duration-150 focus:outline-none flex flex-col justify-between">
       <div className="flex items-start justify-between mb-3">
-        <div>
-          <p className="font-semibold text-[15px] group-hover:underline">{order.name}</p>
-          <p className="text-[13px] text-muted-foreground mt-0.5">{date} &bull; {totalQty} item{totalQty !== 1 ? "s" : ""}</p>
-        </div>
+        <div><p className="font-semibold text-[15px] group-hover:underline">{order.name}</p><p className="text-[13px] text-muted-foreground mt-0.5">{date} &bull; {totalQty} item{totalQty !== 1 ? "s" : ""}</p></div>
         <p className="font-semibold text-[15px]">£{total.toFixed(2)}</p>
       </div>
       <div className="flex items-center gap-1.5">
-        {uniqueImages.map((url, i) => (
-          <div key={i} className="w-10 h-10 rounded-md border border-border bg-white overflow-hidden shrink-0">
-            <img src={url} alt="" className="w-full h-full object-contain p-0.5" />
-          </div>
-        ))}
+        {uniqueImages.map((url, i) => <div key={i} className="w-10 h-10 rounded-md border border-border bg-white overflow-hidden shrink-0"><img src={url} alt="" className="w-full h-full object-contain p-0.5" /></div>)}
         {extra > 0 && <div className="w-10 h-10 rounded-md border border-border bg-zinc-50 flex items-center justify-center shrink-0"><span className="text-[11px] font-bold text-muted-foreground">+{extra}</span></div>}
       </div>
     </button>
@@ -269,30 +186,14 @@ function OrderRow({ order, onClick }: { order: Order; onClick: () => void }) {
       <div className="flex -space-x-2">
         {images.map((url, i) => <div key={i} className="size-9 rounded-lg border-2 border-white bg-white overflow-hidden shadow-sm"><img src={url} alt="" className="w-full h-full object-contain" /></div>)}
       </div>
-      <div className="flex-1 min-w-0">
-        <p className="font-semibold text-sm group-hover:underline">{order.name}</p>
-        <p className="text-xs text-muted-foreground">{date} &bull; {totalQty} item{totalQty !== 1 ? "s" : ""}</p>
-      </div>
+      <div className="flex-1 min-w-0"><p className="font-semibold text-sm group-hover:underline">{order.name}</p><p className="text-xs text-muted-foreground">{date} &bull; {totalQty} item{totalQty !== 1 ? "s" : ""}</p></div>
       <p className="font-semibold text-sm w-16 text-right">£{total.toFixed(2)}</p>
       <ChevronRight className="size-4 text-muted-foreground shrink-0" />
     </button>
   )
 }
 
-function TableCard({ title, badge, fullWidth, children }: { title: string; badge?: React.ReactNode; fullWidth?: boolean; children: React.ReactNode }) {
-  return (
-    <Card className={cn(C, "overflow-hidden flex flex-col", fullWidth ? "w-full" : TABLE_H)}>
-      <CardHeader className="px-5 py-3 border-b gap-0 shrink-0">
-        <CardTitle className="text-sm font-semibold flex items-center justify-between">
-          {title}
-          {badge}
-        </CardTitle>
-      </CardHeader>
-      {children}
-    </Card>
-  )
-}
-
+// ─── Order Detail Component ────────────────────────────────────────────────
 function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
   const [policyAccepted, setPolicyAccepted] = useState(false)
   const [selectedItems, setSelectedItems] = useState<Record<string, { selected: boolean; quantity: number; reason: string; description: string }>>({})
@@ -300,23 +201,45 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
   const [submitted, setSubmitted] = useState(false)
   const [mounted, setMounted] = useState(false)
   
+  // Pagination & Filter State
+  const [searchQuery, setSearchQuery] = useState("")
+  const [pageSize, setPageSize] = useState("10")
+  const [currentPage, setCurrentPage] = useState(1)
+
   useEffect(() => { setMounted(true) }, [])
   const { state: sidebarState, isMobile: sidebarMobile } = useSidebar()
 
   const rawOrderId = order.id.split("/").pop()
   const orderStatusUrl = `https://account.iblazevape.co.uk/orders/${rawOrderId}`
 
+  // Categorize Items
   const eligibleItems = order.processedItems.filter(i => i.returnStatus === "Eligible" && i.eligibleQuantity > 0)
   const ineligibleItems = order.processedItems.filter(i => i.returnStatus !== "Eligible" || i.eligibleQuantity === 0)
   const hasEligible = eligibleItems.length > 0 && !order.cancelledAt
 
+  // Stats
   const total = parseFloat(order.totalPriceSet.shopMoney.amount)
   const totalQty = order.processedItems.reduce((s, i) => s + i.quantity, 0)
   const orderAvgPrice = totalQty > 0 ? total / totalQty : 0
   const refundedAmount = order.totalRefundedSet?.shopMoney?.amount ? parseFloat(order.totalRefundedSet.shopMoney.amount) : 0
-
   const eligibleQty = eligibleItems.reduce((s, i) => s + i.eligibleQuantity, 0)
   const ineligibleQty = totalQty - eligibleQty
+
+  // Filter Data
+  const filteredEligible = useMemo(() => eligibleItems.filter(i => i.title.toLowerCase().includes(searchQuery.toLowerCase())), [eligibleItems, searchQuery])
+  const filteredIneligible = useMemo(() => ineligibleItems.filter(i => i.title.toLowerCase().includes(searchQuery.toLowerCase())), [ineligibleItems, searchQuery])
+
+  // Current Tab View Items
+  const [activeTab, setActiveTab] = useState(hasEligible ? "eligible" : "ineligible")
+  const currentData = activeTab === "eligible" ? filteredEligible : filteredIneligible
+
+  // Pagination Logic
+  const size = pageSize === "all" ? currentData.length : parseInt(pageSize)
+  const totalPages = Math.ceil(currentData.length / size) || 1
+  const paginatedData = currentData.slice((currentPage - 1) * size, currentPage * size)
+
+  // Reset page when tab or search changes
+  useEffect(() => { setCurrentPage(1) }, [activeTab, searchQuery, pageSize])
 
   const selectedCount = Object.values(selectedItems).filter(v => v.selected).length
   const estimatedRefund = Object.entries(selectedItems)
@@ -337,20 +260,16 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
     if (!items.length) return
     setSubmitting(true)
     try {
-      const res = await fetch("/api/submit-return", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId: rawOrderId, items }),
-      })
+      const res = await fetch("/api/submit-return", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ orderId: rawOrderId, items }) })
       const result = await res.json()
       if (result.success) {
         setSubmitted(true)
         setTimeout(() => { window.location.href = orderStatusUrl }, 3000)
       } else {
-        toast.error("Submission failed", { description: result.error || "Something went wrong. Please try again." })
+        toast.error("Submission failed", { description: result.error || "Something went wrong." })
       }
     } catch {
-      toast.error("Network error", { description: "Please check your connection and try again." })
+      toast.error("Network error", { description: "Please check your connection." })
     } finally {
       setSubmitting(false)
     }
@@ -359,9 +278,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
   if (submitted) {
     return (
       <div className="max-w-md mx-auto py-20 text-center space-y-4 px-4">
-        <div className="size-16 bg-green-50 rounded-full flex items-center justify-center mx-auto">
-          <CheckCircle2 className="size-8 text-green-500" />
-        </div>
+        <div className="size-16 bg-green-50 rounded-full flex items-center justify-center mx-auto"><CheckCircle2 className="size-8 text-green-500" /></div>
         <h2 className="text-xl font-semibold">Return Requested</h2>
         <p className="text-muted-foreground text-sm">We&apos;ve sent you a confirmation email. Our team will review your return and be in touch once it&apos;s completed.</p>
       </div>
@@ -369,60 +286,11 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
   }
 
   let orderStatusBadge;
-  if (order.cancelledAt) {
-    orderStatusBadge = <Badge className="bg-red-100 text-red-700 hover:bg-red-100 border-0 text-xs">Cancelled</Badge>
-  } else if (order.isDelivered) {
-    orderStatusBadge = <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-0 text-xs">Delivered</Badge>
-  } else if (order.displayFulfillmentStatus === "PARTIAL") {
-    orderStatusBadge = <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-0 text-xs">Partially Fulfilled</Badge>
-  } else if (order.displayFulfillmentStatus === "UNFULFILLED" || order.displayFulfillmentStatus === "IN_PROGRESS") {
-    orderStatusBadge = <Badge variant="secondary" className="text-xs">Confirmed</Badge>
-  } else {
-    orderStatusBadge = <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-100 border-0 text-xs">On its way</Badge>
-  }
-
-  const IneligibleTableContent = (
-    <div className="flex-1 min-h-0 overflow-auto">
-      <Table className="min-w-[560px]">
-        <TableHeader className="sticky top-0 bg-background z-10">
-          <TableRow className="hover:bg-transparent">
-            <TableHead className="pl-4">Product</TableHead>
-            <TableHead>Variant</TableHead>
-            <TableHead className="text-center">Qty</TableHead>
-            <TableHead className="text-right">Total</TableHead>
-            {!order.cancelledAt && <TableHead className="pr-4 text-right">Status</TableHead>}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {ineligibleItems.map(item => {
-            const itemPrice = item.unitPrice ?? orderAvgPrice;
-            const linePrice = itemPrice * item.quantity;
-            return (
-              <TableRow key={item.id}>
-                <TableCell className="pl-4 py-3">
-                  <div className="flex items-center gap-3">
-                    <ProductThumb item={item} />
-                    <div className="min-w-0">
-                      <a href={pUrl(item.productHandle)} target="_blank" rel="noopener noreferrer" className="font-medium text-sm hover:underline block leading-tight truncate max-w-[160px]">{item.title}</a>
-                      <span className="text-xs text-muted-foreground tabular-nums">£{itemPrice.toFixed(2)} each</span>
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell className="py-3 text-sm">{item.variant?.title && item.variant.title !== "Default Title" ? item.variant.title : "—"}</TableCell>
-                <TableCell className="py-3 text-sm text-center tabular-nums">{item.quantity}</TableCell>
-                <TableCell className="py-3 font-semibold text-sm text-right tabular-nums whitespace-nowrap">£{linePrice.toFixed(2)}</TableCell>
-                {!order.cancelledAt && (
-                  <TableCell className="pr-4 py-3 text-right">
-                    <IneligibleReason status={item.returnStatus} reason={item.returnReason} lineDeliveredAt={item.lineDeliveredAt} />
-                  </TableCell>
-                )}
-              </TableRow>
-            )
-          })}
-        </TableBody>
-      </Table>
-    </div>
-  )
+  if (order.cancelledAt) orderStatusBadge = <Badge className="bg-red-100 text-red-700 hover:bg-red-100 border-0 text-xs">Cancelled</Badge>
+  else if (order.isDelivered) orderStatusBadge = <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-0 text-xs">Delivered</Badge>
+  else if (order.displayFulfillmentStatus === "PARTIAL") orderStatusBadge = <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-0 text-xs">Partially Fulfilled</Badge>
+  else if (order.displayFulfillmentStatus === "UNFULFILLED" || order.displayFulfillmentStatus === "IN_PROGRESS") orderStatusBadge = <Badge variant="secondary" className="text-xs">Confirmed</Badge>
+  else orderStatusBadge = <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-100 border-0 text-xs">On its way</Badge>
 
   return (
     <>
@@ -431,6 +299,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
           <ArrowLeft className="size-4" /> Back to Orders
         </Button>
 
+        {/* --- Order Header --- */}
         <Card className={cn(C, "overflow-hidden")}>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-4">
             <div>
@@ -439,9 +308,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                 {orderStatusBadge}
               </div>
               <p className="text-xs text-muted-foreground">
-                {order.cancelledAt
-                  ? `Cancelled ${new Date(order.cancelledAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`
-                  : `Ordered ${new Date(order.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`}
+                {order.cancelledAt ? `Cancelled ${new Date(order.cancelledAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}` : `Ordered ${new Date(order.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`}
                 {" "}&bull; £{total.toFixed(2)} GBP &bull; {totalQty} item{totalQty !== 1 ? "s" : ""}
               </p>
             </div>
@@ -464,38 +331,49 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
           </div>
         )}
 
+        {/* --- Shipments Carousel --- */}
         {!order.cancelledAt && order.shipments && order.shipments.length > 0 && (
           <div className="flex flex-col gap-3">
             <h3 className="text-sm font-semibold flex items-center gap-2"><Truck className="size-4" /> Shipments & Tracking</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {order.shipments.map((shipment, idx) => (
-                <Card key={shipment.id} className="shadow-sm">
-                  <CardHeader className="p-4 pb-2">
-                    <div className="flex justify-between items-start">
-                      <CardTitle className="text-sm font-medium">Shipment {idx + 1}</CardTitle>
-                      <Badge variant="outline" className="text-xs bg-zinc-50">{shipment.displayStatus}</Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-4 pt-2">
-                    {shipment.trackingInfo.map((track, i) => (
-                      <div key={i} className="mb-3 last:mb-0">
-                        <p className="text-xs text-muted-foreground mb-1">Tracking via {track.company}</p>
-                        {track.url ? (
-                          <a href={track.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-blue-600 hover:underline flex items-center gap-1.5">
-                            {track.number} <ExternalLink className="size-3" />
-                          </a>
-                        ) : (
-                          <p className="text-sm font-medium">{track.number}</p>
-                        )}
-                      </div>
-                    ))}
-                    <div className="mt-3 pt-3 border-t flex items-center gap-2 text-xs text-muted-foreground">
-                      <Package className="size-3.5" /> {shipment.items.reduce((acc, curr) => acc + curr.quantity, 0)} items in this package
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+            <Carousel className="w-full">
+              <CarouselContent>
+                {order.shipments.map((shipment, idx) => (
+                  <CarouselItem key={shipment.id} className="md:basis-1/2 lg:basis-1/3">
+                    <Card className="shadow-sm h-full flex flex-col">
+                      <CardHeader className="p-4 pb-2 border-b">
+                        <div className="flex justify-between items-start">
+                          <CardTitle className="text-sm font-medium">Shipment {idx + 1}</CardTitle>
+                          <Badge variant="outline" className="text-xs bg-zinc-50">{shipment.displayStatus}</Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="p-4 pt-3 flex-1 flex flex-col justify-between">
+                        <div>
+                          {shipment.trackingInfo.map((track, i) => (
+                            <div key={i} className="mb-3 last:mb-0">
+                              <p className="text-xs text-muted-foreground mb-1">Tracking via {track.company}</p>
+                              {track.url ? (
+                                <a href={track.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-blue-600 hover:underline flex items-center gap-1.5">
+                                  {track.number} <ExternalLink className="size-3" />
+                                </a>
+                              ) : <p className="text-sm font-medium">{track.number}</p>}
+                            </div>
+                          ))}
+                        </div>
+                        <div className="mt-4 pt-3 border-t flex items-center gap-2 text-xs text-muted-foreground">
+                          <Package className="size-3.5" /> {shipment.items.reduce((acc, curr) => acc + curr.quantity, 0)} items inside
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              {order.shipments.length > 2 && (
+                <div className="hidden lg:flex items-center gap-2 mt-2">
+                  <CarouselPrevious className="relative inset-0 translate-y-0 h-8 w-8" />
+                  <CarouselNext className="relative inset-0 translate-y-0 h-8 w-8" />
+                </div>
+              )}
+            </Carousel>
           </div>
         )}
 
@@ -506,49 +384,86 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
           </div>
         )}
 
+        {/* --- Unified Filterable Table with Tabs --- */}
         {!order.cancelledAt && (
-          hasEligible ? (
-            <div className={ineligibleItems.length > 0 ? "grid grid-cols-1 xl:grid-cols-2 gap-4" : "flex flex-col gap-4"}>
-              <TableCard title="Select items to return" fullWidth={ineligibleItems.length === 0}>
-                <div className="flex-1 min-h-0 overflow-auto">
-                  <Table className="min-w-[560px]">
-                    <TableHeader className="sticky top-0 bg-background z-10">
-                      <TableRow className="hover:bg-transparent">
-                        <TableHead className="w-8 pl-4 pr-0"></TableHead>
-                        <TableHead className="pl-3">Product</TableHead>
-                        <TableHead>Variant</TableHead>
-                        <TableHead className="text-center">Available</TableHead>
-                        <TableHead className="text-right pr-4">Total</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {eligibleItems.map(item => {
+          <Card className={cn(C, "overflow-hidden flex flex-col")}>
+            <Tabs defaultValue={hasEligible ? "eligible" : "ineligible"} onValueChange={setActiveTab}>
+              <div className="px-5 py-3 border-b bg-muted/20 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <TabsList>
+                  <TabsTrigger value="eligible" disabled={!hasEligible}>Eligible ({filteredEligible.length})</TabsTrigger>
+                  <TabsTrigger value="ineligible">Not Eligible ({filteredIneligible.length})</TabsTrigger>
+                </TabsList>
+                
+                <div className="flex items-center gap-2">
+                  <div className="relative w-full md:w-64">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input placeholder="Search items..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9 h-9" />
+                  </div>
+                  <Select value={pageSize} onValueChange={setPageSize}>
+                    <SelectTrigger className="w-[110px] h-9"><SelectValue placeholder="Show" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="5">Show 5</SelectItem>
+                      <SelectItem value="10">Show 10</SelectItem>
+                      <SelectItem value="25">Show 25</SelectItem>
+                      <SelectItem value="all">Show All</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="flex-1 min-h-0 overflow-auto">
+                <Table className="min-w-[560px]">
+                  <TableHeader className="bg-background z-10">
+                    <TableRow className="hover:bg-transparent">
+                      {activeTab === "eligible" && <TableHead className="w-8 pl-4 pr-0"></TableHead>}
+                      <TableHead className="pl-4">Product</TableHead>
+                      <TableHead>Variant</TableHead>
+                      <TableHead className="text-center">Qty</TableHead>
+                      <TableHead className="text-right pr-4">Total</TableHead>
+                      {activeTab === "ineligible" && <TableHead className="pr-4 text-right">Status</TableHead>}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedData.length === 0 ? (
+                      <TableRow><TableCell colSpan={6} className="h-24 text-center text-muted-foreground">No items found.</TableCell></TableRow>
+                    ) : (
+                      paginatedData.map(item => {
                         const sel = selectedItems[item.id]
-                        const isLocked = !policyAccepted
+                        const isLocked = !policyAccepted && activeTab === "eligible"
                         const itemPrice = item.unitPrice ?? orderAvgPrice
+                        
                         return (
                           <React.Fragment key={item.id}>
                             <TableRow className={cn("transition-colors", sel?.selected && "bg-muted/20")}>
-                              <TableCell className="pl-4 pr-0 py-3">
-                                <Checkbox checked={sel?.selected || false} disabled={isLocked} onCheckedChange={c => {
-                                  if (isLocked) return
-                                  setSelectedItems(p => ({ ...p, [item.id]: c ? { selected: true, quantity: 1, reason: "", description: "" } : { ...p[item.id], selected: false } }))
-                                }} />
-                              </TableCell>
-                              <TableCell className="pl-3 py-3">
+                              {activeTab === "eligible" && (
+                                <TableCell className="pl-4 pr-0 py-3">
+                                  <Checkbox checked={sel?.selected || false} disabled={isLocked} onCheckedChange={c => {
+                                    if (isLocked) return
+                                    setSelectedItems(p => ({ ...p, [item.id]: c ? { selected: true, quantity: 1, reason: "", description: "" } : { ...p[item.id], selected: false } }))
+                                  }} />
+                                </TableCell>
+                              )}
+                              <TableCell className="pl-4 py-3">
                                 <div className="flex items-center gap-3">
                                   <ProductThumb item={item} />
                                   <div className="min-w-0">
-                                    <a href={pUrl(item.productHandle)} className="font-medium text-sm hover:underline truncate">{item.title}</a>
+                                    <a href={pUrl(item.productHandle)} className="font-medium text-sm hover:underline truncate block">{item.title}</a>
                                     <span className="text-xs text-muted-foreground block">£{itemPrice.toFixed(2)} each</span>
                                   </div>
                                 </div>
                               </TableCell>
                               <TableCell className="py-3 text-sm">{item.variant?.title || "—"}</TableCell>
-                              <TableCell className="py-3 text-sm text-center tabular-nums">{item.eligibleQuantity}</TableCell>
-                              <TableCell className="text-right pr-4 py-3 font-semibold text-sm tabular-nums">£{(itemPrice * (sel?.quantity || item.eligibleQuantity)).toFixed(2)}</TableCell>
+                              <TableCell className="py-3 text-sm text-center tabular-nums">{activeTab === "eligible" ? item.eligibleQuantity : item.quantity}</TableCell>
+                              <TableCell className="text-right pr-4 py-3 font-semibold text-sm tabular-nums">
+                                £{(itemPrice * (activeTab === "eligible" ? (sel?.quantity || item.eligibleQuantity) : item.quantity)).toFixed(2)}
+                              </TableCell>
+                              {activeTab === "ineligible" && (
+                                <TableCell className="pr-4 py-3 text-right">
+                                  <IneligibleReason status={item.returnStatus} reason={item.returnReason} lineDeliveredAt={item.lineDeliveredAt} />
+                                </TableCell>
+                              )}
                             </TableRow>
-                            {sel?.selected && (
+                            {sel?.selected && activeTab === "eligible" && (
                               <TableRow className="bg-zinc-50/60">
                                 <TableCell colSpan={5} className="px-4 pb-3 pt-1">
                                   <div className="ml-[calc(0.5rem+2.5rem+0.75rem)] grid grid-cols-2 gap-2.5">
@@ -586,39 +501,36 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                             )}
                           </React.Fragment>
                         )
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
-              </TableCard>
+                      })
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
 
-              {ineligibleItems.length > 0 && <TableCard title="Not eligible for return">{IneligibleTableContent}</TableCard>}
-            </div>
-          ) : (
-            <TableCard title="Not eligible for return" fullWidth>{IneligibleTableContent}</TableCard>
-          )
+              {/* --- Pagination Footer --- */}
+              <div className="p-4 border-t flex items-center justify-between text-sm text-muted-foreground">
+                <div>
+                  Showing {Math.min((currentPage - 1) * size + 1, currentData.length)} to {Math.min(currentPage * size, currentData.length)} of {currentData.length} entries
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>Previous</Button>
+                  <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages === 0}>Next</Button>
+                </div>
+              </div>
+            </Tabs>
+          </Card>
         )}
       </div>
 
+      {/* --- Action Bar --- */}
       {mounted && hasEligible && !order.cancelledAt && createPortal(
         <div className="fixed bottom-0 right-0 z-[48] border-t border-border bg-background shadow-[0_-2px_12px_rgba(0,0,0,0.08)]" style={{ left: sidebarMobile ? "0px" : sidebarState === "collapsed" ? "4.5rem" : "18rem" }}>
           <div className="px-4 lg:px-6 py-2.5 flex items-center justify-between gap-2">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="shrink-0">
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold leading-none mb-0.5">Selected</p>
-                <p className="text-sm font-semibold leading-tight">{selectedCount} item{selectedCount !== 1 ? "s" : ""}</p>
-              </div>
+              <div className="shrink-0"><p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold leading-none mb-0.5">Selected</p><p className="text-sm font-semibold leading-tight">{selectedCount} item{selectedCount !== 1 ? "s" : ""}</p></div>
               <Separator orientation="vertical" className="h-7 shrink-0" />
-              <div className="shrink-0">
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold leading-none mb-0.5">Refund</p>
-                <p className="text-sm font-bold text-[#E5403B] leading-tight">£{estimatedRefund.toFixed(2)}</p>
-              </div>
-              {!policyAccepted && (
-                <div className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
-                  <Lock className="size-3.5 shrink-0" />
-                  <span>Accept policy to continue</span>
-                </div>
-              )}
+              <div className="shrink-0"><p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold leading-none mb-0.5">Refund</p><p className="text-sm font-bold text-[#E5403B] leading-tight">£{estimatedRefund.toFixed(2)}</p></div>
+              {!policyAccepted && <div className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground shrink-0"><Lock className="size-3.5 shrink-0" /><span>Accept policy to continue</span></div>}
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <Button variant="ghost" size="sm" onClick={onBack} className="text-muted-foreground hidden sm:inline-flex">Cancel</Button>
