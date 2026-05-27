@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
               orders(first: 20, sortKey: CREATED_AT, reverse: true) {
                 edges {
                   node {
-                    id name createdAt displayFulfillmentStatus
+                    id name createdAt canceledAt displayFulfillmentStatus financialStatus
                     totalPriceSet { shopMoney { amount currencyCode } }
                     totalRefundedSet { shopMoney { amount } }
                     returns(first: 10) {
@@ -69,6 +69,7 @@ export async function GET(request: NextRequest) {
                       edges {
                         node {
                           id title quantity
+                          discountedUnitPriceSet { shopMoney { amount } }
                           product { handle }
                           image { url }
                           variant { title }
@@ -96,7 +97,9 @@ export async function GET(request: NextRequest) {
       id: string;
       name: string;
       createdAt: string;
+      canceledAt: string | null;
       displayFulfillmentStatus: string;
+      financialStatus: string;
       totalPriceSet: { shopMoney: { amount: string; currencyCode: string } };
       totalRefundedSet?: { shopMoney: { amount: string } } | null;
       returns?: {
@@ -130,6 +133,7 @@ export async function GET(request: NextRequest) {
             id: string;
             title: string;
             quantity: number;
+            discountedUnitPriceSet: { shopMoney: { amount: string } } | null;
             product: { handle: string } | null;
             image: { url: string } | null;
             variant: { title: string } | null;
@@ -288,6 +292,9 @@ export async function GET(request: NextRequest) {
         return {
           ...item,
           productHandle: item.product?.handle || null,
+          unitPrice: item.discountedUnitPriceSet?.shopMoney?.amount
+            ? parseFloat(item.discountedUnitPriceSet.shopMoney.amount)
+            : null,
           returnStatus,
           returnReason,
           lineDeliveredAt,
@@ -299,6 +306,7 @@ export async function GET(request: NextRequest) {
         processedItems: items,
         isDelivered: orderIsDelivered,
         deliveredAt: orderDeliveredAt?.toISOString() ?? null,
+        canceledAt: order.canceledAt ?? null,
       };
     });
 
