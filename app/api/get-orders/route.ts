@@ -96,7 +96,6 @@ export async function GET(request: NextRequest) {
     const processedOrders = rawOrders.map((order: any) => {
 
       // ── 1. Refunded quantities per line item ──────────────────────────────
-      // Order.refunds = plain array; refundLineItems inside = connection
       const refundedQuantities: Record<string, number> = {};
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (order.refunds || []).forEach((ref: any) => {
@@ -108,8 +107,6 @@ export async function GET(request: NextRequest) {
       });
 
       // ── 2. Collect ALL return records per line item ───────────────────────
-      // Keep an array so multiple returns on the same item are all tracked.
-      // Priority for "winning" status: OPEN > REQUESTED > DECLINED > CANCELED > CLOSED
       const returnPriority: Record<string, number> = {
         OPEN: 5, REQUESTED: 4, DECLINED: 3, CANCELED: 2, CLOSED: 1,
       };
@@ -139,9 +136,7 @@ export async function GET(request: NextRequest) {
         }
       });
 
-      // Best (highest-priority) return per line item
       const itemReturnStatus: Record<string, ReturnEntry> = {};
-      // Active (blocking) return quantity per line item — only OPEN/REQUESTED/CLOSED block eligibility
       const activeReturnQty: Record<string, number> = {};
 
       for (const [lid, entries] of Object.entries(returnsByItem)) {
@@ -150,8 +145,6 @@ export async function GET(request: NextRequest) {
         );
         itemReturnStatus[lid] = sorted[0];
 
-        // Quantities that block future returns: OPEN + REQUESTED + CLOSED are "used up"
-        // DECLINED and CANCELED do NOT block — the customer can try again
         const blocking = entries
           .filter(e => ["OPEN", "REQUESTED", "CLOSED"].includes(e.status))
           .reduce((sum, e) => sum + e.quantity, 0);
@@ -159,7 +152,6 @@ export async function GET(request: NextRequest) {
       }
 
       // ── 3. Build shipments with tracking ─────────────────────────────────
-      // Order.fulfillments = plain array; trackingInfo inside = plain array
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const shipments = (order.fulfillments || []).map((f: any) => ({
         id: f.id,
@@ -182,26 +174,29 @@ export async function GET(request: NextRequest) {
       // ── 4. Per-line-item delivery state ───────────────────────────────────
       type LineDelivery = {
         isDelivered: boolean;
-        isConfirmed: boolean;  // label created, preparing — NOT yet with carrier
-        inTransit: boolean;    // with carrier, moving
-        isDispatched: boolean; // any of the above
+        isConfirmed: boolean;  
+        inTransit: boolean;    
+        isDispatched: boolean; 
         deliveredAt: Date | null;
       };
+      
       const lineItemDelivery: Record<string, LineDelivery> = {};
+      
+      // Explicitly typed as Date | null to fix the Vercel TypeScript issue
+      let earliestDelivery = null as Date | null;
+      let latestDelivery = null as Date | null;
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       for (const f of (order.fulfillments || [])) {
         const s = f.displayStatus;
         const isDelivered = s === "DELIVERED";
 
-        // "Confirmed" = label purchased/printed, not yet picked up by carrier
         const isConfirmed =
           s === "CONFIRMED" ||
           s === "SUBMITTED" ||
           s === "LABEL_PURCHASED" ||
           s === "LABEL_PRINTED";
 
-        // "In transit" = carrier has it, moving toward customer
         const inTransit =
           s === "IN_TRANSIT" ||
           s === "OUT_FOR_DELIVERY" ||
@@ -216,13 +211,15 @@ export async function GET(request: NextRequest) {
         let deliveredAt: Date | null = null;
         if (isDelivered) {
           deliveredAt = f.deliveredAt ? new Date(f.deliveredAt) : new Date(f.updatedAt);
+          // Safely set earliest and latest timestamps outside the mapping closure
+          if (!earliestDelivery || deliveredAt < earliestDelivery) earliestDelivery = deliveredAt;
+          if (!latestDelivery || deliveredAt > latestDelivery) latestDelivery = deliveredAt;
         }
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         for (const edge of (f.fulfillmentLineItems?.edges || [])) {
           const liId = edge.node.lineItem.id;
           const existing = lineItemDelivery[liId];
-          // Prefer: delivered > inTransit > confirmed
           if (!existing || (!existing.isDelivered && isDelivered)) {
             lineItemDelivery[liId] = {
               isDelivered,
@@ -238,10 +235,8 @@ export async function GET(request: NextRequest) {
       // ── 5. Map each line item ─────────────────────────────────────────────
       const now = new Date();
       let deliveredCount = 0;
-      let dispatchedCount = 0;  // in-transit but not delivered
-      let confirmedCount = 0;   // label created but not shipped
-      let earliestDelivery: Date | null = null;
-      let latestDelivery: Date | null = null;
+      let dispatchedCount = 0;  
+      let confirmedCount = 0;   
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const items = order.lineItems.edges.map(({ node: item }: any) => {
@@ -251,18 +246,11 @@ export async function GET(request: NextRequest) {
         const refQty = refundedQuantities[item.id] || 0;
         const retQty = activeReturnQty[item.id] || 0;
 
-        // Conservative: treat refunded + in-active-return as separate pools that
-        // could overlap (same unit refunded AND in return). Cap at item quantity.
         const unavailableQty = Math.min(item.quantity, refQty + retQty);
         const eligibleQuantity = Math.max(0, item.quantity - unavailableQty);
 
-        // Track delivery counts per line item (not by unit, to avoid inflating counts)
         if (delivery?.isDelivered) {
           deliveredCount++;
-          if (delivery.deliveredAt) {
-            if (!earliestDelivery || delivery.deliveredAt < earliestDelivery) earliestDelivery = delivery.deliveredAt;
-            if (!latestDelivery || delivery.deliveredAt > latestDelivery) latestDelivery = delivery.deliveredAt;
-          }
         } else if (delivery?.inTransit) {
           dispatchedCount++;
         } else if (delivery?.isConfirmed) {
@@ -295,8 +283,6 @@ export async function GET(request: NextRequest) {
             else returnReason = "Your return request was declined.";
           } else {
             returnReason = "You have an active or completed return for this item.";
-            // If the return is closed/declined/cancelled and some units are still eligible,
-            // show the item as eligible for those units
             if (eligibleQuantity > 0 && !["OPEN", "REQUESTED"].includes(bestReturn.status)) {
               returnStatus = "Eligible";
               returnReason = "";
@@ -325,7 +311,6 @@ export async function GET(request: NextRequest) {
               returnReason = "";
             }
           } else {
-            // Delivered but no timestamp — default to eligible (conservative)
             returnStatus = "Eligible";
             returnReason = "";
           }
@@ -354,7 +339,6 @@ export async function GET(request: NextRequest) {
       const totalLineItems = items.length;
       const notDispatchedCount = totalLineItems - deliveredCount - dispatchedCount - confirmedCount;
 
-      // Order-level status: derived from per-item delivery states
       let orderStatus: string;
       if (order.cancelledAt) {
         orderStatus = "Cancelled";
