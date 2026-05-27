@@ -5,9 +5,8 @@ import { createPortal } from "react-dom"
 import { useEffect, useState, useMemo } from "react"
 import { toast } from "sonner"
 import {
-  ChevronRight, LayoutGrid, List, ArrowLeft,
-  RotateCcw, CheckCircle2, ShoppingBag, ShieldCheck,
-  ExternalLink, Lock, Truck, Package, Search
+  ArrowLeft, RotateCcw, CheckCircle2, ShoppingBag, 
+  ShieldCheck, ExternalLink, Lock, Truck, Package, Search
 } from "lucide-react"
 
 import { AppSidebar } from "@/components/app-sidebar"
@@ -31,7 +30,6 @@ import { Drawer, DrawerClose, DrawerContent, DrawerFooter, DrawerHeader, DrawerT
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { cn } from "@/lib/utils"
 
-// ─── Types & Constants ────────────────────────────────────────────────────────
 type ReturnStatus = "Eligible" | "Not yet dispatched" | "On its way" | "Passed the return window" | "Returned" | "Refunded" | "Return requested" | "Return in progress" | "Return completed" | "Return declined" | "Return cancelled" | "Cancelled"
 
 interface LineItem {
@@ -53,7 +51,6 @@ const RETURN_REASONS = [
 
 const C = "shadow-sm py-0 gap-0"
 
-// ─── Helper Functions ──────────────────────────────────────────────────────
 function pUrl(handle?: string | null) { return handle ? `https://iblazevape.co.uk/products/${handle}` : "https://iblazevape.co.uk" }
 
 function OutlineBadge({ className, children }: { className: string; children: React.ReactNode }) {
@@ -106,94 +103,6 @@ function OrderCardSkeleton() {
   )
 }
 
-function HygienePolicy({ onAccept, onDecline }: { onAccept: () => void; onDecline: () => void }) {
-  const [open, setOpen] = useState(false)
-  const isDesktop = useMediaQuery("(min-width: 768px)")
-
-  const handleAccept = () => { setOpen(false); onAccept(); toast.success("Policy accepted", { description: "You can now select items to return." }) }
-  const handleDecline = () => { setOpen(false); onDecline(); toast.warning("Policy declined", { description: "You must accept the returns policy to continue." }) }
-
-  const policyItems = [
-    { title: "Vape Kits & Mods", desc: "30-day refund period. 30-day warranty from delivery." },
-    { title: "Batteries & Chargers", desc: "60-day battery warranty. 30-day charger warranty." },
-    { title: "E-Liquids & Disposables", desc: "Must remain sealed and unopened. No returns on opened liquids." },
-    { title: "Tanks & Clearomisers", desc: "7-day Dead On Arrival window — report faults within 7 days." },
-  ]
-  const body = (
-    <div className="space-y-2 text-sm">
-      {policyItems.map(p => (
-        <div key={p.title} className="rounded-lg border bg-muted/30 px-3 py-2.5"><p className="font-semibold text-xs">{p.title}</p><p className="text-xs text-muted-foreground mt-0.5">{p.desc}</p></div>
-      ))}
-      <p className="text-xs text-muted-foreground pt-1">Return postage is at your expense. Tracked service required. Refunds within 5–10 business days.</p>
-    </div>
-  )
-  const footer = (
-    <div className="flex gap-2 pt-2">
-      <Button className="flex-1 bg-[#E5403B] hover:bg-[#cc3935] text-white" onClick={handleAccept}><CheckCircle2 className="size-4" /> I Accept</Button>
-      <Button variant="outline" className="flex-1" onClick={handleDecline}>Decline</Button>
-    </div>
-  )
-  const trigger = <Button size="sm" className="bg-[#E5403B] hover:bg-[#cc3935] text-white shrink-0">Review &amp; Accept</Button>
-
-  if (isDesktop) return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader><DialogTitle className="flex items-center gap-2"><ShieldCheck className="size-4 text-[#E5403B]" /> iBlaze Returns Policy</DialogTitle></DialogHeader>
-        {body}{footer}
-      </DialogContent>
-    </Dialog>
-  )
-  return (
-    <Drawer open={open} onOpenChange={setOpen}>
-      <DrawerTrigger asChild>{trigger}</DrawerTrigger>
-      <DrawerContent>
-        <DrawerHeader><DrawerTitle className="flex items-center gap-2"><ShieldCheck className="size-4 text-[#E5403B]" /> iBlaze Returns Policy</DrawerTitle></DrawerHeader>
-        <div className="px-4 pb-2">{body}</div>
-        <DrawerFooter>{footer}<DrawerClose asChild><Button variant="ghost" size="sm">Cancel</Button></DrawerClose></DrawerFooter>
-      </DrawerContent>
-    </Drawer>
-  )
-}
-
-function OrderCard({ order, onClick }: { order: Order; onClick: () => void }) {
-  const uniqueImages = order.processedItems.map(i => i.image?.url).filter((u, i, a) => u && a.indexOf(u) === i).slice(0, 5) as string[]
-  const extra = order.processedItems.length - uniqueImages.length
-  const totalQty = order.processedItems.reduce((s, i) => s + i.quantity, 0)
-  const total = parseFloat(order.totalPriceSet.shopMoney.amount)
-  const date = new Date(order.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
-  return (
-    <button onClick={onClick} className="group w-full text-left bg-white border border-border rounded-xl p-5 shadow-sm hover:shadow-md hover:border-zinc-300 transition-all duration-150 focus:outline-none flex flex-col justify-between">
-      <div className="flex items-start justify-between mb-3">
-        <div><p className="font-semibold text-[15px] group-hover:underline">{order.name}</p><p className="text-[13px] text-muted-foreground mt-0.5">{date} &bull; {totalQty} item{totalQty !== 1 ? "s" : ""}</p></div>
-        <p className="font-semibold text-[15px]">£{total.toFixed(2)}</p>
-      </div>
-      <div className="flex items-center gap-1.5">
-        {uniqueImages.map((url, i) => <div key={i} className="w-10 h-10 rounded-md border border-border bg-white overflow-hidden shrink-0"><img src={url} alt="" className="w-full h-full object-contain p-0.5" /></div>)}
-        {extra > 0 && <div className="w-10 h-10 rounded-md border border-border bg-zinc-50 flex items-center justify-center shrink-0"><span className="text-[11px] font-bold text-muted-foreground">+{extra}</span></div>}
-      </div>
-    </button>
-  )
-}
-
-function OrderRow({ order, onClick }: { order: Order; onClick: () => void }) {
-  const images = order.processedItems.map(i => i.image?.url).filter(Boolean).slice(0, 3) as string[]
-  const total = parseFloat(order.totalPriceSet.shopMoney.amount)
-  const date = new Date(order.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
-  const totalQty = order.processedItems.reduce((s, i) => s + i.quantity, 0)
-  return (
-    <button onClick={onClick} className="w-full px-5 py-3.5 flex items-center gap-4 hover:bg-zinc-50 transition-colors text-left group border-b border-border last:border-0">
-      <div className="flex -space-x-2">
-        {images.map((url, i) => <div key={i} className="size-9 rounded-lg border-2 border-white bg-white overflow-hidden shadow-sm"><img src={url} alt="" className="w-full h-full object-contain" /></div>)}
-      </div>
-      <div className="flex-1 min-w-0"><p className="font-semibold text-sm group-hover:underline">{order.name}</p><p className="text-xs text-muted-foreground">{date} &bull; {totalQty} item{totalQty !== 1 ? "s" : ""}</p></div>
-      <p className="font-semibold text-sm w-16 text-right">£{total.toFixed(2)}</p>
-      <ChevronRight className="size-4 text-muted-foreground shrink-0" />
-    </button>
-  )
-}
-
-// ─── Order Detail Component ────────────────────────────────────────────────
 function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
   const [policyAccepted, setPolicyAccepted] = useState(false)
   const [selectedItems, setSelectedItems] = useState<Record<string, { selected: boolean; quantity: number; reason: string; description: string }>>({})
@@ -201,7 +110,6 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
   const [submitted, setSubmitted] = useState(false)
   const [mounted, setMounted] = useState(false)
   
-  // Pagination & Filter State
   const [searchQuery, setSearchQuery] = useState("")
   const [pageSize, setPageSize] = useState("5")
   const [currentPage, setCurrentPage] = useState(1)
@@ -210,34 +118,30 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
   const { state: sidebarState, isMobile: sidebarMobile } = useSidebar()
 
   const rawOrderId = order.id.split("/").pop()
+  const orderStatusUrl = `https://account.iblazevape.co.uk/orders/${rawOrderId}`
   
-  // Categorize Items
   const eligibleItems = order.processedItems.filter(i => i.returnStatus === "Eligible" && i.eligibleQuantity > 0)
   const ineligibleItems = order.processedItems.filter(i => i.returnStatus !== "Eligible" || i.eligibleQuantity === 0)
   const hasEligible = eligibleItems.length > 0 && !order.cancelledAt
 
-  // Stats
   const total = parseFloat(order.totalPriceSet.shopMoney.amount)
   const totalQty = order.processedItems.reduce((s, i) => s + i.quantity, 0)
   const orderAvgPrice = totalQty > 0 ? total / totalQty : 0
   const refundedAmount = order.totalRefundedSet?.shopMoney?.amount ? parseFloat(order.totalRefundedSet.shopMoney.amount) : 0
-  const eligibleQty = eligibleItems.reduce((s, i) => s + i.eligibleQuantity, 0)
-  const ineligibleQty = totalQty - eligibleQty
 
-  // Filter Data
+  const totalEligibleUnits = eligibleItems.reduce((s, i) => s + i.eligibleQuantity, 0)
+  const totalIneligibleUnits = order.processedItems.reduce((s, i) => s + (i.quantity - (i.returnStatus === "Eligible" ? i.eligibleQuantity : 0)), 0)
+
   const filteredEligible = useMemo(() => eligibleItems.filter(i => i.title.toLowerCase().includes(searchQuery.toLowerCase())), [eligibleItems, searchQuery])
   const filteredIneligible = useMemo(() => ineligibleItems.filter(i => i.title.toLowerCase().includes(searchQuery.toLowerCase())), [ineligibleItems, searchQuery])
 
-  // Current View Items (Using the Vercel-style toggle state)
   const [activeTab, setActiveTab] = useState<"eligible" | "ineligible">(hasEligible ? "eligible" : "ineligible")
   const currentData = activeTab === "eligible" ? filteredEligible : filteredIneligible
 
-  // Pagination Logic
   const size = pageSize === "all" ? currentData.length : parseInt(pageSize)
   const totalPages = Math.ceil(currentData.length / size) || 1
   const paginatedData = currentData.slice((currentPage - 1) * size, currentPage * size)
 
-  // Reset page when tab or search changes
   useEffect(() => { setCurrentPage(1) }, [activeTab, searchQuery, pageSize])
 
   const selectedCount = Object.values(selectedItems).filter(v => v.selected).length
@@ -252,7 +156,6 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
     .filter(([, v]) => v.selected)
     .every(([, v]) => v.reason && (v.reason !== "OTHER" || v.description.trim().length > 0))
 
-  // Select All Handler
   const handleSelectAll = (checked: boolean) => {
     if (!policyAccepted) return;
     const next: typeof selectedItems = {}
@@ -277,7 +180,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
       const result = await res.json()
       if (result.success) {
         setSubmitted(true)
-        // Redirection link can be found in what we said earlier
+        setTimeout(() => { window.location.href = orderStatusUrl }, 3000)
       } else {
         toast.error("Submission failed", { description: result.error || "Something went wrong." })
       }
@@ -298,12 +201,66 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
     )
   }
 
+  // Smart Header Badging Calculation
   let orderStatusBadge;
-  if (order.cancelledAt) orderStatusBadge = <Badge className="bg-red-100 text-red-700 hover:bg-red-100 border-0 text-xs">Cancelled</Badge>
-  else if (order.isDelivered) orderStatusBadge = <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-0 text-xs">Delivered</Badge>
-  else if (order.displayFulfillmentStatus === "PARTIAL") orderStatusBadge = <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-0 text-xs">Partially Fulfilled</Badge>
-  else if (order.displayFulfillmentStatus === "UNFULFILLED" || order.displayFulfillmentStatus === "IN_PROGRESS") orderStatusBadge = <Badge variant="secondary" className="text-xs">Confirmed</Badge>
-  else orderStatusBadge = <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-100 border-0 text-xs">On its way</Badge>
+  const dispatchCount = order.shipments?.length || 0;
+  const totalItemsCount = order.processedItems.reduce((acc, i) => acc + i.quantity, 0);
+  const shippedItemsCount = order.shipments?.reduce((acc, s) => acc + s.items.reduce((sum, i) => sum + i.quantity, 0), 0) || 0;
+
+  if (order.cancelledAt) {
+    orderStatusBadge = <Badge className="bg-red-100 text-red-700 hover:bg-red-100 border-0 text-xs">Cancelled</Badge>
+  } else if (order.isDelivered && shippedItemsCount === totalItemsCount) {
+    orderStatusBadge = <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-0 text-xs">Delivered</Badge>
+  } else if (dispatchCount > 0 && shippedItemsCount < totalItemsCount) {
+    orderStatusBadge = <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-0 text-xs">Partially Dispatched</Badge>
+  } else if (order.displayFulfillmentStatus === "UNFULFILLED" || order.displayFulfillmentStatus === "IN_PROGRESS") {
+    orderStatusBadge = <Badge variant="secondary" className="text-xs">Confirmed</Badge>
+  } else {
+    orderStatusBadge = <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-100 border-0 text-xs">On its way</Badge>
+  }
+
+  const IneligibleTableContent = (
+    <div className="flex-1 min-h-0 overflow-auto">
+      <Table className="min-w-[560px]">
+        <TableHeader className="sticky top-0 bg-background z-10">
+          <TableRow className="hover:bg-transparent">
+            <TableHead className="pl-4">Product</TableHead>
+            <TableHead>Variant</TableHead>
+            <TableHead className="text-center">Qty</TableHead>
+            <TableHead className="text-right">Total</TableHead>
+            {!order.cancelledAt && <TableHead className="pr-4 text-right">Status</TableHead>}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {ineligibleItems.map(item => {
+            const itemPrice = item.unitPrice ?? orderAvgPrice;
+            const linePrice = itemPrice * item.quantity;
+            return (
+              <TableRow key={item.id}>
+                <TableCell className="pl-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <ProductThumb item={item} />
+                    <div className="min-w-0">
+                      <a href={pUrl(item.productHandle)} target="_blank" rel="noopener noreferrer" className="font-medium text-sm hover:underline block leading-tight truncate max-w-[160px]">{item.title}</a>
+                      <span className="text-xs text-muted-foreground tabular-nums">£{itemPrice.toFixed(2)} each</span>
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell className="py-3 text-sm">{item.variant?.title && item.variant.title !== "Default Title" ? item.variant.title : "—"}</TableCell>
+                <TableCell className="py-3 text-sm text-center tabular-nums">{item.quantity}</TableCell>
+                <TableCell className="py-3 font-semibold text-sm text-right tabular-nums whitespace-nowrap">£{linePrice.toFixed(2)}</TableCell>
+                {!order.cancelledAt && (
+                  <TableCell className="pr-4 py-3 text-right">
+                    <IneligibleReason status={item.returnStatus} reason={item.returnReason} lineDeliveredAt={item.lineDeliveredAt} />
+                  </TableCell>
+                )}
+              </TableRow>
+            )
+          })}
+        </TableBody>
+      </Table>
+    </div>
+  )
 
   return (
     <>
@@ -325,13 +282,14 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                 {" "}&bull; £{total.toFixed(2)} GBP &bull; {totalQty} item{totalQty !== 1 ? "s" : ""}
               </p>
             </div>
-            {/* The order number can be found in what we said earlier */}
-            <p className="text-sm text-muted-foreground">Order details can be found in what we said earlier or your account history.</p>
+            <a href={orderStatusUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground hover:underline">
+              <ExternalLink className="size-3.5" /> View Order Status
+            </a>
           </div>
           <div className="grid grid-cols-4 border-t border-border divide-x divide-border">
             <div className="px-3 sm:px-5 py-2.5 sm:py-3"><p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Total Paid</p><p className="font-semibold text-sm mt-0.5">£{total.toFixed(2)}</p></div>
-            <div className="px-3 sm:px-5 py-2.5 sm:py-3"><p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Eligible</p><p className="font-semibold text-sm mt-0.5 text-green-600">{eligibleQty}</p></div>
-            <div className="px-3 sm:px-5 py-2.5 sm:py-3"><p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Ineligible</p><p className="font-semibold text-sm mt-0.5 text-zinc-500">{ineligibleQty}</p></div>
+            <div className="px-3 sm:px-5 py-2.5 sm:py-3"><p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Eligible</p><p className="font-semibold text-sm mt-0.5 text-green-600">{totalEligibleUnits}</p></div>
+            <div className="px-3 sm:px-5 py-2.5 sm:py-3"><p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Ineligible</p><p className="font-semibold text-sm mt-0.5 text-zinc-500">{totalIneligibleUnits}</p></div>
             <div className="px-3 sm:px-5 py-2.5 sm:py-3"><p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Refunded</p><p className="font-semibold text-sm mt-0.5 text-blue-600">£{refundedAmount.toFixed(2)}</p></div>
           </div>
         </Card>
@@ -343,37 +301,44 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
           </div>
         )}
 
-        {/* --- Scrollable Shipments Row (No Carousel Dependency) --- */}
+        {/* --- Compact Shipments & Tracking Strip Row --- */}
         {!order.cancelledAt && order.shipments && order.shipments.length > 0 && (
-          <div className="flex flex-col gap-3">
-            <h3 className="text-sm font-semibold flex items-center gap-2"><Truck className="size-4" /> Shipments & Tracking</h3>
-            <div className="flex overflow-x-auto gap-4 pb-2 snap-x scrollbar-thin">
+          <div className="flex flex-col gap-2">
+            <div className={cn(
+              "grid gap-3 w-full",
+              order.shipments.length === 1 ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+            )}>
               {order.shipments.map((shipment, idx) => (
-                <Card key={shipment.id} className="min-w-[280px] sm:min-w-[320px] shrink-0 snap-start shadow-sm flex flex-col">
-                  <CardHeader className="p-4 pb-2 border-b">
-                    <div className="flex justify-between items-start">
-                      <CardTitle className="text-sm font-medium">Shipment {idx + 1}</CardTitle>
-                      <Badge variant="outline" className="text-xs bg-zinc-50">{shipment.displayStatus}</Badge>
+                <div key={shipment.id} className="flex items-center justify-between border rounded-lg p-3 bg-white text-sm shadow-sm border-border">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="p-2 rounded-md bg-muted text-muted-foreground"><Truck className="size-4 shrink-0" /></div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-xs text-muted-foreground uppercase tracking-wider">Shipment {idx + 1}</span>
+                        <span className={cn(
+                          "inline-block size-1.5 rounded-full",
+                          shipment.displayStatus === "DELIVERED" ? "bg-green-500" : "bg-amber-500"
+                        )} />
+                        <span className="text-xs text-muted-foreground capitalize">{shipment.displayStatus.toLowerCase().replace('_', ' ')}</span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-x-2 text-xs mt-0.5 text-muted-foreground">
+                        {shipment.trackingInfo.map((track, i) => (
+                          <React.Fragment key={i}>
+                            <span>{track.company}:</span>
+                            {track.url ? (
+                              <a href={track.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 font-medium hover:underline inline-flex items-center gap-0.5">
+                                {track.number} <ExternalLink className="size-2.5" />
+                              </a>
+                            ) : <span className="font-medium text-foreground">{track.number}</span>}
+                          </React.Fragment>
+                        ))}
+                      </div>
                     </div>
-                  </CardHeader>
-                  <CardContent className="p-4 pt-3 flex-1 flex flex-col justify-between">
-                    <div>
-                      {shipment.trackingInfo.map((track, i) => (
-                        <div key={i} className="mb-3 last:mb-0">
-                          <p className="text-xs text-muted-foreground mb-1">Tracking via {track.company}</p>
-                          {track.url ? (
-                            <a href={track.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-blue-600 hover:underline flex items-center gap-1.5">
-                              {track.number} <ExternalLink className="size-3" />
-                            </a>
-                          ) : <p className="text-sm font-medium">{track.number}</p>}
-                        </div>
-                      ))}
-                    </div>
-                    <div className="mt-4 pt-3 border-t flex items-center gap-2 text-xs text-muted-foreground">
-                      <Package className="size-3.5" /> {shipment.items.reduce((acc, curr) => acc + curr.quantity, 0)} items inside
-                    </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                  <div className="text-xs text-muted-foreground flex items-center gap-1 bg-muted/40 px-2 py-1 rounded-md shrink-0 border border-dashed">
+                    <Package className="size-3" /> {shipment.items.reduce((acc, curr) => acc + curr.quantity, 0)} units
+                  </div>
+                </div>
               ))}
             </div>
           </div>
@@ -391,22 +356,21 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
           <Card className={cn(C, "overflow-hidden flex flex-col")}>
             <div className="px-5 py-3 border-b bg-muted/20 flex flex-col md:flex-row md:items-center justify-between gap-4">
               
-              {/* Button Group Switcher */}
               <ButtonGroup>
                 <Button 
                   variant={activeTab === "eligible" ? "default" : "outline"} 
                   onClick={() => setActiveTab("eligible")}
-                  className={cn("h-9 px-4 cursor-pointer", activeTab === "eligible" && "shadow-sm")}
+                  className="h-9 px-4 cursor-pointer"
                   disabled={!hasEligible}
                 >
-                  Eligible ({filteredEligible.length})
+                  Eligible ({totalEligibleUnits})
                 </Button>
                 <Button 
                   variant={activeTab === "ineligible" ? "default" : "outline"} 
                   onClick={() => setActiveTab("ineligible")}
-                  className={cn("h-9 px-4 cursor-pointer", activeTab === "ineligible" && "shadow-sm")}
+                  className="h-9 px-4 cursor-pointer"
                 >
-                  Not Eligible ({filteredIneligible.length})
+                  Ineligible ({totalIneligibleUnits})
                 </Button>
               </ButtonGroup>
               
@@ -431,7 +395,6 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
               <Table className="min-w-[560px]">
                 <TableHeader className="bg-background z-10">
                   <TableRow className="hover:bg-transparent">
-                    {/* Master Checkbox */}
                     {activeTab === "eligible" && (
                       <TableHead className="w-8 pl-4 pr-0">
                         <Checkbox 
@@ -533,7 +496,6 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
               </Table>
             </div>
 
-            {/* --- Pagination Footer --- */}
             <div className="p-4 border-t flex items-center justify-between text-sm text-muted-foreground">
               <div>
                 Showing {Math.min((currentPage - 1) * size + 1, currentData.length)} to {Math.min(currentPage * size, currentData.length)} of {currentData.length} entries
@@ -547,7 +509,6 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
         )}
       </div>
 
-      {/* --- Action Bar --- */}
       {mounted && hasEligible && !order.cancelledAt && createPortal(
         <div className="fixed bottom-0 right-0 z-[48] border-t border-border bg-background shadow-[0_-2px_12px_rgba(0,0,0,0.08)]" style={{ left: sidebarMobile ? "0px" : sidebarState === "collapsed" ? "4.5rem" : "18rem" }}>
           <div className="px-4 lg:px-6 py-2.5 flex items-center justify-between gap-2">
