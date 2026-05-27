@@ -64,7 +64,7 @@ interface Order {
   processedItems: LineItem[]
   isDelivered?: boolean
   deliveredAt?: string | null
-  canceledAt?: string | null
+  cancelledAt?: string | null
 }
 
 interface OrdersData {
@@ -481,7 +481,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
             <div>
               <div className="flex items-center gap-2 mb-0.5">
                 <h2 className="text-base font-semibold">{order.name}</h2>
-                {order.canceledAt
+                {order.cancelledAt
                   ? <Badge className="bg-red-100 text-red-700 hover:bg-red-100 border-0 text-xs">Canceled</Badge>
                   : order.isDelivered
                   ? <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-0 text-xs">Delivered</Badge>
@@ -491,8 +491,8 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                     </Badge>}
               </div>
               <p className="text-xs text-muted-foreground">
-                {order.canceledAt
-                  ? `Canceled ${new Date(order.canceledAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`
+                {order.cancelledAt
+                  ? `Canceled ${new Date(order.cancelledAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`
                   : order.isDelivered && order.deliveredAt
                   ? `Delivered ${new Date(order.deliveredAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`
                   : `Ordered ${new Date(order.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`}
