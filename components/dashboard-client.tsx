@@ -20,7 +20,7 @@ import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
+  import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -601,43 +601,54 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
         {!order.cancelledAt && order.shipments && order.shipments.length > 0 && (
           <div className="flex flex-col gap-2">
             <h3 className="text-sm font-semibold flex items-center gap-2"><Truck className="size-4" /> Shipments &amp; Tracking</h3>
-            <div className="flex overflow-x-auto gap-3 pb-1 snap-x scrollbar-thin">
-              {order.shipments.map((shipment, idx) => {
-                const isDelivered   = shipment.displayStatus === "DELIVERED"
-                const deliveredDate = shipment.deliveredAt
-                  ? new Date(shipment.deliveredAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
-                  : null
-                return (
-                  <div key={shipment.id} className={cn("shrink-0 snap-start border rounded-lg p-4 bg-white shadow-sm flex flex-col gap-3", order.shipments.length === 1 ? "w-full" : "w-[85vw] sm:w-[380px]")}>
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2.5">
-                        <div className={cn("p-1.5 rounded-md", isDelivered ? "bg-green-50 text-green-600" : "bg-muted text-muted-foreground")}><Truck className="size-4" /></div>
-                        <div>
-                          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Shipment {idx + 1}</p>
-                          <p className="text-sm font-medium">{isDelivered ? "Delivered" : "On its way"}{deliveredDate && <span className="text-muted-foreground font-normal"> · {deliveredDate}</span>}</p>
-                        </div>
-                      </div>
-                      <ShipmentItemsModal shipment={shipment} order={order} idx={idx} />
-                    </div>
-                    {shipment.trackingInfo.length > 0 && (
-                      <div className="flex flex-col gap-1.5 border-t pt-3">
-                        {shipment.trackingInfo.map((track, ti) => (
-                          <div key={ti} className="flex items-center gap-2">
-                            <MapPin className="size-3.5 text-muted-foreground shrink-0" />
-                            <span className="text-xs text-muted-foreground">{track.company}:</span>
-                            {track.url
-                              ? <a href={track.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 font-medium hover:underline inline-flex items-center gap-1 text-xs">{track.number} <ExternalLink className="size-3" /></a>
-                              : <span className="font-medium text-foreground text-xs">{track.number}</span>}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
+            <ScrollArea className="w-full">
+    <div className="flex gap-3 pb-3 snap-x">                           
+      {order.shipments.map((shipment, idx) => {
+        const isDelivered   = shipment.displayStatus === "DELIVERED"
+        const deliveredDate = shipment.deliveredAt
+          ? new Date(shipment.deliveredAt).toLocaleDateString("en-GB", { day: "numeric", month:
+  "short", year: "numeric" })
+          : null
+        return (
+          <div key={shipment.id} className={cn("shrink-0 snap-start border rounded-lg p-4
+  bg-white shadow-sm flex flex-col gap-3", order.shipments.length === 1 ? "w-full" : "w-[85vw]
+  sm:w-[380px]")}>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5">
+                <div className={cn("p-1.5 rounded-md", isDelivered ? "bg-green-50
+  text-green-600" : "bg-muted text-muted-foreground")}><Truck className="size-4" /></div>
+                <div>
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase
+  tracking-wider">Shipment {idx + 1}</p>                               
+                  <p className="text-sm font-medium">{isDelivered ? "Delivered" : "On its
+  way"}{deliveredDate && <span className="text-muted-foreground font-normal"> ·
+  {deliveredDate}</span>}</p>
+                </div>
+              </div>
+              <ShipmentItemsModal shipment={shipment} order={order} idx={idx} />
             </div>
+            {shipment.trackingInfo.length > 0 && (
+              <div className="flex flex-col gap-1.5 border-t pt-3">
+                {shipment.trackingInfo.map((track, ti) => (
+                  <div key={ti} className="flex items-center gap-2">
+                    <MapPin className="size-3.5 text-muted-foreground shrink-0" />
+                    <span className="text-xs text-muted-foreground">{track.company}:</span>
+                    {track.url
+                      ? <a href={track.url} target="_blank" rel="noopener noreferrer" 
+  className="text-blue-600 font-medium hover:underline inline-flex items-center gap-1 
+  text-xs">{track.number} <ExternalLink className="size-3" /></a>
+                      : <span className="font-medium text-foreground 
+  text-xs">{track.number}</span>}
+                  </div>
+                ))}
+              </div>                                                   
+            )}
           </div>
-        )}
+        )
+      })}
+    </div>
+    <ScrollBar orientation="horizontal" />
+  </ScrollArea>
 
         {/* ── Policy gate ── */}
         {hasEligible && !policyAccepted && (
