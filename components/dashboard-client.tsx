@@ -110,20 +110,20 @@ function OrderStatusBadges({ order }: { order: Order }) {
 
   const primary = (() => {
     switch (orderStatus) {
-      case "Delivered":         return <Badge className="bg-green-50 text-green-700 hover:bg-green-50 border border-green-200 rounded-md text-xs font-medium">Delivered</Badge>
-      case "Partially delivered": return <Badge className="bg-amber-50 text-amber-700 hover:bg-amber-50 border border-amber-200 rounded-md text-xs font-medium">Partially delivered</Badge>
-      case "On its way":        return <Badge className="bg-blue-50 text-blue-700 hover:bg-blue-50 border border-blue-200 rounded-md text-xs font-medium">On its way</Badge>
+      case "Delivered":            return <Badge className="bg-green-50 text-green-700 hover:bg-green-50 border border-green-200 rounded-md text-xs font-medium">Delivered</Badge>
+      case "Partially delivered":  return <Badge className="bg-amber-50 text-amber-700 hover:bg-amber-50 border border-amber-200 rounded-md text-xs font-medium">Partially delivered</Badge>
+      case "On its way":           return <Badge className="bg-blue-50 text-blue-700 hover:bg-blue-50 border border-blue-200 rounded-md text-xs font-medium">On its way</Badge>
       case "Partially dispatched": return <Badge className="bg-blue-50 text-blue-700 hover:bg-blue-50 border border-blue-200 rounded-md text-xs font-medium">Partially dispatched</Badge>
-      case "Confirmed":         return <Badge variant="secondary" className="rounded-md text-xs font-medium">Confirmed</Badge>
-      default:                  return <Badge variant="secondary" className="rounded-md text-xs font-medium">{orderStatus}</Badge>
+      case "Confirmed":            return <Badge variant="secondary" className="rounded-md text-xs font-medium">Confirmed</Badge>
+      default:                     return <Badge variant="secondary" className="rounded-md text-xs font-medium">{orderStatus}</Badge>
     }
   })()
 
   const showStats = totalUnits > 0 && orderStatus !== "Delivered" && orderStatus !== "Confirmed" && orderStatus !== "Cancelled"
   const parts: string[] = []
-  if (deliveredCount > 0)   parts.push(`${deliveredCount} delivered`)
-  if (dispatchedCount > 0)  parts.push(`${dispatchedCount} on its way`)
-  if (confirmedCount > 0)   parts.push(`${confirmedCount} confirmed`)
+  if (deliveredCount > 0)     parts.push(`${deliveredCount} delivered`)
+  if (dispatchedCount > 0)    parts.push(`${dispatchedCount} on its way`)
+  if (confirmedCount > 0)     parts.push(`${confirmedCount} confirmed`)
   if (notDispatchedCount > 0) parts.push(`${notDispatchedCount} pending`)
 
   return (
@@ -158,11 +158,11 @@ function IneligibleReason({ status, reason, lineDeliveredAt }: {
     </HoverCard>
   )
 
-  if (status === "Confirmed")            return <OutlineBadge className="bg-zinc-50 text-zinc-500 border-zinc-200">Confirmed</OutlineBadge>
-  if (status === "On its way")           return <OutlineBadge className="bg-amber-50 text-amber-700 border-amber-200">On its way</OutlineBadge>
-  if (status === "Not yet dispatched")   return <OutlineBadge className="bg-zinc-50 text-zinc-500 border-zinc-200">Not dispatched</OutlineBadge>
-  if (status === "Refunded")             return <OutlineBadge className="bg-zinc-100 text-zinc-600 border-zinc-300">Refunded</OutlineBadge>
-  if (status === "Cancelled")            return <OutlineBadge className="bg-red-50 text-red-700 border-red-200">Cancelled</OutlineBadge>
+  if (status === "Confirmed")          return <OutlineBadge className="bg-zinc-50 text-zinc-500 border-zinc-200">Confirmed</OutlineBadge>
+  if (status === "On its way")         return <OutlineBadge className="bg-amber-50 text-amber-700 border-amber-200">On its way</OutlineBadge>
+  if (status === "Not yet dispatched") return <OutlineBadge className="bg-zinc-50 text-zinc-500 border-zinc-200">Not dispatched</OutlineBadge>
+  if (status === "Refunded")           return <OutlineBadge className="bg-zinc-100 text-zinc-600 border-zinc-300">Refunded</OutlineBadge>
+  if (status === "Cancelled")          return <OutlineBadge className="bg-red-50 text-red-700 border-red-200">Cancelled</OutlineBadge>
   if (status === "Passed the return window") {
     const badge = (
       <div className="flex flex-col items-end gap-0.5">
@@ -172,14 +172,14 @@ function IneligibleReason({ status, reason, lineDeliveredAt }: {
     )
     return reason ? withHover(badge, "Return window closed", reason) : badge
   }
-  if (status === "Return requested")     return <OutlineBadge className="bg-blue-50 text-blue-700 border-blue-200">Requested</OutlineBadge>
-  if (status === "Return in progress")   return <OutlineBadge className="bg-purple-50 text-purple-700 border-purple-200">In progress</OutlineBadge>
+  if (status === "Return requested")   return <OutlineBadge className="bg-blue-50 text-blue-700 border-blue-200">Requested</OutlineBadge>
+  if (status === "Return in progress") return <OutlineBadge className="bg-purple-50 text-purple-700 border-purple-200">In progress</OutlineBadge>
   if (status === "Return completed" || status === "Returned") return <OutlineBadge className="bg-teal-50 text-teal-700 border-teal-200">Completed</OutlineBadge>
   if (status === "Return declined") {
     const badge = <OutlineBadge className="bg-red-50 text-red-700 border-red-200">Declined</OutlineBadge>
     return reason ? withHover(badge, "Return declined", reason) : badge
   }
-  if (status === "Return cancelled")     return <OutlineBadge className="bg-orange-50 text-orange-600 border-orange-200">Cancelled</OutlineBadge>
+  if (status === "Return cancelled") return <OutlineBadge className="bg-orange-50 text-orange-600 border-orange-200">Cancelled</OutlineBadge>
   return <span className="text-xs text-muted-foreground">{status}</span>
 }
 
@@ -205,7 +205,7 @@ function OrderCardSkeleton() {
   )
 }
 
-// ─── Shipment item list — list style (no cards), used in both Dialog and Drawer
+// ─── Shipment item list ───────────────────────────────────────────────────────
 function ShipmentItemList({ shipment, order, className }: {
   shipment: Shipment; order: Order; className?: string
 }) {
@@ -218,10 +218,11 @@ function ShipmentItemList({ shipment, order, className }: {
   return (
     <div className={cn("divide-y divide-border", className)}>
       {shipmentItems.map((item, i) => {
-        const itemPrice = item.unitPrice ?? 0
+        const itemPrice  = item.unitPrice ?? 0
         const hasVariant = item.variant?.title && item.variant.title !== "Default Title"
         return (
           <div key={i} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
+            {/* Image — no padding so border sits flush */}
             <a href={pUrl(item.productHandle)} target="_blank" rel="noopener noreferrer" className="shrink-0">
               <div className="size-9 rounded-md overflow-hidden bg-white border border-border hover:border-foreground transition-colors">
                 {item.image?.url && (
@@ -229,8 +230,10 @@ function ShipmentItemList({ shipment, order, className }: {
                 )}
               </div>
             </a>
+
+            {/* Title + qty × variant */}
             <div className="flex-1 min-w-0">
-              
+              <a
                 href={pUrl(item.productHandle)}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -239,11 +242,13 @@ function ShipmentItemList({ shipment, order, className }: {
                 {item.title}
               </a>
               <p className="text-xs text-muted-foreground mt-0.5">
-                {item.shipQty}× {hasVariant ? item.variant!.title : ""}
+                {item.shipQty}×{hasVariant ? ` ${item.variant!.title}` : ""}
               </p>
             </div>
+
+            {/* Price only — quantity is now inline above */}
             {itemPrice > 0 && (
-              <p className="text-sm font-semibold shrink-0">
+              <p className="text-sm font-semibold shrink-0 tabular-nums">
                 £{(itemPrice * item.shipQty).toFixed(2)}
               </p>
             )}
@@ -254,12 +259,12 @@ function ShipmentItemList({ shipment, order, className }: {
   )
 }
 
-// ─── Hygiene policy list — list style, used in both Dialog and Drawer ─────────
+// ─── Hygiene policy list ──────────────────────────────────────────────────────
 const POLICY_ITEMS = [
-  { title: "Vape Kits & Mods",        desc: "30-day refund period. 30-day warranty from delivery." },
-  { title: "Batteries & Chargers",     desc: "60-day battery warranty. 30-day charger warranty." },
-  { title: "E-Liquids & Disposables",  desc: "Must remain sealed and unopened. No returns on opened liquids." },
-  { title: "Tanks & Clearomisers",     desc: "7-day Dead On Arrival window — report faults within 7 days." },
+  { title: "Vape Kits & Mods",       desc: "30-day refund period. 30-day warranty from delivery." },
+  { title: "Batteries & Chargers",    desc: "60-day battery warranty. 30-day charger warranty." },
+  { title: "E-Liquids & Disposables", desc: "Must remain sealed and unopened. No returns on opened liquids." },
+  { title: "Tanks & Clearomisers",    desc: "7-day Dead On Arrival window — report faults within 7 days." },
 ]
 
 function HygienePolicyList({ className }: { className?: string }) {
@@ -309,7 +314,6 @@ function ShipmentItemsModal({ shipment, order, idx }: {
             <DialogTitle className="flex items-center gap-2"><Truck className="size-4" /> {title}</DialogTitle>
             <DialogDescription>{subtitle}</DialogDescription>
           </DialogHeader>
-          {/* ScrollArea caps height so long lists don't overflow the dialog */}
           <ScrollArea className="max-h-[60vh]">
             <ShipmentItemList shipment={shipment} order={order} />
           </ScrollArea>
@@ -326,7 +330,6 @@ function ShipmentItemsModal({ shipment, order, idx }: {
           <DrawerTitle className="flex items-center gap-2"><Truck className="size-4" /> {title}</DrawerTitle>
           <DrawerDescription>{subtitle}</DrawerDescription>
         </DrawerHeader>
-        {/* ScrollArea caps height inside the drawer's max-h-[80vh] */}
         <ScrollArea className="max-h-[50vh]">
           <ShipmentItemList shipment={shipment} order={order} className="px-4 pb-4" />
         </ScrollArea>
@@ -496,9 +499,9 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
   const [activeTab, setActiveTab] = useState<"eligible" | "ineligible">("eligible")
   useEffect(() => { setActiveTab("eligible") }, [order.id])
 
-  const currentData = activeTab === "eligible" ? filteredEligible : filteredIneligible
-  const size        = pageSize === "all" ? Math.max(currentData.length, 1) : parseInt(pageSize)
-  const totalPages  = Math.ceil(currentData.length / size) || 1
+  const currentData   = activeTab === "eligible" ? filteredEligible : filteredIneligible
+  const size          = pageSize === "all" ? Math.max(currentData.length, 1) : parseInt(pageSize)
+  const totalPages    = Math.ceil(currentData.length / size) || 1
   const paginatedData = currentData.slice((currentPage - 1) * size, currentPage * size)
 
   useEffect(() => { setCurrentPage(1) }, [activeTab, searchQuery, pageSize])
@@ -820,12 +823,12 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
 }
 
 export default function DashboardClient() {
-  const [data, setData]               = useState<OrdersData | null>(null)
-  const [loading, setLoading]         = useState(true)
-  const [error, setError]             = useState<string | null>(null)
+  const [data, setData]                   = useState<OrdersData | null>(null)
+  const [loading, setLoading]             = useState(true)
+  const [error, setError]                 = useState<string | null>(null)
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
-  const [view, setView]               = useState<"grid" | "list">("grid")
-  const [search, setSearch]           = useState("")
+  const [view, setView]                   = useState<"grid" | "list">("grid")
+  const [search, setSearch]               = useState("")
   const [activeSection, setActiveSection] = useState("#orders")
 
   useEffect(() => {
