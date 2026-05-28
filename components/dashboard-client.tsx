@@ -831,8 +831,8 @@ export default function DashboardClient() {
         <PopoverContent className="w-52 p-2 bg-white" align="end">
           <div className="flex flex-col">
             {STATUS_FILTERS.map(status => (
-              <label key={status} className="flex items-center gap-2.5 px-2 py-1.5 rounded-md 
-  hover:bg-muted cursor-pointer text-sm">
+              <label key={status} className="flex items-center gap-2.5 px-2 py-1.5 rounded-md hover:bg-muted
+   cursor-pointer text-sm text-foreground">
                 <Checkbox checked={statusFilter.includes(status)} onCheckedChange={checked =>
   setStatusFilter(prev => checked ? [...prev, status] : prev.filter(s => s !== status))} />
               </label>
