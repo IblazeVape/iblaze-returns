@@ -876,7 +876,7 @@ export default function DashboardClient() {
               )}
 
               {view === "list" && !loading && (
-                <Card className={cn(C, "overflow-hidden")}>
+               <Card className={cn(C, "overflow-hidden")}>
                   <CardContent className="p-0">
                     {filteredOrders.length === 0
                       ? <div className="text-center py-20"><ShoppingBag className="size-12 text-muted-foreground/30 mx-auto mb-4" /><p className="font-medium text-muted-foreground">No orders found</p></div>
