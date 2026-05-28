@@ -53,8 +53,11 @@ function DialogOverlay({
 function DialogContent({
   className,
   children,
+  showCloseButton = true,
   ...props
-}: React.ComponentProps<typeof DialogPrimitive.Content>) {
+}: React.ComponentProps<typeof DialogPrimitive.Content> & {
+  showCloseButton?: boolean
+}) {
   return (
     <DialogPortal data-slot="dialog-portal">
       <DialogOverlay />
@@ -76,32 +79,31 @@ function DialogContent({
       >
         {children}
 
-        {/* Close button — ghost icon-sm, exact classes from the reference HTML */}
-        <DialogPrimitive.Close
-          data-slot="dialog-close"
-          data-variant="ghost"
-          data-size="icon-sm"
-          className={cn(
-            // Base button
-            "group/button inline-flex shrink-0 items-center justify-center",
-            "border border-transparent bg-clip-padding",
-            "text-sm font-medium whitespace-nowrap transition-all outline-none select-none",
-            "focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
-            "active:not-aria-[haspopup]:translate-y-px",
-            "disabled:pointer-events-none disabled:opacity-50",
-            "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-            // Ghost variant
-            "hover:bg-muted hover:text-foreground",
-            "aria-expanded:bg-muted aria-expanded:text-foreground",
-            "dark:hover:bg-muted/50",
-            // Icon-sm size + position
-            "size-7 rounded-[min(var(--radius-md),12px)]",
-            "absolute top-2 right-2"
-          )}
-        >
-          <XIcon />
-          <span className="sr-only">Close</span>
-        </DialogPrimitive.Close>
+        {/* Close button — ghost icon-sm, hidden when showCloseButton=false (e.g. command palette) */}
+        {showCloseButton && (
+          <DialogPrimitive.Close
+            data-slot="dialog-close"
+            data-variant="ghost"
+            data-size="icon-sm"
+            className={cn(
+              "group/button inline-flex shrink-0 items-center justify-center",
+              "border border-transparent bg-clip-padding",
+              "text-sm font-medium whitespace-nowrap transition-all outline-none select-none",
+              "focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
+              "active:not-aria-[haspopup]:translate-y-px",
+              "disabled:pointer-events-none disabled:opacity-50",
+              "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+              "hover:bg-muted hover:text-foreground",
+              "aria-expanded:bg-muted aria-expanded:text-foreground",
+              "dark:hover:bg-muted/50",
+              "size-7 rounded-[min(var(--radius-md),12px)]",
+              "absolute top-2 right-2"
+            )}
+          >
+            <XIcon />
+            <span className="sr-only">Close</span>
+          </DialogPrimitive.Close>
+        )}
       </DialogPrimitive.Content>
     </DialogPortal>
   )
