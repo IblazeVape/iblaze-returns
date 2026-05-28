@@ -38,9 +38,8 @@ function DialogOverlay({
     <DialogPrimitive.Overlay
       data-slot="dialog-overlay"
       className={cn(
-        // Tailwind v3 compatible — use data-[state=] not data-open:
         "fixed inset-0 z-50 bg-black/40 backdrop-blur-sm",
-        "transition-all duration-100",
+        // Tailwind v3: data-[state=open/closed] syntax
         "data-[state=open]:animate-in data-[state=open]:fade-in-0",
         "data-[state=closed]:animate-out data-[state=closed]:fade-out-0",
         className
@@ -71,7 +70,7 @@ function DialogContent({
           "text-sm text-popover-foreground",
           "ring-1 ring-foreground/10",
           "duration-200 outline-none",
-          // Tailwind v3: use data-[state=] format
+          // Tailwind v3: data-[state=open/closed] syntax
           "data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
           "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
           className
