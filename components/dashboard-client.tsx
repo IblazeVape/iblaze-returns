@@ -442,7 +442,7 @@ function OrderRow({ order, onClick }: { order: Order; onClick: () => void }) {
 
   return (
     <button onClick={onClick} className="w-full px-5 py-3.5 flex items-center gap-4 hover:bg-zinc-50 transition-colors text-left group border-b border-border last:border-0">
-      <div className="flex -space-x-2">
+      <div className="flex -space-x-2 w-[92px] shrink-0">
         {images.map((url, i) => (
           <div key={i} className="size-9 rounded-lg border-2 border-white bg-white overflow-hidden shadow-sm">
             <img src={url} alt="" className="w-full h-full object-contain" />
