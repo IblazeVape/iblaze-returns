@@ -90,8 +90,7 @@ const RETURN_REASONS = [
     { value: "OTHER",            label: "Other" },
   ]
 
-  const STATUS_FILTERS = ["Delivered", "Partially delivered", "On its way", "Partially 
-  dispatched"]
+  const STATUS_FILTERS = ["Delivered", "Partially delivered", "On its way", "Partially dispatched"]
 
 const C = "shadow-sm py-0 gap-0"
 
