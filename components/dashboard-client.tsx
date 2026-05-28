@@ -4,11 +4,7 @@ import * as React from "react"
 import { createPortal } from "react-dom"
 import { useEffect, useState, useMemo } from "react"
 import { toast } from "sonner"
-import {
-  ChevronRight, LayoutGrid, List, ArrowLeft,
-  RotateCcw, CheckCircle2, ShoppingBag, ShieldCheck,
-  ExternalLink, Lock, Truck, Package, Search, MapPin
-} from "lucide-react"
+import { ChevronRight, LayoutGrid, List, ArrowLeft, RotateCcw, CheckCircle2, ShoppingBag, ShieldCheck, ExternalLink, Lock, Truck, Package, Search, MapPin } from "lucide-react"
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
@@ -20,7 +16,7 @@ import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
-  import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -143,9 +139,7 @@ function OutlineBadge({ className, children }: { className: string; children: Re
   )
 }
 
-function IneligibleReason({ status, reason, lineDeliveredAt }: {
-  status: ReturnStatus; reason?: string; lineDeliveredAt?: string | null
-}) {
+function IneligibleReason({ status, reason, lineDeliveredAt }: { status: ReturnStatus; reason?: string; lineDeliveredAt?: string | null }) {
   const withHover = (badge: React.ReactNode, title: string, body: string) => (
     <HoverCard openDelay={100} closeDelay={100}>
       <HoverCardTrigger asChild><div className="inline-flex">{badge}</div></HoverCardTrigger>
@@ -200,15 +194,13 @@ function OrderCardSkeleton() {
         <div className="space-y-1.5"><Skeleton className="h-4 w-24" /><Skeleton className="h-3 w-32" /></div>
         <Skeleton className="h-4 w-14" />
       </div>
-      <div className="flex gap-1.5">{[1,2,3].map(i => <Skeleton key={i} className="w-10 h-10 rounded-md" />)}</div>
+      <div className="flex gap-1.5">{[1, 2, 3].map(i => <Skeleton key={i} className="w-10 h-10 rounded-md" />)}</div>
     </div>
   )
 }
 
 // ─── Shipment item list ───────────────────────────────────────────────────────
-function ShipmentItemList({ shipment, order, className }: {
-  shipment: Shipment; order: Order; className?: string
-}) {
+function ShipmentItemList({ shipment, order, className }: { shipment: Shipment; order: Order; className?: string }) {
   const shipmentItems = shipment.items.flatMap(({ id, quantity }) => {
     const li = order.processedItems.find(i => i.id === id)
     if (!li) return []
@@ -222,36 +214,18 @@ function ShipmentItemList({ shipment, order, className }: {
         const hasVariant = item.variant?.title && item.variant.title !== "Default Title"
         return (
           <div key={i} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
-            {/* Image — no padding so border sits flush */}
             <a href={pUrl(item.productHandle)} target="_blank" rel="noopener noreferrer" className="shrink-0">
               <div className="size-9 rounded-md overflow-hidden bg-white border border-border hover:border-foreground transition-colors">
-                {item.image?.url && (
-                  <img src={item.image.url} alt={item.title} className="w-full h-full object-contain" />
-                )}
+                {item.image?.url && <img src={item.image.url} alt={item.title} className="w-full h-full object-contain" />}
               </div>
             </a>
-
-            {/* Title + qty × variant */}
             <div className="flex-1 min-w-0">
-              <a
-                href={pUrl(item.productHandle)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-medium text-sm hover:underline truncate block leading-tight"
-              >
+              <a href={pUrl(item.productHandle)} target="_blank" rel="noopener noreferrer" className="font-medium text-sm hover:underline truncate block leading-tight">
                 {item.title}
               </a>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {item.shipQty}×{hasVariant ? ` ${item.variant!.title}` : ""}
-              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">{item.shipQty}×{hasVariant ? ` ${item.variant!.title}` : ""}</p>
             </div>
-
-            {/* Price only — quantity is now inline above */}
-            {itemPrice > 0 && (
-              <p className="text-sm font-semibold shrink-0 tabular-nums">
-                £{(itemPrice * item.shipQty).toFixed(2)}
-              </p>
-            )}
+            {itemPrice > 0 && <p className="text-sm font-semibold shrink-0 tabular-nums">£{(itemPrice * item.shipQty).toFixed(2)}</p>}
           </div>
         )
       })}
@@ -276,28 +250,21 @@ function HygienePolicyList({ className }: { className?: string }) {
           <p className="text-xs text-muted-foreground mt-0.5">{p.desc}</p>
         </div>
       ))}
-      <p className="text-xs text-muted-foreground pt-2.5">
-        Return postage is at your expense. Tracked service required. Refunds within 5–10 business days.
-      </p>
+      <p className="text-xs text-muted-foreground pt-2.5">Return postage is at your expense. Tracked service required. Refunds within 5–10 business days.</p>
     </div>
   )
 }
 
 // ─── Shipment Items Modal ─────────────────────────────────────────────────────
-function ShipmentItemsModal({ shipment, order, idx }: {
-  shipment: Shipment; order: Order; idx: number
-}) {
+function ShipmentItemsModal({ shipment, order, idx }: { shipment: Shipment; order: Order; idx: number }) {
   const [open, setOpen] = React.useState(false)
   const isDesktop = useMediaQuery("(min-width: 768px)")
 
   const totalUnits    = shipment.items.reduce((a, c) => a + c.quantity, 0)
   const isDelivered   = shipment.displayStatus === "DELIVERED"
-  const deliveredDate = shipment.deliveredAt
-    ? new Date(shipment.deliveredAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
-    : null
-
-  const title    = `Shipment ${idx + 1}`
-  const subtitle = `${isDelivered && deliveredDate ? `Delivered ${deliveredDate}` : "On its way"} · ${totalUnits} unit${totalUnits !== 1 ? "s" : ""}`
+  const deliveredDate = shipment.deliveredAt ? new Date(shipment.deliveredAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : null
+  const title         = `Shipment ${idx + 1}`
+  const subtitle      = `${isDelivered && deliveredDate ? `Delivered ${deliveredDate}` : "On its way"} · ${totalUnits} unit${totalUnits !== 1 ? "s" : ""}`
 
   const trigger = (
     <button className="flex items-center gap-1 text-xs font-medium text-muted-foreground bg-muted px-2 py-1 rounded-md border border-dashed shrink-0 hover:bg-zinc-100 hover:border-zinc-300 transition-colors cursor-pointer">
@@ -351,18 +318,12 @@ function HygienePolicy({ onAccept, onDecline }: { onAccept: () => void; onDeclin
 
   const acceptDecline = (
     <div className="flex gap-2">
-      <Button className="flex-1 bg-[#E5403B] hover:bg-[#cc3935] text-white" onClick={handleAccept}>
-        <CheckCircle2 className="size-4" /> I Accept
-      </Button>
+      <Button className="flex-1 bg-[#E5403B] hover:bg-[#cc3935] text-white" onClick={handleAccept}><CheckCircle2 className="size-4" /> I Accept</Button>
       <Button variant="outline" className="flex-1" onClick={handleDecline}>Decline</Button>
     </div>
   )
 
-  const trigger = (
-    <Button size="sm" className="bg-[#E5403B] hover:bg-[#cc3935] text-white shrink-0">
-      Review &amp; Accept
-    </Button>
-  )
+  const trigger = <Button size="sm" className="bg-[#E5403B] hover:bg-[#cc3935] text-white shrink-0">Review &amp; Accept</Button>
 
   if (isDesktop) {
     return (
@@ -370,9 +331,7 @@ function HygienePolicy({ onAccept, onDecline }: { onAccept: () => void; onDeclin
         <DialogTrigger asChild>{trigger}</DialogTrigger>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <ShieldCheck className="size-4 text-[#E5403B]" /> iBlaze Returns Policy
-            </DialogTitle>
+            <DialogTitle className="flex items-center gap-2"><ShieldCheck className="size-4 text-[#E5403B]" /> iBlaze Returns Policy</DialogTitle>
             <DialogDescription>Review our returns policy before selecting items to return.</DialogDescription>
           </DialogHeader>
           <HygienePolicyList />
@@ -387,17 +346,13 @@ function HygienePolicy({ onAccept, onDecline }: { onAccept: () => void; onDeclin
       <DrawerTrigger asChild>{trigger}</DrawerTrigger>
       <DrawerContent>
         <DrawerHeader className="text-left">
-          <DrawerTitle className="flex items-center gap-2">
-            <ShieldCheck className="size-4 text-[#E5403B]" /> iBlaze Returns Policy
-          </DrawerTitle>
+          <DrawerTitle className="flex items-center gap-2"><ShieldCheck className="size-4 text-[#E5403B]" /> iBlaze Returns Policy</DrawerTitle>
           <DrawerDescription>Review our returns policy before selecting items to return.</DrawerDescription>
         </DrawerHeader>
         <ScrollArea className="max-h-[50vh]">
           <HygienePolicyList className="px-4 pb-4" />
         </ScrollArea>
-        <DrawerFooter className="pt-2">
-          {acceptDecline}
-        </DrawerFooter>
+        <DrawerFooter className="pt-2">{acceptDecline}</DrawerFooter>
       </DrawerContent>
     </Drawer>
   )
@@ -444,9 +399,12 @@ function OrderRow({ order, onClick }: { order: Order; onClick: () => void }) {
     <button onClick={onClick} className="w-full px-5 py-3.5 flex items-center gap-4 hover:bg-zinc-50 transition-colors text-left group border-b border-border last:border-0">
       <div className="flex -space-x-2 w-[92px] shrink-0">
         {images.map((url, i) => (
-          <div key={i} className="size-9 rounded-lg border-2 border-white bg-white overflow-hidden shadow-sm">
+          <div key={i} className="size-9 rounded-lg border-2 border-white bg-white overflow-hidden shadow-sm shrink-0">
             <img src={url} alt="" className="w-full h-full object-contain" />
           </div>
+        ))}
+        {Array.from({ length: 3 - images.length }).map((_, i) => (
+          <div key={`empty-${i}`} className="size-9 rounded-lg border-2 border-white bg-zinc-100 shrink-0" />
         ))}
       </div>
       <div className="flex-1 min-w-0">
@@ -557,7 +515,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
     if (order.cancelledAt) return `Cancelled ${new Date(order.cancelledAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`
     if (order.latestDelivery && order.earliestDelivery) {
       const earliest = new Date(order.earliestDelivery).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
-      const latest   = new Date(order.latestDelivery).toLocaleDateString("en-GB",   { day: "numeric", month: "long", year: "numeric" })
+      const latest   = new Date(order.latestDelivery).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
       return earliest === latest ? `Delivered ${latest}` : `Delivered ${earliest} – ${latest}`
     }
     return `Ordered ${new Date(order.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`
@@ -597,61 +555,49 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
           </div>
         )}
 
-       {/* ── Shipments & tracking ── */}
-  {!order.cancelledAt && order.shipments && order.shipments.length > 0 && (
-    <div className="flex flex-col gap-2">
-      <h3 className="text-sm font-semibold flex items-center gap-2"><Truck className="size-4" />
-   Shipments &amp; Tracking</h3>
-      <ScrollArea className="w-full">
-        <div className="flex gap-3 pb-3 snap-x">
-          {order.shipments.map((shipment, idx) => {
-           const isDelivered   = shipment.displayStatus === "DELIVERED"
-  const deliveredDate = shipment.deliveredAt
-    ? new Date(shipment.deliveredAt).toLocaleDateString("en-GB", { day: "numeric", month:
-  "short", year: "numeric" })
-    : null
-  const cardCls = cn("shrink-0 snap-start border rounded-lg p-4 bg-white shadow-sm flex flex-col
-   gap-3", order.shipments.length === 1 ? "w-full" : "w-[85vw] sm:w-[380px]")
-  return (
-    <div key={shipment.id} className={cardCls}>
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2.5">
-                    <div className={cn("p-1.5 rounded-md", isDelivered ? "bg-green-50
-  text-green-600" : "bg-muted text-muted-foreground")}><Truck className="size-4" /></div>
-                    <div>
-                      <p className="text-[11px] font-semibold text-muted-foreground uppercase
-  tracking-wider">Shipment {idx + 1}</p>
-                      <p className="text-sm font-medium">{isDelivered ? "Delivered" : "On its
-  way"}{deliveredDate && <span className="text-muted-foreground font-normal"> ·
-  {deliveredDate}</span>}</p>
-                    </div>
-                  </div>                                               
-                  <ShipmentItemsModal shipment={shipment} order={order} idx={idx} />
-                </div>
-                {shipment.trackingInfo.length > 0 && (
-                  <div className="flex flex-col gap-1.5 border-t pt-3">
-                    {shipment.trackingInfo.map((track, ti) => (
-                      <div key={ti} className="flex items-center gap-2">
-                        <MapPin className="size-3.5 text-muted-foreground shrink-0" />
-                        <span className="text-xs text-muted-foreground">{track.company}:</span>
-                        {track.url
-                          ? <a href={track.url} target="_blank" rel="noopener noreferrer" 
-  className="text-blue-600 font-medium hover:underline inline-flex items-center gap-1 
-  text-xs">{track.number} <ExternalLink className="size-3" /></a>
-                          : <span className="font-medium text-foreground 
-  text-xs">{track.number}</span>}
+        {/* ── Shipments & tracking ── */}
+        {!order.cancelledAt && order.shipments && order.shipments.length > 0 && (
+          <div className="flex flex-col gap-2">
+            <h3 className="text-sm font-semibold flex items-center gap-2"><Truck className="size-4" /> Shipments &amp; Tracking</h3>
+            <ScrollArea className="w-full">
+              <div className="flex gap-3 pb-3 snap-x">
+                {order.shipments.map((shipment, idx) => {
+                  const isDelivered   = shipment.displayStatus === "DELIVERED"
+                  const deliveredDate = shipment.deliveredAt ? new Date(shipment.deliveredAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : null
+                  const cardCls       = cn("shrink-0 snap-start border rounded-lg p-4 bg-white shadow-sm flex flex-col gap-3", order.shipments.length === 1 ? "w-full" : "w-[85vw] sm:w-[380px]")
+                  return (
+                    <div key={shipment.id} className={cardCls}>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2.5">
+                          <div className={cn("p-1.5 rounded-md", isDelivered ? "bg-green-50 text-green-600" : "bg-muted text-muted-foreground")}><Truck className="size-4" /></div>
+                          <div>
+                            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Shipment {idx + 1}</p>
+                            <p className="text-sm font-medium">{isDelivered ? "Delivered" : "On its way"}{deliveredDate && <span className="text-muted-foreground font-normal"> · {deliveredDate}</span>}</p>
+                          </div>
+                        </div>
+                        <ShipmentItemsModal shipment={shipment} order={order} idx={idx} />
                       </div>
-                    ))}
-                  </div>                                               
-                )}
+                      {shipment.trackingInfo.length > 0 && (
+                        <div className="flex flex-col gap-1.5 border-t pt-3">
+                          {shipment.trackingInfo.map((track, ti) => (
+                            <div key={ti} className="flex items-center gap-2">
+                              <MapPin className="size-3.5 text-muted-foreground shrink-0" />
+                              <span className="text-xs text-muted-foreground">{track.company}:</span>
+                              {track.url
+                                ? <a href={track.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 font-medium hover:underline inline-flex items-center gap-1 text-xs">{track.number} <ExternalLink className="size-3" /></a>
+                                : <span className="font-medium text-foreground text-xs">{track.number}</span>}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
-            )
-          })}
-        </div>
-        <ScrollBar orientation="horizontal" />
-      </ScrollArea>
-    </div>
-  )}
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
+          </div>
+        )}
 
         {/* ── Policy gate ── */}
         {hasEligible && !policyAccepted && (
@@ -890,7 +836,7 @@ export default function DashboardClient() {
               )}
 
               {view === "list" && !loading && (
-               <Card className={cn(C, "overflow-hidden")}>
+                <Card className={cn(C, "overflow-hidden")}>
                   <CardContent className="p-0">
                     {filteredOrders.length === 0
                       ? <div className="text-center py-20"><ShoppingBag className="size-12 text-muted-foreground/30 mx-auto mb-4" /><p className="font-medium text-muted-foreground">No orders found</p></div>
