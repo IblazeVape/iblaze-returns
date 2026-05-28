@@ -4,7 +4,7 @@ import * as React from "react"
 import { createPortal } from "react-dom"
 import { useEffect, useState, useMemo } from "react"
 import { toast } from "sonner"
-import { ChevronRight, LayoutGrid, List, ArrowLeft, RotateCcw, CheckCircle2, ShoppingBag,ShieldCheck, ExternalLink, Lock, Truck, Package, Search, MapPin, SlidersHorizontal } from "lucide-react"
+import { ChevronRight, LayoutGrid, List, ArrowLeft, RotateCcw, CheckCircle2, ShoppingBag, ShieldCheck, ExternalLink, Lock, Truck, Package, Search, MapPin, SlidersHorizontal } from "lucide-react"
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
@@ -82,15 +82,15 @@ interface Order {
 interface OrdersData { firstName: string; email: string; orders: Order[] }
 
 const RETURN_REASONS = [
-    { value: "CHANGED_MIND",     label: "Changed my mind" },
-    { value: "WRONG_ITEM",       label: "Wrong item received" },
-    { value: "FAULTY",           label: "Faulty / not working" },
-    { value: "DAMAGED",          label: "Damaged in transit" },
-    { value: "NOT_AS_DESCRIBED", label: "Not as described" },           
-    { value: "OTHER",            label: "Other" },
-  ]
+  { value: "CHANGED_MIND",     label: "Changed my mind" },
+  { value: "WRONG_ITEM",       label: "Wrong item received" },
+  { value: "FAULTY",           label: "Faulty / not working" },
+  { value: "DAMAGED",          label: "Damaged in transit" },
+  { value: "NOT_AS_DESCRIBED", label: "Not as described" },
+  { value: "OTHER",            label: "Other" },
+]
 
-  const STATUS_FILTERS = ["Delivered", "Partially delivered", "On its way", "Partially dispatched"]
+const STATUS_FILTERS = ["Delivered", "Partially delivered", "On its way", "Partially dispatched"]
 
 const C = "shadow-sm py-0 gap-0"
 
@@ -179,16 +179,16 @@ function IneligibleReason({ status, reason, lineDeliveredAt }: { status: ReturnS
   return <span className="text-xs text-muted-foreground">{status}</span>
 }
 
+// FIX: object-cover so images sit flush against the border with no gap
 function ProductThumb({ item }: { item: LineItem }) {
   return (
     <a href={pUrl(item.productHandle)} target="_blank" rel="noopener noreferrer" className="shrink-0">
       <div className="size-10 rounded-md overflow-hidden bg-white border border-border hover:border-foreground transition-colors">
-        {item.image?.url && <img src={item.image.url} alt={item.title} className="w-full h-full object-contain p-0.5" />}
+        {item.image?.url && <img src={item.image.url} alt={item.title} className="w-full h-full object-cover" />}
       </div>
     </a>
   )
 }
-
 
 // ─── Shipment item list ───────────────────────────────────────────────────────
 function ShipmentItemList({ shipment, order, className }: { shipment: Shipment; order: Order; className?: string }) {
@@ -207,7 +207,7 @@ function ShipmentItemList({ shipment, order, className }: { shipment: Shipment; 
           <div key={i} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
             <a href={pUrl(item.productHandle)} target="_blank" rel="noopener noreferrer" className="shrink-0">
               <div className="size-9 rounded-md overflow-hidden bg-white border border-border hover:border-foreground transition-colors">
-                {item.image?.url && <img src={item.image.url} alt={item.title} className="w-full h-full object-contain" />}
+                {item.image?.url && <img src={item.image.url} alt={item.title} className="w-full h-full object-cover" />}
               </div>
             </a>
             <div className="flex-1 min-w-0">
@@ -284,18 +284,17 @@ function ShipmentItemsModal({ shipment, order, idx }: { shipment: Shipment; orde
     <Drawer open={open} onOpenChange={setOpen}>
       <DrawerTrigger asChild>{trigger}</DrawerTrigger>
       <DrawerContent>
-    <DrawerHeader className="text-left">
-      <DrawerTitle className="flex items-center gap-2"><Truck className="size-4" />
-  {title}</DrawerTitle>
-      <DrawerDescription>{subtitle}</DrawerDescription>
-    </DrawerHeader>
-    <div className="overflow-y-auto max-h-[60vh]">
-      <ShipmentItemList shipment={shipment} order={order} className="px-4 pb-4" />
-    </div>
-    <DrawerFooter className="pt-2">
-      <Button variant="outline" className="w-full" onClick={() => setOpen(false)}>Close</Button>
-    </DrawerFooter>
-  </DrawerContent>
+        <DrawerHeader className="text-left border-b border-border pb-4">
+          <DrawerTitle className="flex items-center gap-2"><Truck className="size-4" /> {title}</DrawerTitle>
+          <DrawerDescription>{subtitle}</DrawerDescription>
+        </DrawerHeader>
+        <div className="overflow-y-auto max-h-[60vh]">
+          <ShipmentItemList shipment={shipment} order={order} className="px-4 py-4" />
+        </div>
+        <DrawerFooter className="pt-2">
+          <Button variant="outline" className="w-full" onClick={() => setOpen(false)}>Close</Button>
+        </DrawerFooter>
+      </DrawerContent>
     </Drawer>
   )
 }
@@ -337,12 +336,12 @@ function HygienePolicy({ onAccept, onDecline }: { onAccept: () => void; onDeclin
     <Drawer open={open} onOpenChange={setOpen}>
       <DrawerTrigger asChild>{trigger}</DrawerTrigger>
       <DrawerContent>
-        <DrawerHeader className="text-left">
+        <DrawerHeader className="text-left border-b border-border pb-4">
           <DrawerTitle className="flex items-center gap-2"><ShieldCheck className="size-4 text-[#E5403B]" /> iBlaze Returns Policy</DrawerTitle>
           <DrawerDescription>Review our returns policy before selecting items to return.</DrawerDescription>
         </DrawerHeader>
         <ScrollArea className="max-h-[50vh]">
-          <HygienePolicyList className="px-4 pb-4" />
+          <HygienePolicyList className="px-4 py-4" />
         </ScrollArea>
         <DrawerFooter className="pt-2">{acceptDecline}</DrawerFooter>
       </DrawerContent>
@@ -369,7 +368,7 @@ function OrderCard({ order, onClick }: { order: Order; onClick: () => void }) {
       <div className="flex items-center gap-1.5">
         {uniqueImages.map((url, i) => (
           <div key={i} className="w-10 h-10 rounded-md border border-border bg-white overflow-hidden shrink-0">
-            <img src={url} alt="" className="w-full h-full object-contain p-0.5" />
+            <img src={url} alt="" className="w-full h-full object-cover" />
           </div>
         ))}
         {extra > 0 && (
@@ -392,7 +391,7 @@ function OrderRow({ order, onClick }: { order: Order; onClick: () => void }) {
       <div className="flex -space-x-2 w-[92px] shrink-0">
         {images.map((url, i) => (
           <div key={i} className="size-9 rounded-lg border-2 border-white bg-white overflow-hidden shadow-sm shrink-0">
-            <img src={url} alt="" className="w-full h-full object-contain" />
+            <img src={url} alt="" className="w-full h-full object-cover" />
           </div>
         ))}
         {Array.from({ length: 3 - images.length }).map((_, i) => (
@@ -436,6 +435,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
   const hasEligible          = eligibleItems.length > 0 && !order.cancelledAt
   const totalEligibleUnits   = eligibleItems.reduce((s, i) => s + i.eligibleQuantity, 0)
   const totalIneligibleUnits = ineligibleItems.reduce((s, i) => s + i.quantity, 0)
+  const hasBothTabs          = eligibleItems.length > 0 && ineligibleItems.length > 0
 
   const matchesSearch = (item: LineItem) => {
     if (!searchQuery) return true
@@ -446,8 +446,13 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
   const filteredEligible   = useMemo(() => eligibleItems.filter(matchesSearch),   [eligibleItems,   searchQuery])
   const filteredIneligible = useMemo(() => ineligibleItems.filter(matchesSearch), [ineligibleItems, searchQuery])
 
-  const [activeTab, setActiveTab] = useState<"eligible" | "ineligible">("eligible")
-  useEffect(() => { setActiveTab("eligible") }, [order.id])
+  // FIX: default to whichever tab actually has items; reset when order changes
+  const [activeTab, setActiveTab] = useState<"eligible" | "ineligible">(
+    () => eligibleItems.length > 0 ? "eligible" : "ineligible"
+  )
+  useEffect(() => {
+    setActiveTab(eligibleItems.length > 0 ? "eligible" : "ineligible")
+  }, [order.id])
 
   const currentData   = activeTab === "eligible" ? filteredEligible : filteredIneligible
   const size          = pageSize === "all" ? Math.max(currentData.length, 1) : parseInt(pageSize)
@@ -607,13 +612,20 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
         {!order.cancelledAt && (
           <Card className={cn(C, "overflow-hidden flex flex-col")}>
             <div className="px-5 py-3 border-b bg-muted/20 flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <Select value={activeTab} onValueChange={(v) => setActiveTab(v as "eligible" | "ineligible")}>
-                <SelectTrigger className="w-[185px] h-9 bg-white"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="eligible">Eligible ({totalEligibleUnits})</SelectItem>
-                  <SelectItem value="ineligible">Ineligible ({totalIneligibleUnits})</SelectItem>
-                </SelectContent>
-              </Select>
+              {/* FIX: only show tab switcher when both eligible and ineligible items exist */}
+              {hasBothTabs ? (
+                <Select value={activeTab} onValueChange={(v) => setActiveTab(v as "eligible" | "ineligible")}>
+                  <SelectTrigger className="w-[185px] h-9 bg-white"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="eligible">Eligible ({totalEligibleUnits})</SelectItem>
+                    <SelectItem value="ineligible">Ineligible ({totalIneligibleUnits})</SelectItem>
+                  </SelectContent>
+                </Select>
+              ) : (
+                <span className="text-sm font-semibold text-foreground">
+                  {eligibleItems.length > 0 ? `Eligible (${totalEligibleUnits})` : `Ineligible (${totalIneligibleUnits})`}
+                </span>
+              )}
               <div className="flex items-center gap-2">
                 <div className="relative w-full md:w-64">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -740,9 +752,12 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
         )}
       </div>
 
-      {/* ── Portalled sticky footer ── */}
+      {/* ── Portalled sticky footer — FIX: safe-area-inset-bottom for iPhone curved display ── */}
       {mounted && hasEligible && !order.cancelledAt && createPortal(
-        <div className="fixed bottom-0 right-0 z-[48] border-t border-border bg-background shadow-[0_-2px_12px_rgba(0,0,0,0.08)]" style={{ left: sidebarMobile ? "0px" : sidebarState === "collapsed" ? "4.5rem" : "18rem" }}>
+        <div
+          className="fixed bottom-0 right-0 z-[48] border-t border-border bg-background shadow-[0_-2px_12px_rgba(0,0,0,0.08)]"
+          style={{ left: sidebarMobile ? "0px" : sidebarState === "collapsed" ? "4.5rem" : "18rem", paddingBottom: "env(safe-area-inset-bottom)" }}
+        >
           <div className="px-4 lg:px-6 py-2.5 flex items-center justify-between gap-2">
             <div className="flex items-center gap-3 min-w-0">
               <div className="shrink-0">
@@ -793,9 +808,9 @@ export default function DashboardClient() {
   }, [])
 
   const filteredOrders = (data?.orders || []).filter(o => {
-  const matchesSearch = o.name.toLowerCase().includes(search.toLowerCase())
-  const matchesStatus = statusFilter.length === 0 || statusFilter.includes(o.orderStatus)
-  return matchesSearch && matchesStatus
+    const matchesSearch = o.name.toLowerCase().includes(search.toLowerCase())
+    const matchesStatus = statusFilter.length === 0 || statusFilter.includes(o.orderStatus)
+    return matchesSearch && matchesStatus
   })
 
   const user = { name: data?.firstName || "Customer", email: data?.email || "" }
@@ -811,53 +826,49 @@ export default function DashboardClient() {
           ) : (
             <>
               <div className="flex items-center justify-between">
-    <div>
-      <h2 className="text-lg font-semibold">{data?.firstName ? `Hi, ${data.firstName} 👋` :
-  "Your Recent Orders"}</h2>
-      <p className="text-sm text-muted-foreground mt-0.5">Select an order to view details or
-  initiate a return.</p>
-    </div>
-    <div className="flex items-center gap-2">
-      <Popover>
-        <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className="h-8 gap-1.5 text-sm bg-white">
-            <SlidersHorizontal className="size-3.5" />
-            Status
-            {statusFilter.length > 0 && <span className="rounded-full bg-foreground 
-  text-background text-[10px] font-bold px-1.5 leading-5">{statusFilter.length}</span>}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-52 p-2 bg-white text-gray-900" align="end">
-          <div className="flex flex-col">
-            {STATUS_FILTERS.map(status => (
-              <label key={status} className="flex items-center gap-2.5 px-2 py-1.5 rounded-md hover:bg-muted
-   cursor-pointer text-sm text-gray-900">                                
-    <Checkbox checked={statusFilter.includes(status)} onCheckedChange={checked =>
-  setStatusFilter(prev => checked ? [...prev, status] : prev.filter(s => s !== status))} />
-    {status}
-  </label>
-            ))}
-            {statusFilter.length > 0 && (
-              <>
-                <Separator className="my-1.5" />
-                <button onClick={() => setStatusFilter([])} className="text-xs
-  text-muted-foreground hover:text-foreground px-2 py-1 text-left w-full rounded-md
-  hover:bg-muted">Clear filters</button>
-              </>
-            )}
-          </div>
-        </PopoverContent>
-      </Popover>
-      <div className="flex items-center gap-1 bg-white border border-border rounded-lg p-1">
-        <Button variant="ghost" size="icon" className={cn("size-7", view === "grid" && 
-  "bg-background shadow-sm")} onClick={() => setView("grid")}><LayoutGrid className="size-4" 
-  /></Button>
-        <Button variant="ghost" size="icon" className={cn("size-7", view === "list" && 
-  "bg-background shadow-sm")} onClick={() => setView("list")}><List className="size-4" 
-  /></Button>
-      </div>
-    </div>
-  </div>
+                <div>
+                  <h2 className="text-lg font-semibold">{data?.firstName ? `Hi, ${data.firstName} 👋` : "Your Recent Orders"}</h2>
+                  <p className="text-sm text-muted-foreground mt-0.5">Select an order to view details or initiate a return.</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm" className="h-8 gap-1.5 text-sm bg-white">
+                        <SlidersHorizontal className="size-3.5" />
+                        Status
+                        {statusFilter.length > 0 && (
+                          <span className="rounded-full bg-foreground text-background text-[10px] font-bold px-1.5 leading-5">{statusFilter.length}</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-52 p-2 bg-white text-gray-900" align="end">
+                      <div className="flex flex-col">
+                        {STATUS_FILTERS.map(status => (
+                          <label key={status} className="flex items-center gap-2.5 px-2 py-1.5 rounded-md hover:bg-muted cursor-pointer text-sm text-gray-900">
+                            <Checkbox
+                              checked={statusFilter.includes(status)}
+                              onCheckedChange={checked => setStatusFilter(prev => checked ? [...prev, status] : prev.filter(s => s !== status))}
+                            />
+                            {status}
+                          </label>
+                        ))}
+                        {statusFilter.length > 0 && (
+                          <>
+                            <Separator className="my-1.5" />
+                            <button onClick={() => setStatusFilter([])} className="text-xs text-muted-foreground hover:text-foreground px-2 py-1 text-left w-full rounded-md hover:bg-muted">
+                              Clear filters
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                  <div className="flex items-center gap-1 bg-white border border-border rounded-lg p-1">
+                    <Button variant="ghost" size="icon" className={cn("size-7", view === "grid" && "bg-background shadow-sm")} onClick={() => setView("grid")}><LayoutGrid className="size-4" /></Button>
+                    <Button variant="ghost" size="icon" className={cn("size-7", view === "list" && "bg-background shadow-sm")} onClick={() => setView("list")}><List className="size-4" /></Button>
+                  </div>
+                </div>
+              </div>
 
               {error && (
                 <div className="flex items-center gap-3 p-4 rounded-xl bg-destructive/10 text-sm text-destructive border border-destructive/20">
@@ -865,9 +876,20 @@ export default function DashboardClient() {
                 </div>
               )}
 
-              {view === "grid" && (
+              {/* FIX: show empty state when search/filter returns no results */}
+              {view === "grid" && !loading && filteredOrders.length === 0 ? (
+                <div className="text-center py-20">
+                  <ShoppingBag className="size-12 text-muted-foreground/30 mx-auto mb-4" />
+                  <p className="font-medium text-muted-foreground">
+                    {search || statusFilter.length > 0 ? "No orders match your search" : "No orders found"}
+                  </p>
+                  {(search || statusFilter.length > 0) && (
+                    <p className="text-sm text-muted-foreground mt-1">Try adjusting your search or filters</p>
+                  )}
+                </div>
+              ) : view === "grid" && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                  {filteredOrders.map(o => <OrderCard key={o.id} order={o} onClick={() => setSelectedOrder(o)}/>)}
+                  {filteredOrders.map(o => <OrderCard key={o.id} order={o} onClick={() => setSelectedOrder(o)} />)}
                 </div>
               )}
 
@@ -875,7 +897,17 @@ export default function DashboardClient() {
                 <Card className={cn(C, "overflow-hidden")}>
                   <CardContent className="p-0">
                     {filteredOrders.length === 0
-                      ? <div className="text-center py-20"><ShoppingBag className="size-12 text-muted-foreground/30 mx-auto mb-4" /><p className="font-medium text-muted-foreground">No orders found</p></div>
+                      ? (
+                        <div className="text-center py-20">
+                          <ShoppingBag className="size-12 text-muted-foreground/30 mx-auto mb-4" />
+                          <p className="font-medium text-muted-foreground">
+                            {search || statusFilter.length > 0 ? "No orders match your search" : "No orders found"}
+                          </p>
+                          {(search || statusFilter.length > 0) && (
+                            <p className="text-sm text-muted-foreground mt-1">Try adjusting your search or filters</p>
+                          )}
+                        </div>
+                      )
                       : filteredOrders.map(o => <OrderRow key={o.id} order={o} onClick={() => setSelectedOrder(o)} />)}
                   </CardContent>
                 </Card>
@@ -889,7 +921,8 @@ export default function DashboardClient() {
 
   if (loading) {
     return (
-      <div className="relative h-screen w-screen overflow-hidden">
+      // FIX: use 100dvh so the verifying card centres correctly on Safari (100vh includes the address bar)
+      <div className="relative overflow-hidden" style={{ height: "100dvh", width: "100vw" }}>
         <div className="pointer-events-none select-none blur-sm brightness-95 h-full w-full">{portalContent}</div>
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/40 backdrop-blur-sm">
           <Card className="w-full max-w-xs mx-4 shadow-xl">
