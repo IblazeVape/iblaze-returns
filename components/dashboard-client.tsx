@@ -324,7 +324,7 @@ function ShipmentItemsModal({ shipment, order, idx }: {
         </DrawerHeader>
         {/* ScrollArea caps height inside the drawer's max-h-[80vh] */}
         <ScrollArea className="max-h-[50vh]">
-          <ShipmentItemList shipment={shipment} order={order} className="px-4" />
+          <ShipmentItemList shipment={shipment} order={order} className="px-4 pb-4" />
         </ScrollArea>
         <DrawerFooter className="pt-2">
           <Button variant="outline" className="w-full" onClick={() => setOpen(false)}>Close</Button>
@@ -386,7 +386,7 @@ function HygienePolicy({ onAccept, onDecline }: { onAccept: () => void; onDeclin
           <DrawerDescription>Review our returns policy before selecting items to return.</DrawerDescription>
         </DrawerHeader>
         <ScrollArea className="max-h-[50vh]">
-          <HygienePolicyList className="px-4" />
+          <HygienePolicyList className="px-4 pb-4" />
         </ScrollArea>
         <DrawerFooter className="pt-2">
           {acceptDecline}
