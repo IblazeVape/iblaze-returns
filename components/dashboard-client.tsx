@@ -19,7 +19,6 @@ import { Input } from "@/components/ui/input"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent } from "@/components/ui/card"
-import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -187,17 +186,6 @@ function ProductThumb({ item }: { item: LineItem }) {
   )
 }
 
-function OrderCardSkeleton() {
-  return (
-    <div className="bg-white border border-border rounded-xl p-5">
-      <div className="flex items-start justify-between mb-3">
-        <div className="space-y-1.5"><Skeleton className="h-4 w-24" /><Skeleton className="h-3 w-32" /></div>
-        <Skeleton className="h-4 w-14" />
-      </div>
-      <div className="flex gap-1.5">{[1, 2, 3].map(i => <Skeleton key={i} className="w-10 h-10 rounded-md" />)}</div>
-    </div>
-  )
-}
 
 // ─── Shipment item list ───────────────────────────────────────────────────────
 function ShipmentItemList({ shipment, order, className }: { shipment: Shipment; order: Order; className?: string }) {
@@ -832,7 +820,7 @@ export default function DashboardClient() {
 
               {view === "grid" && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                  {loading ? Array.from({ length: 6 }).map((_, i) => <OrderCardSkeleton key={i} />) : filteredOrders.map(o => <OrderCard key={o.id} order={o} onClick={() => setSelectedOrder(o)} />)}
+                  {filteredOrders.map(o => <OrderCard key={o.id} order={o} onClick={() => setSelectedOrder(o)}/>)}
                 </div>
               )}
 
