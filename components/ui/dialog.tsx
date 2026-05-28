@@ -1,48 +1,43 @@
 "use client"
 
 import * as React from "react"
-import * as DialogPrimitive from "@radix-ui/react-dialog"
-import { XIcon } from "lucide-react"
+import { Drawer as DrawerPrimitive } from "vaul"
 
 import { cn } from "@/lib/utils"
 
-function Dialog({
+function Drawer({
   ...props
-}: React.ComponentProps<typeof DialogPrimitive.Root>) {
-  return <DialogPrimitive.Root data-slot="dialog" {...props} />
+}: React.ComponentProps<typeof DrawerPrimitive.Root>) {
+  return <DrawerPrimitive.Root data-slot="drawer" {...props} />
 }
 
-function DialogTrigger({
+function DrawerTrigger({
   ...props
-}: React.ComponentProps<typeof DialogPrimitive.Trigger>) {
-  return <DialogPrimitive.Trigger data-slot="dialog-trigger" {...props} />
+}: React.ComponentProps<typeof DrawerPrimitive.Trigger>) {
+  return <DrawerPrimitive.Trigger data-slot="drawer-trigger" {...props} />
 }
 
-function DialogPortal({
+function DrawerPortal({
   ...props
-}: React.ComponentProps<typeof DialogPrimitive.Portal>) {
-  return <DialogPrimitive.Portal data-slot="dialog-portal" {...props} />
+}: React.ComponentProps<typeof DrawerPrimitive.Portal>) {
+  return <DrawerPrimitive.Portal data-slot="drawer-portal" {...props} />
 }
 
-function DialogClose({
+function DrawerClose({
   ...props
-}: React.ComponentProps<typeof DialogPrimitive.Close>) {
-  return <DialogPrimitive.Close data-slot="dialog-close" {...props} />
+}: React.ComponentProps<typeof DrawerPrimitive.Close>) {
+  return <DrawerPrimitive.Close data-slot="drawer-close" {...props} />
 }
 
-function DialogOverlay({
+function DrawerOverlay({
   className,
   ...props
-}: React.ComponentProps<typeof DialogPrimitive.Overlay>) {
+}: React.ComponentProps<typeof DrawerPrimitive.Overlay>) {
   return (
-    <DialogPrimitive.Overlay
-      data-slot="dialog-overlay"
+    <DrawerPrimitive.Overlay
+      data-slot="drawer-overlay"
       className={cn(
-        // Frosted glass overlay — matches the shadcn reference exactly
-        "fixed inset-0 isolate z-50 bg-black/10 duration-100",
-        "supports-backdrop-filter:backdrop-blur-xs",
-        "data-open:animate-in data-open:fade-in-0",
-        "data-closed:animate-out data-closed:fade-out-0",
+        "fixed inset-0 isolate z-50 bg-black/10 supports-backdrop-filter:backdrop-blur-xs data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
         className
       )}
       {...props}
@@ -50,123 +45,91 @@ function DialogOverlay({
   )
 }
 
-function DialogContent({
+function DrawerContent({
   className,
   children,
-  showCloseButton = true,
   ...props
-}: React.ComponentProps<typeof DialogPrimitive.Content> & {
-  showCloseButton?: boolean
-}) {
+}: React.ComponentProps<typeof DrawerPrimitive.Content>) {
   return (
-    <DialogPortal data-slot="dialog-portal">
-      <DialogOverlay />
-      <DialogPrimitive.Content
-        data-slot="dialog-content"
+    <DrawerPortal data-slot="drawer-portal">
+      <DrawerOverlay />
+      <DrawerPrimitive.Content
+        data-slot="drawer-content"
         className={cn(
-          "fixed top-1/2 left-1/2 z-50 grid w-full",
-          "max-w-[calc(100%-2rem)] sm:max-w-[425px]",
-          "-translate-x-1/2 -translate-y-1/2",
-          "gap-4 rounded-xl bg-popover p-4",
-          "text-sm text-popover-foreground",
-          "ring-1 ring-foreground/10",
-          "duration-100 outline-none",
-          "data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95",
-          "data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+          "group/drawer-content fixed z-50 flex h-auto flex-col bg-popover text-sm text-popover-foreground data-[vaul-drawer-direction=bottom]:inset-x-0 data-[vaul-drawer-direction=bottom]:bottom-0 data-[vaul-drawer-direction=bottom]:mt-24 data-[vaul-drawer-direction=bottom]:max-h-[80vh] data-[vaul-drawer-direction=bottom]:rounded-t-xl data-[vaul-drawer-direction=bottom]:border-t data-[vaul-drawer-direction=left]:inset-y-0 data-[vaul-drawer-direction=left]:left-0 data-[vaul-drawer-direction=left]:w-3/4 data-[vaul-drawer-direction=left]:rounded-r-xl data-[vaul-drawer-direction=left]:border-r data-[vaul-drawer-direction=right]:inset-y-0 data-[vaul-drawer-direction=right]:right-0 data-[vaul-drawer-direction=right]:w-3/4 data-[vaul-drawer-direction=right]:rounded-l-xl data-[vaul-drawer-direction=right]:border-l data-[vaul-drawer-direction=top]:inset-x-0 data-[vaul-drawer-direction=top]:top-0 data-[vaul-drawer-direction=top]:mb-24 data-[vaul-drawer-direction=top]:max-h-[80vh] data-[vaul-drawer-direction=top]:rounded-b-xl data-[vaul-drawer-direction=top]:border-b data-[vaul-drawer-direction=left]:sm:max-w-sm data-[vaul-drawer-direction=right]:sm:max-w-sm",
           className
         )}
         {...props}
       >
+        <div className="mx-auto mt-2 hidden h-1 w-[100px] shrink-0 rounded-full bg-muted group-data-[vaul-drawer-direction=bottom]/drawer-content:block" />
         {children}
-
-        {/* Close button — ghost icon-sm, hidden when showCloseButton=false (e.g. command palette) */}
-        {showCloseButton && (
-          <DialogPrimitive.Close
-            data-slot="dialog-close"
-            data-variant="ghost"
-            data-size="icon-sm"
-            className={cn(
-              "group/button inline-flex shrink-0 items-center justify-center",
-              "border border-transparent bg-clip-padding",
-              "text-sm font-medium whitespace-nowrap transition-all outline-none select-none",
-              "focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
-              "active:not-aria-[haspopup]:translate-y-px",
-              "disabled:pointer-events-none disabled:opacity-50",
-              "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-              "hover:bg-muted hover:text-foreground",
-              "aria-expanded:bg-muted aria-expanded:text-foreground",
-              "dark:hover:bg-muted/50",
-              "size-7 rounded-[min(var(--radius-md),12px)]",
-              "absolute top-2 right-2"
-            )}
-          >
-            <XIcon />
-            <span className="sr-only">Close</span>
-          </DialogPrimitive.Close>
-        )}
-      </DialogPrimitive.Content>
-    </DialogPortal>
+      </DrawerPrimitive.Content>
+    </DrawerPortal>
   )
 }
 
-function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
+function DrawerHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
-      data-slot="dialog-header"
-      className={cn("flex flex-col gap-2", className)}
-      {...props}
-    />
-  )
-}
-
-function DialogFooter({ className, ...props }: React.ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="dialog-footer"
-      className={cn("flex flex-col-reverse gap-2 sm:flex-row sm:justify-end", className)}
-      {...props}
-    />
-  )
-}
-
-function DialogTitle({
-  className,
-  ...props
-}: React.ComponentProps<typeof DialogPrimitive.Title>) {
-  return (
-    <DialogPrimitive.Title
-      data-slot="dialog-title"
-      className={cn("cn-font-heading text-base leading-none font-medium", className)}
-      {...props}
-    />
-  )
-}
-
-function DialogDescription({
-  className,
-  ...props
-}: React.ComponentProps<typeof DialogPrimitive.Description>) {
-  return (
-    <DialogPrimitive.Description
-      data-slot="dialog-description"
+      data-slot="drawer-header"
       className={cn(
-        "text-sm text-muted-foreground",
-        "*:[a]:underline *:[a]:underline-offset-3 *:[a]:hover:text-foreground",
+        // Removed auto text-center on bottom/top drawers — callers set alignment explicitly
+        "flex flex-col gap-0.5 p-4 md:gap-0.5 text-left",
         className
       )}
+      {...props}
+    />
+  )
+}
+
+function DrawerFooter({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="drawer-footer"
+      className={cn("mt-auto flex flex-col gap-2 p-4", className)}
+      {...props}
+    />
+  )
+}
+
+function DrawerTitle({
+  className,
+  ...props
+}: React.ComponentProps<typeof DrawerPrimitive.Title>) {
+  return (
+    <DrawerPrimitive.Title
+      data-slot="drawer-title"
+      className={cn(
+        "cn-font-heading text-base font-medium text-foreground",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function DrawerDescription({
+  className,
+  ...props
+}: React.ComponentProps<typeof DrawerPrimitive.Description>) {
+  return (
+    <DrawerPrimitive.Description
+      data-slot="drawer-description"
+      className={cn("text-sm text-muted-foreground", className)}
       {...props}
     />
   )
 }
 
 export {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogPortal,
-  DialogTitle,
-  DialogTrigger,
+  Drawer,
+  DrawerPortal,
+  DrawerOverlay,
+  DrawerTrigger,
+  DrawerClose,
+  DrawerContent,
+  DrawerHeader,
+  DrawerFooter,
+  DrawerTitle,
+  DrawerDescription,
 }
