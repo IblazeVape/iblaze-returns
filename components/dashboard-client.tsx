@@ -571,7 +571,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
         </Button>
 
         {/* ── Order header card ── */}
-        <Card className={cn(C, "overflow-hidden")}
+        <Card className={cn(C, "overflow-hidden")}>
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 px-5 py-4">
             <div>
               <div className="flex items-center gap-2 mb-1.5"><h2 className="text-base font-semibold">{order.name}</h2></div>
