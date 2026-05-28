@@ -820,15 +820,14 @@ export default function DashboardClient() {
     <div className="flex items-center gap-2">
       <Popover>
         <PopoverTrigger asChild>
-           <Button variant="outline" size="sm" className={cn("h-8 gap-1.5 text-sm bg-white",
-  statusFilter.length > 0 && "border-foreground")}>
+            <Button variant="outline" size="sm" className="h-8 gap-1.5 text-sm bg-white">
             <SlidersHorizontal className="size-3.5" />
             Status
             {statusFilter.length > 0 && <span className="rounded-full bg-foreground 
   text-background text-[10px] font-bold px-1.5 leading-5">{statusFilter.length}</span>}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-52 p-2 bg-white" align="end">
+        <PopoverContent className="w-52 p-2 bg-white text-foreground" align="end">
           <div className="flex flex-col">
             {STATUS_FILTERS.map(status => (
               <label key={status} className="flex items-center gap-2.5 px-2 py-1.5 rounded-md hover:bg-muted
