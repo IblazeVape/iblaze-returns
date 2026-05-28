@@ -292,18 +292,19 @@ function ShipmentItemsModal({ shipment, order, idx }: { shipment: Shipment; orde
   return (
     <Drawer open={open} onOpenChange={setOpen}>
       <DrawerTrigger asChild>{trigger}</DrawerTrigger>
-      <DrawerContent className="flex flex-col max-h-[85svh]">
-        <DrawerHeader className="text-left">
-          <DrawerTitle className="flex items-center gap-2"><Truck className="size-4" /> {title}</DrawerTitle>
-          <DrawerDescription>{subtitle}</DrawerDescription>
-        </DrawerHeader>
-        <ScrollArea className="flex-1 min-h-0">
-          <ShipmentItemList shipment={shipment} order={order} className="px-4 pb-4" />
-        </ScrollArea>
-        <DrawerFooter className="pt-2">
-          <Button variant="outline" className="w-full" onClick={() => setOpen(false)}>Close</Button>
-        </DrawerFooter>
-      </DrawerContent>
+      <DrawerContent>
+    <DrawerHeader className="text-left">
+      <DrawerTitle className="flex items-center gap-2"><Truck className="size-4" />
+  {title}</DrawerTitle>
+      <DrawerDescription>{subtitle}</DrawerDescription>
+    </DrawerHeader>
+    <div className="overflow-y-auto max-h-[60vh]">
+      <ShipmentItemList shipment={shipment} order={order} className="px-4 pb-4" />
+    </div>
+    <DrawerFooter className="pt-2">
+      <Button variant="outline" className="w-full" onClick={() => setOpen(false)}>Close</Button>
+    </DrawerFooter>
+  </DrawerContent>
     </Drawer>
   )
 }
