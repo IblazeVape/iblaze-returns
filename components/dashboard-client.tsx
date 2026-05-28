@@ -4,7 +4,7 @@ import * as React from "react"
 import { createPortal } from "react-dom"
 import { useEffect, useState, useMemo } from "react"
 import { toast } from "sonner"
-import { ChevronRight, LayoutGrid, List, ArrowLeft, RotateCcw, CheckCircle2, ShoppingBag, ShieldCheck, ExternalLink, Lock, Truck, Package, Search, MapPin } from "lucide-react"
+import { ChevronRight, LayoutGrid, List, ArrowLeft, RotateCcw, CheckCircle2, ShoppingBag,ShieldCheck, ExternalLink, Lock, Truck, Package, Search, MapPin, SlidersHorizontal } from "lucide-react"
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
@@ -22,6 +22,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Drawer, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { cn } from "@/lib/utils"
@@ -81,13 +82,16 @@ interface Order {
 interface OrdersData { firstName: string; email: string; orders: Order[] }
 
 const RETURN_REASONS = [
-  { value: "CHANGED_MIND",     label: "Changed my mind" },
-  { value: "WRONG_ITEM",       label: "Wrong item received" },
-  { value: "FAULTY",           label: "Faulty / not working" },
-  { value: "DAMAGED",          label: "Damaged in transit" },
-  { value: "NOT_AS_DESCRIBED", label: "Not as described" },
-  { value: "OTHER",            label: "Other" },
-]
+    { value: "CHANGED_MIND",     label: "Changed my mind" },
+    { value: "WRONG_ITEM",       label: "Wrong item received" },
+    { value: "FAULTY",           label: "Faulty / not working" },
+    { value: "DAMAGED",          label: "Damaged in transit" },
+    { value: "NOT_AS_DESCRIBED", label: "Not as described" },           
+    { value: "OTHER",            label: "Other" },
+  ]
+
+  const STATUS_FILTERS = ["Delivered", "Partially delivered", "On its way", "Partially 
+  dispatched"]
 
 const C = "shadow-sm py-0 gap-0"
 
@@ -778,6 +782,7 @@ export default function DashboardClient() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [view, setView]                   = useState<"grid" | "list">("grid")
   const [search, setSearch]               = useState("")
+  const [statusFilter, setStatusFilter]   = useState<string[]>([])
   const [activeSection, setActiveSection] = useState("#orders")
 
   useEffect(() => {
@@ -788,7 +793,12 @@ export default function DashboardClient() {
       .finally(() => setLoading(false))
   }, [])
 
-  const filteredOrders = (data?.orders || []).filter(o => o.name.toLowerCase().includes(search.toLowerCase()))
+  const filteredOrders = (data?.orders || []).filter(o => {
+  const matchesSearch = o.name.toLowerCase().includes(search.toLowerCase())
+  const matchesStatus = statusFilter.length === 0 || statusFilter.includes(o.orderStatus)
+  return matchesSearch && matchesStatus
+  })
+
   const user = { name: data?.firstName || "Customer", email: data?.email || "" }
 
   const portalContent = (
@@ -802,15 +812,53 @@ export default function DashboardClient() {
           ) : (
             <>
               <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-lg font-semibold">{data?.firstName ? `Hi, ${data.firstName} 👋` : "Your Recent Orders"}</h2>
-                  <p className="text-sm text-muted-foreground mt-0.5">Select an order to view details or initiate a return.</p>
-                </div>
-                <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
-                  <Button variant="ghost" size="icon" className={cn("size-7", view === "grid" && "bg-background shadow-sm")} onClick={() => setView("grid")}><LayoutGrid className="size-4" /></Button>
-                  <Button variant="ghost" size="icon" className={cn("size-7", view === "list" && "bg-background shadow-sm")} onClick={() => setView("list")}><List className="size-4" /></Button>
-                </div>
-              </div>
+    <div>
+      <h2 className="text-lg font-semibold">{data?.firstName ? `Hi, ${data.firstName} 👋` :
+  "Your Recent Orders"}</h2>
+      <p className="text-sm text-muted-foreground mt-0.5">Select an order to view details or
+  initiate a return.</p>
+    </div>
+    <div className="flex items-center gap-2">
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button variant="outline" size="sm" className={cn("h-8 gap-1.5 text-sm",
+  statusFilter.length > 0 && "border-foreground bg-muted")}>
+            <SlidersHorizontal className="size-3.5" />
+            Status
+            {statusFilter.length > 0 && <span className="rounded-full bg-foreground 
+  text-background text-[10px] font-bold px-1.5 leading-5">{statusFilter.length}</span>}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-52 p-2" align="end">
+          <div className="flex flex-col">
+            {STATUS_FILTERS.map(status => (
+              <label key={status} className="flex items-center gap-2.5 px-2 py-1.5 rounded-md 
+  hover:bg-muted cursor-pointer text-sm">
+                <Checkbox checked={statusFilter.includes(status)} onCheckedChange={checked =>
+  setStatusFilter(prev => checked ? [...prev, status] : prev.filter(s => s !== status))} />
+              </label>
+            ))}
+            {statusFilter.length > 0 && (
+              <>
+                <Separator className="my-1.5" />
+                <button onClick={() => setStatusFilter([])} className="text-xs
+  text-muted-foreground hover:text-foreground px-2 py-1 text-left w-full rounded-md
+  hover:bg-muted">Clear filters</button>
+              </>
+            )}
+          </div>
+        </PopoverContent>
+      </Popover>
+      <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
+        <Button variant="ghost" size="icon" className={cn("size-7", view === "grid" && 
+  "bg-background shadow-sm")} onClick={() => setView("grid")}><LayoutGrid className="size-4" 
+  /></Button>
+        <Button variant="ghost" size="icon" className={cn("size-7", view === "list" && 
+  "bg-background shadow-sm")} onClick={() => setView("list")}><List className="size-4" 
+  /></Button>
+      </div>
+    </div>
+  </div>
 
               {error && (
                 <div className="flex items-center gap-3 p-4 rounded-xl bg-destructive/10 text-sm text-destructive border border-destructive/20">
