@@ -292,12 +292,12 @@ function ShipmentItemsModal({ shipment, order, idx }: { shipment: Shipment; orde
   return (
     <Drawer open={open} onOpenChange={setOpen}>
       <DrawerTrigger asChild>{trigger}</DrawerTrigger>
-      <DrawerContent>
+      <DrawerContent className="flex flex-col max-h-[85svh]">
         <DrawerHeader className="text-left">
           <DrawerTitle className="flex items-center gap-2"><Truck className="size-4" /> {title}</DrawerTitle>
           <DrawerDescription>{subtitle}</DrawerDescription>
         </DrawerHeader>
-        <ScrollArea className="max-h-[50vh]">
+        <ScrollArea className="flex-1 min-h-0">
           <ShipmentItemList shipment={shipment} order={order} className="px-4 pb-4" />
         </ScrollArea>
         <DrawerFooter className="pt-2">
@@ -564,7 +564,9 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                 {order.shipments.map((shipment, idx) => {
                   const isDelivered   = shipment.displayStatus === "DELIVERED"
                   const deliveredDate = shipment.deliveredAt ? new Date(shipment.deliveredAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : null
-                  const cardCls       = cn("shrink-0 snap-start border rounded-lg p-4 bg-white shadow-sm flex flex-col gap-3", order.shipments.length === 1 ? "w-full" : "w-[85vw] sm:w-[380px]")
+                  const cardCls = cn("snap-start border rounded-lg p-4 bg-white shadow-sm flex flex-col gap-3",
+  order.shipments.length === 1 ? "w-full" : "w-[85vw] shrink-0 sm:flex-1 sm:w-auto 
+  sm:min-w-[240px]")
                   return (
                     <div key={shipment.id} className={cardCls}>
                       <div className="flex items-center justify-between gap-2">
