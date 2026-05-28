@@ -390,7 +390,6 @@ function HygienePolicy({ onAccept, onDecline }: { onAccept: () => void; onDeclin
         </ScrollArea>
         <DrawerFooter className="pt-2">
           {acceptDecline}
-          <Button variant="outline" className="w-full" onClick={() => setOpen(false)}>Cancel</Button>
         </DrawerFooter>
       </DrawerContent>
     </Drawer>
