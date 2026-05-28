@@ -37,11 +37,9 @@ function DrawerOverlay({
     <DrawerPrimitive.Overlay
       data-slot="drawer-overlay"
       className={cn(
-        "fixed inset-0 isolate z-50 bg-black/10 duration-100",
-        "supports-backdrop-filter:backdrop-blur-xs",
-        "transition-all",
-        "data-open:animate-in data-open:fade-in-0",
-        "data-closed:animate-out data-closed:fade-out-0",
+        // Tailwind v3 compatible — backdrop-blur-sm + bg tint
+        "fixed inset-0 z-50 bg-black/40 backdrop-blur-sm",
+        "transition-all duration-100",
         className
       )}
       {...props}
@@ -69,7 +67,7 @@ function DrawerContent({
         )}
         {...props}
       >
-        {/* drag handle — mt-2 keeps it compact, only shown for bottom drawers */}
+        {/* drag handle — mt-2, only shown for bottom drawers */}
         <div className="mx-auto mt-2 hidden h-1 w-[100px] shrink-0 rounded-full bg-muted group-data-[vaul-drawer-direction=bottom]/drawer-content:block" />
         {children}
       </DrawerPrimitive.Content>
@@ -81,7 +79,7 @@ function DrawerHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="drawer-header"
-      className={cn("flex flex-col gap-0.5 p-4 text-left md:gap-0.5", className)}
+      className={cn("flex flex-col gap-0.5 p-4 text-left", className)}
       {...props}
     />
   )
@@ -104,7 +102,7 @@ function DrawerTitle({
   return (
     <DrawerPrimitive.Title
       data-slot="drawer-title"
-      className={cn("cn-font-heading text-base font-medium text-foreground", className)}
+      className={cn("text-base font-medium text-foreground", className)}
       {...props}
     />
   )
