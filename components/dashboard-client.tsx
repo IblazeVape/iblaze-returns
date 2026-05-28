@@ -305,7 +305,10 @@ function ShipmentItemsModal({ shipment, order, idx }: {
             <DialogTitle className="flex items-center gap-2"><Truck className="size-4" /> {title}</DialogTitle>
             <DialogDescription>{subtitle}</DialogDescription>
           </DialogHeader>
-          <ShipmentItemList shipment={shipment} order={order} />
+          {/* ScrollArea caps height so long lists don't overflow the dialog */}
+          <ScrollArea className="max-h-[60vh]">
+            <ShipmentItemList shipment={shipment} order={order} />
+          </ScrollArea>
         </DialogContent>
       </Dialog>
     )
@@ -319,7 +322,10 @@ function ShipmentItemsModal({ shipment, order, idx }: {
           <DrawerTitle className="flex items-center gap-2"><Truck className="size-4" /> {title}</DrawerTitle>
           <DrawerDescription>{subtitle}</DrawerDescription>
         </DrawerHeader>
-        <ShipmentItemList shipment={shipment} order={order} className="px-4" />
+        {/* ScrollArea caps height inside the drawer's max-h-[80vh] */}
+        <ScrollArea className="max-h-[50vh]">
+          <ShipmentItemList shipment={shipment} order={order} className="px-4" />
+        </ScrollArea>
         <DrawerFooter className="pt-2">
           <Button variant="outline" className="w-full" onClick={() => setOpen(false)}>Close</Button>
         </DrawerFooter>
@@ -379,7 +385,9 @@ function HygienePolicy({ onAccept, onDecline }: { onAccept: () => void; onDeclin
           </DrawerTitle>
           <DrawerDescription>Review our returns policy before selecting items to return.</DrawerDescription>
         </DrawerHeader>
-        <HygienePolicyList className="px-4" />
+        <ScrollArea className="max-h-[50vh]">
+          <HygienePolicyList className="px-4" />
+        </ScrollArea>
         <DrawerFooter className="pt-2">
           {acceptDecline}
           <Button variant="outline" className="w-full" onClick={() => setOpen(false)}>Cancel</Button>
