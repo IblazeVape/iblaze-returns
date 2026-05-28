@@ -219,15 +219,18 @@ function ShipmentItemList({ shipment, order, className }: {
     <div className={cn("divide-y divide-border", className)}>
       {shipmentItems.map((item, i) => {
         const itemPrice = item.unitPrice ?? 0
+        const hasVariant = item.variant?.title && item.variant.title !== "Default Title"
         return (
           <div key={i} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
             <a href={pUrl(item.productHandle)} target="_blank" rel="noopener noreferrer" className="shrink-0">
               <div className="size-9 rounded-md overflow-hidden bg-white border border-border hover:border-foreground transition-colors">
-                {item.image?.url && <img src={item.image.url} alt={item.title} className="w-full h-full object-contain p-0.5" />}
+                {item.image?.url && (
+                  <img src={item.image.url} alt={item.title} className="w-full h-full object-contain" />
+                )}
               </div>
             </a>
             <div className="flex-1 min-w-0">
-              <a
+              
                 href={pUrl(item.productHandle)}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -235,14 +238,15 @@ function ShipmentItemList({ shipment, order, className }: {
               >
                 {item.title}
               </a>
-              {item.variant?.title && item.variant.title !== "Default Title" && (
-                <p className="text-xs text-muted-foreground mt-0.5">{item.variant.title}</p>
-              )}
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {item.shipQty}× {hasVariant ? item.variant!.title : ""}
+              </p>
             </div>
-            <div className="text-right shrink-0">
-              <p className="text-sm font-semibold">×{item.shipQty}</p>
-              {itemPrice > 0 && <p className="text-xs text-muted-foreground">£{(itemPrice * item.shipQty).toFixed(2)}</p>}
-            </div>
+            {itemPrice > 0 && (
+              <p className="text-sm font-semibold shrink-0">
+                £{(itemPrice * item.shipQty).toFixed(2)}
+              </p>
+            )}
           </div>
         )
       })}
