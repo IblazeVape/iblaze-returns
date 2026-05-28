@@ -820,15 +820,15 @@ export default function DashboardClient() {
     <div className="flex items-center gap-2">
       <Popover>
         <PopoverTrigger asChild>
-          <Button variant="outline" size="sm" className={cn("h-8 gap-1.5 text-sm",
-  statusFilter.length > 0 && "border-foreground bg-muted")}>
+           <Button variant="outline" size="sm" className={cn("h-8 gap-1.5 text-sm bg-white",
+  statusFilter.length > 0 && "border-foreground")}>
             <SlidersHorizontal className="size-3.5" />
             Status
             {statusFilter.length > 0 && <span className="rounded-full bg-foreground 
   text-background text-[10px] font-bold px-1.5 leading-5">{statusFilter.length}</span>}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-52 p-2" align="end">
+        <PopoverContent className="w-52 p-2 bg-white" align="end">
           <div className="flex flex-col">
             {STATUS_FILTERS.map(status => (
               <label key={status} className="flex items-center gap-2.5 px-2 py-1.5 rounded-md 
@@ -848,7 +848,7 @@ export default function DashboardClient() {
           </div>
         </PopoverContent>
       </Popover>
-      <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
+      <div className="flex items-center gap-1 bg-white border border-border rounded-lg p-1">
         <Button variant="ghost" size="icon" className={cn("size-7", view === "grid" && 
   "bg-background shadow-sm")} onClick={() => setView("grid")}><LayoutGrid className="size-4" 
   /></Button>
