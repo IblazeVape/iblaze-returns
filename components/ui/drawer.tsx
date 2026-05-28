@@ -37,9 +37,10 @@ function DrawerOverlay({
     <DrawerPrimitive.Overlay
       data-slot="drawer-overlay"
       className={cn(
-        // Tailwind v3 compatible — backdrop-blur-sm + bg tint
+        // vaul controls open/close via JS — just set the base styles + transition
+        // backdrop-blur-sm is Tailwind v3's smallest blur (4px)
         "fixed inset-0 z-50 bg-black/40 backdrop-blur-sm",
-        "transition-all duration-100",
+        "transition-opacity duration-300 ease-in-out",
         className
       )}
       {...props}
@@ -67,7 +68,7 @@ function DrawerContent({
         )}
         {...props}
       >
-        {/* drag handle — mt-2, only shown for bottom drawers */}
+        {/* drag handle — only shown for bottom drawers */}
         <div className="mx-auto mt-2 hidden h-1 w-[100px] shrink-0 rounded-full bg-muted group-data-[vaul-drawer-direction=bottom]/drawer-content:block" />
         {children}
       </DrawerPrimitive.Content>
