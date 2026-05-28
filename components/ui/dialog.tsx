@@ -38,11 +38,11 @@ function DialogOverlay({
     <DialogPrimitive.Overlay
       data-slot="dialog-overlay"
       className={cn(
-        // Frosted glass overlay — matches the shadcn reference exactly
-        "fixed inset-0 isolate z-50 bg-black/10 duration-100",
-        "supports-backdrop-filter:backdrop-blur-xs",
-        "data-open:animate-in data-open:fade-in-0",
-        "data-closed:animate-out data-closed:fade-out-0",
+        // Tailwind v3 compatible — use data-[state=] not data-open:
+        "fixed inset-0 z-50 bg-black/40 backdrop-blur-sm",
+        "transition-all duration-100",
+        "data-[state=open]:animate-in data-[state=open]:fade-in-0",
+        "data-[state=closed]:animate-out data-[state=closed]:fade-out-0",
         className
       )}
       {...props}
@@ -70,37 +70,29 @@ function DialogContent({
           "gap-4 rounded-xl bg-popover p-4",
           "text-sm text-popover-foreground",
           "ring-1 ring-foreground/10",
-          "duration-100 outline-none",
-          "data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95",
-          "data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+          "duration-200 outline-none",
+          // Tailwind v3: use data-[state=] format
+          "data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
+          "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
           className
         )}
         {...props}
       >
         {children}
 
-        {/* Close button — ghost icon-sm, hidden when showCloseButton=false (e.g. command palette) */}
         {showCloseButton && (
           <DialogPrimitive.Close
             data-slot="dialog-close"
-            data-variant="ghost"
-            data-size="icon-sm"
             className={cn(
-              "group/button inline-flex shrink-0 items-center justify-center",
-              "border border-transparent bg-clip-padding",
-              "text-sm font-medium whitespace-nowrap transition-all outline-none select-none",
-              "focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
-              "active:not-aria-[haspopup]:translate-y-px",
-              "disabled:pointer-events-none disabled:opacity-50",
-              "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-              "hover:bg-muted hover:text-foreground",
-              "aria-expanded:bg-muted aria-expanded:text-foreground",
-              "dark:hover:bg-muted/50",
-              "size-7 rounded-[min(var(--radius-md),12px)]",
-              "absolute top-2 right-2"
+              "absolute top-2 right-2",
+              "inline-flex size-7 items-center justify-center rounded-md",
+              "text-muted-foreground hover:text-foreground",
+              "hover:bg-muted transition-colors",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "disabled:pointer-events-none"
             )}
           >
-            <XIcon />
+            <XIcon className="size-4" />
             <span className="sr-only">Close</span>
           </DialogPrimitive.Close>
         )}
@@ -136,7 +128,7 @@ function DialogTitle({
   return (
     <DialogPrimitive.Title
       data-slot="dialog-title"
-      className={cn("cn-font-heading text-base leading-none font-medium", className)}
+      className={cn("text-base leading-none font-medium", className)}
       {...props}
     />
   )
@@ -149,11 +141,7 @@ function DialogDescription({
   return (
     <DialogPrimitive.Description
       data-slot="dialog-description"
-      className={cn(
-        "text-sm text-muted-foreground",
-        "*:[a]:underline *:[a]:underline-offset-3 *:[a]:hover:text-foreground",
-        className
-      )}
+      className={cn("text-sm text-muted-foreground", className)}
       {...props}
     />
   )
