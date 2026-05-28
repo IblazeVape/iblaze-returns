@@ -564,9 +564,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                 {order.shipments.map((shipment, idx) => {
                   const isDelivered   = shipment.displayStatus === "DELIVERED"
                   const deliveredDate = shipment.deliveredAt ? new Date(shipment.deliveredAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : null
-                  const cardCls = cn("snap-start border rounded-lg p-4 bg-white shadow-sm flex flex-col gap-3",
-  order.shipments.length === 1 ? "w-full" : "w-[85vw] shrink-0 sm:flex-1 sm:w-auto 
-  sm:min-w-[240px]")
+                  const cardCls = cn("snap-start border rounded-lg p-4 bg-white shadow-sm flex flex-col gap-3", order.shipments.length === 1 ? "w-full" : "w-[85vw] shrink-0 sm:flex-1 sm:w-auto sm:min-w-[240px]")
                   return (
                     <div key={shipment.id} className={cardCls}>
                       <div className="flex items-center justify-between gap-2">
