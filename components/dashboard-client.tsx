@@ -605,15 +605,15 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
       <ScrollArea className="w-full">
         <div className="flex gap-3 pb-3 snap-x">
           {order.shipments.map((shipment, idx) => {
-            const isDelivered   = shipment.displayStatus === "DELIVERED"
-            const deliveredDate = shipment.deliveredAt
-              ? new Date(shipment.deliveredAt).toLocaleDateString("en-GB", { day: "numeric",
-  month: "short", year: "numeric" })
-              : null
-            return (
-              <div key={shipment.id} className={cn("shrink-0 snap-start border rounded-lg p-4
-  bg-white shadow-sm flex flex-col gap-3", order.shipments.length === 1 ? "w-full" : "w-[85vw]
-  sm:w-[380px]")}>
+           const isDelivered   = shipment.displayStatus === "DELIVERED"
+  const deliveredDate = shipment.deliveredAt
+    ? new Date(shipment.deliveredAt).toLocaleDateString("en-GB", { day: "numeric", month:
+  "short", year: "numeric" })
+    : null
+  const cardCls = cn("shrink-0 snap-start border rounded-lg p-4 bg-white shadow-sm flex flex-col
+   gap-3", order.shipments.length === 1 ? "w-full" : "w-[85vw] sm:w-[380px]")
+  return (
+    <div key={shipment.id} className={cardCls}>
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2.5">
                     <div className={cn("p-1.5 rounded-md", isDelivered ? "bg-green-50
