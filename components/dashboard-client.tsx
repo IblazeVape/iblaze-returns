@@ -819,6 +819,19 @@ export default function DashboardClient() {
   const [statusFilter, setStatusFilter]   = useState<string[]>([])
   const [activeSection, setActiveSection] = useState("#orders")
 
+  // Start collapsed in landscape; auto-collapse when rotating to landscape
+  const [sidebarOpen, setSidebarOpen] = useState(() =>
+    typeof window !== "undefined"
+      ? !window.matchMedia("(orientation: landscape)").matches
+      : true
+  )
+  useEffect(() => {
+    const mql = window.matchMedia("(orientation: landscape)")
+    const onChange = (e: MediaQueryListEvent) => { if (e.matches) setSidebarOpen(false) }
+    mql.addEventListener("change", onChange)
+    return () => mql.removeEventListener("change", onChange)
+  }, [])
+
   useEffect(() => {
     fetch("/api/get-orders")
       .then(r => r.json())
@@ -836,7 +849,7 @@ export default function DashboardClient() {
   const user = { name: data?.firstName || "Customer", email: data?.email || "" }
 
   const portalContent = (
-    <SidebarProvider style={{ "--sidebar-width": "18rem", "--header-height": "3rem" } as React.CSSProperties}>
+    <SidebarProvider open={sidebarOpen} onOpenChange={setSidebarOpen} style={{ "--sidebar-width": "18rem", "--header-height": "3rem" } as React.CSSProperties}>
       <AppSidebar variant="inset" user={user} onNavigate={s => { setActiveSection(s); setSelectedOrder(null) }} activeSection={activeSection} />
       <SidebarInset>
         <SiteHeader title={selectedOrder ? selectedOrder.name : "My Orders"} search={search} onSearch={setSearch} showSearch={!selectedOrder} firstName={data?.firstName} email={data?.email} />
