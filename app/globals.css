@@ -76,10 +76,11 @@
    viewport-fit=cover is set in layout.tsx — without it env() values are all 0.
    The sidebar panel is fixed to left-0; its inner container needs left inset
    so content doesn't render under the Dynamic Island in landscape.           */
-/* Speed up sidebar open/close animation */
+/* Sidebar animation — ease-in-out matches the mobile sheet slide feel */
 [data-slot="sidebar-container"],
 [data-slot="sidebar-gap"] {
-  transition-duration: 150ms !important;
+  transition-timing-function: ease-in-out !important;
+  transition-duration: 200ms !important;
 }
 
 /* Push sidebar content past the Dynamic Island in landscape.
