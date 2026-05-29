@@ -864,8 +864,7 @@ export default function DashboardClient() {
         <div
           className="flex flex-1 flex-col gap-4"
           style={{
-            padding: "1rem",
-            paddingLeft:  "max(1rem, env(safe-area-inset-left))",
+            padding:      "1rem",
             paddingRight: "max(1rem, env(safe-area-inset-right))",
           }}
         >
