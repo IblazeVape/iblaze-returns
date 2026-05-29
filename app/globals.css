@@ -83,12 +83,13 @@
   transition-duration: 300ms !important;
 }
 
-/* Sticky header — guarantee stickiness inside the inset layout */
-[data-slot="sidebar-inset"] header {
-  position: sticky !important;
-  top: 0 !important;
-  z-index: 40 !important;
-  background-color: white !important;
+/* Make SidebarInset a bounded viewport-height column so the header is always
+   visible without sticky positioning — avoids stacking-context interference
+   with Radix Dialog pointer-event detection                                  */
+[data-slot="sidebar-inset"] {
+  height: 100dvh;
+  min-height: unset !important;
+  overflow: hidden;
 }
 
 /* Push sidebar content past the Dynamic Island in landscape.
