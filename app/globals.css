@@ -80,6 +80,15 @@
   padding-left: env(safe-area-inset-left);
 }
 
+/* In landscape, show the sidebar panel even below the md (768px) breakpoint.
+   useIsMobile returns false in landscape so the Sheet is not rendered — without
+   this CSS the panel would remain hidden on narrow-landscape devices (e.g. iPhone SE). */
+@media (orientation: landscape) {
+  [data-slot="sidebar"].group.peer {
+    display: block;
+  }
+}
+
 /* ── Sonner toast — white background, no CSS-variable tinting ── */
 [data-sonner-toast][data-styled=true] {
   padding: 16px;
