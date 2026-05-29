@@ -72,14 +72,12 @@
 .min-h-svh { min-height: 100svh; }
 .h-svh { height: 100svh; }
 
-/* ── Dialog — pure fade, no transform so centering is never disrupted ── */
-@keyframes dialog-show {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-@keyframes dialog-hide {
-  from { opacity: 1; }
-  to   { opacity: 0; }
+/* ── Safe-area insets: Dynamic Island, notch, home indicator ─────────────────
+   viewport-fit=cover is set in layout.tsx — without it env() values are all 0.
+   The sidebar panel is fixed to left-0; its inner container needs left inset
+   so content doesn't render under the Dynamic Island in landscape.           */
+[data-slot="sidebar-inner"] {
+  padding-left: env(safe-area-inset-left);
 }
 
 /* ── Sonner toast — white background, no CSS-variable tinting ── */
