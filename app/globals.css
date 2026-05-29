@@ -76,6 +76,12 @@
    viewport-fit=cover is set in layout.tsx — without it env() values are all 0.
    The sidebar panel is fixed to left-0; its inner container needs left inset
    so content doesn't render under the Dynamic Island in landscape.           */
+/* Dialog — instant exit so the panel doesn't linger after the overlay fades */
+[data-slot="dialog-content"][data-state="closed"],
+[data-slot="dialog-overlay"][data-state="closed"] {
+  animation-duration: 0ms !important;
+}
+
 /* Sidebar collapse/expand animation */
 [data-slot="sidebar-container"],
 [data-slot="sidebar-gap"] {
