@@ -8,7 +8,7 @@ export async function shopifyAdmin(query: string, variables = {}) {
     throw new Error("No Shopify access token found. Please reinstall the app.");
   }
 
-  const res = await fetch(`https://${shop}/admin/api/2026-04/graphql.json`, {
+  const res = await fetch(`https://${shop}/admin/api/2024-04/graphql.json`, {
     method: "POST",
     headers: {
       "X-Shopify-Access-Token": token,
