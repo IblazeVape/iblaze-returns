@@ -83,6 +83,14 @@
   padding-left: env(safe-area-inset-left);
 }
 
+/* In landscape, drop the inset margin so content fills edge-to-edge,
+   but keep border-radius so the rounded card look is preserved           */
+@media (orientation: landscape) {
+  [data-slot="sidebar-inset"] {
+    margin: 0;
+  }
+}
+
 /* In landscape, use dynamic viewport height so Safari's browser chrome doesn't
    push the sidebar container off-screen and cut off bottom icons             */
 @media (orientation: landscape) {
