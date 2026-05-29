@@ -531,7 +531,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
 
   return (
     <>
-      <div className={cn("flex flex-col gap-4", hasEligible && !order.cancelledAt && "pb-16")}>
+      <div className="flex flex-col gap-4">
         <Button variant="ghost" size="sm" onClick={onBack} className="-ml-2 text-muted-foreground hover:text-foreground w-fit">
           <ArrowLeft className="size-4" /> Back to Orders
         </Button>
@@ -620,7 +620,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
         {/* ── Policy gate ── */}
         {/* ── Items table ── */}
         {!order.cancelledAt && (
-          <Card className={cn(C, "overflow-hidden flex flex-col")}>
+          <Card className={cn(C, "overflow-hidden flex flex-col", hasEligible && "rounded-b-none")}>
             <div className="px-4 py-3 border-b bg-muted/20 flex flex-col gap-2">
               {/* Row 1: tab switcher + policy gate */}
               <div className="flex items-center justify-between gap-2">
@@ -648,7 +648,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
               {/* Row 2: search + filter (ineligible only) + page size */}
               <div className="flex items-center gap-2">
                 <div className="relative flex-1">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Search className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
                   <Input placeholder="Search product or variant..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9 bg-white text-sm h-8" />
                 </div>
                 {activeTab === "ineligible" && (
@@ -679,7 +679,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                   </Popover>
                 )}
                 <Select value={pageSize} onValueChange={setPageSize}>
-                  <SelectTrigger className="w-[100px] h-8 bg-white text-sm shrink-0"><SelectValue /></SelectTrigger>
+                  <SelectTrigger size="sm" className="w-[100px] bg-white text-sm shrink-0"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="5">Show 5</SelectItem>
                     <SelectItem value="10">Show 10</SelectItem>
@@ -799,10 +799,11 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
         )}
       </div>
 
-      {/* ── Sticky footer — bottom-0 flush, no bottom padding on scroll container ── */}
+      {/* ── Sticky footer — connected to the table card: shares its bottom border,
+           matches its width, closes off the rounded-b corners ── */}
       {hasEligible && !order.cancelledAt && (
         <div
-          className="sticky bottom-0 z-[48] border-t border-border bg-background shadow-[0_-2px_12px_rgba(0,0,0,0.08)]"
+          className="sticky bottom-0 z-[48] border-x border-b border-border rounded-b-xl bg-background shadow-[0_-2px_12px_rgba(0,0,0,0.08)]"
           style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
         >
           <div
@@ -882,19 +883,18 @@ export default function DashboardClient() {
       <SidebarInset>
         <SiteHeader title={selectedOrder ? selectedOrder.name : "My Orders"} search={search} onSearch={setSearch} showSearch={!selectedOrder} firstName={data?.firstName} email={data?.email} />
         {selectedOrder ? (
-          /* Bounded scroll container — sticky footer anchors to its bottom, never overlaps sidebar */
+          /* Bounded scroll container — sticky footer anchors to its bottom, never overlaps sidebar.
+             scrollbarGutter keeps left/right padding symmetric when the scrollbar appears. */
           <div
             className="flex-1 overflow-y-auto"
-            style={{ paddingTop: "1rem", paddingLeft: "1rem", paddingBottom: 0, paddingRight: "max(1rem, env(safe-area-inset-right))" }}
+            style={{ paddingTop: "1rem", paddingLeft: "1rem", paddingBottom: 0, paddingRight: "max(1rem, env(safe-area-inset-right))", scrollbarGutter: "stable both-edges" }}
           >
-            <div className="flex flex-col gap-4">
-              <OrderDetail order={selectedOrder} onBack={() => setSelectedOrder(null)} />
-            </div>
+            <OrderDetail order={selectedOrder} onBack={() => setSelectedOrder(null)} />
           </div>
         ) : (
           <div
             className="flex-1 overflow-y-auto"
-            style={{ padding: "1rem", paddingRight: "max(1rem, env(safe-area-inset-right))" }}
+            style={{ padding: "1rem", paddingRight: "max(1rem, env(safe-area-inset-right))", scrollbarGutter: "stable both-edges" }}
           >
           <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
