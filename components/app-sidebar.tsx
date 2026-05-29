@@ -8,7 +8,9 @@ import { NavUser } from "@/components/nav-user"
 import {
   Sidebar, SidebarContent, SidebarFooter,
   SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar"
+import { useMediaQuery } from "@/hooks/use-media-query"
 
 const navMain = [
   { title: "My Orders", url: "#orders", icon: ShoppingBag },
@@ -29,32 +31,42 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 }
 
 export function AppSidebar({ user, onNavigate, activeSection, ...props }: AppSidebarProps) {
+  const { state } = useSidebar()
+  const isLandscape = useMediaQuery("(orientation: landscape)")
+
+  // In landscape + collapsed: hide logo and avatar, show only nav icons
+  const hideChrome = isLandscape && state === "collapsed"
+
   return (
     <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild className="data-[slot=sidebar-menu-button]:!p-1.5">
-              <a href="https://iblazevape.co.uk" target="_blank">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="https://cdn.shopify.com/s/files/1/0941/5383/4761/files/IblazeLogo.png?v=14858"
-                  className="size-6 object-contain"
-                  alt="iBlaze Vape"
-                />
-                <span className="text-base font-semibold">iBlaze Returns</span>
-              </a>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarHeader>
+      {!hideChrome && (
+        <SidebarHeader>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild className="data-[slot=sidebar-menu-button]:!p-1.5">
+                <a href="https://iblazevape.co.uk" target="_blank">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="https://cdn.shopify.com/s/files/1/0941/5383/4761/files/IblazeLogo.png?v=14858"
+                    className="size-6 object-contain"
+                    alt="iBlaze Vape"
+                  />
+                  <span className="text-base font-semibold">iBlaze Returns</span>
+                </a>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarHeader>
+      )}
       <SidebarContent>
         <NavMain items={navMain} onNavigate={onNavigate} activeSection={activeSection} />
         <NavSecondary items={navSecondary} className="mt-auto" />
       </SidebarContent>
-      <SidebarFooter>
-        <NavUser user={user || { name: "Customer", email: "" }} />
-      </SidebarFooter>
+      {!hideChrome && (
+        <SidebarFooter>
+          <NavUser user={user || { name: "Customer", email: "" }} />
+        </SidebarFooter>
+      )}
     </Sidebar>
   )
 }
