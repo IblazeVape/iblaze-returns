@@ -531,7 +531,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
 
   return (
     <>
-      <div className="flex flex-col gap-4">
+      <div className={cn("flex flex-col gap-4", !hasEligible && "pb-4")}>
         <Button variant="ghost" size="sm" onClick={onBack} className="-ml-2 text-muted-foreground hover:text-foreground w-fit">
           <ArrowLeft className="size-4" /> Back to Orders
         </Button>
