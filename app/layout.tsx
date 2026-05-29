@@ -22,6 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         {children}
+        <div id="portal-root" />
         <Toaster position="top-right" offset={{ top: 20 }} />
       </body>
     </html>
