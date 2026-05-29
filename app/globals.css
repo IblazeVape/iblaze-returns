@@ -83,6 +83,14 @@
   padding-left: env(safe-area-inset-left);
 }
 
+/* In landscape, use dynamic viewport height so Safari's browser chrome doesn't
+   push the sidebar container off-screen and cut off bottom icons             */
+@media (orientation: landscape) {
+  [data-slot="sidebar-container"] { height: 100dvh; }
+  [data-slot="sidebar-wrapper"]   { min-height: 100dvh; }
+  [data-slot="sidebar-content"]   { overflow: auto; }
+}
+
 /* In landscape, show the sidebar panel even below the md (768px) breakpoint.
    useIsMobile returns false in landscape so the Sheet is not rendered — without
    this CSS the panel would remain hidden on narrow-landscape devices (e.g. iPhone SE). */
