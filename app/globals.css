@@ -76,31 +76,19 @@
    viewport-fit=cover is set in layout.tsx — without it env() values are all 0.
    The sidebar panel is fixed to left-0; its inner container needs left inset
    so content doesn't render under the Dynamic Island in landscape.           */
-/* Sidebar animation — ease-in-out + fade text so it feels like the mobile sheet slide */
+/* Sidebar collapse/expand animation */
 [data-slot="sidebar-container"],
 [data-slot="sidebar-gap"] {
   transition-timing-function: ease-in-out !important;
-  transition-duration: 250ms !important;
+  transition-duration: 300ms !important;
 }
 
-/* Fade sidebar nav text on collapse so it doesn't snap-disappear */
-[data-slot="sidebar-menu-button"] span,
-[data-slot="sidebar-group-label"],
-[data-slot="sidebar-menu-action"] {
-  transition: opacity 200ms ease-in-out;
-}
-[data-state="collapsed"] [data-slot="sidebar-menu-button"] span,
-[data-state="collapsed"] [data-slot="sidebar-group-label"],
-[data-state="collapsed"] [data-slot="sidebar-menu-action"] {
-  opacity: 0;
-}
-
-/* Sticky header — ensure it works inside the inset variant layout */
-[data-slot="sidebar-inset"] > header {
-  position: sticky;
-  top: 0;
-  z-index: 40;
-  background: white;
+/* Sticky header — guarantee stickiness inside the inset layout */
+[data-slot="sidebar-inset"] header {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 40 !important;
+  background-color: white !important;
 }
 
 /* Push sidebar content past the Dynamic Island in landscape.
