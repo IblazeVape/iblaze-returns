@@ -247,7 +247,6 @@ function HygienePolicyList({ className }: { className?: string }) {
 
 // ─── Shipment Items Modal ─────────────────────────────────────────────────────
 function ShipmentItemsModal({ shipment, order, idx }: { shipment: Shipment; order: Order; idx: number }) {
-  const [open, setOpen] = React.useState(false)
   const isDesktop = useMediaQuery("(min-width: 768px)")
 
   const totalUnits    = shipment.items.reduce((a, c) => a + c.quantity, 0)
@@ -267,11 +266,10 @@ function ShipmentItemsModal({ shipment, order, idx }: { shipment: Shipment; orde
       <Dialog>
         <DialogTrigger asChild>{trigger}</DialogTrigger>
         <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader className="pb-0">
+          <DialogHeader className="border-b border-border pb-4">
             <DialogTitle className="flex items-center gap-2"><Truck className="size-4" /> {title}</DialogTitle>
             <DialogDescription>{subtitle}</DialogDescription>
           </DialogHeader>
-          <Separator className="-mx-6" />
           <ScrollArea className="max-h-[60vh] pt-2">
             <ShipmentItemList shipment={shipment} order={order} />
           </ScrollArea>
@@ -304,11 +302,7 @@ function ShipmentItemsModal({ shipment, order, idx }: { shipment: Shipment; orde
 
 // ─── Hygiene Policy Modal ─────────────────────────────────────────────────────
 function HygienePolicy({ onAccept, onDecline, compact = false }: { onAccept: () => void; onDecline: () => void; compact?: boolean }) {
-  const [open, setOpen] = useState(false)
   const isDesktop = useMediaQuery("(min-width: 768px)")
-
-  const handleAccept  = () => { setOpen(false); onAccept();  toast.success("Policy accepted") }
-  const handleDecline = () => { setOpen(false); onDecline(); toast.warning("Policy declined") }
 
   const trigger = compact
     ? <Button size="sm" variant="outline" className="h-7 px-2 text-xs shrink-0">Review &amp; Accept</Button>
@@ -319,11 +313,10 @@ function HygienePolicy({ onAccept, onDecline, compact = false }: { onAccept: () 
       <Dialog>
         <DialogTrigger asChild>{trigger}</DialogTrigger>
         <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader className="pb-0">
+          <DialogHeader className="border-b border-border pb-4">
             <DialogTitle className="flex items-center gap-2"><ShieldCheck className="size-4 text-[#E5403B]" /> iBlaze Returns Policy</DialogTitle>
             <DialogDescription>Review our returns policy before selecting items to return.</DialogDescription>
           </DialogHeader>
-          <Separator className="-mx-6" />
           <HygienePolicyList className="pt-2" />
           <div className="flex gap-2">
             <DialogClose asChild>
@@ -656,7 +649,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
               <div className="flex items-center gap-2">
                 <div className="relative flex-1">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input placeholder="Search product or variant..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9 h-8 bg-white text-sm" />
+                  <Input placeholder="Search product or variant..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9 bg-white text-sm" style={{ height: '2rem' }} />
                 </div>
                 {activeTab === "ineligible" && (
                   <Popover>
