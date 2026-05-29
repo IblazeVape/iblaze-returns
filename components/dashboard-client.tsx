@@ -649,7 +649,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
               <div className="flex items-center gap-2">
                 <div className="relative flex-1">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input placeholder="Search product or variant..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9 bg-white text-sm" style={{ height: '2rem' }} />
+                  <Input placeholder="Search product or variant..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9 bg-white text-sm h-8" />
                 </div>
                 {activeTab === "ineligible" && (
                   <Popover>
@@ -690,7 +690,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
               </div>
             </div>
 
-            <ScrollArea className="flex-1">
+            <div className="w-full overflow-x-auto">
               <Table className="min-w-[560px]">
                 <TableHeader className="bg-background">
                   <TableRow className="hover:bg-transparent">
@@ -784,8 +784,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                   })}
                 </TableBody>
               </Table>
-              <ScrollBar orientation="horizontal" />
-            </ScrollArea>
+            </div>
 
             {pageSize !== "all" && currentData.length > size && (
               <div className="p-4 border-t flex items-center justify-between text-sm text-muted-foreground">
@@ -803,7 +802,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
       {/* ── Sticky footer — bottom-0 flush, no bottom padding on scroll container ── */}
       {hasEligible && !order.cancelledAt && (
         <div
-          className="sticky bottom-0 -mx-4 z-[48] border-t border-border bg-background shadow-[0_-2px_12px_rgba(0,0,0,0.08)]"
+          className="sticky bottom-0 z-[48] border-t border-border bg-background shadow-[0_-2px_12px_rgba(0,0,0,0.08)]"
           style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
         >
           <div
