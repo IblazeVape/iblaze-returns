@@ -72,14 +72,17 @@
 .min-h-svh { min-height: 100svh; }
 .h-svh { height: 100svh; }
 
-/* ── Safe-area insets: Dynamic Island, notch, home indicator ─────────────────
-   viewport-fit=cover is set in layout.tsx — without it env() values are all 0.
-   The sidebar panel is fixed to left-0; its inner container needs left inset
-   so content doesn't render under the Dynamic Island in landscape.           */
-/* Dialog — instant exit so the panel doesn't linger after the overlay fades */
-[data-slot="dialog-content"][data-state="closed"],
-[data-slot="dialog-overlay"][data-state="closed"] {
-  animation-duration: 0ms !important;
+/* ── Dialog keyframes ─────────────────────────────────────────────────────────
+   dialog.tsx references [animation:dialog-show ...] / [animation:dialog-hide ...].
+   These MUST be defined as real @keyframes, otherwise Radix never receives the
+   animationend event on close and the panel stays mounted ("stuck" dialog).     */
+@keyframes dialog-show {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes dialog-hide {
+  from { opacity: 1; }
+  to   { opacity: 0; }
 }
 
 /* Sidebar collapse/expand animation */
