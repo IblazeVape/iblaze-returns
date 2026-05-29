@@ -20,7 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer"
 import { useMediaQuery } from "@/hooks/use-media-query"
@@ -264,14 +264,14 @@ function ShipmentItemsModal({ shipment, order, idx }: { shipment: Shipment; orde
 
   if (isDesktop) {
     return (
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog>
         <DialogTrigger asChild>{trigger}</DialogTrigger>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader className="pb-0">
             <DialogTitle className="flex items-center gap-2"><Truck className="size-4" /> {title}</DialogTitle>
             <DialogDescription>{subtitle}</DialogDescription>
           </DialogHeader>
-          <Separator />
+          <Separator className="-mx-6" />
           <ScrollArea className="max-h-[60vh] pt-2">
             <ShipmentItemList shipment={shipment} order={order} />
           </ScrollArea>
@@ -316,18 +316,22 @@ function HygienePolicy({ onAccept, onDecline, compact = false }: { onAccept: () 
 
   if (isDesktop) {
     return (
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog>
         <DialogTrigger asChild>{trigger}</DialogTrigger>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader className="pb-0">
             <DialogTitle className="flex items-center gap-2"><ShieldCheck className="size-4 text-[#E5403B]" /> iBlaze Returns Policy</DialogTitle>
             <DialogDescription>Review our returns policy before selecting items to return.</DialogDescription>
           </DialogHeader>
-          <Separator />
+          <Separator className="-mx-6" />
           <HygienePolicyList className="pt-2" />
           <div className="flex gap-2">
-            <Button className="flex-1 bg-[#E5403B] hover:bg-[#cc3935] text-white" onClick={handleAccept}><CheckCircle2 className="size-4" /> I Accept</Button>
-            <Button variant="outline" className="flex-1" onClick={handleDecline}>Decline</Button>
+            <DialogClose asChild>
+              <Button className="flex-1 bg-[#E5403B] hover:bg-[#cc3935] text-white" onClick={() => { onAccept(); toast.success("Policy accepted") }}><CheckCircle2 className="size-4" /> I Accept</Button>
+            </DialogClose>
+            <DialogClose asChild>
+              <Button variant="outline" className="flex-1" onClick={() => { onDecline(); toast.warning("Policy declined") }}>Decline</Button>
+            </DialogClose>
           </div>
         </DialogContent>
       </Dialog>
@@ -657,7 +661,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                 {activeTab === "ineligible" && (
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs bg-white shrink-0">
+                      <Button variant="outline" className="h-8 gap-1.5 text-sm bg-white shrink-0 px-3">
                         <SlidersHorizontal className="size-3" />
                         Filter
                         {ineligibleStatusFilter.length > 0 && <span className="rounded-full bg-foreground text-background text-[10px] font-bold px-1.5 leading-5">{ineligibleStatusFilter.length}</span>}
@@ -885,107 +889,109 @@ export default function DashboardClient() {
       <AppSidebar variant="inset" user={user} onNavigate={s => { setActiveSection(s); setSelectedOrder(null) }} activeSection={activeSection} />
       <SidebarInset>
         <SiteHeader title={selectedOrder ? selectedOrder.name : "My Orders"} search={search} onSearch={setSearch} showSearch={!selectedOrder} firstName={data?.firstName} email={data?.email} />
-        <div
-          className="flex flex-1 flex-col gap-4"
-          style={{
-            padding:      "1rem",
-            paddingRight: "max(1rem, env(safe-area-inset-right))",
-          }}
-        >
-          {selectedOrder ? (
-            <OrderDetail order={selectedOrder} onBack={() => setSelectedOrder(null)} />
-          ) : (
-            <>
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-lg font-semibold">{data?.firstName ? `Hi, ${data.firstName} 👋` : "Your Recent Orders"}</h2>
-                  <p className="text-sm text-muted-foreground mt-0.5">Select an order to view details or initiate a return.</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" size="sm" className="h-8 gap-1.5 text-sm bg-white">
-                        <SlidersHorizontal className="size-3.5" />
-                        Status
-                        {statusFilter.length > 0 && (
-                          <span className="rounded-full bg-foreground text-background text-[10px] font-bold px-1.5 leading-5">{statusFilter.length}</span>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-52 p-2 bg-white text-gray-900" align="end">
-                      <div className="flex flex-col">
-                        {STATUS_FILTERS.map(status => (
-                          <label key={status} className="flex items-center gap-2.5 px-2 py-1.5 rounded-md hover:bg-muted cursor-pointer text-sm text-gray-900">
-                            <Checkbox
-                              checked={statusFilter.includes(status)}
-                              onCheckedChange={checked => setStatusFilter(prev => checked ? [...prev, status] : prev.filter(s => s !== status))}
-                            />
-                            {status}
-                          </label>
-                        ))}
-                        {statusFilter.length > 0 && (
-                          <>
-                            <Separator className="my-1.5" />
-                            <button onClick={() => setStatusFilter([])} className="text-xs text-muted-foreground hover:text-foreground px-2 py-1 text-left w-full rounded-md hover:bg-muted">
-                              Clear filters
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                  <div className="flex items-center gap-0.5 h-8 bg-white border border-border rounded-lg px-0.5">
-                    <Button variant="ghost" size="icon" className={cn("size-7", view === "grid" && "bg-muted shadow-sm")} onClick={() => setView("grid")}><LayoutGrid className="size-4" /></Button>
-                    <Button variant="ghost" size="icon" className={cn("size-7", view === "list" && "bg-muted shadow-sm")} onClick={() => setView("list")}><List className="size-4" /></Button>
-                  </div>
+        {selectedOrder ? (
+          /* Bounded scroll container — sticky footer anchors to its bottom, never overlaps sidebar */
+          <div
+            className="flex-1 overflow-y-auto"
+            style={{ padding: "1rem", paddingRight: "max(1rem, env(safe-area-inset-right))" }}
+          >
+            <div className="flex flex-col gap-4">
+              <OrderDetail order={selectedOrder} onBack={() => setSelectedOrder(null)} />
+            </div>
+          </div>
+        ) : (
+          <div
+            className="flex flex-1 flex-col gap-4"
+            style={{ padding: "1rem", paddingRight: "max(1rem, env(safe-area-inset-right))" }}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold">{data?.firstName ? `Hi, ${data.firstName} 👋` : "Your Recent Orders"}</h2>
+                <p className="text-sm text-muted-foreground mt-0.5">Select an order to view details or initiate a return.</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-8 gap-1.5 text-sm bg-white">
+                      <SlidersHorizontal className="size-3.5" />
+                      Status
+                      {statusFilter.length > 0 && (
+                        <span className="rounded-full bg-foreground text-background text-[10px] font-bold px-1.5 leading-5">{statusFilter.length}</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-52 p-2 bg-white text-gray-900" align="end">
+                    <div className="flex flex-col">
+                      {STATUS_FILTERS.map(status => (
+                        <label key={status} className="flex items-center gap-2.5 px-2 py-1.5 rounded-md hover:bg-muted cursor-pointer text-sm text-gray-900">
+                          <Checkbox
+                            checked={statusFilter.includes(status)}
+                            onCheckedChange={checked => setStatusFilter(prev => checked ? [...prev, status] : prev.filter(s => s !== status))}
+                          />
+                          {status}
+                        </label>
+                      ))}
+                      {statusFilter.length > 0 && (
+                        <>
+                          <Separator className="my-1.5" />
+                          <button onClick={() => setStatusFilter([])} className="text-xs text-muted-foreground hover:text-foreground px-2 py-1 text-left w-full rounded-md hover:bg-muted">
+                            Clear filters
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+                <div className="flex items-center gap-0.5 h-8 bg-white border border-border rounded-lg px-0.5">
+                  <Button variant="ghost" size="icon" className={cn("size-7", view === "grid" && "bg-muted shadow-sm")} onClick={() => setView("grid")}><LayoutGrid className="size-4" /></Button>
+                  <Button variant="ghost" size="icon" className={cn("size-7", view === "list" && "bg-muted shadow-sm")} onClick={() => setView("list")}><List className="size-4" /></Button>
                 </div>
               </div>
+            </div>
 
-              {error && (
-                <div className="flex items-center gap-3 p-4 rounded-xl bg-destructive/10 text-sm text-destructive border border-destructive/20">
-                  <ShoppingBag className="size-5 shrink-0" />{error}
-                </div>
-              )}
+            {error && (
+              <div className="flex items-center gap-3 p-4 rounded-xl bg-destructive/10 text-sm text-destructive border border-destructive/20">
+                <ShoppingBag className="size-5 shrink-0" />{error}
+              </div>
+            )}
 
-              {/* FIX: show empty state when search/filter returns no results */}
-              {view === "grid" && !loading && filteredOrders.length === 0 ? (
-                <div className="text-center py-20">
-                  <ShoppingBag className="size-12 text-muted-foreground/30 mx-auto mb-4" />
-                  <p className="font-medium text-muted-foreground">
-                    {search || statusFilter.length > 0 ? "No orders match your search" : "No orders found"}
-                  </p>
-                  {(search || statusFilter.length > 0) && (
-                    <p className="text-sm text-muted-foreground mt-1">Try adjusting your search or filters</p>
-                  )}
-                </div>
-              ) : view === "grid" && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                  {filteredOrders.map(o => <OrderCard key={o.id} order={o} onClick={() => setSelectedOrder(o)} />)}
-                </div>
-              )}
+            {view === "grid" && !loading && filteredOrders.length === 0 ? (
+              <div className="text-center py-20">
+                <ShoppingBag className="size-12 text-muted-foreground/30 mx-auto mb-4" />
+                <p className="font-medium text-muted-foreground">
+                  {search || statusFilter.length > 0 ? "No orders match your search" : "No orders found"}
+                </p>
+                {(search || statusFilter.length > 0) && (
+                  <p className="text-sm text-muted-foreground mt-1">Try adjusting your search or filters</p>
+                )}
+              </div>
+            ) : view === "grid" && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                {filteredOrders.map(o => <OrderCard key={o.id} order={o} onClick={() => setSelectedOrder(o)} />)}
+              </div>
+            )}
 
-              {view === "list" && !loading && (
-                <Card className={cn(C, "overflow-hidden")}>
-                  <CardContent className="p-0">
-                    {filteredOrders.length === 0
-                      ? (
-                        <div className="text-center py-20">
-                          <ShoppingBag className="size-12 text-muted-foreground/30 mx-auto mb-4" />
-                          <p className="font-medium text-muted-foreground">
-                            {search || statusFilter.length > 0 ? "No orders match your search" : "No orders found"}
-                          </p>
-                          {(search || statusFilter.length > 0) && (
-                            <p className="text-sm text-muted-foreground mt-1">Try adjusting your search or filters</p>
-                          )}
-                        </div>
-                      )
-                      : filteredOrders.map(o => <OrderRow key={o.id} order={o} onClick={() => setSelectedOrder(o)} />)}
-                  </CardContent>
-                </Card>
-              )}
-            </>
-          )}
-        </div>
+            {view === "list" && !loading && (
+              <Card className={cn(C, "overflow-hidden")}>
+                <CardContent className="p-0">
+                  {filteredOrders.length === 0
+                    ? (
+                      <div className="text-center py-20">
+                        <ShoppingBag className="size-12 text-muted-foreground/30 mx-auto mb-4" />
+                        <p className="font-medium text-muted-foreground">
+                          {search || statusFilter.length > 0 ? "No orders match your search" : "No orders found"}
+                        </p>
+                        {(search || statusFilter.length > 0) && (
+                          <p className="text-sm text-muted-foreground mt-1">Try adjusting your search or filters</p>
+                        )}
+                      </div>
+                    )
+                    : filteredOrders.map(o => <OrderRow key={o.id} order={o} onClick={() => setSelectedOrder(o)} />)}
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        )}
       </SidebarInset>
     </SidebarProvider>
   )
