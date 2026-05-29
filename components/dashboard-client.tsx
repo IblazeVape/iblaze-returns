@@ -265,12 +265,12 @@ function ShipmentItemsModal({ shipment, order, idx }: { shipment: Shipment; orde
     return (
       <Dialog>
         <DialogTrigger asChild>{trigger}</DialogTrigger>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader className="border-b border-border pb-4">
+        <DialogContent className="sm:max-w-[425px] gap-0 p-0 overflow-hidden">
+          <DialogHeader className="px-6 pt-6 pb-4 border-b border-border">
             <DialogTitle className="flex items-center gap-2"><Truck className="size-4" /> {title}</DialogTitle>
             <DialogDescription>{subtitle}</DialogDescription>
           </DialogHeader>
-          <ScrollArea className="max-h-[60vh] pt-2">
+          <ScrollArea className="max-h-[60vh] px-6 py-4">
             <ShipmentItemList shipment={shipment} order={order} />
           </ScrollArea>
         </DialogContent>
@@ -312,13 +312,13 @@ function HygienePolicy({ onAccept, onDecline, compact = false }: { onAccept: () 
     return (
       <Dialog>
         <DialogTrigger asChild>{trigger}</DialogTrigger>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader className="border-b border-border pb-4">
+        <DialogContent className="sm:max-w-[425px] gap-0 p-0 overflow-hidden">
+          <DialogHeader className="px-6 pt-6 pb-4 border-b border-border">
             <DialogTitle className="flex items-center gap-2"><ShieldCheck className="size-4 text-[#E5403B]" /> iBlaze Returns Policy</DialogTitle>
             <DialogDescription>Review our returns policy before selecting items to return.</DialogDescription>
           </DialogHeader>
-          <HygienePolicyList className="pt-2" />
-          <div className="flex gap-2">
+          <HygienePolicyList className="px-6 pt-4" />
+          <div className="flex gap-2 px-6 pb-6 pt-4">
             <DialogClose asChild>
               <Button className="flex-1 bg-[#E5403B] hover:bg-[#cc3935] text-white" onClick={() => { onAccept(); toast.success("Policy accepted") }}><CheckCircle2 className="size-4" /> I Accept</Button>
             </DialogClose>
@@ -531,7 +531,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
 
   return (
     <>
-      <div className="flex flex-col gap-4">
+      <div className={cn("flex flex-col gap-4", hasEligible && !order.cancelledAt && "pb-16")}>
         <Button variant="ghost" size="sm" onClick={onBack} className="-ml-2 text-muted-foreground hover:text-foreground w-fit">
           <ArrowLeft className="size-4" /> Back to Orders
         </Button>
@@ -800,10 +800,10 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
         )}
       </div>
 
-      {/* ── Sticky footer — lives inside SidebarInset so it never overlaps the sidebar ── */}
+      {/* ── Sticky footer — bottom-0 flush, no bottom padding on scroll container ── */}
       {hasEligible && !order.cancelledAt && (
         <div
-          className="sticky bottom-0 -mx-4 -mb-4 z-[48] border-t border-border bg-background shadow-[0_-2px_12px_rgba(0,0,0,0.08)]"
+          className="sticky bottom-0 -mx-4 z-[48] border-t border-border bg-background shadow-[0_-2px_12px_rgba(0,0,0,0.08)]"
           style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
         >
           <div
@@ -886,7 +886,7 @@ export default function DashboardClient() {
           /* Bounded scroll container — sticky footer anchors to its bottom, never overlaps sidebar */
           <div
             className="flex-1 overflow-y-auto"
-            style={{ padding: "1rem", paddingRight: "max(1rem, env(safe-area-inset-right))" }}
+            style={{ paddingTop: "1rem", paddingLeft: "1rem", paddingBottom: 0, paddingRight: "max(1rem, env(safe-area-inset-right))" }}
           >
             <div className="flex flex-col gap-4">
               <OrderDetail order={selectedOrder} onBack={() => setSelectedOrder(null)} />
