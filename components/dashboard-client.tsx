@@ -1,14 +1,13 @@
 "use client"
 
 import * as React from "react"
-import { createPortal } from "react-dom"
 import { useEffect, useState, useMemo } from "react"
 import { toast } from "sonner"
 import { ChevronRight, LayoutGrid, List, ArrowLeft, RotateCcw, CheckCircle2, ShoppingBag, ShieldCheck, ExternalLink, Lock, Truck, Package, Search, MapPin, SlidersHorizontal, CreditCard, XCircle } from "lucide-react"
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
-import { SidebarInset, SidebarProvider, useSidebar } from "@/components/ui/sidebar"
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Spinner } from "@/components/ui/spinner"
@@ -268,11 +267,12 @@ function ShipmentItemsModal({ shipment, order, idx }: { shipment: Shipment; orde
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>{trigger}</DialogTrigger>
         <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader className="border-b border-border pb-4">
+          <DialogHeader className="pb-0">
             <DialogTitle className="flex items-center gap-2"><Truck className="size-4" /> {title}</DialogTitle>
             <DialogDescription>{subtitle}</DialogDescription>
           </DialogHeader>
-          <ScrollArea className="max-h-[60vh]">
+          <Separator />
+          <ScrollArea className="max-h-[60vh] pt-2">
             <ShipmentItemList shipment={shipment} order={order} />
           </ScrollArea>
         </DialogContent>
@@ -319,11 +319,12 @@ function HygienePolicy({ onAccept, onDecline, compact = false }: { onAccept: () 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>{trigger}</DialogTrigger>
         <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader className="border-b border-border pb-4">
+          <DialogHeader className="pb-0">
             <DialogTitle className="flex items-center gap-2"><ShieldCheck className="size-4 text-[#E5403B]" /> iBlaze Returns Policy</DialogTitle>
             <DialogDescription>Review our returns policy before selecting items to return.</DialogDescription>
           </DialogHeader>
-          <HygienePolicyList />
+          <Separator />
+          <HygienePolicyList className="pt-2" />
           <div className="flex gap-2">
             <Button className="flex-1 bg-[#E5403B] hover:bg-[#cc3935] text-white" onClick={handleAccept}><CheckCircle2 className="size-4" /> I Accept</Button>
             <Button variant="outline" className="flex-1" onClick={handleDecline}>Decline</Button>
@@ -426,14 +427,10 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
   const [selectedItems, setSelectedItems]   = useState<Record<string, { selected: boolean; quantity: number; reason: string; description: string }>>({})
   const [submitting, setSubmitting]   = useState(false)
   const [submitted, setSubmitted]     = useState(false)
-  const [mounted, setMounted]         = useState(false)
   const [searchQuery, setSearchQuery]         = useState("")
   const [pageSize, setPageSize]               = useState("10")
   const [currentPage, setCurrentPage]         = useState(1)
   const [ineligibleStatusFilter, setIneligibleStatusFilter] = useState<string[]>([])
-
-  useEffect(() => { setMounted(true) }, [])
-  const { state: sidebarState, isMobile: sidebarMobile } = useSidebar()
 
   const rawOrderId     = order.id.split("/").pop()
   const orderStatusUrl = `https://account.iblazevape.co.uk/orders/${rawOrderId}`
@@ -537,7 +534,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
 
   return (
     <>
-      <div className={cn("flex flex-col gap-4", hasEligible && "pb-[120px] sm:pb-[64px]")}>
+      <div className="flex flex-col gap-4">
         <Button variant="ghost" size="sm" onClick={onBack} className="-ml-2 text-muted-foreground hover:text-foreground w-fit">
           <ArrowLeft className="size-4" /> Back to Orders
         </Button>
@@ -584,8 +581,8 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
         {/* ── Shipments & tracking ── */}
         {!order.cancelledAt && order.shipments && order.shipments.length > 0 && (
           <div>
-            <ScrollArea className="w-full">
-              <div className="flex gap-3 pb-3 snap-x">
+            <div className="overflow-x-auto">
+              <div className="flex gap-3 snap-x">
                 {order.shipments.map((shipment, idx) => {
                   const isDelivered   = shipment.displayStatus === "DELIVERED"
                   const deliveredDate = shipment.deliveredAt ? new Date(shipment.deliveredAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : null
@@ -619,8 +616,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                   )
                 })}
               </div>
-              <ScrollBar orientation="horizontal" />
-            </ScrollArea>
+            </div>
           </div>
         )}
 
@@ -644,49 +640,47 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                     {eligibleItems.length > 0 ? `Eligible (${totalEligibleUnits})` : `Ineligible (${totalIneligibleUnits})`}
                   </span>
                 )}
-                <div className="flex items-center gap-2 ml-auto">
-                  {activeTab === "ineligible" && (
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs bg-white shrink-0">
-                          <SlidersHorizontal className="size-3" />
-                          Filter
-                          {ineligibleStatusFilter.length > 0 && <span className="rounded-full bg-foreground text-background text-[10px] font-bold px-1.5 leading-5">{ineligibleStatusFilter.length}</span>}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-52 p-2 bg-white" align="end">
-                        <div className="flex flex-col gap-0.5">
-                          {Array.from(new Set(ineligibleItems.map(i => i.returnStatus))).map(status => (
-                            <label key={status} className="flex items-center gap-2.5 px-2 py-1.5 rounded-md hover:bg-muted cursor-pointer text-sm">
-                              <Checkbox checked={ineligibleStatusFilter.includes(status)} onCheckedChange={c => setIneligibleStatusFilter(p => c ? [...p, status] : p.filter(s => s !== status))} />
-                              {status}
-                            </label>
-                          ))}
-                          {ineligibleStatusFilter.length > 0 && (
-                            <>
-                              <Separator className="my-1" />
-                              <button onClick={() => setIneligibleStatusFilter([])} className="text-xs text-muted-foreground hover:text-foreground px-2 py-1 text-left w-full rounded-md hover:bg-muted">Clear filters</button>
-                            </>
-                          )}
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  )}
-                  {hasEligible && !policyAccepted && (
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
-                      <ShieldCheck className="size-3.5 shrink-0" />
-                      <span className="hidden sm:inline">Policy required —</span>
-                      <HygienePolicy compact onAccept={() => setPolicyAccepted(true)} onDecline={() => setPolicyAccepted(false)} />
-                    </div>
-                  )}
-                </div>
+                {hasEligible && !policyAccepted && (
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0 ml-auto">
+                    <ShieldCheck className="size-3.5 shrink-0" />
+                    <span className="hidden sm:inline">Policy required —</span>
+                    <HygienePolicy compact onAccept={() => setPolicyAccepted(true)} onDecline={() => setPolicyAccepted(false)} />
+                  </div>
+                )}
               </div>
-              {/* Row 2: search + page size */}
+              {/* Row 2: search + filter (ineligible only) + page size */}
               <div className="flex items-center gap-2">
                 <div className="relative flex-1">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input placeholder="Search product or variant..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9 h-8 bg-white text-sm" />
                 </div>
+                {activeTab === "ineligible" && (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs bg-white shrink-0">
+                        <SlidersHorizontal className="size-3" />
+                        Filter
+                        {ineligibleStatusFilter.length > 0 && <span className="rounded-full bg-foreground text-background text-[10px] font-bold px-1.5 leading-5">{ineligibleStatusFilter.length}</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-52 p-2 bg-white" align="end">
+                      <div className="flex flex-col gap-0.5">
+                        {Array.from(new Set(ineligibleItems.map(i => i.returnStatus))).map(status => (
+                          <label key={status} className="flex items-center gap-2.5 px-2 py-1.5 rounded-md hover:bg-muted cursor-pointer text-sm">
+                            <Checkbox checked={ineligibleStatusFilter.includes(status)} onCheckedChange={c => setIneligibleStatusFilter(p => c ? [...p, status] : p.filter(s => s !== status))} />
+                            {status}
+                          </label>
+                        ))}
+                        {ineligibleStatusFilter.length > 0 && (
+                          <>
+                            <Separator className="my-1" />
+                            <button onClick={() => setIneligibleStatusFilter([])} className="text-xs text-muted-foreground hover:text-foreground px-2 py-1 text-left w-full rounded-md hover:bg-muted">Clear filters</button>
+                          </>
+                        )}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                )}
                 <Select value={pageSize} onValueChange={setPageSize}>
                   <SelectTrigger className="w-[100px] h-8 bg-white text-sm shrink-0"><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -809,18 +803,16 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
         )}
       </div>
 
-      {/* ── Portalled sticky footer — FIX: safe-area-inset-bottom for iPhone curved display ── */}
-      {mounted && hasEligible && !order.cancelledAt && createPortal(
+      {/* ── Sticky footer — lives inside SidebarInset so it never overlaps the sidebar ── */}
+      {hasEligible && !order.cancelledAt && (
         <div
-          className="fixed bottom-0 right-0 z-[48] border-t border-border bg-background shadow-[0_-2px_12px_rgba(0,0,0,0.08)] transition-[left] duration-200 ease-in-out"
-          style={{
-            left:          sidebarMobile ? "0px" : sidebarState === "collapsed" ? "calc(4rem + env(safe-area-inset-left))" : "18rem",
-            paddingBottom: "env(safe-area-inset-bottom)",
-            paddingLeft:   "env(safe-area-inset-left)",
-            paddingRight:  "env(safe-area-inset-right)",
-          }}
+          className="sticky bottom-0 -mx-4 -mb-4 z-[48] border-t border-border bg-background shadow-[0_-2px_12px_rgba(0,0,0,0.08)]"
+          style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
         >
-          <div className="px-3 sm:px-4 lg:px-6 py-2 sm:py-2.5 flex items-center justify-between gap-2">
+          <div
+            className="px-3 sm:px-4 py-2 sm:py-2.5 flex items-center justify-between gap-2"
+            style={{ paddingRight: "max(0.75rem, env(safe-area-inset-right))" }}
+          >
             <div className="flex items-center gap-2 sm:gap-3 min-w-0">
               <div className="shrink-0">
                 <p className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground font-semibold leading-none mb-0.5">Selected</p>
@@ -846,8 +838,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
               </Button>
             </div>
           </div>
-        </div>,
-        document.getElementById("portal-root") ?? document.body
+        </div>
       )}
     </>
   )
