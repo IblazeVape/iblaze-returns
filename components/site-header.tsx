@@ -34,7 +34,7 @@ export function SiteHeader({
       <div
         className="flex w-full items-center gap-1 lg:gap-2"
         style={{
-          paddingLeft:  "max(1rem, env(safe-area-inset-left))",
+          paddingLeft:  "1rem",
           paddingRight: "max(1rem, env(safe-area-inset-right))",
         }}
       >
