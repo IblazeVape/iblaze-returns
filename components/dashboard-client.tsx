@@ -23,7 +23,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Drawer, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer"
+import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { cn } from "@/lib/utils"
 
@@ -281,18 +281,21 @@ function ShipmentItemsModal({ shipment, order, idx }: { shipment: Shipment; orde
   }
 
   return (
-    <Drawer open={open} onOpenChange={setOpen} shouldScaleBackground={false}>
+    <Drawer shouldScaleBackground={false}>
       <DrawerTrigger asChild>{trigger}</DrawerTrigger>
       <DrawerContent>
-        <DrawerHeader className="text-left border-b border-border pb-4">
+        <DrawerHeader className="text-left pb-4">
           <DrawerTitle className="flex items-center gap-2"><Truck className="size-4" /> {title}</DrawerTitle>
           <DrawerDescription>{subtitle}</DrawerDescription>
         </DrawerHeader>
+        <Separator />
         <div className="overflow-y-auto max-h-[60vh]">
           <ShipmentItemList shipment={shipment} order={order} className="px-4 py-4" />
         </div>
         <DrawerFooter className="pt-2">
-          <Button variant="outline" className="w-full" onClick={() => setOpen(false)}>Close</Button>
+          <DrawerClose asChild>
+            <Button variant="outline" className="w-full">Close</Button>
+          </DrawerClose>
         </DrawerFooter>
       </DrawerContent>
     </Drawer>
@@ -306,13 +309,6 @@ function HygienePolicy({ onAccept, onDecline, compact = false }: { onAccept: () 
 
   const handleAccept  = () => { setOpen(false); onAccept();  toast.success("Policy accepted") }
   const handleDecline = () => { setOpen(false); onDecline(); toast.warning("Policy declined") }
-
-  const acceptDecline = (
-    <div className="flex gap-2">
-      <Button className="flex-1 bg-[#E5403B] hover:bg-[#cc3935] text-white" onClick={handleAccept}><CheckCircle2 className="size-4" /> I Accept</Button>
-      <Button variant="outline" className="flex-1" onClick={handleDecline}>Decline</Button>
-    </div>
-  )
 
   const trigger = compact
     ? <Button size="sm" variant="outline" className="h-7 px-2 text-xs shrink-0">Review &amp; Accept</Button>
@@ -328,24 +324,37 @@ function HygienePolicy({ onAccept, onDecline, compact = false }: { onAccept: () 
             <DialogDescription>Review our returns policy before selecting items to return.</DialogDescription>
           </DialogHeader>
           <HygienePolicyList />
-          {acceptDecline}
+          <div className="flex gap-2">
+            <Button className="flex-1 bg-[#E5403B] hover:bg-[#cc3935] text-white" onClick={handleAccept}><CheckCircle2 className="size-4" /> I Accept</Button>
+            <Button variant="outline" className="flex-1" onClick={handleDecline}>Decline</Button>
+          </div>
         </DialogContent>
       </Dialog>
     )
   }
 
   return (
-    <Drawer open={open} onOpenChange={setOpen} shouldScaleBackground={false}>
+    <Drawer shouldScaleBackground={false}>
       <DrawerTrigger asChild>{trigger}</DrawerTrigger>
       <DrawerContent>
-        <DrawerHeader className="text-left border-b border-border pb-4">
+        <DrawerHeader className="text-left pb-4">
           <DrawerTitle className="flex items-center gap-2"><ShieldCheck className="size-4 text-[#E5403B]" /> iBlaze Returns Policy</DrawerTitle>
           <DrawerDescription>Review our returns policy before selecting items to return.</DrawerDescription>
         </DrawerHeader>
+        <Separator />
         <ScrollArea className="max-h-[50vh]">
           <HygienePolicyList className="px-4 py-4" />
         </ScrollArea>
-        <DrawerFooter className="pt-2">{acceptDecline}</DrawerFooter>
+        <DrawerFooter className="pt-2">
+          <div className="flex gap-2">
+            <DrawerClose asChild>
+              <Button className="flex-1 bg-[#E5403B] hover:bg-[#cc3935] text-white" onClick={() => { onAccept(); toast.success("Policy accepted") }}><CheckCircle2 className="size-4" /> I Accept</Button>
+            </DrawerClose>
+            <DrawerClose asChild>
+              <Button variant="outline" className="flex-1" onClick={() => { onDecline(); toast.warning("Policy declined") }}>Decline</Button>
+            </DrawerClose>
+          </div>
+        </DrawerFooter>
       </DrawerContent>
     </Drawer>
   )
@@ -418,9 +427,10 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
   const [submitting, setSubmitting]   = useState(false)
   const [submitted, setSubmitted]     = useState(false)
   const [mounted, setMounted]         = useState(false)
-  const [searchQuery, setSearchQuery] = useState("")
-  const [pageSize, setPageSize]       = useState("10")
-  const [currentPage, setCurrentPage] = useState(1)
+  const [searchQuery, setSearchQuery]         = useState("")
+  const [pageSize, setPageSize]               = useState("10")
+  const [currentPage, setCurrentPage]         = useState(1)
+  const [ineligibleStatusFilter, setIneligibleStatusFilter] = useState<string[]>([])
 
   useEffect(() => { setMounted(true) }, [])
   const { state: sidebarState, isMobile: sidebarMobile } = useSidebar()
@@ -445,8 +455,12 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
     return item.title.toLowerCase().includes(q) || (item.variant?.title || "").toLowerCase().includes(q)
   }
 
-  const filteredEligible   = useMemo(() => eligibleItems.filter(matchesSearch),   [eligibleItems,   searchQuery])
-  const filteredIneligible = useMemo(() => ineligibleItems.filter(matchesSearch), [ineligibleItems, searchQuery])
+  const filteredEligible   = useMemo(() => eligibleItems.filter(matchesSearch), [eligibleItems, searchQuery])
+  const filteredIneligible = useMemo(() => ineligibleItems.filter(item => {
+    if (!matchesSearch(item)) return false
+    if (ineligibleStatusFilter.length > 0 && !ineligibleStatusFilter.includes(item.returnStatus)) return false
+    return true
+  }), [ineligibleItems, searchQuery, ineligibleStatusFilter])
 
   // FIX: default to whichever tab actually has items; reset when order changes
   const [activeTab, setActiveTab] = useState<"eligible" | "ineligible">(
@@ -461,7 +475,8 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
   const totalPages    = Math.ceil(currentData.length / size) || 1
   const paginatedData = currentData.slice((currentPage - 1) * size, currentPage * size)
 
-  useEffect(() => { setCurrentPage(1) }, [activeTab, searchQuery, pageSize])
+  useEffect(() => { setCurrentPage(1) }, [activeTab, searchQuery, pageSize, ineligibleStatusFilter])
+  useEffect(() => { setIneligibleStatusFilter([]) }, [order.id])
 
   const selectedCount   = Object.values(selectedItems).filter(v => v.selected).length
   const estimatedRefund = Object.entries(selectedItems).filter(([, v]) => v.selected).reduce((sum, [id, v]) => {
@@ -542,7 +557,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
           <div className="grid grid-cols-2 sm:grid-cols-4 border-t border-border">
             <div className="px-3 sm:px-5 py-2.5 sm:py-3 border-r border-b sm:border-b-0 border-border">
               <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground flex items-center gap-1"><CreditCard className="size-3" />Total Paid</p>
-              <p className="font-semibold text-sm mt-0.5 truncate">£{total.toFixed(2)}</p>
+              <p className="font-semibold text-sm mt-0.5">£{total.toFixed(2)}</p>
             </div>
             <div className="px-3 sm:px-5 py-2.5 sm:py-3 border-b sm:border-b-0 sm:border-r border-border">
               <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground flex items-center gap-1"><CheckCircle2 className="size-3 text-green-500" />Eligible</p>
@@ -554,7 +569,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
             </div>
             <div className="px-3 sm:px-5 py-2.5 sm:py-3">
               <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground flex items-center gap-1"><RotateCcw className="size-3 text-blue-500" />Refunded</p>
-              <p className="font-semibold text-sm mt-0.5 text-blue-600 truncate">£{refundedAmount.toFixed(2)}</p>
+              <p className="font-semibold text-sm mt-0.5 text-blue-600">£{refundedAmount.toFixed(2)}</p>
             </div>
           </div>
         </Card>
@@ -568,8 +583,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
 
         {/* ── Shipments & tracking ── */}
         {!order.cancelledAt && order.shipments && order.shipments.length > 0 && (
-          <div className="flex flex-col gap-2">
-            <h3 className="text-sm font-semibold flex items-center gap-2"><Truck className="size-4" /> Shipments &amp; Tracking</h3>
+          <div>
             <ScrollArea className="w-full">
               <div className="flex gap-3 pb-3 snap-x">
                 {order.shipments.map((shipment, idx) => {
@@ -630,13 +644,42 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                     {eligibleItems.length > 0 ? `Eligible (${totalEligibleUnits})` : `Ineligible (${totalIneligibleUnits})`}
                   </span>
                 )}
-                {hasEligible && !policyAccepted && (
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
-                    <ShieldCheck className="size-3.5 shrink-0" />
-                    <span className="hidden sm:inline">Policy required —</span>
-                    <HygienePolicy compact onAccept={() => setPolicyAccepted(true)} onDecline={() => setPolicyAccepted(false)} />
-                  </div>
-                )}
+                <div className="flex items-center gap-2 ml-auto">
+                  {activeTab === "ineligible" && (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs bg-white shrink-0">
+                          <SlidersHorizontal className="size-3" />
+                          Filter
+                          {ineligibleStatusFilter.length > 0 && <span className="rounded-full bg-foreground text-background text-[10px] font-bold px-1.5 leading-5">{ineligibleStatusFilter.length}</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-52 p-2 bg-white" align="end">
+                        <div className="flex flex-col gap-0.5">
+                          {Array.from(new Set(ineligibleItems.map(i => i.returnStatus))).map(status => (
+                            <label key={status} className="flex items-center gap-2.5 px-2 py-1.5 rounded-md hover:bg-muted cursor-pointer text-sm">
+                              <Checkbox checked={ineligibleStatusFilter.includes(status)} onCheckedChange={c => setIneligibleStatusFilter(p => c ? [...p, status] : p.filter(s => s !== status))} />
+                              {status}
+                            </label>
+                          ))}
+                          {ineligibleStatusFilter.length > 0 && (
+                            <>
+                              <Separator className="my-1" />
+                              <button onClick={() => setIneligibleStatusFilter([])} className="text-xs text-muted-foreground hover:text-foreground px-2 py-1 text-left w-full rounded-md hover:bg-muted">Clear filters</button>
+                            </>
+                          )}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  )}
+                  {hasEligible && !policyAccepted && (
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
+                      <ShieldCheck className="size-3.5 shrink-0" />
+                      <span className="hidden sm:inline">Policy required —</span>
+                      <HygienePolicy compact onAccept={() => setPolicyAccepted(true)} onDecline={() => setPolicyAccepted(false)} />
+                    </div>
+                  )}
+                </div>
               </div>
               {/* Row 2: search + page size */}
               <div className="flex items-center gap-2">
@@ -769,7 +812,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
       {/* ── Portalled sticky footer — FIX: safe-area-inset-bottom for iPhone curved display ── */}
       {mounted && hasEligible && !order.cancelledAt && createPortal(
         <div
-          className="fixed bottom-0 right-0 z-[48] border-t border-border bg-background shadow-[0_-2px_12px_rgba(0,0,0,0.08)]"
+          className="fixed bottom-0 right-0 z-[48] border-t border-border bg-background shadow-[0_-2px_12px_rgba(0,0,0,0.08)] transition-[left] duration-200 ease-in-out"
           style={{
             left:          sidebarMobile ? "0px" : sidebarState === "collapsed" ? "calc(4rem + env(safe-area-inset-left))" : "18rem",
             paddingBottom: "env(safe-area-inset-bottom)",
@@ -900,9 +943,9 @@ export default function DashboardClient() {
                       </div>
                     </PopoverContent>
                   </Popover>
-                  <div className="flex items-center gap-1 bg-white border border-border rounded-lg p-1">
-                    <Button variant="ghost" size="icon" className={cn("size-7", view === "grid" && "bg-background shadow-sm")} onClick={() => setView("grid")}><LayoutGrid className="size-4" /></Button>
-                    <Button variant="ghost" size="icon" className={cn("size-7", view === "list" && "bg-background shadow-sm")} onClick={() => setView("list")}><List className="size-4" /></Button>
+                  <div className="flex items-center gap-0.5 h-8 bg-white border border-border rounded-lg px-0.5">
+                    <Button variant="ghost" size="icon" className={cn("size-7", view === "grid" && "bg-muted shadow-sm")} onClick={() => setView("grid")}><LayoutGrid className="size-4" /></Button>
+                    <Button variant="ghost" size="icon" className={cn("size-7", view === "list" && "bg-muted shadow-sm")} onClick={() => setView("list")}><List className="size-4" /></Button>
                   </div>
                 </div>
               </div>
