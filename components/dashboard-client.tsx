@@ -268,7 +268,7 @@ function ShipmentItemsModal({ shipment, order, idx }: { shipment: Shipment; orde
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>{trigger}</DialogTrigger>
         <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
+          <DialogHeader className="border-b border-border pb-4">
             <DialogTitle className="flex items-center gap-2"><Truck className="size-4" /> {title}</DialogTitle>
             <DialogDescription>{subtitle}</DialogDescription>
           </DialogHeader>
@@ -300,7 +300,7 @@ function ShipmentItemsModal({ shipment, order, idx }: { shipment: Shipment; orde
 }
 
 // ─── Hygiene Policy Modal ─────────────────────────────────────────────────────
-function HygienePolicy({ onAccept, onDecline }: { onAccept: () => void; onDecline: () => void }) {
+function HygienePolicy({ onAccept, onDecline, compact = false }: { onAccept: () => void; onDecline: () => void; compact?: boolean }) {
   const [open, setOpen] = useState(false)
   const isDesktop = useMediaQuery("(min-width: 768px)")
 
@@ -314,14 +314,16 @@ function HygienePolicy({ onAccept, onDecline }: { onAccept: () => void; onDeclin
     </div>
   )
 
-  const trigger = <Button size="sm" className="bg-[#E5403B] hover:bg-[#cc3935] text-white shrink-0">Review &amp; Accept</Button>
+  const trigger = compact
+    ? <Button size="sm" variant="outline" className="h-7 px-2 text-xs shrink-0">Review &amp; Accept</Button>
+    : <Button size="sm" className="bg-[#E5403B] hover:bg-[#cc3935] text-white shrink-0">Review &amp; Accept</Button>
 
   if (isDesktop) {
     return (
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>{trigger}</DialogTrigger>
         <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
+          <DialogHeader className="border-b border-border pb-4">
             <DialogTitle className="flex items-center gap-2"><ShieldCheck className="size-4 text-[#E5403B]" /> iBlaze Returns Policy</DialogTitle>
             <DialogDescription>Review our returns policy before selecting items to return.</DialogDescription>
           </DialogHeader>
@@ -521,7 +523,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
   return (
     <>
       <div className={cn("flex flex-col gap-4", hasEligible && "pb-[120px] sm:pb-[64px]")}>
-        <Button variant="outline" size="sm" onClick={onBack} className="w-fit gap-1.5">
+        <Button variant="ghost" size="sm" onClick={onBack} className="-ml-2 text-muted-foreground hover:text-foreground w-fit">
           <ArrowLeft className="size-4" /> Back to Orders
         </Button>
 
@@ -537,22 +539,22 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
               <ExternalLink className="size-3.5" /> View Order Status
             </a>
           </div>
-          <div className="grid grid-cols-4 border-t border-border divide-x divide-border">
-            <div className="px-3 sm:px-5 py-2.5 sm:py-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 border-t border-border">
+            <div className="px-3 sm:px-5 py-2.5 sm:py-3 border-r border-b sm:border-b-0 border-border">
               <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground flex items-center gap-1"><CreditCard className="size-3" />Total Paid</p>
-              <p className="font-semibold text-sm mt-0.5">£{total.toFixed(2)}</p>
+              <p className="font-semibold text-sm mt-0.5 truncate">£{total.toFixed(2)}</p>
             </div>
-            <div className="px-3 sm:px-5 py-2.5 sm:py-3">
+            <div className="px-3 sm:px-5 py-2.5 sm:py-3 border-b sm:border-b-0 sm:border-r border-border">
               <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground flex items-center gap-1"><CheckCircle2 className="size-3 text-green-500" />Eligible</p>
               <p className="font-semibold text-sm mt-0.5 text-green-600">{totalEligibleUnits}</p>
             </div>
-            <div className="px-3 sm:px-5 py-2.5 sm:py-3">
+            <div className="px-3 sm:px-5 py-2.5 sm:py-3 border-r border-border">
               <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground flex items-center gap-1"><XCircle className="size-3" />Ineligible</p>
               <p className="font-semibold text-sm mt-0.5 text-zinc-500">{totalIneligibleUnits}</p>
             </div>
             <div className="px-3 sm:px-5 py-2.5 sm:py-3">
               <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground flex items-center gap-1"><RotateCcw className="size-3 text-blue-500" />Refunded</p>
-              <p className="font-semibold text-sm mt-0.5 text-blue-600">£{refundedAmount.toFixed(2)}</p>
+              <p className="font-semibold text-sm mt-0.5 text-blue-600 truncate">£{refundedAmount.toFixed(2)}</p>
             </div>
           </div>
         </Card>
@@ -612,35 +614,38 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
         {/* ── Items table ── */}
         {!order.cancelledAt && (
           <Card className={cn(C, "overflow-hidden flex flex-col")}>
-            <div className="px-5 py-3 border-b bg-muted/20 flex flex-col md:flex-row md:items-center justify-between gap-3">
-              {hasBothTabs ? (
-                <Select value={activeTab} onValueChange={(v) => setActiveTab(v as "eligible" | "ineligible")}>
-                  <SelectTrigger className="w-[185px] h-9 bg-white"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="eligible">Eligible ({totalEligibleUnits})</SelectItem>
-                    <SelectItem value="ineligible">Ineligible ({totalIneligibleUnits})</SelectItem>
-                  </SelectContent>
-                </Select>
-              ) : (
-                <span className="text-sm font-semibold text-foreground">
-                  {eligibleItems.length > 0 ? `Eligible (${totalEligibleUnits})` : `Ineligible (${totalIneligibleUnits})`}
-                </span>
-              )}
-              <div className="flex items-center gap-2 flex-wrap">
-                {/* Policy gate — inline in the toolbar instead of a separate card */}
+            <div className="px-4 py-3 border-b bg-muted/20 flex flex-col gap-2">
+              {/* Row 1: tab switcher + policy gate */}
+              <div className="flex items-center justify-between gap-2">
+                {hasBothTabs ? (
+                  <Select value={activeTab} onValueChange={(v) => setActiveTab(v as "eligible" | "ineligible")}>
+                    <SelectTrigger className="w-[160px] h-8 bg-white text-sm"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="eligible">Eligible ({totalEligibleUnits})</SelectItem>
+                      <SelectItem value="ineligible">Ineligible ({totalIneligibleUnits})</SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <span className="text-sm font-semibold text-foreground">
+                    {eligibleItems.length > 0 ? `Eligible (${totalEligibleUnits})` : `Ineligible (${totalIneligibleUnits})`}
+                  </span>
+                )}
                 {hasEligible && !policyAccepted && (
-                  <div className="flex items-center gap-2 border border-amber-200 bg-amber-50 rounded-lg px-3 py-1.5 text-xs text-amber-800 shrink-0">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
                     <ShieldCheck className="size-3.5 shrink-0" />
-                    <span className="hidden sm:inline font-medium">Accept policy to select items</span>
-                    <HygienePolicy onAccept={() => setPolicyAccepted(true)} onDecline={() => setPolicyAccepted(false)} />
+                    <span className="hidden sm:inline">Policy required —</span>
+                    <HygienePolicy compact onAccept={() => setPolicyAccepted(true)} onDecline={() => setPolicyAccepted(false)} />
                   </div>
                 )}
-                <div className="relative w-full md:w-56">
+              </div>
+              {/* Row 2: search + page size */}
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input placeholder="Search product or variant..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9 h-9 bg-white" />
+                  <Input placeholder="Search product or variant..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9 h-8 bg-white text-sm" />
                 </div>
                 <Select value={pageSize} onValueChange={setPageSize}>
-                  <SelectTrigger className="w-[110px] h-9 bg-white"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="w-[100px] h-8 bg-white text-sm shrink-0"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="5">Show 5</SelectItem>
                     <SelectItem value="10">Show 10</SelectItem>
@@ -766,38 +771,40 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
         <div
           className="fixed bottom-0 right-0 z-[48] border-t border-border bg-background shadow-[0_-2px_12px_rgba(0,0,0,0.08)]"
           style={{
-            left:         sidebarMobile ? "0px" : sidebarState === "collapsed" ? "calc(3rem + env(safe-area-inset-left))" : "18rem",
+            left:          sidebarMobile ? "0px" : sidebarState === "collapsed" ? "calc(4rem + env(safe-area-inset-left))" : "18rem",
             paddingBottom: "env(safe-area-inset-bottom)",
-            paddingLeft:  "env(safe-area-inset-left)",
-            paddingRight: "env(safe-area-inset-right)",
+            paddingLeft:   "env(safe-area-inset-left)",
+            paddingRight:  "env(safe-area-inset-right)",
           }}
         >
-          <div className="px-4 lg:px-6 py-2.5 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-3 min-w-0">
+          <div className="px-3 sm:px-4 lg:px-6 py-2 sm:py-2.5 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
               <div className="shrink-0">
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold leading-none mb-0.5">Selected</p>
-                <p className="text-sm font-semibold leading-tight">{selectedCount} item{selectedCount !== 1 ? "s" : ""}</p>
+                <p className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground font-semibold leading-none mb-0.5">Selected</p>
+                <p className="text-xs sm:text-sm font-semibold leading-tight">{selectedCount} item{selectedCount !== 1 ? "s" : ""}</p>
               </div>
-              <Separator orientation="vertical" className="h-7 shrink-0" />
+              <Separator orientation="vertical" className="h-6 shrink-0" />
               <div className="shrink-0">
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold leading-none mb-0.5">Refund</p>
-                <p className="text-sm font-bold text-[#E5403B] leading-tight">£{estimatedRefund.toFixed(2)}</p>
+                <p className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground font-semibold leading-none mb-0.5">Refund</p>
+                <p className="text-xs sm:text-sm font-bold text-[#E5403B] leading-tight">£{estimatedRefund.toFixed(2)}</p>
               </div>
               {!policyAccepted && (
-                <div className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
+                <div className="hidden md:flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
                   <Lock className="size-3.5 shrink-0" /><span>Accept policy to continue</span>
                 </div>
               )}
             </div>
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
               <Button variant="ghost" size="sm" onClick={onBack} className="text-muted-foreground hidden sm:inline-flex">Cancel</Button>
               <Button size="sm" className="bg-[#E5403B] hover:bg-[#cc3935] text-white disabled:opacity-50" disabled={!canSubmit || submitting} onClick={submitReturn}>
-                {submitting ? <><Spinner className="size-4" /> Submitting...</> : <><RotateCcw className="size-4" /> Submit Return</>}
+                {submitting
+                  ? <><Spinner className="size-4" /><span className="hidden sm:inline ml-1">Submitting...</span></>
+                  : <><RotateCcw className="size-4" /><span className="hidden sm:inline ml-1">Submit Return</span></>}
               </Button>
             </div>
           </div>
         </div>,
-        document.body
+        document.getElementById("portal-root") ?? document.body
       )}
     </>
   )
