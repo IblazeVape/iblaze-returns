@@ -4,7 +4,7 @@ import * as React from "react"
 import { createPortal } from "react-dom"
 import { useEffect, useState, useMemo } from "react"
 import { toast } from "sonner"
-import { ChevronRight, LayoutGrid, List, ArrowLeft, RotateCcw, CheckCircle2, ShoppingBag, ShieldCheck, ExternalLink, Lock, Truck, Package, Search, MapPin, SlidersHorizontal } from "lucide-react"
+import { ChevronRight, LayoutGrid, List, ArrowLeft, RotateCcw, CheckCircle2, ShoppingBag, ShieldCheck, ExternalLink, Lock, Truck, Package, Search, MapPin, SlidersHorizontal, CreditCard, XCircle } from "lucide-react"
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
@@ -281,7 +281,7 @@ function ShipmentItemsModal({ shipment, order, idx }: { shipment: Shipment; orde
   }
 
   return (
-    <Drawer open={open} onOpenChange={setOpen}>
+    <Drawer open={open} onOpenChange={setOpen} shouldScaleBackground={false}>
       <DrawerTrigger asChild>{trigger}</DrawerTrigger>
       <DrawerContent>
         <DrawerHeader className="text-left border-b border-border pb-4">
@@ -333,7 +333,7 @@ function HygienePolicy({ onAccept, onDecline }: { onAccept: () => void; onDeclin
   }
 
   return (
-    <Drawer open={open} onOpenChange={setOpen}>
+    <Drawer open={open} onOpenChange={setOpen} shouldScaleBackground={false}>
       <DrawerTrigger asChild>{trigger}</DrawerTrigger>
       <DrawerContent>
         <DrawerHeader className="text-left border-b border-border pb-4">
@@ -521,7 +521,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
   return (
     <>
       <div className={cn("flex flex-col gap-4", hasEligible && "pb-[120px] sm:pb-[64px]")}>
-        <Button variant="ghost" size="sm" onClick={onBack} className="-ml-2 text-muted-foreground hover:text-foreground w-fit">
+        <Button variant="outline" size="sm" onClick={onBack} className="w-fit gap-1.5">
           <ArrowLeft className="size-4" /> Back to Orders
         </Button>
 
@@ -538,10 +538,22 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
             </a>
           </div>
           <div className="grid grid-cols-4 border-t border-border divide-x divide-border">
-            <div className="px-3 sm:px-5 py-2.5 sm:py-3"><p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Total Paid</p><p className="font-semibold text-sm mt-0.5">£{total.toFixed(2)}</p></div>
-            <div className="px-3 sm:px-5 py-2.5 sm:py-3"><p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Eligible</p><p className="font-semibold text-sm mt-0.5 text-green-600">{totalEligibleUnits}</p></div>
-            <div className="px-3 sm:px-5 py-2.5 sm:py-3"><p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Ineligible</p><p className="font-semibold text-sm mt-0.5 text-zinc-500">{totalIneligibleUnits}</p></div>
-            <div className="px-3 sm:px-5 py-2.5 sm:py-3"><p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Refunded</p><p className="font-semibold text-sm mt-0.5 text-blue-600">£{refundedAmount.toFixed(2)}</p></div>
+            <div className="px-3 sm:px-5 py-2.5 sm:py-3">
+              <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground flex items-center gap-1"><CreditCard className="size-3" />Total Paid</p>
+              <p className="font-semibold text-sm mt-0.5">£{total.toFixed(2)}</p>
+            </div>
+            <div className="px-3 sm:px-5 py-2.5 sm:py-3">
+              <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground flex items-center gap-1"><CheckCircle2 className="size-3 text-green-500" />Eligible</p>
+              <p className="font-semibold text-sm mt-0.5 text-green-600">{totalEligibleUnits}</p>
+            </div>
+            <div className="px-3 sm:px-5 py-2.5 sm:py-3">
+              <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground flex items-center gap-1"><XCircle className="size-3" />Ineligible</p>
+              <p className="font-semibold text-sm mt-0.5 text-zinc-500">{totalIneligibleUnits}</p>
+            </div>
+            <div className="px-3 sm:px-5 py-2.5 sm:py-3">
+              <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground flex items-center gap-1"><RotateCcw className="size-3 text-blue-500" />Refunded</p>
+              <p className="font-semibold text-sm mt-0.5 text-blue-600">£{refundedAmount.toFixed(2)}</p>
+            </div>
           </div>
         </Card>
 
@@ -597,22 +609,10 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
         )}
 
         {/* ── Policy gate ── */}
-        {hasEligible && !policyAccepted && (
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border bg-card px-4 py-3 text-sm">
-            <div className="flex items-center gap-2 min-w-0">
-              <ShieldCheck className="size-4 text-muted-foreground shrink-0" />
-              <span className="font-medium">Hygiene &amp; Returns Policy</span>
-              <span className="text-muted-foreground hidden sm:inline">— Review and accept before selecting items.</span>
-            </div>
-            <HygienePolicy onAccept={() => setPolicyAccepted(true)} onDecline={() => setPolicyAccepted(false)} />
-          </div>
-        )}
-
         {/* ── Items table ── */}
         {!order.cancelledAt && (
           <Card className={cn(C, "overflow-hidden flex flex-col")}>
-            <div className="px-5 py-3 border-b bg-muted/20 flex flex-col md:flex-row md:items-center justify-between gap-4">
-              {/* FIX: only show tab switcher when both eligible and ineligible items exist */}
+            <div className="px-5 py-3 border-b bg-muted/20 flex flex-col md:flex-row md:items-center justify-between gap-3">
               {hasBothTabs ? (
                 <Select value={activeTab} onValueChange={(v) => setActiveTab(v as "eligible" | "ineligible")}>
                   <SelectTrigger className="w-[185px] h-9 bg-white"><SelectValue /></SelectTrigger>
@@ -626,8 +626,16 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                   {eligibleItems.length > 0 ? `Eligible (${totalEligibleUnits})` : `Ineligible (${totalIneligibleUnits})`}
                 </span>
               )}
-              <div className="flex items-center gap-2">
-                <div className="relative w-full md:w-64">
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Policy gate — inline in the toolbar instead of a separate card */}
+                {hasEligible && !policyAccepted && (
+                  <div className="flex items-center gap-2 border border-amber-200 bg-amber-50 rounded-lg px-3 py-1.5 text-xs text-amber-800 shrink-0">
+                    <ShieldCheck className="size-3.5 shrink-0" />
+                    <span className="hidden sm:inline font-medium">Accept policy to select items</span>
+                    <HygienePolicy onAccept={() => setPolicyAccepted(true)} onDecline={() => setPolicyAccepted(false)} />
+                  </div>
+                )}
+                <div className="relative w-full md:w-56">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input placeholder="Search product or variant..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9 h-9 bg-white" />
                 </div>
@@ -643,116 +651,102 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
               </div>
             </div>
 
-            {/* ── Table with sticky first column + right-edge fade hint ── */}
-            <div className="relative flex-1 overflow-hidden">
-              <ScrollArea className="flex-1">
-                <Table className="min-w-[560px]">
-                  <TableHeader className="bg-background">
-                    <TableRow className="hover:bg-transparent">
-                      {activeTab === "eligible" && (
-                        <TableHead className="w-8 pl-4 pr-0 sticky left-0 bg-background z-10" />
-                      )}
-                      <TableHead className={cn(
-                        "bg-background z-10",
-                        activeTab === "eligible"
-                          ? "sticky left-8 pl-3 shadow-[1px_0_0_0_hsl(var(--border))]"
-                          : "sticky left-0 pl-5 shadow-[1px_0_0_0_hsl(var(--border))]"
-                      )}>Product</TableHead>
-                      <TableHead>Variant</TableHead>
-                      <TableHead className="text-center">Qty</TableHead>
-                      <TableHead className="text-right pr-4">Total</TableHead>
-                      {activeTab === "ineligible" && <TableHead className="pr-5 text-right">Status</TableHead>}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {paginatedData.length === 0 ? (
-                      <TableRow><TableCell colSpan={6} className="h-24 text-center text-muted-foreground">No items found.</TableCell></TableRow>
-                    ) : paginatedData.map((item, rowIdx) => {
-                      const displayQty = activeTab === "eligible" ? item.eligibleQuantity : item.quantity
-                      const sel        = selectedItems[item.id]
-                      const isLocked   = !policyAccepted && activeTab === "eligible"
-                      const itemPrice  = item.unitPrice ?? orderAvgPrice
-                      const rowBg      = sel?.selected ? "bg-muted/20" : "bg-background"
+            <ScrollArea className="flex-1">
+              <Table className="min-w-[560px]">
+                <TableHeader className="bg-background">
+                  <TableRow className="hover:bg-transparent">
+                    {activeTab === "eligible" && (
+                      <TableHead className="w-8 pl-4 pr-0">
+                        <Checkbox checked={isAllSelected} onCheckedChange={handleSelectAll} disabled={!policyAccepted || eligibleItems.length === 0} />
+                      </TableHead>
+                    )}
+                    <TableHead className={activeTab === "eligible" ? "pl-3" : "pl-5"}>Product</TableHead>
+                    <TableHead>Variant</TableHead>
+                    <TableHead className="text-center">Qty</TableHead>
+                    <TableHead className="text-right pr-4">Total</TableHead>
+                    {activeTab === "ineligible" && <TableHead className="pr-5 text-right">Status</TableHead>}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginatedData.length === 0 ? (
+                    <TableRow><TableCell colSpan={6} className="h-24 text-center text-muted-foreground">No items found.</TableCell></TableRow>
+                  ) : paginatedData.map((item, rowIdx) => {
+                    const displayQty = activeTab === "eligible" ? item.eligibleQuantity : item.quantity
+                    const sel        = selectedItems[item.id]
+                    const isLocked   = !policyAccepted && activeTab === "eligible"
+                    const itemPrice  = item.unitPrice ?? orderAvgPrice
 
-                      return (
-                        <React.Fragment key={`${item.id}-${rowIdx}`}>
-                          <TableRow className={cn("transition-colors", sel?.selected && "bg-muted/20")}>
-                            {activeTab === "eligible" && (
-                              <TableCell className={cn("pl-4 pr-0 py-3 sticky left-0 z-10", rowBg)}>
-                                <Checkbox
-                                  checked={sel?.selected || false}
-                                  disabled={isLocked}
-                                  onCheckedChange={c => {
-                                    if (isLocked) return
-                                    setSelectedItems(p => ({ ...p, [item.id]: c ? { selected: true, quantity: item.eligibleQuantity, reason: "", description: "" } : { ...p[item.id], selected: false } }))
-                                  }}
-                                />
-                              </TableCell>
-                            )}
-                            <TableCell className={cn(
-                              "py-3 z-10",
-                              rowBg,
-                              activeTab === "eligible"
-                                ? "sticky left-8 pl-3 shadow-[1px_0_0_0_hsl(var(--border))]"
-                                : "sticky left-0 pl-5 shadow-[1px_0_0_0_hsl(var(--border))]"
-                            )}>
-                              <div className="flex items-center gap-3">
-                                <ProductThumb item={item} />
-                                <div className="min-w-0">
-                                  <a href={pUrl(item.productHandle)} target="_blank" rel="noopener noreferrer" className="font-medium text-sm hover:underline truncate block max-w-[160px]">{item.title}</a>
-                                  <span className="text-xs text-muted-foreground">£{itemPrice.toFixed(2)} each</span>
+                    return (
+                      <React.Fragment key={`${item.id}-${rowIdx}`}>
+                        <TableRow className={cn("transition-colors", sel?.selected && "bg-muted/20")}>
+                          {activeTab === "eligible" && (
+                            <TableCell className="pl-4 pr-0 py-3">
+                              <Checkbox
+                                checked={sel?.selected || false}
+                                disabled={isLocked}
+                                onCheckedChange={c => {
+                                  if (isLocked) return
+                                  setSelectedItems(p => ({ ...p, [item.id]: c ? { selected: true, quantity: item.eligibleQuantity, reason: "", description: "" } : { ...p[item.id], selected: false } }))
+                                }}
+                              />
+                            </TableCell>
+                          )}
+                          <TableCell className={cn("py-3", activeTab === "eligible" ? "pl-3" : "pl-5")}>
+                            <div className="flex items-center gap-3">
+                              <ProductThumb item={item} />
+                              <div className="min-w-0">
+                                <a href={pUrl(item.productHandle)} target="_blank" rel="noopener noreferrer" className="font-medium text-sm hover:underline truncate block max-w-[160px]">{item.title}</a>
+                                <span className="text-xs text-muted-foreground">£{itemPrice.toFixed(2)} each</span>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-3 text-sm">{item.variant?.title && item.variant.title !== "Default Title" ? item.variant.title : <span className="text-muted-foreground">—</span>}</TableCell>
+                          <TableCell className="py-3 text-sm text-center tabular-nums">{displayQty}</TableCell>
+                          <TableCell className="text-right pr-4 py-3 font-semibold text-sm tabular-nums">£{(itemPrice * (activeTab === "eligible" ? (sel?.quantity || item.eligibleQuantity) : displayQty)).toFixed(2)}</TableCell>
+                          {activeTab === "ineligible" && (
+                            <TableCell className="pr-5 py-3 text-right">
+                              <IneligibleReason status={item.returnStatus} reason={item.returnReason} lineDeliveredAt={item.lineDeliveredAt} />
+                            </TableCell>
+                          )}
+                        </TableRow>
+
+                        {sel?.selected && activeTab === "eligible" && (
+                          <TableRow className="bg-zinc-50/60 hover:bg-zinc-50/60">
+                            <TableCell colSpan={5} className="px-4 pb-3 pt-1">
+                              <div className="ml-[calc(0.5rem+2.5rem+0.75rem)] grid grid-cols-2 gap-2.5">
+                                <div>
+                                  <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">Return Qty</label>
+                                  <Select value={String(sel.quantity)} onValueChange={v => setSelectedItems(p => ({ ...p, [item.id]: { ...p[item.id], quantity: parseInt(v) } }))}>
+                                    <SelectTrigger className="h-8 text-sm bg-white"><SelectValue /></SelectTrigger>
+                                    <SelectContent>{Array.from({ length: item.eligibleQuantity }, (_, i) => (<SelectItem key={i + 1} value={String(i + 1)}>{i + 1}</SelectItem>))}</SelectContent>
+                                  </Select>
                                 </div>
+                                <div>
+                                  <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">Reason</label>
+                                  <Select value={sel.reason} onValueChange={v => setSelectedItems(p => ({ ...p, [item.id]: { ...p[item.id], reason: v } }))}>
+                                    <SelectTrigger className="h-8 text-sm bg-white"><SelectValue placeholder="Select..." /></SelectTrigger>
+                                    <SelectContent>{RETURN_REASONS.map(r => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}</SelectContent>
+                                  </Select>
+                                </div>
+                                {sel.reason && (
+                                  <div className="col-span-2">
+                                    <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">
+                                      {sel.reason === "OTHER" ? <>Notes <span className="text-destructive">*</span></> : "Notes (optional)"}
+                                    </label>
+                                    <Textarea value={sel.description} onChange={e => setSelectedItems(p => ({ ...p, [item.id]: { ...p[item.id], description: e.target.value } }))} placeholder={sel.reason === "OTHER" ? "Describe your reason (required)..." : "Any additional info..."} className="text-sm bg-white resize-none" rows={2} />
+                                  </div>
+                                )}
                               </div>
                             </TableCell>
-                            <TableCell className="py-3 text-sm">{item.variant?.title && item.variant.title !== "Default Title" ? item.variant.title : <span className="text-muted-foreground">—</span>}</TableCell>
-                            <TableCell className="py-3 text-sm text-center tabular-nums">{displayQty}</TableCell>
-                            <TableCell className="text-right pr-4 py-3 font-semibold text-sm tabular-nums">£{(itemPrice * (activeTab === "eligible" ? (sel?.quantity || item.eligibleQuantity) : displayQty)).toFixed(2)}</TableCell>
-                            {activeTab === "ineligible" && (
-                              <TableCell className="pr-5 py-3 text-right">
-                                <IneligibleReason status={item.returnStatus} reason={item.returnReason} lineDeliveredAt={item.lineDeliveredAt} />
-                              </TableCell>
-                            )}
                           </TableRow>
-
-                          {sel?.selected && activeTab === "eligible" && (
-                            <TableRow className="bg-zinc-50/60 hover:bg-zinc-50/60">
-                              <TableCell colSpan={5} className="px-4 pb-3 pt-1">
-                                <div className="ml-[calc(0.5rem+2.5rem+0.75rem)] grid grid-cols-2 gap-2.5">
-                                  <div>
-                                    <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">Return Qty</label>
-                                    <Select value={String(sel.quantity)} onValueChange={v => setSelectedItems(p => ({ ...p, [item.id]: { ...p[item.id], quantity: parseInt(v) } }))}>
-                                      <SelectTrigger className="h-8 text-sm bg-white"><SelectValue /></SelectTrigger>
-                                      <SelectContent>{Array.from({ length: item.eligibleQuantity }, (_, i) => (<SelectItem key={i + 1} value={String(i + 1)}>{i + 1}</SelectItem>))}</SelectContent>
-                                    </Select>
-                                  </div>
-                                  <div>
-                                    <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">Reason</label>
-                                    <Select value={sel.reason} onValueChange={v => setSelectedItems(p => ({ ...p, [item.id]: { ...p[item.id], reason: v } }))}>
-                                      <SelectTrigger className="h-8 text-sm bg-white"><SelectValue placeholder="Select..." /></SelectTrigger>
-                                      <SelectContent>{RETURN_REASONS.map(r => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}</SelectContent>
-                                    </Select>
-                                  </div>
-                                  {sel.reason && (
-                                    <div className="col-span-2">
-                                      <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">
-                                        {sel.reason === "OTHER" ? <>Notes <span className="text-destructive">*</span></> : "Notes (optional)"}
-                                      </label>
-                                      <Textarea value={sel.description} onChange={e => setSelectedItems(p => ({ ...p, [item.id]: { ...p[item.id], description: e.target.value } }))} placeholder={sel.reason === "OTHER" ? "Describe your reason (required)..." : "Any additional info..."} className="text-sm bg-white resize-none" rows={2} />
-                                    </div>
-                                  )}
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          )}
-                        </React.Fragment>
-                      )
-                    })}
-                  </TableBody>
-                </Table>
-              </ScrollArea>
-              {/* Right-edge fade: hints that the table scrolls horizontally */}
-              <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-background to-transparent md:hidden" />
-            </div>
+                        )}
+                      </React.Fragment>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
 
             {pageSize !== "all" && currentData.length > size && (
               <div className="p-4 border-t flex items-center justify-between text-sm text-muted-foreground">
@@ -772,7 +766,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
         <div
           className="fixed bottom-0 right-0 z-[48] border-t border-border bg-background shadow-[0_-2px_12px_rgba(0,0,0,0.08)]"
           style={{
-            left:         sidebarMobile ? "0px" : sidebarState === "collapsed" ? "4.5rem" : "18rem",
+            left:         sidebarMobile ? "0px" : sidebarState === "collapsed" ? "calc(3rem + env(safe-area-inset-left))" : "18rem",
             paddingBottom: "env(safe-area-inset-bottom)",
             paddingLeft:  "env(safe-area-inset-left)",
             paddingRight: "env(safe-area-inset-right)",
@@ -819,18 +813,7 @@ export default function DashboardClient() {
   const [statusFilter, setStatusFilter]   = useState<string[]>([])
   const [activeSection, setActiveSection] = useState("#orders")
 
-  // Start collapsed in landscape; auto-collapse when rotating to landscape
-  const [sidebarOpen, setSidebarOpen] = useState(() =>
-    typeof window !== "undefined"
-      ? !window.matchMedia("(orientation: landscape)").matches
-      : true
-  )
-  useEffect(() => {
-    const mql = window.matchMedia("(orientation: landscape)")
-    const onChange = (e: MediaQueryListEvent) => { if (e.matches) setSidebarOpen(false) }
-    mql.addEventListener("change", onChange)
-    return () => mql.removeEventListener("change", onChange)
-  }, [])
+  const [sidebarOpen, setSidebarOpen] = useState(true)
 
   useEffect(() => {
     fetch("/api/get-orders")
