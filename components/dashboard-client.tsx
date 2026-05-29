@@ -894,9 +894,10 @@ export default function DashboardClient() {
           </div>
         ) : (
           <div
-            className="flex flex-1 flex-col gap-4"
+            className="flex-1 overflow-y-auto"
             style={{ padding: "1rem", paddingRight: "max(1rem, env(safe-area-inset-right))" }}
           >
+          <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-semibold">{data?.firstName ? `Hi, ${data.firstName} 👋` : "Your Recent Orders"}</h2>
@@ -983,6 +984,7 @@ export default function DashboardClient() {
                 </CardContent>
               </Card>
             )}
+          </div>
           </div>
         )}
       </SidebarInset>
