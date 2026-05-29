@@ -643,7 +643,87 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
               </div>
             </div>
 
-            <ScrollArea className="flex-1">
+            {/* ── Mobile card list (hidden on md+) ── */}
+            <div className="md:hidden divide-y divide-border">
+              {paginatedData.length === 0 ? (
+                <div className="h-24 flex items-center justify-center text-sm text-muted-foreground">No items found.</div>
+              ) : paginatedData.map((item, rowIdx) => {
+                const displayQty = activeTab === "eligible" ? item.eligibleQuantity : item.quantity
+                const sel        = selectedItems[item.id]
+                const isLocked   = !policyAccepted && activeTab === "eligible"
+                const itemPrice  = item.unitPrice ?? orderAvgPrice
+
+                return (
+                  <div key={`card-${item.id}-${rowIdx}`} className={cn("px-4 py-3 transition-colors", sel?.selected && "bg-muted/20")}>
+                    <div className="flex items-start gap-3">
+                      {activeTab === "eligible" && (
+                        <Checkbox
+                          className="mt-1 shrink-0"
+                          checked={sel?.selected || false}
+                          disabled={isLocked}
+                          onCheckedChange={c => {
+                            if (isLocked) return
+                            setSelectedItems(p => ({ ...p, [item.id]: c ? { selected: true, quantity: item.eligibleQuantity, reason: "", description: "" } : { ...p[item.id], selected: false } }))
+                          }}
+                        />
+                      )}
+                      <a href={pUrl(item.productHandle)} target="_blank" rel="noopener noreferrer" className="shrink-0">
+                        <div className="size-10 rounded-md overflow-hidden bg-white border border-border">
+                          {item.image?.url && <img src={item.image.url} alt={item.title} className="w-full h-full object-cover" />}
+                        </div>
+                      </a>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <a href={pUrl(item.productHandle)} target="_blank" rel="noopener noreferrer" className="font-medium text-sm hover:underline leading-snug line-clamp-2">{item.title}</a>
+                          <span className="text-sm font-semibold tabular-nums shrink-0">×{displayQty}</span>
+                        </div>
+                        <div className="flex items-end justify-between mt-1 gap-2">
+                          <div>
+                            {item.variant?.title && item.variant.title !== "Default Title" && (
+                              <p className="text-xs text-muted-foreground">{item.variant.title}</p>
+                            )}
+                            <p className="text-xs text-muted-foreground">£{(itemPrice * displayQty).toFixed(2)}</p>
+                          </div>
+                          {activeTab === "ineligible" && (
+                            <IneligibleReason status={item.returnStatus} reason={item.returnReason} lineDeliveredAt={item.lineDeliveredAt} />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {sel?.selected && activeTab === "eligible" && (
+                      <div className="mt-3 grid grid-cols-2 gap-2.5 pl-[calc(1.5rem+2.5rem+0.75rem)]">
+                        <div>
+                          <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">Return Qty</label>
+                          <Select value={String(sel.quantity)} onValueChange={v => setSelectedItems(p => ({ ...p, [item.id]: { ...p[item.id], quantity: parseInt(v) } }))}>
+                            <SelectTrigger className="h-8 text-sm bg-white"><SelectValue /></SelectTrigger>
+                            <SelectContent>{Array.from({ length: item.eligibleQuantity }, (_, i) => (<SelectItem key={i + 1} value={String(i + 1)}>{i + 1}</SelectItem>))}</SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">Reason</label>
+                          <Select value={sel.reason} onValueChange={v => setSelectedItems(p => ({ ...p, [item.id]: { ...p[item.id], reason: v } }))}>
+                            <SelectTrigger className="h-8 text-sm bg-white"><SelectValue placeholder="Select..." /></SelectTrigger>
+                            <SelectContent>{RETURN_REASONS.map(r => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}</SelectContent>
+                          </Select>
+                        </div>
+                        {sel.reason && (
+                          <div className="col-span-2">
+                            <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">
+                              {sel.reason === "OTHER" ? <>Notes <span className="text-destructive">*</span></> : "Notes (optional)"}
+                            </label>
+                            <Textarea value={sel.description} onChange={e => setSelectedItems(p => ({ ...p, [item.id]: { ...p[item.id], description: e.target.value } }))} placeholder={sel.reason === "OTHER" ? "Describe your reason (required)..." : "Any additional info..."} className="text-sm bg-white resize-none" rows={2} />
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* ── Desktop table (hidden below md) ── */}
+            <ScrollArea className="flex-1 hidden md:block">
               <Table className="min-w-[560px]">
                 <TableHeader className="bg-background">
                   <TableRow className="hover:bg-transparent">
