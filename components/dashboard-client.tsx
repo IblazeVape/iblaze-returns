@@ -849,7 +849,15 @@ export default function DashboardClient() {
   const user = { name: data?.firstName || "Customer", email: data?.email || "" }
 
   const portalContent = (
-    <SidebarProvider open={sidebarOpen} onOpenChange={setSidebarOpen} style={{ "--sidebar-width": "18rem", "--header-height": "3rem" } as React.CSSProperties}>
+    <SidebarProvider
+      open={sidebarOpen}
+      onOpenChange={setSidebarOpen}
+      style={{
+        "--sidebar-width": "18rem",
+        "--sidebar-width-icon": "calc(3rem + env(safe-area-inset-left))",
+        "--header-height": "3rem",
+      } as React.CSSProperties}
+    >
       <AppSidebar variant="inset" user={user} onNavigate={s => { setActiveSection(s); setSelectedOrder(null) }} activeSection={activeSection} />
       <SidebarInset>
         <SiteHeader title={selectedOrder ? selectedOrder.name : "My Orders"} search={search} onSearch={setSearch} showSearch={!selectedOrder} firstName={data?.firstName} email={data?.email} />
