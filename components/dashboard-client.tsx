@@ -771,7 +771,12 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
       {mounted && hasEligible && !order.cancelledAt && createPortal(
         <div
           className="fixed bottom-0 right-0 z-[48] border-t border-border bg-background shadow-[0_-2px_12px_rgba(0,0,0,0.08)]"
-          style={{ left: sidebarMobile ? "0px" : sidebarState === "collapsed" ? "4.5rem" : "18rem", paddingBottom: "env(safe-area-inset-bottom)" }}
+          style={{
+            left:         sidebarMobile ? "0px" : sidebarState === "collapsed" ? "4.5rem" : "18rem",
+            paddingBottom: "env(safe-area-inset-bottom)",
+            paddingLeft:  "env(safe-area-inset-left)",
+            paddingRight: "env(safe-area-inset-right)",
+          }}
         >
           <div className="px-4 lg:px-6 py-2.5 flex items-center justify-between gap-2">
             <div className="flex items-center gap-3 min-w-0">
@@ -835,7 +840,14 @@ export default function DashboardClient() {
       <AppSidebar variant="inset" user={user} onNavigate={s => { setActiveSection(s); setSelectedOrder(null) }} activeSection={activeSection} />
       <SidebarInset>
         <SiteHeader title={selectedOrder ? selectedOrder.name : "My Orders"} search={search} onSearch={setSearch} showSearch={!selectedOrder} firstName={data?.firstName} email={data?.email} />
-        <div className="flex flex-1 flex-col p-4 lg:p-6 gap-4">
+        <div
+          className="flex flex-1 flex-col gap-4"
+          style={{
+            padding: "1rem",
+            paddingLeft:  "max(1rem, env(safe-area-inset-left))",
+            paddingRight: "max(1rem, env(safe-area-inset-right))",
+          }}
+        >
           {selectedOrder ? (
             <OrderDetail order={selectedOrder} onBack={() => setSelectedOrder(null)} />
           ) : (
