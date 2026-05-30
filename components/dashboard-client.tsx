@@ -1082,3 +1082,323 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                             </div>
                           )}
                  
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Pagination */}
+              {pageSize !== "all" && currentData.length > size && (
+                <div className="p-4 border-t flex items-center justify-between text-sm text-muted-foreground">
+                  <span>Showing {Math.min((currentPage - 1) * size + 1, currentData.length)}–{Math.min(currentPage * size, currentData.length)} of {currentData.length}</span>
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>Previous</Button>
+                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage >= totalPages}>Next</Button>
+                  </div>
+                </div>
+              )}
+            </Card>
+          )}
+        </div>
+      </div>
+
+      {/* RIGHT: fixed return summary panel (desktop only) */}
+      {hasEligible && (
+        <div className="hidden lg:flex w-[220px] shrink-0 border-l border-border bg-background flex-col overflow-y-auto">
+          <div className="p-4 flex flex-col gap-0 h-full">
+
+            {/* Return summary */}
+            <div className="border-b border-border pb-4 mb-4">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">Return summary</p>
+              <div className="bg-muted/40 rounded-lg p-3 flex flex-col gap-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">Selected</span>
+                  <span className="text-sm font-semibold">{selectedCount} item{selectedCount !== 1 ? "s" : ""}</span>
+                </div>
+                <Separator />
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">Est. refund</span>
+                  <span className="text-base font-bold text-[#E5403B]">£{estimatedRefund.toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Reason dropdown when 1 item selected */}
+            {selectedCount === 1 && (() => {
+              const selEntry = Object.entries(selectedItems).find(([, v]) => v.selected)
+              if (!selEntry) return null
+              const [selId, selVal] = selEntry
+              return (
+                <div className="border-b border-border pb-4 mb-4">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Reason</p>
+                  <Select value={selVal.reason} onValueChange={v => setSelectedItems(p => ({ ...p, [selId]: { ...p[selId], reason: v } }))}>
+                    <SelectTrigger className="h-8 text-xs bg-white w-full"><SelectValue placeholder="Select reason..." /></SelectTrigger>
+                    <SelectContent>{RETURN_REASONS.map(r => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+              )
+            })()}
+
+            {/* Policy */}
+            <div className="border-b border-border pb-4 mb-4">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Returns policy</p>
+              {policyAccepted ? (
+                <div className="flex items-center gap-1.5 text-xs text-green-700 bg-green-50 border border-green-200 rounded-lg px-2.5 py-2">
+                  <CheckCircle2 className="size-3 shrink-0" />Policy accepted
+                </div>
+              ) : (
+                <HygienePolicy compact={false} onAccept={() => setPolicyAccepted(true)} onDecline={() => setPolicyAccepted(false)} />
+              )}
+            </div>
+
+            {/* Submit */}
+            <div className="border-b border-border pb-4 mb-4">
+              <Button
+                className="w-full bg-[#E5403B] hover:bg-[#cc3935] text-white disabled:opacity-40"
+                disabled={!canSubmit || submitting}
+                onClick={submitReturn}
+              >
+                {submitting
+                  ? <><Spinner className="size-4" /><span className="ml-1">Submitting...</span></>
+                  : <><RotateCcw className="size-4" /><span className="ml-1">Submit return</span></>}
+              </Button>
+              {!policyAccepted && (
+                <p className="text-[10px] text-muted-foreground text-center mt-2 flex items-center justify-center gap-1">
+                  <Lock className="size-3" />Accept policy to continue
+                </p>
+              )}
+            </div>
+
+            {/* Urgent window warning */}
+            {urgentItem && (
+              <div className="border-b border-border pb-4 mb-4">
+                <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-2">
+                  <Clock className="size-3 text-amber-700 shrink-0" />
+                  <p className="text-[11px] text-amber-800 font-medium">{urgentItem.daysLeft} days left on {urgentItem.item.title}</p>
+                </div>
+              </div>
+            )}
+
+            <ReturnStatusTracker previousReturn={undefined} />
+          </div>
+        </div>
+      )}
+
+      {/* Mobile sticky footer */}
+      {hasEligible && !order.cancelledAt && (
+        <div
+          className="lg:hidden sticky bottom-4 z-[48] border border-border rounded-xl bg-background shadow-[0_2px_12px_rgba(0,0,0,0.08)] mx-4"
+          style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+        >
+          <div className="px-3 py-2.5 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="shrink-0">
+                <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold leading-none mb-0.5">Selected</p>
+                <p className="text-xs font-semibold leading-tight">{selectedCount} item{selectedCount !== 1 ? "s" : ""}</p>
+              </div>
+              <Separator orientation="vertical" className="h-6 shrink-0" />
+              <div className="shrink-0">
+                <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold leading-none mb-0.5">Refund</p>
+                <p className="text-xs font-bold text-[#E5403B] leading-tight">£{estimatedRefund.toFixed(2)}</p>
+              </div>
+              {!policyAccepted && (
+                <HygienePolicy compact onAccept={() => setPolicyAccepted(true)} onDecline={() => setPolicyAccepted(false)} />
+              )}
+              {!policyAccepted && (
+                <div className="flex items-center gap-1 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-1 shrink-0">
+                  <Lock className="size-3 shrink-0" /><span className="hidden sm:inline">Accept policy</span>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <Button variant="ghost" size="sm" onClick={onBack} className="text-muted-foreground hidden sm:inline-flex">Cancel</Button>
+              <Button size="sm" className="bg-[#E5403B] hover:bg-[#cc3935] text-white disabled:opacity-50" disabled={!canSubmit || submitting} onClick={submitReturn}>
+                {submitting
+                  ? <><Spinner className="size-4" /></>
+                  : <><RotateCcw className="size-4" /><span className="hidden sm:inline ml-1">Submit return</span></>}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Dashboard Client ─────────────────────────────────────────────────────────
+export default function DashboardClient() {
+  const [data, setData]                   = useState<OrdersData | null>(null)
+  const [loading, setLoading]             = useState(true)
+  const [error, setError]                 = useState<string | null>(null)
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
+  const [search, setSearch]               = useState("")
+  const [statusFilter, setStatusFilter]   = useState<string[]>([])
+  const [activeSection, setActiveSection] = useState("#orders")
+  const [sidebarOpen, setSidebarOpen]     = useState(true)
+
+  useEffect(() => {
+    fetch("/api/get-orders")
+      .then(r => r.json())
+      .then(d => { if (d.error) setError(d.error); else setData(d) })
+      .catch(() => setError("Failed to load orders."))
+      .finally(() => setLoading(false))
+  }, [])
+
+  const filteredOrders = (data?.orders || []).filter(o => {
+    const matchesSearch = o.name.toLowerCase().includes(search.toLowerCase())
+    const matchesStatus = statusFilter.length === 0 || statusFilter.includes(o.orderStatus)
+    return matchesSearch && matchesStatus
+  })
+
+  const totalEligibleAcrossOrders = (data?.orders || []).reduce((sum, o) => {
+    if (o.cancelledAt) return sum
+    return sum + o.processedItems.filter(i => i.returnStatus === "Eligible" && i.eligibleQuantity > 0).reduce((s, i) => s + i.eligibleQuantity, 0)
+  }, 0)
+
+  const urgentOrderWindow = useMemo(() => {
+    let urgent: { order: Order; daysLeft: number } | null = null
+    for (const o of (data?.orders || [])) {
+      if (o.cancelledAt) continue
+      for (const item of o.processedItems) {
+        if (item.returnStatus !== "Eligible" || !item.lineDeliveredAt) continue
+        const d = new Date(item.lineDeliveredAt)
+        if (isNaN(d.getTime())) continue
+        const daysLeft = 30 - Math.floor((Date.now() - d.getTime()) / (1000 * 60 * 60 * 24))
+        if (daysLeft > 0 && (!urgent || daysLeft < urgent.daysLeft)) {
+          urgent = { order: o, daysLeft }
+        }
+      }
+    }
+    return urgent
+  }, [data])
+
+  const user = { name: data?.firstName || "Customer", email: data?.email || "" }
+
+  return (
+    <SidebarProvider
+      open={sidebarOpen}
+      onOpenChange={setSidebarOpen}
+      style={{
+        "--sidebar-width": "18rem",
+        "--sidebar-width-icon": "calc(3rem + env(safe-area-inset-left))",
+        "--header-height": "3rem",
+      } as React.CSSProperties}
+    >
+      <AppSidebar variant="inset" user={user} onNavigate={s => { setActiveSection(s); setSelectedOrder(null) }} activeSection={activeSection} />
+      <SidebarInset>
+        <SiteHeader
+          title={selectedOrder ? selectedOrder.name : "My Orders"}
+          search={search}
+          onSearch={setSearch}
+          showSearch={!selectedOrder}
+          firstName={data?.firstName}
+          email={data?.email}
+        />
+
+        {selectedOrder ? (
+          <div className="flex-1 overflow-hidden flex flex-col min-h-0">
+            <OrderDetail order={selectedOrder} onBack={() => setSelectedOrder(null)} />
+          </div>
+        ) : (
+          <div className="flex-1 overflow-y-auto" style={{ padding: "1rem", scrollbarGutter: "stable" }}>
+            <div className="flex flex-col gap-4">
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold">{data?.firstName ? `Hi, ${data.firstName} 👋` : "Your Recent Orders"}</h2>
+                  <p className="text-sm text-muted-foreground mt-0.5">Select an order to view details or start a return.</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm" className="h-8 gap-1.5 text-sm bg-white">
+                        <SlidersHorizontal className="size-3.5" />Status
+                        {statusFilter.length > 0 && <span className="rounded-full bg-foreground text-background text-[10px] font-bold px-1.5 leading-5">{statusFilter.length}</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-52 p-2 bg-white text-gray-900" align="end">
+                      <div className="flex flex-col">
+                        {STATUS_FILTERS.map(status => (
+                          <label key={status} className="flex items-center gap-2.5 px-2 py-1.5 rounded-md hover:bg-muted cursor-pointer text-sm text-gray-900">
+                            <Checkbox checked={statusFilter.includes(status)} onCheckedChange={checked => setStatusFilter(prev => checked ? [...prev, status] : prev.filter(s => s !== status))} />
+                            {status}
+                          </label>
+                        ))}
+                        {statusFilter.length > 0 && (
+                          <>
+                            <Separator className="my-1.5" />
+                            <button onClick={() => setStatusFilter([])} className="text-xs text-muted-foreground hover:text-foreground px-2 py-1 text-left w-full rounded-md hover:bg-muted">Clear filters</button>
+                          </>
+                        )}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+
+              {!loading && totalEligibleAcrossOrders > 0 && (
+                <div className="bg-white border border-border rounded-xl px-4 py-3 flex items-center gap-3">
+                  <div className="size-9 rounded-full bg-muted border border-border flex items-center justify-center shrink-0">
+                    <RefreshCw className="size-4 text-muted-foreground" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground">{totalEligibleAcrossOrders} item{totalEligibleAcrossOrders !== 1 ? "s" : ""} eligible for return</p>
+                    {urgentOrderWindow && (
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Across your orders{" "}
+                        <span className="text-amber-700 font-medium">
+                          · {urgentOrderWindow.order.name} expires in {urgentOrderWindow.daysLeft} day{urgentOrderWindow.daysLeft !== 1 ? "s" : ""}
+                        </span>
+                      </p>
+                    )}
+                  </div>
+                  {urgentOrderWindow && (
+                    <Button size="sm" className="shrink-0 bg-foreground hover:bg-foreground/90 text-background text-xs h-8 px-3" onClick={() => setSelectedOrder(urgentOrderWindow.order)}>
+                      Start return
+                    </Button>
+                  )}
+                </div>
+              )}
+
+              {error && (
+                <div className="flex items-center gap-3 p-4 rounded-xl bg-destructive/10 text-sm text-destructive border border-destructive/20">
+                  <ShoppingBag className="size-5 shrink-0" />{error}
+                </div>
+              )}
+
+              {loading && (
+                <div className="flex flex-col gap-3">
+                  {[1, 2, 3, 4].map(i => <OrderSkeleton key={i} />)}
+                </div>
+              )}
+
+              {!loading && filteredOrders.length === 0 && (
+                <div className="text-center py-20">
+                  <ShoppingBag className="size-12 text-muted-foreground/30 mx-auto mb-4" />
+                  <p className="font-medium text-muted-foreground">
+                    {search || statusFilter.length > 0 ? "No orders match your search" : "No orders found"}
+                  </p>
+                  {(search || statusFilter.length > 0) && (
+                    <>
+                      <p className="text-sm text-muted-foreground mt-1 mb-4">Try adjusting your search or filters.</p>
+                      <Button variant="outline" size="sm" onClick={() => { setSearch(""); setStatusFilter([]) }}>Clear filters</Button>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {!loading && filteredOrders.length > 0 && (
+                <div className="flex flex-col gap-2.5">
+                  {filteredOrders.map(o => <OrderRow key={o.id} order={o} onClick={() => setSelectedOrder(o)} />)}
+                </div>
+              )}
+
+            </div>
+          </div>
+        )}
+      </SidebarInset>
+    </SidebarProvider>
+  )
+}
