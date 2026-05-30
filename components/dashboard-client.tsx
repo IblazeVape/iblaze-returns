@@ -3,7 +3,11 @@
 import * as React from "react"
 import { useEffect, useState, useMemo } from "react"
 import { toast } from "sonner"
-import { ChevronRight, LayoutGrid, List, ArrowLeft, RotateCcw, CheckCircle2, ShoppingBag, ShieldCheck, ExternalLink, Lock, Truck, Package, Search, MapPin, SlidersHorizontal, CreditCard, XCircle } from "lucide-react"
+import {
+  ChevronRight, LayoutGrid, List, ArrowLeft, RotateCcw, CheckCircle2,
+  ShoppingBag, ShieldCheck, ExternalLink, Lock, Truck, Package, Search,
+  MapPin, SlidersHorizontal, CreditCard, XCircle, ChevronDown, Info,
+} from "lucide-react"
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
@@ -15,11 +19,10 @@ import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer"
@@ -80,39 +83,39 @@ interface Order {
 
 interface OrdersData { firstName: string; email: string; orders: Order[] }
 
+// ─── Return reasons with icons ────────────────────────────────────────────────
 const RETURN_REASONS = [
-  { value: "CHANGED_MIND",     label: "Changed my mind" },
-  { value: "WRONG_ITEM",       label: "Wrong item received" },
-  { value: "FAULTY",           label: "Faulty / not working" },
-  { value: "DAMAGED",          label: "Damaged in transit" },
-  { value: "NOT_AS_DESCRIBED", label: "Not as described" },
-  { value: "OTHER",            label: "Other" },
+  { value: "CHANGED_MIND",     label: "Changed my mind",    icon: "😔" },
+  { value: "WRONG_ITEM",       label: "Wrong item",          icon: "📦" },
+  { value: "FAULTY",           label: "Faulty",              icon: "⚡" },
+  { value: "DAMAGED",          label: "Damaged in transit",  icon: "📮" },
+  { value: "NOT_AS_DESCRIBED", label: "Not as described",    icon: "👁" },
+  { value: "OTHER",            label: "Other",               icon: "···" },
 ]
 
 const STATUS_FILTERS = ["Delivered", "Partially delivered", "On its way", "Partially dispatched"]
-
 const C = "shadow-sm py-0 gap-0"
 
 function pUrl(handle?: string | null) {
   return handle ? `https://iblazevape.co.uk/products/${handle}` : "https://iblazevape.co.uk"
 }
 
-// ─── Order Status Badges ─────────────────────────────────────────────────────
+// ─── Order Status Badges ──────────────────────────────────────────────────────
 function OrderStatusBadges({ order }: { order: Order }) {
   const { orderStatus, cancelledAt, deliveredCount, dispatchedCount, confirmedCount, notDispatchedCount, totalUnits } = order
 
   if (cancelledAt) {
-    return <Badge className="bg-red-50 text-red-700 hover:bg-red-50 border border-red-200 rounded-md text-xs font-medium">Cancelled</Badge>
+    return <Badge className="bg-red-50 text-red-700 hover:bg-red-50 border border-red-200 rounded-full text-xs font-medium">Cancelled</Badge>
   }
 
   const primary = (() => {
     switch (orderStatus) {
-      case "Delivered":            return <Badge className="bg-green-50 text-green-700 hover:bg-green-50 border border-green-200 rounded-md text-xs font-medium">Delivered</Badge>
-      case "Partially delivered":  return <Badge className="bg-amber-50 text-amber-700 hover:bg-amber-50 border border-amber-200 rounded-md text-xs font-medium">Partially delivered</Badge>
-      case "On its way":           return <Badge className="bg-blue-50 text-blue-700 hover:bg-blue-50 border border-blue-200 rounded-md text-xs font-medium">On its way</Badge>
-      case "Partially dispatched": return <Badge className="bg-blue-50 text-blue-700 hover:bg-blue-50 border border-blue-200 rounded-md text-xs font-medium">Partially dispatched</Badge>
-      case "Confirmed":            return <Badge variant="secondary" className="rounded-md text-xs font-medium">Confirmed</Badge>
-      default:                     return <Badge variant="secondary" className="rounded-md text-xs font-medium">{orderStatus}</Badge>
+      case "Delivered":            return <Badge className="bg-green-50 text-green-700 hover:bg-green-50 border border-green-200 rounded-full text-xs font-medium flex items-center gap-1"><CheckCircle2 className="size-3" />Delivered</Badge>
+      case "Partially delivered":  return <Badge className="bg-amber-50 text-amber-700 hover:bg-amber-50 border border-amber-200 rounded-full text-xs font-medium flex items-center gap-1"><Truck className="size-3" />Partially delivered</Badge>
+      case "On its way":           return <Badge className="bg-blue-50 text-blue-700 hover:bg-blue-50 border border-blue-200 rounded-full text-xs font-medium flex items-center gap-1"><Truck className="size-3" />On its way</Badge>
+      case "Partially dispatched": return <Badge className="bg-blue-50 text-blue-700 hover:bg-blue-50 border border-blue-200 rounded-full text-xs font-medium flex items-center gap-1"><Truck className="size-3" />Partially dispatched</Badge>
+      case "Confirmed":            return <Badge variant="secondary" className="rounded-full text-xs font-medium">Confirmed</Badge>
+      default:                     return <Badge variant="secondary" className="rounded-full text-xs font-medium">{orderStatus}</Badge>
     }
   })()
 
@@ -131,54 +134,104 @@ function OrderStatusBadges({ order }: { order: Order }) {
   )
 }
 
-// ─── Ineligible Badge ────────────────────────────────────────────────────────
+// ─── Ineligible Badge ─────────────────────────────────────────────────────────
 function OutlineBadge({ className, children }: { className: string; children: React.ReactNode }) {
   return (
-    <span className={cn("inline-flex items-center justify-center rounded-md border px-2 py-0.5 text-[11px] font-medium whitespace-nowrap", className)}>
+    <span className={cn("inline-flex items-center justify-center rounded-full border px-2 py-0.5 text-[11px] font-medium whitespace-nowrap gap-1", className)}>
       {children}
     </span>
   )
 }
 
-function IneligibleReason({ status, reason, lineDeliveredAt }: { status: ReturnStatus; reason?: string; lineDeliveredAt?: string | null }) {
-  const withHover = (badge: React.ReactNode, title: string, body: string) => (
-    <HoverCard openDelay={100} closeDelay={100}>
-      <HoverCardTrigger asChild><div className="inline-flex">{badge}</div></HoverCardTrigger>
-      <HoverCardContent side="top" align="end" className="w-64 px-4 py-3">
-        <div className="flex flex-col gap-1">
-          <h4 className="font-medium text-sm">{title}</h4>
-          <p className="text-sm text-muted-foreground break-words">{body}</p>
-        </div>
-      </HoverCardContent>
-    </HoverCard>
-  )
-
-  if (status === "Confirmed")          return <OutlineBadge className="bg-zinc-50 text-zinc-500 border-zinc-200">Confirmed</OutlineBadge>
-  if (status === "On its way")         return <OutlineBadge className="bg-amber-50 text-amber-700 border-amber-200">On its way</OutlineBadge>
-  if (status === "Not yet dispatched") return <OutlineBadge className="bg-zinc-50 text-zinc-500 border-zinc-200">Not dispatched</OutlineBadge>
-  if (status === "Refunded")           return <OutlineBadge className="bg-zinc-100 text-zinc-600 border-zinc-300">Refunded</OutlineBadge>
-  if (status === "Cancelled")          return <OutlineBadge className="bg-red-50 text-red-700 border-red-200">Cancelled</OutlineBadge>
-  if (status === "Passed the return window") {
-    const badge = (
-      <div className="flex flex-col items-end gap-0.5">
-        <OutlineBadge className="bg-red-50 text-red-700 border-red-200">Window expired</OutlineBadge>
-        {lineDeliveredAt && <span className="text-[10px] text-muted-foreground">Arrived {lineDeliveredAt}</span>}
-      </div>
-    )
-    return reason ? withHover(badge, "Return window closed", reason) : badge
-  }
-  if (status === "Return requested")   return <OutlineBadge className="bg-blue-50 text-blue-700 border-blue-200">Requested</OutlineBadge>
-  if (status === "Return in progress") return <OutlineBadge className="bg-purple-50 text-purple-700 border-purple-200">In progress</OutlineBadge>
+function IneligibleBadge({ status, reason, lineDeliveredAt }: { status: ReturnStatus; reason?: string; lineDeliveredAt?: string | null }) {
+  if (status === "Confirmed")               return <OutlineBadge className="bg-zinc-50 text-zinc-500 border-zinc-200">Confirmed</OutlineBadge>
+  if (status === "On its way")              return <OutlineBadge className="bg-amber-50 text-amber-700 border-amber-200"><Truck className="size-3" />On its way</OutlineBadge>
+  if (status === "Not yet dispatched")      return <OutlineBadge className="bg-zinc-50 text-zinc-500 border-zinc-200">Not dispatched</OutlineBadge>
+  if (status === "Refunded")                return <OutlineBadge className="bg-zinc-100 text-zinc-600 border-zinc-300">Refunded</OutlineBadge>
+  if (status === "Cancelled")               return <OutlineBadge className="bg-red-50 text-red-700 border-red-200">Cancelled</OutlineBadge>
+  if (status === "Passed the return window") return <OutlineBadge className="bg-zinc-100 text-zinc-500 border-zinc-200"><XCircle className="size-3" />Window expired</OutlineBadge>
+  if (status === "Return requested")        return <OutlineBadge className="bg-blue-50 text-blue-700 border-blue-200">Requested</OutlineBadge>
+  if (status === "Return in progress")      return <OutlineBadge className="bg-purple-50 text-purple-700 border-purple-200">In progress</OutlineBadge>
   if (status === "Return completed" || status === "Returned") return <OutlineBadge className="bg-teal-50 text-teal-700 border-teal-200">Completed</OutlineBadge>
-  if (status === "Return declined") {
-    const badge = <OutlineBadge className="bg-red-50 text-red-700 border-red-200">Declined</OutlineBadge>
-    return reason ? withHover(badge, "Return declined", reason) : badge
-  }
-  if (status === "Return cancelled") return <OutlineBadge className="bg-orange-50 text-orange-600 border-orange-200">Cancelled</OutlineBadge>
+  if (status === "Return declined")         return <OutlineBadge className="bg-zinc-100 text-zinc-500 border-zinc-200">Declined</OutlineBadge>
+  if (status === "Return cancelled")        return <OutlineBadge className="bg-orange-50 text-orange-600 border-orange-200">Cancelled</OutlineBadge>
   return <span className="text-xs text-muted-foreground">{status}</span>
 }
 
-// FIX: object-cover so images sit flush against the border with no gap
+// ─── Ineligible Row with expandable reason ────────────────────────────────────
+function IneligibleRowReason({ status, reason, lineDeliveredAt }: { status: ReturnStatus; reason?: string; lineDeliveredAt?: string | null }) {
+  const [open, setOpen] = useState(false)
+
+  const reasonText = (() => {
+    if (status === "Passed the return window") {
+      const base = lineDeliveredAt ? `Delivered ${lineDeliveredAt}. ` : ""
+      return base + (reason || "The return window for this item has closed.")
+    }
+    if (status === "Return declined") return reason || "This return was declined by our team."
+    if (status === "Refunded")        return "This item has already been refunded."
+    if (status === "On its way")      return "Items can only be returned once delivered."
+    if (status === "Not yet dispatched") return "This item hasn't been dispatched yet."
+    if (status === "Confirmed")       return "This order is confirmed but not yet dispatched."
+    return reason || null
+  })()
+
+  return (
+    <div>
+      <button
+        onClick={() => reasonText && setOpen(o => !o)}
+        className={cn("flex items-center gap-1.5", reasonText ? "cursor-pointer" : "cursor-default")}
+      >
+        <IneligibleBadge status={status} reason={reason} lineDeliveredAt={lineDeliveredAt} />
+        {reasonText && <ChevronDown className={cn("size-3.5 text-muted-foreground transition-transform", open && "rotate-180")} />}
+      </button>
+      {open && reasonText && (
+        <div className="mt-2 flex items-start gap-2 rounded-lg bg-muted/60 border border-border px-3 py-2.5">
+          <Info className="size-3.5 text-muted-foreground shrink-0 mt-0.5" />
+          <p className="text-xs text-muted-foreground leading-relaxed">{reasonText}</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Return Reason Icon Grid ──────────────────────────────────────────────────
+function ReturnReasonGrid({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="border border-border rounded-lg overflow-hidden">
+      <div className="grid grid-cols-2">
+        {RETURN_REASONS.map((r, i) => {
+          const isSelected = value === r.value
+          const isRight = i % 2 === 0
+          const isBottom = i < RETURN_REASONS.length - 2
+          return (
+            <button
+              key={r.value}
+              onClick={() => onChange(r.value)}
+              className={cn(
+                "flex items-center gap-2.5 px-3 py-2.5 text-left transition-colors",
+                isRight && "border-r border-border",
+                isBottom && "border-b border-border",
+                isSelected
+                  ? "bg-blue-50 text-blue-800"
+                  : "bg-background hover:bg-muted/50 text-foreground"
+              )}
+            >
+              <div className={cn(
+                "size-7 rounded-md flex items-center justify-center text-sm shrink-0",
+                isSelected ? "bg-blue-100" : "bg-muted"
+              )}>
+                {r.icon}
+              </div>
+              <span className="text-xs font-medium leading-tight">{r.label}</span>
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// ─── Product Thumb ────────────────────────────────────────────────────────────
 function ProductThumb({ item }: { item: LineItem }) {
   return (
     <a href={pUrl(item.productHandle)} target="_blank" rel="noopener noreferrer" className="shrink-0">
@@ -189,14 +242,12 @@ function ProductThumb({ item }: { item: LineItem }) {
   )
 }
 
-// ─── Shipment item list ───────────────────────────────────────────────────────
+// ─── Shipment Item List ───────────────────────────────────────────────────────
 function ShipmentItemList({ shipment, order, className }: { shipment: Shipment; order: Order; className?: string }) {
   const shipmentItems = shipment.items.flatMap(({ id, quantity }) => {
     const li = order.processedItems.find(i => i.id === id)
-    if (!li) return []
-    return [{ ...li, shipQty: quantity }]
+    return li ? [{ ...li, shipQty: quantity }] : []
   })
-
   return (
     <div className={cn("divide-y divide-border", className)}>
       {shipmentItems.map((item, i) => {
@@ -210,9 +261,7 @@ function ShipmentItemList({ shipment, order, className }: { shipment: Shipment; 
               </div>
             </a>
             <div className="flex-1 min-w-0">
-              <a href={pUrl(item.productHandle)} target="_blank" rel="noopener noreferrer" className="font-medium text-sm hover:underline truncate block leading-tight">
-                {item.title}
-              </a>
+              <a href={pUrl(item.productHandle)} target="_blank" rel="noopener noreferrer" className="font-medium text-sm hover:underline truncate block leading-tight">{item.title}</a>
               <p className="text-xs text-muted-foreground mt-0.5">{item.shipQty}×{hasVariant ? ` ${item.variant!.title}` : ""}</p>
             </div>
             {itemPrice > 0 && <p className="text-sm font-semibold shrink-0 tabular-nums">£{(itemPrice * item.shipQty).toFixed(2)}</p>}
@@ -223,7 +272,7 @@ function ShipmentItemList({ shipment, order, className }: { shipment: Shipment; 
   )
 }
 
-// ─── Hygiene policy list ──────────────────────────────────────────────────────
+// ─── Hygiene Policy List ──────────────────────────────────────────────────────
 const POLICY_ITEMS = [
   { title: "Vape Kits & Mods",       desc: "30-day refund period. 30-day warranty from delivery." },
   { title: "Batteries & Chargers",    desc: "60-day battery warranty. 30-day charger warranty." },
@@ -247,8 +296,7 @@ function HygienePolicyList({ className }: { className?: string }) {
 
 // ─── Shipment Items Modal ─────────────────────────────────────────────────────
 function ShipmentItemsModal({ shipment, order, idx }: { shipment: Shipment; order: Order; idx: number }) {
-  const isDesktop = useMediaQuery("(min-width: 768px)")
-
+  const isDesktop     = useMediaQuery("(min-width: 768px)")
   const totalUnits    = shipment.items.reduce((a, c) => a + c.quantity, 0)
   const isDelivered   = shipment.displayStatus === "DELIVERED"
   const deliveredDate = shipment.deliveredAt ? new Date(shipment.deliveredAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : null
@@ -358,6 +406,7 @@ function HygienePolicy({ onAccept, onDecline, compact = false }: { onAccept: () 
   )
 }
 
+// ─── Order Card (improved) ────────────────────────────────────────────────────
 function OrderCard({ order, onClick }: { order: Order; onClick: () => void }) {
   const uniqueImages = order.processedItems.map(i => i.image?.url).filter((u, i, a) => u && a.indexOf(u) === i).slice(0, 5) as string[]
   const extra = order.processedItems.length - uniqueImages.length
@@ -365,24 +414,27 @@ function OrderCard({ order, onClick }: { order: Order; onClick: () => void }) {
   const date  = new Date(order.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
 
   return (
-    <button onClick={onClick} className="group w-full text-left bg-white border border-border rounded-xl p-5 shadow-sm hover:shadow-md hover:border-zinc-300 transition-all duration-150 focus:outline-none flex flex-col justify-between gap-3">
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="font-semibold text-[15px] group-hover:underline">{order.name}</p>
-          <p className="text-[13px] text-muted-foreground mt-0.5">{date} &bull; {order.totalUnits} item{order.totalUnits !== 1 ? "s" : ""}</p>
-          <div className="mt-1.5"><OrderStatusBadges order={order} /></div>
+    <button
+      onClick={onClick}
+      className="group w-full text-left bg-white border border-border rounded-xl p-4 hover:border-zinc-300 transition-all duration-150 focus:outline-none flex flex-col justify-between gap-3"
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="font-medium text-[14px] group-hover:underline truncate">{order.name}</p>
+          <p className="text-[12px] text-muted-foreground mt-0.5">{date} · {order.totalUnits} item{order.totalUnits !== 1 ? "s" : ""}</p>
+          <div className="mt-2"><OrderStatusBadges order={order} /></div>
         </div>
-        <p className="font-semibold text-[15px] shrink-0">£{total.toFixed(2)}</p>
+        <p className="font-medium text-[14px] shrink-0 tabular-nums">£{total.toFixed(2)}</p>
       </div>
       <div className="flex items-center gap-1.5">
         {uniqueImages.map((url, i) => (
-          <div key={i} className="w-10 h-10 rounded-md border border-border bg-white overflow-hidden shrink-0">
+          <div key={i} className="w-9 h-9 rounded-md border border-border bg-white overflow-hidden shrink-0">
             <img src={url} alt="" className="w-full h-full object-cover" />
           </div>
         ))}
         {extra > 0 && (
-          <div className="w-10 h-10 rounded-md border border-border bg-zinc-50 flex items-center justify-center shrink-0">
-            <span className="text-[11px] font-bold text-muted-foreground">+{extra}</span>
+          <div className="w-9 h-9 rounded-md border border-border bg-zinc-50 flex items-center justify-center shrink-0">
+            <span className="text-[11px] font-medium text-muted-foreground">+{extra}</span>
           </div>
         )}
       </div>
@@ -390,10 +442,20 @@ function OrderCard({ order, onClick }: { order: Order; onClick: () => void }) {
   )
 }
 
+// ─── Order Row (improved) ─────────────────────────────────────────────────────
 function OrderRow({ order, onClick }: { order: Order; onClick: () => void }) {
   const images = order.processedItems.map(i => i.image?.url).filter(Boolean).slice(0, 3) as string[]
   const total  = parseFloat(order.totalPriceSet.shopMoney.amount)
-  const date   = new Date(order.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+
+  // Show delivery date if available, otherwise order date
+  const dateLabel = (() => {
+    if (order.cancelledAt) return `Cancelled ${new Date(order.cancelledAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`
+    if (order.latestDelivery) return `Delivered ${new Date(order.latestDelivery).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`
+    if (order.dispatchedCount > 0) return `On its way`
+    return `Ordered ${new Date(order.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`
+  })()
+
+  const eligibleCount = order.processedItems.filter(i => i.returnStatus === "Eligible" && i.eligibleQuantity > 0).reduce((s, i) => s + i.eligibleQuantity, 0)
 
   return (
     <button onClick={onClick} className="w-full px-5 py-3.5 flex items-center gap-4 hover:bg-zinc-50 transition-colors text-left group border-b border-border last:border-0">
@@ -408,22 +470,67 @@ function OrderRow({ order, onClick }: { order: Order; onClick: () => void }) {
         ))}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="font-semibold text-sm group-hover:underline">{order.name}</p>
-        <p className="text-xs text-muted-foreground">{date} &bull; {order.totalUnits} item{order.totalUnits !== 1 ? "s" : ""}</p>
-        <div className="mt-1"><OrderStatusBadges order={order} /></div>
+        <div className="flex items-center gap-2 mb-0.5">
+          <p className="font-medium text-sm group-hover:underline">{order.name}</p>
+          <OrderStatusBadges order={order} />
+        </div>
+        <p className="text-xs text-muted-foreground">{dateLabel} · {order.totalUnits} item{order.totalUnits !== 1 ? "s" : ""}</p>
       </div>
-      <p className="font-semibold text-sm w-16 text-right shrink-0">£{total.toFixed(2)}</p>
+      <div className="text-right shrink-0">
+        <p className="font-medium text-sm tabular-nums">£{total.toFixed(2)}</p>
+        {eligibleCount > 0 && (
+          <p className="text-[11px] text-green-600 mt-0.5">{eligibleCount} returnable</p>
+        )}
+      </div>
       <ChevronRight className="size-4 text-muted-foreground shrink-0" />
     </button>
   )
 }
 
+// ─── Orders Page Header with Summary Stats ────────────────────────────────────
+function OrdersHeader({ firstName, orders }: { firstName?: string; orders: Order[] }) {
+  const returnableCount = orders.reduce((sum, o) => {
+    if (o.cancelledAt) return sum
+    return sum + o.processedItems.filter(i => i.returnStatus === "Eligible" && i.eligibleQuantity > 0).reduce((s, i) => s + i.eligibleQuantity, 0)
+  }, 0)
+  const inTransitCount = orders.filter(o => o.orderStatus === "On its way" || o.orderStatus === "Partially dispatched").length
+
+  return (
+    <div className="flex items-center justify-between gap-3 flex-wrap">
+      <div>
+        <h2 className="text-lg font-semibold">{firstName ? `Hi, ${firstName}` : "Your orders"}</h2>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          {orders.length} order{orders.length !== 1 ? "s" : ""}
+          {returnableCount > 0 && ` · ${returnableCount} item${returnableCount !== 1 ? "s" : ""} returnable`}
+        </p>
+      </div>
+      <div className="flex gap-2">
+        <div className="px-3 py-2 bg-muted/60 rounded-lg text-center min-w-[64px]">
+          <p className="text-base font-semibold text-green-600">{returnableCount}</p>
+          <p className="text-[11px] text-muted-foreground">Returnable</p>
+        </div>
+        <div className="px-3 py-2 bg-muted/60 rounded-lg text-center min-w-[64px]">
+          <p className="text-base font-semibold">{orders.length}</p>
+          <p className="text-[11px] text-muted-foreground">Orders</p>
+        </div>
+        {inTransitCount > 0 && (
+          <div className="px-3 py-2 bg-muted/60 rounded-lg text-center min-w-[64px]">
+            <p className="text-base font-semibold text-blue-600">{inTransitCount}</p>
+            <p className="text-[11px] text-muted-foreground">In transit</p>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ─── Order Detail ─────────────────────────────────────────────────────────────
 function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
-  const [policyAccepted, setPolicyAccepted] = useState(false)
-  const [selectedItems, setSelectedItems]   = useState<Record<string, { selected: boolean; quantity: number; reason: string; description: string }>>({})
-  const [submitting, setSubmitting]   = useState(false)
-  const [submitted, setSubmitted]     = useState(false)
+  const [policyAccepted, setPolicyAccepted]   = useState(false)
+  const [selectedItems, setSelectedItems]     = useState<Record<string, { selected: boolean; quantity: number; reason: string; description: string }>>({})
+  const [submitting, setSubmitting]           = useState(false)
+  const [submitted, setSubmitted]             = useState(false)
+  const [returnRef, setReturnRef]             = useState<string | null>(null)
   const [searchQuery, setSearchQuery]         = useState("")
   const [pageSize, setPageSize]               = useState("10")
   const [currentPage, setCurrentPage]         = useState(1)
@@ -456,7 +563,6 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
     return true
   }), [ineligibleItems, searchQuery, ineligibleStatusFilter])
 
-  // FIX: default to whichever tab actually has items; reset when order changes
   const [activeTab, setActiveTab] = useState<"eligible" | "ineligible">(
     () => eligibleItems.length > 0 ? "eligible" : "ineligible"
   )
@@ -499,22 +605,52 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
     if (!items.length) return
     setSubmitting(true)
     try {
-      const res = await fetch("/api/submit-return", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ orderId: rawOrderId, items }) })
+      const res    = await fetch("/api/submit-return", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ orderId: rawOrderId, items }) })
       const result = await res.json()
       if (result.success) {
+        setReturnRef(result.returnReference || null)
         setSubmitted(true)
-        setTimeout(() => { window.location.href = orderStatusUrl }, 3000)
       } else { toast.error("Submission failed", { description: result.error || "Something went wrong." }) }
     } catch { toast.error("Network error", { description: "Please check your connection." }) }
     finally { setSubmitting(false) }
   }
 
+  // ── Richer success screen ──────────────────────────────────────────────────
   if (submitted) {
     return (
-      <div className="max-w-md mx-auto py-20 text-center space-y-4 px-4">
-        <div className="size-16 bg-green-50 rounded-full flex items-center justify-center mx-auto"><CheckCircle2 className="size-8 text-green-500" /></div>
-        <h2 className="text-xl font-semibold">Return Requested</h2>
-        <p className="text-muted-foreground text-sm">We&apos;ve sent you a confirmation email. Our team will review your return and be in touch.</p>
+      <div className="max-w-sm mx-auto py-16 px-4">
+        <div className="border border-border rounded-xl overflow-hidden bg-white">
+          <div className="px-6 py-8 text-center border-b border-border">
+            <div className="size-12 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircle2 className="size-6 text-green-600" />
+            </div>
+            <h2 className="text-base font-semibold mb-2">Return requested</h2>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              We've sent a confirmation to your email. Our team will review and be in touch within 2–3 business days.
+            </p>
+          </div>
+          <div className="px-5 py-4 flex flex-col gap-3">
+            {returnRef && (
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-muted-foreground">Return reference</span>
+                <span className="text-xs font-medium font-mono">{returnRef}</span>
+              </div>
+            )}
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-muted-foreground">Items returned</span>
+              <span className="text-xs font-medium">{selectedCount} item{selectedCount !== 1 ? "s" : ""}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-muted-foreground">Est. refund</span>
+              <span className="text-xs font-medium text-[#E5403B]">£{estimatedRefund.toFixed(2)}</span>
+            </div>
+          </div>
+          <div className="px-5 pb-5">
+            <Button variant="outline" className="w-full" onClick={onBack}>
+              <ArrowLeft className="size-4" /> Back to orders
+            </Button>
+          </div>
+        </div>
       </div>
     )
   }
@@ -531,42 +667,64 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
 
   return (
     <>
-      {/* FIX: pad the bottom when there's no sticky footer (all-ineligible orders),
-           so the table doesn't slam flush against the viewport edge. When the
-           footer IS shown (hasEligible), it stays flush to read as one card. */}
       <div className={cn("flex flex-col gap-4", !hasEligible ? "pb-4" : "pb-12")}>
         <Button variant="ghost" size="sm" onClick={onBack} className="-ml-2 text-muted-foreground hover:text-foreground w-fit">
-          <ArrowLeft className="size-4" /> Back to Orders
+          <ArrowLeft className="size-4" /> Back to orders
         </Button>
 
         {/* ── Order header card ── */}
         <Card className={cn(C, "overflow-hidden")}>
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 px-5 py-4">
             <div>
-              <div className="flex items-center gap-2 mb-1.5"><h2 className="text-base font-semibold">{order.name}</h2></div>
+              <div className="flex items-center gap-2 mb-1.5">
+                <h2 className="text-base font-semibold">{order.name}</h2>
+              </div>
               <OrderStatusBadges order={order} />
-              <p className="text-xs text-muted-foreground mt-1.5">{headerDateStr} &bull; £{total.toFixed(2)} GBP &bull; {order.totalUnits} item{order.totalUnits !== 1 ? "s" : ""}</p>
+              <p className="text-xs text-muted-foreground mt-1.5">
+                {headerDateStr} · £{total.toFixed(2)} GBP · {order.totalUnits} item{order.totalUnits !== 1 ? "s" : ""}
+              </p>
             </div>
-            <a href={orderStatusUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground hover:underline shrink-0">
-              <ExternalLink className="size-3.5" /> View Order Status
+            {/* View order status — plain link, not a button */}
+            <a
+              href={orderStatusUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground hover:underline shrink-0"
+            >
+              <ExternalLink className="size-3.5" /> View order status
             </a>
           </div>
+
+          {/* ── Stat cells ── */}
           <div className="grid grid-cols-2 sm:grid-cols-4 border-t border-border">
-            <div className="px-3 sm:px-5 py-2.5 sm:py-3 border-r border-b sm:border-b-0 border-border">
-              <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground flex items-center gap-1"><CreditCard className="size-3" />Total Paid</p>
-              <p className="font-semibold text-sm mt-0.5">£{total.toFixed(2)}</p>
+            <div className="px-3 sm:px-5 py-3 border-r border-b sm:border-b-0 border-border">
+              <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground flex items-center gap-1 mb-1"><CreditCard className="size-3" />Total paid</p>
+              <p className="font-semibold text-base tabular-nums">£{total.toFixed(2)}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">GBP</p>
             </div>
-            <div className="px-3 sm:px-5 py-2.5 sm:py-3 border-b sm:border-b-0 sm:border-r border-border">
-              <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground flex items-center gap-1"><CheckCircle2 className="size-3 text-green-500" />Eligible</p>
-              <p className="font-semibold text-sm mt-0.5 text-green-600">{totalEligibleUnits}</p>
+            <div className="px-3 sm:px-5 py-3 border-b sm:border-b-0 sm:border-r border-border">
+              <p className="text-[10px] uppercase tracking-wider font-semibold text-green-600 flex items-center gap-1 mb-1"><CheckCircle2 className="size-3 text-green-600" />Eligible</p>
+              <p className="font-semibold text-base text-green-600">{totalEligibleUnits}</p>
+              <p className="text-[11px] text-green-500 mt-0.5">item{totalEligibleUnits !== 1 ? "s" : ""}</p>
             </div>
-            <div className="px-3 sm:px-5 py-2.5 sm:py-3 border-r border-border">
-              <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground flex items-center gap-1"><XCircle className="size-3" />Ineligible</p>
-              <p className="font-semibold text-sm mt-0.5 text-zinc-500">{totalIneligibleUnits}</p>
+            <div className="px-3 sm:px-5 py-3 border-r border-border">
+              <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground flex items-center gap-1 mb-1"><XCircle className="size-3" />Ineligible</p>
+              <p className="font-semibold text-base text-muted-foreground">{totalIneligibleUnits}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">item{totalIneligibleUnits !== 1 ? "s" : ""}</p>
             </div>
-            <div className="px-3 sm:px-5 py-2.5 sm:py-3">
-              <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground flex items-center gap-1"><RotateCcw className="size-3 text-blue-500" />Refunded</p>
-              <p className="font-semibold text-sm mt-0.5 text-blue-600">£{refundedAmount.toFixed(2)}</p>
+            <div className="px-3 sm:px-5 py-3 flex flex-col">
+              <p className="text-[10px] uppercase tracking-wider font-semibold text-blue-600 flex items-center gap-1 mb-1"><RotateCcw className="size-3 text-blue-600" />Refunded</p>
+              <p className="font-semibold text-base text-blue-600 tabular-nums">£{refundedAmount.toFixed(2)}</p>
+              <p className="text-[11px] text-blue-400 mt-0.5">of £{total.toFixed(2)}</p>
+              {/* Refund progress bar */}
+              <div className="mt-auto pt-2">
+                <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-blue-400 transition-all"
+                    style={{ width: `${total > 0 ? Math.min((refundedAmount / total) * 100, 100) : 0}%` }}
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </Card>
@@ -580,52 +738,107 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
 
         {/* ── Shipments & tracking ── */}
         {!order.cancelledAt && order.shipments && order.shipments.length > 0 && (
-          <div>
-            <div className="overflow-x-auto">
-              <div className="flex gap-3 snap-x">
-                {order.shipments.map((shipment, idx) => {
-                  const isDelivered   = shipment.displayStatus === "DELIVERED"
-                  const deliveredDate = shipment.deliveredAt ? new Date(shipment.deliveredAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : null
-                  const cardCls = cn("snap-start border rounded-lg p-4 bg-white shadow-sm flex flex-col gap-3", order.shipments.length === 1 ? "w-full" : "w-[85vw] shrink-0 sm:flex-1 sm:w-auto sm:min-w-[240px]")
-                  return (
-                    <div key={shipment.id} className={cardCls}>
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2.5">
-                          <div className={cn("p-1.5 rounded-md", isDelivered ? "bg-green-50 text-green-600" : "bg-muted text-muted-foreground")}><Truck className="size-4" /></div>
-                          <div>
-                            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Shipment {idx + 1}</p>
-                            <p className="text-sm font-medium">{isDelivered ? "Delivered" : "On its way"}{deliveredDate && <span className="text-muted-foreground font-normal"> · {deliveredDate}</span>}</p>
-                          </div>
+          <div className="overflow-x-auto">
+            <div className="flex gap-3 snap-x">
+              {order.shipments.map((shipment, idx) => {
+                const isDelivered   = shipment.displayStatus === "DELIVERED"
+                const isInTransit   = !isDelivered
+                const deliveredDate = shipment.deliveredAt
+                  ? new Date(shipment.deliveredAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+                  : null
+
+                // Determine progress step: 0=confirmed 1=dispatched 2=on-its-way 3=delivered
+                const step = isDelivered ? 3 : isInTransit ? 2 : 1
+
+                const STEPS = [
+                  { label: "Confirmed",   icon: <CheckCircle2 className="size-2.5" /> },
+                  { label: "Dispatched",  icon: <Package className="size-2.5" /> },
+                  { label: "On its way",  icon: <Truck className="size-2.5" /> },
+                  { label: "Delivered",   icon: <CheckCircle2 className="size-2.5" /> },
+                ]
+
+                return (
+                  <div
+                    key={shipment.id}
+                    className={cn(
+                      "snap-start border border-border rounded-xl bg-white overflow-hidden",
+                      order.shipments.length === 1 ? "w-full" : "w-[85vw] shrink-0 sm:flex-1 sm:w-auto sm:min-w-[240px]"
+                    )}
+                  >
+                    {/* Header */}
+                    <div className="flex items-center justify-between gap-2 px-4 py-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className={cn("p-1.5 rounded-md", isDelivered ? "bg-green-50 text-green-600" : "bg-muted text-muted-foreground")}>
+                          <Truck className="size-4" />
                         </div>
-                        <ShipmentItemsModal shipment={shipment} order={order} idx={idx} />
+                        <div>
+                          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Shipment {idx + 1}</p>
+                          <p className="text-sm font-medium">
+                            {isDelivered ? "Delivered" : "On its way"}
+                            {deliveredDate && <span className="text-muted-foreground font-normal"> · {deliveredDate}</span>}
+                          </p>
+                        </div>
                       </div>
-                      {shipment.trackingInfo.length > 0 && (
-                        <div className="flex flex-col gap-1.5 border-t pt-3">
-                          {shipment.trackingInfo.map((track, ti) => (
-                            <div key={ti} className="flex items-center gap-2">
-                              <MapPin className="size-3.5 text-muted-foreground shrink-0" />
-                              <span className="text-xs text-muted-foreground">{track.company}:</span>
-                              {track.url
-                                ? <a href={track.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 font-medium hover:underline inline-flex items-center gap-1 text-xs">{track.number} <ExternalLink className="size-3" /></a>
-                                : <span className="font-medium text-foreground text-xs">{track.number}</span>}
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                      <ShipmentItemsModal shipment={shipment} order={order} idx={idx} />
                     </div>
-                  )
-                })}
-              </div>
+
+                    {/* Progress timeline — shares border with header, no double border */}
+                    <div className="border-t border-border bg-muted/30 px-4 py-3">
+                      <div className="flex items-start relative">
+                        {/* Track line behind dots */}
+                        <div className="absolute top-[9px] left-[9px] right-[9px] h-[1.5px] bg-border" />
+                        <div
+                          className="absolute top-[9px] left-[9px] h-[1.5px] bg-green-500 transition-all"
+                          style={{ width: `${(step / (STEPS.length - 1)) * 100}%` }}
+                        />
+                        {STEPS.map((s, i) => {
+                          const done   = i <= step
+                          const active = i === step
+                          return (
+                            <div key={s.label} className="flex-1 flex flex-col items-center z-10">
+                              <div className={cn(
+                                "size-[18px] rounded-full flex items-center justify-center border transition-colors",
+                                done && !active  ? "bg-green-50 border-green-500 text-green-600" :
+                                active           ? "bg-blue-50 border-blue-400 text-blue-600" :
+                                                   "bg-background border-border text-muted-foreground"
+                              )}>
+                                {s.icon}
+                              </div>
+                              <span className={cn(
+                                "text-[9px] mt-1 leading-tight text-center",
+                                done ? "text-green-600 font-medium" : "text-muted-foreground"
+                              )}>{s.label}</span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Tracking links */}
+                    {shipment.trackingInfo.length > 0 && (
+                      <div className="flex flex-col gap-1.5 border-t border-border px-4 py-3">
+                        {shipment.trackingInfo.map((track, ti) => (
+                          <div key={ti} className="flex items-center gap-2">
+                            <MapPin className="size-3.5 text-muted-foreground shrink-0" />
+                            <span className="text-xs text-muted-foreground">{track.company}:</span>
+                            {track.url
+                              ? <a href={track.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 font-medium hover:underline inline-flex items-center gap-1 text-xs">{track.number} <ExternalLink className="size-3" /></a>
+                              : <span className="font-medium text-foreground text-xs">{track.number}</span>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           </div>
         )}
 
-        {/* ── Policy gate ── */}
         {/* ── Items table ── */}
         {!order.cancelledAt && (
           <Card className={cn(C, "overflow-hidden flex flex-col")}>
             <div className="px-4 py-3 border-b bg-muted/20 flex flex-col gap-2">
-              {/* Row 1: tab switcher + policy gate */}
               <div className="flex items-center justify-between gap-2">
                 {hasBothTabs ? (
                   <Select value={activeTab} onValueChange={(v) => setActiveTab(v as "eligible" | "ineligible")}>
@@ -648,7 +861,6 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                   </div>
                 )}
               </div>
-              {/* Row 2: search + filter (ineligible only) + page size */}
               <div className="flex items-center gap-2">
                 <div className="relative flex-1">
                   <Search className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
@@ -693,7 +905,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
               </div>
             </div>
 
-            {/* ── Desktop View: Standard Table ── */}
+            {/* ── Desktop table ── */}
             <div className="hidden md:block w-full overflow-x-auto">
               <Table className="min-w-[560px]">
                 <TableHeader className="bg-background">
@@ -748,31 +960,22 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                           <TableCell className="text-right pr-4 py-3 font-semibold text-sm tabular-nums">£{(itemPrice * (activeTab === "eligible" ? (sel?.quantity || item.eligibleQuantity) : displayQty)).toFixed(2)}</TableCell>
                           {activeTab === "ineligible" && (
                             <TableCell className="pr-5 py-3 text-right">
-                              <IneligibleReason status={item.returnStatus} reason={item.returnReason} lineDeliveredAt={item.lineDeliveredAt} />
+                              <IneligibleRowReason status={item.returnStatus} reason={item.returnReason} lineDeliveredAt={item.lineDeliveredAt} />
                             </TableCell>
                           )}
                         </TableRow>
 
+                        {/* Expanded return form — icon reason grid */}
                         {sel?.selected && activeTab === "eligible" && (
                           <TableRow className="bg-zinc-50/60 hover:bg-zinc-50/60">
-                            <TableCell colSpan={5} className="px-4 pb-3 pt-1">
-                              <div className="ml-[calc(0.5rem+2.5rem+0.75rem)] grid grid-cols-2 gap-2.5">
+                            <TableCell colSpan={5} className="px-4 pb-4 pt-2">
+                              <div className="ml-[calc(0.5rem+2.5rem+0.75rem)] flex flex-col gap-3">
                                 <div>
-                                  <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">Return Qty</label>
-                                  <Select value={String(sel.quantity)} onValueChange={v => setSelectedItems(p => ({ ...p, [item.id]: { ...p[item.id], quantity: parseInt(v) } }))}>
-                                    <SelectTrigger className="h-8 text-sm bg-white"><SelectValue /></SelectTrigger>
-                                    <SelectContent>{Array.from({ length: item.eligibleQuantity }, (_, i) => (<SelectItem key={i + 1} value={String(i + 1)}>{i + 1}</SelectItem>))}</SelectContent>
-                                  </Select>
-                                </div>
-                                <div>
-                                  <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">Reason</label>
-                                  <Select value={sel.reason} onValueChange={v => setSelectedItems(p => ({ ...p, [item.id]: { ...p[item.id], reason: v } }))}>
-                                    <SelectTrigger className="h-8 text-sm bg-white"><SelectValue placeholder="Select..." /></SelectTrigger>
-                                    <SelectContent>{RETURN_REASONS.map(r => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}</SelectContent>
-                                  </Select>
+                                  <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1.5">Reason</label>
+                                  <ReturnReasonGrid value={sel.reason} onChange={v => setSelectedItems(p => ({ ...p, [item.id]: { ...p[item.id], reason: v } }))} />
                                 </div>
                                 {sel.reason && (
-                                  <div className="col-span-2">
+                                  <div>
                                     <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">
                                       {sel.reason === "OTHER" ? <>Notes <span className="text-destructive">*</span></> : "Notes (optional)"}
                                     </label>
@@ -790,99 +993,69 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
               </Table>
             </div>
 
-            {/* ── Mobile View: Stacked Cards ── */}
-            <div className="block md:hidden flex flex-col divide-y divide-border">
+            {/* ── Mobile cards ── */}
+            <div className="block md:hidden divide-y divide-border">
               {paginatedData.length === 0 ? (
                 <div className="py-10 text-center text-sm text-muted-foreground">No items found.</div>
-              ) : (
-                paginatedData.map((item, rowIdx) => {
-                  const displayQty = activeTab === "eligible" ? item.eligibleQuantity : item.quantity
-                  const sel        = selectedItems[item.id]
-                  const isLocked   = !policyAccepted && activeTab === "eligible"
-                  const itemPrice  = item.unitPrice ?? orderAvgPrice
-                  const hasVariant = item.variant?.title && item.variant.title !== "Default Title"
+              ) : paginatedData.map((item, rowIdx) => {
+                const displayQty = activeTab === "eligible" ? item.eligibleQuantity : item.quantity
+                const sel        = selectedItems[item.id]
+                const isLocked   = !policyAccepted && activeTab === "eligible"
+                const itemPrice  = item.unitPrice ?? orderAvgPrice
+                const hasVariant = item.variant?.title && item.variant.title !== "Default Title"
 
-                  return (
-                    <div key={`${item.id}-${rowIdx}`} className={cn("p-4 flex flex-col gap-3 transition-colors", sel?.selected && "bg-muted/20")}>
-                      
-                      {/* Top section: Checkbox (if eligible), Image, Title, Price */}
-                      <div className="flex gap-3 items-start">
-                        {activeTab === "eligible" && (
-                          <div className="pt-1 shrink-0">
-                            <Checkbox
-                              checked={sel?.selected || false}
-                              disabled={isLocked}
-                              onCheckedChange={c => {
-                                if (isLocked) return
-                                setSelectedItems(p => ({ ...p, [item.id]: c ? { selected: true, quantity: item.eligibleQuantity, reason: "", description: "" } : { ...p[item.id], selected: false } }))
-                              }}
-                            />
-                          </div>
-                        )}
-                        
-                        <ProductThumb item={item} />
-                        
-                        <div className="flex-1 min-w-0">
-                          <a href={pUrl(item.productHandle)} target="_blank" rel="noopener noreferrer" className="font-medium text-sm hover:underline block leading-tight mb-1">
-                            {item.title}
-                          </a>
-                          {hasVariant && <p className="text-xs text-muted-foreground mb-1">Variant: {item.variant!.title}</p>}
-                          <div className="flex items-center justify-between mt-1">
-                            <span className="text-xs text-muted-foreground">Qty: {displayQty} &times; £{itemPrice.toFixed(2)}</span>
-                            <span className="font-semibold text-sm">£{(itemPrice * (activeTab === "eligible" ? (sel?.quantity || item.eligibleQuantity) : displayQty)).toFixed(2)}</span>
-                          </div>
+                return (
+                  <div key={`${item.id}-${rowIdx}`} className={cn("p-4 flex flex-col gap-3 transition-colors", sel?.selected && "bg-muted/20")}>
+                    <div className="flex gap-3 items-start">
+                      {activeTab === "eligible" && (
+                        <div className="pt-1 shrink-0">
+                          <Checkbox
+                            checked={sel?.selected || false}
+                            disabled={isLocked}
+                            onCheckedChange={c => {
+                              if (isLocked) return
+                              setSelectedItems(p => ({ ...p, [item.id]: c ? { selected: true, quantity: item.eligibleQuantity, reason: "", description: "" } : { ...p[item.id], selected: false } }))
+                            }}
+                          />
+                        </div>
+                      )}
+                      <ProductThumb item={item} />
+                      <div className="flex-1 min-w-0">
+                        <a href={pUrl(item.productHandle)} target="_blank" rel="noopener noreferrer" className="font-medium text-sm hover:underline block leading-tight mb-1">{item.title}</a>
+                        {hasVariant && <p className="text-xs text-muted-foreground mb-1">Variant: {item.variant!.title}</p>}
+                        <div className="flex items-center justify-between mt-1">
+                          <span className="text-xs text-muted-foreground">Qty: {displayQty} × £{itemPrice.toFixed(2)}</span>
+                          <span className="font-semibold text-sm tabular-nums">£{(itemPrice * (activeTab === "eligible" ? (sel?.quantity || item.eligibleQuantity) : displayQty)).toFixed(2)}</span>
                         </div>
                       </div>
-
-                      {/* Ineligible Status Badge */}
-                      {activeTab === "ineligible" && (
-                        <div className="mt-2 flex justify-end">
-                          <IneligibleReason status={item.returnStatus} reason={item.returnReason} lineDeliveredAt={item.lineDeliveredAt} />
-                        </div>
-                      )}
-
-                      {/* Expanded Form for Selected Items */}
-                      {sel?.selected && activeTab === "eligible" && (
-                        <div className="mt-2 pt-3 border-t border-border/50 flex flex-col gap-3">
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">Return Qty</label>
-                              <Select value={String(sel.quantity)} onValueChange={v => setSelectedItems(p => ({ ...p, [item.id]: { ...p[item.id], quantity: parseInt(v) } }))}>
-                                <SelectTrigger className="h-9 text-sm bg-white"><SelectValue /></SelectTrigger>
-                                <SelectContent>{Array.from({ length: item.eligibleQuantity }, (_, i) => (<SelectItem key={i + 1} value={String(i + 1)}>{i + 1}</SelectItem>))}</SelectContent>
-                              </Select>
-                            </div>
-                            <div>
-                              <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">Reason</label>
-                              <Select value={sel.reason} onValueChange={v => setSelectedItems(p => ({ ...p, [item.id]: { ...p[item.id], reason: v } }))}>
-                                <SelectTrigger className="h-9 text-sm bg-white"><SelectValue placeholder="Select..." /></SelectTrigger>
-                                <SelectContent>{RETURN_REASONS.map(r => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}</SelectContent>
-                              </Select>
-                            </div>
-                          </div>
-                          
-                          {sel.reason && (
-                            <div>
-                              <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">
-                                {sel.reason === "OTHER" ? <>Notes <span className="text-destructive">*</span></> : "Notes (optional)"}
-                              </label>
-                              <Textarea 
-                                value={sel.description} 
-                                onChange={e => setSelectedItems(p => ({ ...p, [item.id]: { ...p[item.id], description: e.target.value } }))} 
-                                placeholder={sel.reason === "OTHER" ? "Describe your reason (required)..." : "Any additional info..."} 
-                                className="text-sm bg-white resize-none" 
-                                rows={2} 
-                              />
-                            </div>
-                          )}
-                        </div>
-                      )}
                     </div>
-                  )
-                })
-              )}
+
+                    {activeTab === "ineligible" && (
+                      <IneligibleRowReason status={item.returnStatus} reason={item.returnReason} lineDeliveredAt={item.lineDeliveredAt} />
+                    )}
+
+                    {sel?.selected && activeTab === "eligible" && (
+                      <div className="mt-1 pt-3 border-t border-border/50 flex flex-col gap-3">
+                        <div>
+                          <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1.5">Reason</label>
+                          <ReturnReasonGrid value={sel.reason} onChange={v => setSelectedItems(p => ({ ...p, [item.id]: { ...p[item.id], reason: v } }))} />
+                        </div>
+                        {sel.reason && (
+                          <div>
+                            <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">
+                              {sel.reason === "OTHER" ? <>Notes <span className="text-destructive">*</span></> : "Notes (optional)"}
+                            </label>
+                            <Textarea value={sel.description} onChange={e => setSelectedItems(p => ({ ...p, [item.id]: { ...p[item.id], description: e.target.value } }))} placeholder={sel.reason === "OTHER" ? "Describe your reason (required)..." : "Any additional info..."} className="text-sm bg-white resize-none" rows={2} />
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
 
+            {/* Pagination */}
             {pageSize !== "all" && currentData.length > size && (
               <div className="p-4 border-t flex items-center justify-between text-sm text-muted-foreground">
                 <span>Showing {Math.min((currentPage - 1) * size + 1, currentData.length)}–{Math.min(currentPage * size, currentData.length)} of {currentData.length} entries</span>
@@ -896,8 +1069,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
         )}
       </div>
 
-      {/* ── Sticky footer — connected to the table card: shares its bottom border,
-           matches its width, closes off the rounded-b corners ── */}
+      {/* ── Sticky footer ── */}
       {hasEligible && !order.cancelledAt && (
         <div
           className="sticky bottom-4 z-[48] border border-border rounded-xl bg-background shadow-[0_2px_12px_rgba(0,0,0,0.08)]"
@@ -917,9 +1089,11 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                 <p className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground font-semibold leading-none mb-0.5">Refund</p>
                 <p className="text-xs sm:text-sm font-bold text-[#E5403B] leading-tight">£{estimatedRefund.toFixed(2)}</p>
               </div>
+              {/* Inline amber policy lock pill — visible on all screen sizes */}
               {!policyAccepted && (
-                <div className="hidden md:flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
-                  <Lock className="size-3.5 shrink-0" /><span>Accept policy to continue</span>
+                <div className="flex items-center gap-1 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2.5 py-1 shrink-0">
+                  <Lock className="size-3 shrink-0" />
+                  <span className="hidden sm:inline">Accept policy first</span>
                 </div>
               )}
             </div>
@@ -928,7 +1102,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
               <Button size="sm" className="bg-[#E5403B] hover:bg-[#cc3935] text-white disabled:opacity-50" disabled={!canSubmit || submitting} onClick={submitReturn}>
                 {submitting
                   ? <><Spinner className="size-4" /><span className="hidden sm:inline ml-1">Submitting...</span></>
-                  : <><RotateCcw className="size-4" /><span className="hidden sm:inline ml-1">Submit Return</span></>}
+                  : <><RotateCcw className="size-4" /><span className="hidden sm:inline ml-1">Submit return</span></>}
               </Button>
             </div>
           </div>
@@ -938,6 +1112,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
   )
 }
 
+// ─── Dashboard Client ─────────────────────────────────────────────────────────
 export default function DashboardClient() {
   const [data, setData]                   = useState<OrdersData | null>(null)
   const [loading, setLoading]             = useState(true)
@@ -947,8 +1122,7 @@ export default function DashboardClient() {
   const [search, setSearch]               = useState("")
   const [statusFilter, setStatusFilter]   = useState<string[]>([])
   const [activeSection, setActiveSection] = useState("#orders")
-
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [sidebarOpen, setSidebarOpen]     = useState(true)
 
   useEffect(() => {
     fetch("/api/get-orders")
@@ -980,107 +1154,101 @@ export default function DashboardClient() {
       <SidebarInset>
         <SiteHeader title={selectedOrder ? selectedOrder.name : "My Orders"} search={search} onSearch={setSearch} showSearch={!selectedOrder} firstName={data?.firstName} email={data?.email} />
         {selectedOrder ? (
-          /* Bounded scroll container — sticky footer anchors to its bottom, never overlaps sidebar.
-             scrollbarGutter keeps left/right padding symmetric when the scrollbar appears. */
-          <div
-            className="flex-1 overflow-y-auto"
-            style={{ padding: "1rem", scrollbarGutter: "stable" }}
-          >
+          <div className="flex-1 overflow-y-auto" style={{ padding: "1rem", scrollbarGutter: "stable" }}>
             <OrderDetail order={selectedOrder} onBack={() => setSelectedOrder(null)} />
           </div>
         ) : (
-          <div
-            className="flex-1 overflow-y-auto"
-            style={{ padding: "1rem", scrollbarGutter: "stable" }}
-          >
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-semibold">{data?.firstName ? `Hi, ${data.firstName} 👋` : "Your Recent Orders"}</h2>
-                <p className="text-sm text-muted-foreground mt-0.5">Select an order to view details or initiate a return.</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" size="sm" className="h-8 gap-1.5 text-sm bg-white">
-                      <SlidersHorizontal className="size-3.5" />
-                      Status
-                      {statusFilter.length > 0 && (
-                        <span className="rounded-full bg-foreground text-background text-[10px] font-bold px-1.5 leading-5">{statusFilter.length}</span>
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-52 p-2 bg-white text-gray-900" align="end">
-                    <div className="flex flex-col">
-                      {STATUS_FILTERS.map(status => (
-                        <label key={status} className="flex items-center gap-2.5 px-2 py-1.5 rounded-md hover:bg-muted cursor-pointer text-sm text-gray-900">
-                          <Checkbox
-                            checked={statusFilter.includes(status)}
-                            onCheckedChange={checked => setStatusFilter(prev => checked ? [...prev, status] : prev.filter(s => s !== status))}
-                          />
-                          {status}
-                        </label>
-                      ))}
-                      {statusFilter.length > 0 && (
-                        <>
-                          <Separator className="my-1.5" />
-                          <button onClick={() => setStatusFilter([])} className="text-xs text-muted-foreground hover:text-foreground px-2 py-1 text-left w-full rounded-md hover:bg-muted">
-                            Clear filters
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </PopoverContent>
-                </Popover>
-                <div className="flex items-center gap-0.5 h-8 bg-white border border-border rounded-lg px-0.5">
-                  <Button variant="ghost" size="icon" className={cn("size-7", view === "grid" && "bg-muted shadow-sm")} onClick={() => setView("grid")}><LayoutGrid className="size-4" /></Button>
-                  <Button variant="ghost" size="icon" className={cn("size-7", view === "list" && "bg-muted shadow-sm")} onClick={() => setView("list")}><List className="size-4" /></Button>
-                </div>
-              </div>
-            </div>
+          <div className="flex-1 overflow-y-auto" style={{ padding: "1rem", scrollbarGutter: "stable" }}>
+            <div className="flex flex-col gap-4">
 
-            {error && (
-              <div className="flex items-center gap-3 p-4 rounded-xl bg-destructive/10 text-sm text-destructive border border-destructive/20">
-                <ShoppingBag className="size-5 shrink-0" />{error}
-              </div>
-            )}
-
-            {view === "grid" && !loading && filteredOrders.length === 0 ? (
-              <div className="text-center py-20">
-                <ShoppingBag className="size-12 text-muted-foreground/30 mx-auto mb-4" />
-                <p className="font-medium text-muted-foreground">
-                  {search || statusFilter.length > 0 ? "No orders match your search" : "No orders found"}
-                </p>
-                {(search || statusFilter.length > 0) && (
-                  <p className="text-sm text-muted-foreground mt-1">Try adjusting your search or filters</p>
-                )}
-              </div>
-            ) : view === "grid" && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                {filteredOrders.map(o => <OrderCard key={o.id} order={o} onClick={() => setSelectedOrder(o)} />)}
-              </div>
-            )}
-
-            {view === "list" && !loading && (
-              <Card className={cn(C, "overflow-hidden")}>
-                <CardContent className="p-0">
-                  {filteredOrders.length === 0
-                    ? (
-                      <div className="text-center py-20">
-                        <ShoppingBag className="size-12 text-muted-foreground/30 mx-auto mb-4" />
-                        <p className="font-medium text-muted-foreground">
-                          {search || statusFilter.length > 0 ? "No orders match your search" : "No orders found"}
-                        </p>
-                        {(search || statusFilter.length > 0) && (
-                          <p className="text-sm text-muted-foreground mt-1">Try adjusting your search or filters</p>
+              {/* ── Orders header with summary stats ── */}
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <OrdersHeader firstName={data?.firstName} orders={data?.orders || []} />
+                <div className="flex items-center gap-2 ml-auto">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm" className="h-8 gap-1.5 text-sm bg-white">
+                        <SlidersHorizontal className="size-3.5" />
+                        Status
+                        {statusFilter.length > 0 && (
+                          <span className="rounded-full bg-foreground text-background text-[10px] font-bold px-1.5 leading-5">{statusFilter.length}</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-52 p-2 bg-white text-gray-900" align="end">
+                      <div className="flex flex-col">
+                        {STATUS_FILTERS.map(status => (
+                          <label key={status} className="flex items-center gap-2.5 px-2 py-1.5 rounded-md hover:bg-muted cursor-pointer text-sm text-gray-900">
+                            <Checkbox checked={statusFilter.includes(status)} onCheckedChange={checked => setStatusFilter(prev => checked ? [...prev, status] : prev.filter(s => s !== status))} />
+                            {status}
+                          </label>
+                        ))}
+                        {statusFilter.length > 0 && (
+                          <>
+                            <Separator className="my-1.5" />
+                            <button onClick={() => setStatusFilter([])} className="text-xs text-muted-foreground hover:text-foreground px-2 py-1 text-left w-full rounded-md hover:bg-muted">Clear filters</button>
+                          </>
                         )}
                       </div>
-                    )
-                    : filteredOrders.map(o => <OrderRow key={o.id} order={o} onClick={() => setSelectedOrder(o)} />)}
-                </CardContent>
-              </Card>
-            )}
-          </div>
+                    </PopoverContent>
+                  </Popover>
+                  <div className="flex items-center gap-0.5 h-8 bg-white border border-border rounded-lg px-0.5">
+                    <Button variant="ghost" size="icon" className={cn("size-7", view === "grid" && "bg-muted shadow-sm")} onClick={() => setView("grid")}><LayoutGrid className="size-4" /></Button>
+                    <Button variant="ghost" size="icon" className={cn("size-7", view === "list" && "bg-muted shadow-sm")} onClick={() => setView("list")}><List className="size-4" /></Button>
+                  </div>
+                </div>
+              </div>
+
+              {error && (
+                <div className="flex items-center gap-3 p-4 rounded-xl bg-destructive/10 text-sm text-destructive border border-destructive/20">
+                  <ShoppingBag className="size-5 shrink-0" />{error}
+                </div>
+              )}
+
+              {/* ── Grid view ── */}
+              {view === "grid" && !loading && filteredOrders.length === 0 ? (
+                <div className="text-center py-20">
+                  <ShoppingBag className="size-12 text-muted-foreground/30 mx-auto mb-4" />
+                  <p className="font-medium text-muted-foreground">
+                    {search || statusFilter.length > 0 ? "No orders match your search" : "No orders found"}
+                  </p>
+                  {(search || statusFilter.length > 0) && (
+                    <>
+                      <p className="text-sm text-muted-foreground mt-1 mb-4">Try adjusting your search or filters.</p>
+                      <Button variant="outline" size="sm" onClick={() => { setSearch(""); setStatusFilter([]) }}>Clear filters</Button>
+                    </>
+                  )}
+                </div>
+              ) : view === "grid" && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                  {filteredOrders.map(o => <OrderCard key={o.id} order={o} onClick={() => setSelectedOrder(o)} />)}
+                </div>
+              )}
+
+              {/* ── List view ── */}
+              {view === "list" && !loading && (
+                <Card className={cn(C, "overflow-hidden")}>
+                  <CardContent className="p-0">
+                    {filteredOrders.length === 0
+                      ? (
+                        <div className="text-center py-20">
+                          <ShoppingBag className="size-12 text-muted-foreground/30 mx-auto mb-4" />
+                          <p className="font-medium text-muted-foreground">
+                            {search || statusFilter.length > 0 ? "No orders match your search" : "No orders found"}
+                          </p>
+                          {(search || statusFilter.length > 0) && (
+                            <>
+                              <p className="text-sm text-muted-foreground mt-1 mb-4">Try adjusting your search or filters.</p>
+                              <Button variant="outline" size="sm" onClick={() => { setSearch(""); setStatusFilter([]) }}>Clear filters</Button>
+                            </>
+                          )}
+                        </div>
+                      )
+                      : filteredOrders.map(o => <OrderRow key={o.id} order={o} onClick={() => setSelectedOrder(o)} />)}
+                  </CardContent>
+                </Card>
+              )}
+            </div>
           </div>
         )}
       </SidebarInset>
@@ -1089,7 +1257,6 @@ export default function DashboardClient() {
 
   if (loading) {
     return (
-      // FIX: use 100dvh so the verifying card centres correctly on Safari (100vh includes the address bar)
       <div className="relative overflow-hidden" style={{ height: "100dvh", width: "100vw" }}>
         <div className="pointer-events-none select-none blur-sm brightness-95 h-full w-full">{portalContent}</div>
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/40 backdrop-blur-sm">
@@ -1109,3 +1276,4 @@ export default function DashboardClient() {
 
   return portalContent
 }
+
