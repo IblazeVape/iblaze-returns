@@ -531,6 +531,9 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
 
   return (
     <>
+      {/* FIX: pad the bottom when there's no sticky footer (all-ineligible orders),
+           so the table doesn't slam flush against the viewport edge. When the
+           footer IS shown (hasEligible), it stays flush to read as one card. */}
       <div className={cn("flex flex-col gap-4", !hasEligible && "pb-4")}>
         <Button variant="ghost" size="sm" onClick={onBack} className="-ml-2 text-muted-foreground hover:text-foreground w-fit">
           <ArrowLeft className="size-4" /> Back to Orders
@@ -887,14 +890,14 @@ export default function DashboardClient() {
              scrollbarGutter keeps left/right padding symmetric when the scrollbar appears. */
           <div
             className="flex-1 overflow-y-auto"
-            style={{ paddingTop: "1rem", paddingLeft: "1rem", paddingBottom: 0, paddingRight: "max(1rem, env(safe-area-inset-right))", scrollbarGutter: "stable both-edges" }}
+            style={{ paddingTop: "1rem", paddingLeft: "1rem", paddingBottom: 0, paddingRight: "max(1rem, env(safe-area-inset-right))", scrollbarGutter: "stable" }}
           >
             <OrderDetail order={selectedOrder} onBack={() => setSelectedOrder(null)} />
           </div>
         ) : (
           <div
             className="flex-1 overflow-y-auto"
-            style={{ padding: "1rem", paddingRight: "max(1rem, env(safe-area-inset-right))", scrollbarGutter: "stable both-edges" }}
+            style={{ padding: "1rem", paddingRight: "max(1rem, env(safe-area-inset-right))", scrollbarGutter: "stable" }}
           >
           <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
