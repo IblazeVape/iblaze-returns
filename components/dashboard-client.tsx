@@ -623,7 +623,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
         {/* ── Policy gate ── */}
         {/* ── Items table ── */}
         {!order.cancelledAt && (
-          <Card className={cn(C, "overflow-hidden flex flex-col", hasEligible && "rounded-b-none")}>
+          <Card className={cn(C, "overflow-hidden flex flex-col")}>
             <div className="px-4 py-3 border-b bg-muted/20 flex flex-col gap-2">
               {/* Row 1: tab switcher + policy gate */}
               <div className="flex items-center justify-between gap-2">
@@ -806,7 +806,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
            matches its width, closes off the rounded-b corners ── */}
       {hasEligible && !order.cancelledAt && (
         <div
-          className="sticky bottom-0 z-[48] border-x border-b border-border rounded-b-xl bg-background shadow-[0_-2px_12px_rgba(0,0,0,0.08)]"
+          className="sticky bottom-4 z-[48] border border-border rounded-xl bg-background shadow-[0_2px_12px_rgba(0,0,0,0.08)]"
           style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
         >
           <div
@@ -890,7 +890,7 @@ export default function DashboardClient() {
              scrollbarGutter keeps left/right padding symmetric when the scrollbar appears. */
           <div
             className="flex-1 overflow-y-auto"
-            style={{ paddingTop: "1rem", paddingLeft: "1rem", paddingBottom: 0, paddingRight: "1rem", scrollbarGutter: "stable" }}
+            style={{ padding: "1rem", scrollbarGutter: "stable" }}
           >
             <OrderDetail order={selectedOrder} onBack={() => setSelectedOrder(null)} />
           </div>
