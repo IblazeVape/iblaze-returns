@@ -1070,15 +1070,108 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                               <Select value={sel.reason} onValueChange={v => setSelectedItems(p => ({ ...p, [item.id]: { ...p[item.id], reason: v } }))}>
                                 <SelectTrigger className="h-9 text-sm bg-white"><SelectValue placeholder="Select..." /></SelectTrigger>
                                 <SelectContent>{RETURN_REASONS.map(r => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}</SelectContent>
-                              </Select>
+                             </Select>
+                              </div>
                             </div>
+                            {sel.reason && (
+                              <div>
+                                <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">
+                                  {sel.reason === "OTHER" ? <>Notes <span className="text-destructive">*</span></> : "Notes (optional)"}
+                                </label>
+                                <Textarea value={sel.description} onChange={e => setSelectedItems(p => ({ ...p, [item.id]: { ...p[item.id], description: e.target.value } }))} placeholder={sel.reason === "OTHER" ? "Describe your reason (required)..." : "Any additional info..."} className="text-sm bg-white resize-none" rows={2} />
+                              </div>
+                            )}
                           </div>
-                          {sel.reason && (
-                            <div>
-                              <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">
-                                {sel.reason === "OTHER" ? <>Notes <span className="text-destructive">*</span></> : "Notes (optional)"}
-                              </label>
-                              <Textarea value={sel.description} onChange={e => setSelectedItems(p => ({ ...p, [item.id]: { ...p[item.id], description: e.target.value } }))} placeholder={sel.reason === "OTHER" ? "Describe your reason (required)..." : "Any additional info..."} className="text-sm bg-white resize-none" rows={2} />
-                            </div>
-                          )}
-                 
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </Card>
+            )}
+          </div>
+        </div>
+
+        {/* ── RIGHT: Return Summary & Action Panel ── */}
+        <div className="w-full lg:w-[320px] xl:w-[380px] shrink-0 border-t lg:border-t-0 lg:border-l border-border bg-muted/10 p-4 lg:p-6 overflow-y-auto">
+          <div className="sticky top-0 flex flex-col gap-4">
+            <h3 className="font-semibold text-base">Return Summary</h3>
+            
+            <Card className={C}>
+              <div className="p-4 flex flex-col gap-3">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-muted-foreground">Items selected</span>
+                  <span className="font-medium">{selectedCount}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-muted-foreground">Est. refund</span>
+                  <span className="font-medium text-[#E5403B]">£{estimatedRefund.toFixed(2)}</span>
+                </div>
+              </div>
+              
+              <div className="p-4 border-t border-border bg-muted/30 flex flex-col gap-3">
+                <HygienePolicy 
+                  onAccept={() => setPolicyAccepted(true)} 
+                  onDecline={() => setPolicyAccepted(false)} 
+                />
+                
+                <Button 
+                  onClick={submitReturn} 
+                  disabled={!canSubmit || submitting} 
+                  className="w-full bg-[#E5403B] hover:bg-[#cc3935] text-white"
+                >
+                  {submitting && <Spinner className="mr-2 size-4" />}
+                  Submit Return
+                </Button>
+              </div>
+            </Card>
+
+            {urgentItem && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mt-2">
+                <p className="text-sm font-medium text-amber-800 flex items-center gap-2 mb-1">
+                  <Clock className="size-4" /> Window closing soon
+                </p>
+                <p className="text-xs text-amber-700">
+                  You have items that must be returned in the next few days.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
+      </div>
+    )
+}
+
+// ─── Main Default Export ──────────────────────────────────────────────────────
+export default function DashboardClient({ data }: { data?: OrdersData }) {
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
+
+  if (selectedOrder) {
+    return <OrderDetail order={selectedOrder} onBack={() => setSelectedOrder(null)} />
+  }
+
+  return (
+    <div className="w-full max-w-5xl mx-auto p-4 md:p-6 flex flex-col gap-4">
+      <div className="flex items-center justify-between mb-2">
+        <h1 className="text-2xl font-semibold tracking-tight">Your Orders</h1>
+      </div>
+      
+      {(!data || data.orders.length === 0) ? (
+        <Card className="p-12 text-center flex flex-col items-center justify-center border-dashed shadow-sm">
+          <Package className="size-8 text-muted-foreground mb-3" />
+          <h3 className="font-medium">No orders found</h3>
+          <p className="text-sm text-muted-foreground mt-1 max-w-sm">
+            If you are looking for a specific order, please check what we said earlier or your account history for the order number.
+          </p>
+        </Card>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {data.orders.map(order => (
+            <OrderRow key={order.id} order={order} onClick={() => setSelectedOrder(order)} />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
