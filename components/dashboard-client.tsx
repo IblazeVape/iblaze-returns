@@ -693,7 +693,8 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
               </div>
             </div>
 
-            <div className="w-full overflow-x-auto">
+            {/* ── Desktop View: Standard Table ── */}
+            <div className="hidden md:block w-full overflow-x-auto">
               <Table className="min-w-[560px]">
                 <TableHeader className="bg-background">
                   <TableRow className="hover:bg-transparent">
@@ -787,6 +788,99 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                   })}
                 </TableBody>
               </Table>
+            </div>
+
+            {/* ── Mobile View: Stacked Cards ── */}
+            <div className="block md:hidden flex flex-col divide-y divide-border">
+              {paginatedData.length === 0 ? (
+                <div className="py-10 text-center text-sm text-muted-foreground">No items found.</div>
+              ) : (
+                paginatedData.map((item, rowIdx) => {
+                  const displayQty = activeTab === "eligible" ? item.eligibleQuantity : item.quantity
+                  const sel        = selectedItems[item.id]
+                  const isLocked   = !policyAccepted && activeTab === "eligible"
+                  const itemPrice  = item.unitPrice ?? orderAvgPrice
+                  const hasVariant = item.variant?.title && item.variant.title !== "Default Title"
+
+                  return (
+                    <div key={`${item.id}-${rowIdx}`} className={cn("p-4 flex flex-col gap-3 transition-colors", sel?.selected && "bg-muted/20")}>
+                      
+                      {/* Top section: Checkbox (if eligible), Image, Title, Price */}
+                      <div className="flex gap-3 items-start">
+                        {activeTab === "eligible" && (
+                          <div className="pt-1 shrink-0">
+                            <Checkbox
+                              checked={sel?.selected || false}
+                              disabled={isLocked}
+                              onCheckedChange={c => {
+                                if (isLocked) return
+                                setSelectedItems(p => ({ ...p, [item.id]: c ? { selected: true, quantity: item.eligibleQuantity, reason: "", description: "" } : { ...p[item.id], selected: false } }))
+                              }}
+                            />
+                          </div>
+                        )}
+                        
+                        <ProductThumb item={item} />
+                        
+                        <div className="flex-1 min-w-0">
+                          <a href={pUrl(item.productHandle)} target="_blank" rel="noopener noreferrer" className="font-medium text-sm hover:underline block leading-tight mb-1">
+                            {item.title}
+                          </a>
+                          {hasVariant && <p className="text-xs text-muted-foreground mb-1">Variant: {item.variant!.title}</p>}
+                          <div className="flex items-center justify-between mt-1">
+                            <span className="text-xs text-muted-foreground">Qty: {displayQty} &times; £{itemPrice.toFixed(2)}</span>
+                            <span className="font-semibold text-sm">£{(itemPrice * (activeTab === "eligible" ? (sel?.quantity || item.eligibleQuantity) : displayQty)).toFixed(2)}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Ineligible Status Badge */}
+                      {activeTab === "ineligible" && (
+                        <div className="mt-2 flex justify-end">
+                          <IneligibleReason status={item.returnStatus} reason={item.returnReason} lineDeliveredAt={item.lineDeliveredAt} />
+                        </div>
+                      )}
+
+                      {/* Expanded Form for Selected Items */}
+                      {sel?.selected && activeTab === "eligible" && (
+                        <div className="mt-2 pt-3 border-t border-border/50 flex flex-col gap-3">
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">Return Qty</label>
+                              <Select value={String(sel.quantity)} onValueChange={v => setSelectedItems(p => ({ ...p, [item.id]: { ...p[item.id], quantity: parseInt(v) } }))}>
+                                <SelectTrigger className="h-9 text-sm bg-white"><SelectValue /></SelectTrigger>
+                                <SelectContent>{Array.from({ length: item.eligibleQuantity }, (_, i) => (<SelectItem key={i + 1} value={String(i + 1)}>{i + 1}</SelectItem>))}</SelectContent>
+                              </Select>
+                            </div>
+                            <div>
+                              <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">Reason</label>
+                              <Select value={sel.reason} onValueChange={v => setSelectedItems(p => ({ ...p, [item.id]: { ...p[item.id], reason: v } }))}>
+                                <SelectTrigger className="h-9 text-sm bg-white"><SelectValue placeholder="Select..." /></SelectTrigger>
+                                <SelectContent>{RETURN_REASONS.map(r => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}</SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                          
+                          {sel.reason && (
+                            <div>
+                              <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">
+                                {sel.reason === "OTHER" ? <>Notes <span className="text-destructive">*</span></> : "Notes (optional)"}
+                              </label>
+                              <Textarea 
+                                value={sel.description} 
+                                onChange={e => setSelectedItems(p => ({ ...p, [item.id]: { ...p[item.id], description: e.target.value } }))} 
+                                placeholder={sel.reason === "OTHER" ? "Describe your reason (required)..." : "Any additional info..."} 
+                                className="text-sm bg-white resize-none" 
+                                rows={2} 
+                              />
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })
+              )}
             </div>
 
             {pageSize !== "all" && currentData.length > size && (
