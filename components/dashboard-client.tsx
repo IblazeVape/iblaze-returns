@@ -890,14 +890,14 @@ export default function DashboardClient() {
              scrollbarGutter keeps left/right padding symmetric when the scrollbar appears. */
           <div
             className="flex-1 overflow-y-auto"
-            style={{ paddingTop: "1rem", paddingLeft: "1rem", paddingBottom: 0, paddingRight: "max(1rem, env(safe-area-inset-right))", scrollbarGutter: "stable" }}
+            style={{ paddingTop: "1rem", paddingLeft: "1rem", paddingBottom: 0, paddingRight: "1rem", scrollbarGutter: "stable" }}
           >
             <OrderDetail order={selectedOrder} onBack={() => setSelectedOrder(null)} />
           </div>
         ) : (
           <div
             className="flex-1 overflow-y-auto"
-            style={{ padding: "1rem", paddingRight: "max(1rem, env(safe-area-inset-right))", scrollbarGutter: "stable" }}
+            style={{ padding: "1rem", scrollbarGutter: "stable" }}
           >
           <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
