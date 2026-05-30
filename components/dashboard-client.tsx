@@ -534,7 +534,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
       {/* FIX: pad the bottom when there's no sticky footer (all-ineligible orders),
            so the table doesn't slam flush against the viewport edge. When the
            footer IS shown (hasEligible), it stays flush to read as one card. */}
-      <div className={cn("flex flex-col gap-4", !hasEligible && "pb-4")}>
+      <div className={cn("flex flex-col gap-4", !hasEligible ? "pb-4" : "pb-16")}>
         <Button variant="ghost" size="sm" onClick={onBack} className="-ml-2 text-muted-foreground hover:text-foreground w-fit">
           <ArrowLeft className="size-4" /> Back to Orders
         </Button>
