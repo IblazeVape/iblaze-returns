@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
             node {
               firstName
               email
-              orders(first: 50, after: $after, sortKey: CREATED_AT, reverse: true) {
+              orders(first: 15, after: $after, sortKey: CREATED_AT, reverse: true) {
                 pageInfo { hasNextPage endCursor }
                 edges {
                   node {
