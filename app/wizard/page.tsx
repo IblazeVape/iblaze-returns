@@ -445,7 +445,7 @@ function StepSelectItems({
   }
 
   return (
-    <div className="flex flex-col gap-4 max-w-4xl">
+    <div className="flex flex-col gap-4 w-full">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold">Select items to return</h2>
@@ -578,7 +578,7 @@ function StepReasons({
   const canAdvance = !!(sel?.reason && (sel.reason !== "OTHER" || (sel.description?.trim().length ?? 0) > 0))
 
   return (
-    <div className="flex flex-col gap-6 max-w-xl">
+    <div className="flex flex-col gap-6 w-full">
       <div>
         <h2 className="text-lg font-semibold">Why are you returning?</h2>
         <p className="text-xs text-muted-foreground mt-0.5">Item {currentIdx + 1} of {selectedItems.length}</p>
@@ -783,7 +783,10 @@ function WizardInner() {
   const [statusFilter, setStatusFilter] = useState<string[]>([])
 
   const searchParams = useSearchParams()
-  const deepLinkOrderId = searchParams.get("order") // numeric order ID from extension deep-link
+  // useSearchParams() can return null on first mount after an OAuth redirect
+  // in Next.js App Router. Read directly from window.location.search as a reliable fallback.
+  const deepLinkOrderId = searchParams.get("order") ||
+    (typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("order") : null)
 
   useEffect(() => {
     fetch("/api/get-orders")
@@ -791,15 +794,24 @@ function WizardInner() {
       .then(d => {
         if (d.error) { setError(d.error); return }
         setData(d)
-        // Deep-link pre-selection: ?order=<numeric-id> from the Customer Account extension
-        if (deepLinkOrderId) {
-          const target = (d.orders as Order[]).find(o => o.id.split("/").pop() === deepLinkOrderId)
+        // Re-read from window.location in case searchParams was null at effect registration
+        const orderId = new URLSearchParams(window.location.search).get("order")
+        if (orderId) {
+          const target = (d.orders as Order[]).find(o => o.id.split("/").pop() === orderId)
           if (target) { setOrder(target); setStep(2) }
         }
       })
       .catch(() => setError("Failed to load orders."))
       .finally(() => setLoading(false))
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Safety net: if data loaded before deepLinkOrderId resolved (hydration timing),
+  // try again whenever either value changes
+  useEffect(() => {
+    if (!deepLinkOrderId || !data || order) return
+    const target = (data.orders as Order[]).find(o => o.id.split("/").pop() === deepLinkOrderId)
+    if (target) { setOrder(target); setStep(2) }
+  }, [deepLinkOrderId, data, order])
 
   const avgPrice = useMemo(() => {
     if (!order) return 0
@@ -947,7 +959,7 @@ function WizardInner() {
 
                 {/* Footer nav for steps 2–3 */}
                 {step >= 2 && step <= 3 && (
-                  <div className={cn("flex gap-3", step === 2 ? "max-w-4xl" : "max-w-2xl")}>
+                  <div className="flex gap-3 w-full">
                     <Button variant="outline" className="flex-1 h-11" onClick={() => { if (step === 2) { setOrder(null); setSelected({}); setStep(1) } else { setStep(s => s - 1) } }}>
                       <ArrowLeft className="size-4 mr-1" /> Back
                     </Button>
