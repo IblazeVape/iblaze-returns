@@ -6,7 +6,7 @@
  */
 import { reactExtension, Button, useOrder } from "@shopify/ui-extensions-react/customer-account"
 
-const PORTAL_BASE_URL = "https://iblaze-returns-git-main-vapeumbrellamanchester-8664s-projects.vercel.app"
+const PORTAL_BASE_URL = "https://iblaze-returns.vercel.app"
 
 export default reactExtension(
   "customer-account.order.action.menu-item.render",
