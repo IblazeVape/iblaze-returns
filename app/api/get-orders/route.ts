@@ -47,74 +47,80 @@ export async function GET(request: NextRequest) {
     let pagesLoaded = 0
     const MAX_PAGES = 10 // safety cap: 10 × 50 = 500 orders max
 
+    // Fetch firstName once via the customer record
+    const customerData = await shopifyAdmin(`
+      query GetCustomer($query: String!) {
+        customers(first: 1, query: $query) {
+          edges { node { firstName } }
+        }
+      }
+    `, { query: `email:${sessionEmail}` });
+    firstName = customerData?.customers?.edges?.[0]?.node?.firstName || "";
+
+    // Use the top-level orders connection so ALL orders with this email are
+    // returned — including guest-checkout orders that aren't linked to the
+    // customer record but still show on Shopify's native account page.
     do {
       pagesLoaded++
       const data = await shopifyAdmin(`
       query GetOrders($query: String!, $after: String) {
-        customers(first: 1, query: $query) {
+        orders(first: 15, after: $after, query: $query, sortKey: CREATED_AT, reverse: true) {
+          pageInfo { hasNextPage endCursor }
           edges {
             node {
-              firstName
-              email
-              orders(first: 15, after: $after, sortKey: CREATED_AT, reverse: true) {
+              id name createdAt cancelledAt displayFulfillmentStatus displayFinancialStatus
+              customer { firstName }
+              totalPriceSet { shopMoney { amount currencyCode } }
+              totalRefundedSet { shopMoney { amount } }
+              refunds {
+                refundLineItems(first: 25) {
+                  edges {
+                    node {
+                      quantity
+                      lineItem { id }
+                    }
+                  }
+                }
+              }
+              returns(first: 25) {
                 pageInfo { hasNextPage endCursor }
                 edges {
                   node {
-                    id name createdAt cancelledAt displayFulfillmentStatus displayFinancialStatus
-                    totalPriceSet { shopMoney { amount currencyCode } }
-                    totalRefundedSet { shopMoney { amount } }
-                    refunds {
-                      refundLineItems(first: 25) {
-                        edges {
-                          node {
-                            quantity
-                            lineItem { id }
-                          }
-                        }
-                      }
-                    }
-                    returns(first: 25) {
-                      pageInfo { hasNextPage endCursor }
+                    id status decline { reason note }
+                    returnLineItems(first: 25) {
                       edges {
                         node {
-                          id status decline { reason note }
-                          returnLineItems(first: 25) {
-                            edges {
-                              node {
-                                ... on ReturnLineItem {
-                                  quantity
-                                  fulfillmentLineItem { lineItem { id } }
-                                }
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                    fulfillments {
-                      id displayStatus createdAt deliveredAt updatedAt
-                      trackingInfo { company number url }
-                      fulfillmentLineItems(first: 50) {
-                        edges {
-                          node {
-                            lineItem { id }
+                          ... on ReturnLineItem {
                             quantity
+                            fulfillmentLineItem { lineItem { id } }
                           }
                         }
                       }
                     }
-                    lineItems(first: 50) {
-                      pageInfo { hasNextPage endCursor }
-                      edges {
-                        node {
-                          id title quantity
-                          discountedUnitPriceSet { shopMoney { amount } }
-                          product { handle }
-                          image { url }
-                          variant { title }
-                        }
-                      }
+                  }
+                }
+              }
+              fulfillments {
+                id displayStatus createdAt deliveredAt updatedAt
+                trackingInfo { company number url }
+                fulfillmentLineItems(first: 50) {
+                  edges {
+                    node {
+                      lineItem { id }
+                      quantity
                     }
+                  }
+                }
+              }
+              lineItems(first: 50) {
+                pageInfo { hasNextPage endCursor }
+                edges {
+                  node {
+                    id title quantity
+                    discountedUnitPriceSet { shopMoney { amount } }
+                    product { handle }
+                    image { url }
+                    variant { title }
                   }
                 }
               }
@@ -124,14 +130,18 @@ export async function GET(request: NextRequest) {
       }
     `, { query: `email:${sessionEmail}`, after });
 
-      const customers = data?.customers?.edges || [];
-      if (customers.length === 0) break;
+      const ordersConnection = data?.orders;
+      if (!ordersConnection) break;
 
-      if (!firstName) firstName = customers[0].node.firstName || "";
-      const ordersConnection = customers[0].node.orders;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const pageOrders = ordersConnection.edges.map((e: any) => e.node);
       allRawOrders.push(...pageOrders);
+
+      // Use the customer firstName from the first order if not found via customer lookup
+      if (!firstName && pageOrders.length > 0) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        firstName = (pageOrders as any[])[0]?.customer?.firstName || ""
+      }
 
       const pageInfo = ordersConnection.pageInfo;
       if (!pageInfo?.hasNextPage) break;
