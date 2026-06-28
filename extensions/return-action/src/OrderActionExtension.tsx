@@ -1,24 +1,30 @@
+/** @jsxRuntime classic */
+/** @jsx h */
 /**
  * customer-account.order.action.menu-item.render
  *
- * `href` navigates directly to the portal without opening a modal.
- * Falls back to the portal homepage if the order ID isn't available yet.
+ * Uses Preact + native web components (<s-button href={url}>) as per
+ * Shopify's official docs/examples. The React Button component silently
+ * drops href on this target in 2025-07; the web component works correctly.
  */
-import { reactExtension, Button, useOrder } from "@shopify/ui-extensions-react/customer-account"
+import { h, render } from "preact"
+import "@shopify/ui-extensions/preact"
+
+declare const shopify: {
+  order: { value: { id: string } | undefined }
+}
 
 const PORTAL_BASE_URL = "https://iblaze-returns.vercel.app"
 
-export default reactExtension(
-  "customer-account.order.action.menu-item.render",
-  () => <OrderActionMenuItem />,
-)
-
-function OrderActionMenuItem() {
-  const order = useOrder()
+export default async () => {
+  const order = shopify.order?.value
   const numericOrderId = order?.id?.split("/").pop()
   const href = numericOrderId
     ? `${PORTAL_BASE_URL}/wizard?order=${numericOrderId}`
     : `${PORTAL_BASE_URL}/wizard`
 
-  return <Button href={href}>Start a Return</Button>
+  render(
+    <s-button href={href}>Start a Return</s-button>,
+    document.body,
+  )
 }

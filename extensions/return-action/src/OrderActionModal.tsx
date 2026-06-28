@@ -1,58 +1,48 @@
+/** @jsxRuntime classic */
+/** @jsx h */
 /**
  * customer-account.order.action.render
  *
- * Opens as a modal when the "Start a Return" menu item is clicked.
- * The primaryAction button navigates to our portal with the order pre-loaded.
- * Root must be CustomerAccountAction (2025-07 API requirement).
+ * Only triggered if the menu-item button has no href (fallback modal).
+ * Uses Preact + native web components as per Shopify's official docs.
  */
-import {
-  reactExtension,
-  useOrder,
-  useApi,
-  Button,
-  CustomerAccountAction,
-  TextBlock,
-  BlockStack,
-  Text,
-} from "@shopify/ui-extensions-react/customer-account"
+import { h, render } from "preact"
+import "@shopify/ui-extensions/preact"
+
+declare const shopify: {
+  order: { value: { id: string } | undefined }
+  close: () => void
+}
 
 const PORTAL_BASE_URL = "https://iblaze-returns.vercel.app"
 
-export default reactExtension(
-  "customer-account.order.action.render",
-  () => <OrderActionModal />,
-)
+export default async () => {
+  render(<OrderActionModal />, document.body)
+}
 
 function OrderActionModal() {
-  const order = useOrder()
-  const api = useApi()
-
-  const numericOrderId = order?.id?.split("/").pop() ?? ""
+  const order = shopify.order?.value
+  const numericOrderId = order?.id?.split("/").pop()
   const wizardUrl = numericOrderId
     ? `${PORTAL_BASE_URL}/wizard?order=${numericOrderId}`
-    : PORTAL_BASE_URL
+    : `${PORTAL_BASE_URL}/wizard`
 
   return (
-    <CustomerAccountAction
-      title="Start a return"
-      primaryAction={
-        <Button to={wizardUrl}>Open returns portal →</Button>
-      }
-      secondaryAction={
-        <Button onPress={() => api.close()}>Cancel</Button>
-      }
-    >
-      <BlockStack spacing="loose">
-        <TextBlock>
+    <s-customer-account-action heading="Start a return">
+      <s-button slot="primary-action" href={wizardUrl}>
+        Open returns portal →
+      </s-button>
+      <s-button slot="secondary-action" onClick={() => shopify.close()}>
+        Cancel
+      </s-button>
+      <s-stack direction="block" gap="base">
+        <s-text>
           Our returns portal lets you choose which items to return, see your estimated refund, and submit your request in a few steps.
-        </TextBlock>
-        <BlockStack spacing="tight">
-          <Text size="small" emphasis="bold">Before you start</Text>
-          <TextBlock size="small">
-            E-liquids and disposables must be unopened and sealed. Tanks and coils have a 7-day Dead On Arrival window. Kits and mods have a 30-day return period.
-          </TextBlock>
-        </BlockStack>
-      </BlockStack>
-    </CustomerAccountAction>
+        </s-text>
+        <s-text>
+          E-liquids and disposables must be unopened and sealed. Tanks and coils have a 7-day DOA window. Kits and mods have a 30-day return period.
+        </s-text>
+      </s-stack>
+    </s-customer-account-action>
   )
 }
