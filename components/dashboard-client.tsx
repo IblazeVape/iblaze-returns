@@ -2446,13 +2446,14 @@ function OrderCard({ order, onClick, index = 0 }: { order: Order; onClick: () =>
 
   const cancelled = !!order.cancelledAt
   return (
+    <div className="h-full">
     <motion.button
       onClick={cancelled ? undefined : onClick}
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.28, delay: Math.min(index * 0.055, 0.4), ease: [0.25, 0.1, 0.25, 1] }}
       className={cn(
-        "group w-full text-left bg-card border rounded-xl transition-[border-color,box-shadow] duration-150 focus:outline-none focus-visible:ring-0 flex flex-col overflow-hidden",
+        "group w-full h-full text-left bg-card border rounded-xl transition-[border-color,box-shadow] duration-150 focus:outline-none focus-visible:ring-0 flex flex-col overflow-hidden",
         cancelled ? "border-border opacity-60 cursor-not-allowed" : cn("border-border", orderGlowClass(order))
       )}
     >
@@ -2465,7 +2466,7 @@ function OrderCard({ order, onClick, index = 0 }: { order: Order; onClick: () =>
         <p className="text-xs text-muted-foreground">Ordered {fmt(order.createdAt)} &bull; {order.totalUnits} item{order.totalUnits !== 1 ? "s" : ""}</p>
       </div>
       {/* Images footer */}
-      <div className="px-4 py-2.5 border-t border-border bg-muted/60 flex items-center gap-1.5">
+      <div className="px-4 py-2.5 border-t border-border bg-muted/60 flex items-center gap-1.5 shrink-0">
         <div className="flex items-center flex-1 min-w-0">
           <div className="flex -space-x-2">
             {uniqueImages.length > 0 ? uniqueImages.map((url, i) => (
@@ -2485,6 +2486,7 @@ function OrderCard({ order, onClick, index = 0 }: { order: Order; onClick: () =>
         <StatusLabel order={order} />
       </div>
     </motion.button>
+    </div>
   )
 }
 
