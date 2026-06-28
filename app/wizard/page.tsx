@@ -772,7 +772,7 @@ function WizardInner() {
   const [data, setData]           = useState<OrdersData | null>(null)
   const [loading, setLoading]     = useState(true)
   const [error, setError]         = useState<string | null>(null)
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const [step, setStep]           = useState(1)
   const [order, setOrder]         = useState<Order | null>(null)
   const [selected, setSelected]   = useState<Record<string, SelectedItem>>({})

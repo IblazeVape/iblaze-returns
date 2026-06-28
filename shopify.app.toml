@@ -4,10 +4,10 @@ application_url = "https://iblaze-returns.vercel.app"
 embedded = false
 
 [access_scopes]
-scopes = "read_orders,write_returns"
+scopes = "read_orders,read_all_orders,write_returns,read_customers,read_fulfillments,read_products"
 
 [auth]
-redirect_urls = ["https://iblaze-returns.vercel.app/api/callback"]
+redirect_urls = ["https://iblaze-returns.vercel.app/api/callback", "https://iblaze-returns.vercel.app/api/shopify-callback"]
 
 [webhooks]
 api_version = "2025-07"
