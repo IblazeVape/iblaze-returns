@@ -1,0 +1,15 @@
+api_version = "2025-07"
+uid = "59be150a-a476-c0a4-23e3-5336c35dd1da0db9f125"
+
+[[extensions]]
+type = "ui_extension"
+name = "iBlaze Return Action"
+handle = "iblaze-return-action"
+
+[[extensions.targeting]]
+module = "./src/OrderActionExtension.tsx"
+target = "customer-account.order.action.menu-item.render"
+
+[[extensions.targeting]]
+module = "./src/OrderActionModal.tsx"
+target = "customer-account.order.action.render"

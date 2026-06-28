@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+extensions/return-action/node_modules/
+
+# Next.js
+.next/
+out/
+
+# Build
+tsconfig.tsbuildinfo
+
+# Env files (never commit secrets)
+.env*
+
+# Vercel
+.vercel
+
+# OS
+.DS_Store
+.DS_Store?
+Thumbs.db
+
+# Shopify app config (contains sensitive app URL, managed locally)
+# shopify.app.toml — keep tracked so CLI works
+
+# Misc
+*.zip
+.superpowers/
+docs/
