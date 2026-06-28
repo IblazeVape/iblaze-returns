@@ -39,17 +39,24 @@ export async function GET(request: NextRequest) {
     }
     const { email: sessionEmail, accessToken } = session;
 
-    const url = new URL(request.url);
-    const after = url.searchParams.get("after") ?? null;
+    // Fetch ALL orders by paginating until hasNextPage is false.
+    // Each page fetches 50 orders; most customers will need only 1 page.
+    const allRawOrders: unknown[] = []
+    let firstName = ""
+    let after: string | null = null
+    let pagesLoaded = 0
+    const MAX_PAGES = 10 // safety cap: 10 × 50 = 500 orders max
 
-    const data = await shopifyAdmin(`
+    do {
+      pagesLoaded++
+      const data = await shopifyAdmin(`
       query GetOrders($query: String!, $after: String) {
         customers(first: 1, query: $query) {
           edges {
             node {
               firstName
               email
-              orders(first: 15, after: $after, sortKey: CREATED_AT, reverse: true) {
+              orders(first: 50, after: $after, sortKey: CREATED_AT, reverse: true) {
                 pageInfo { hasNextPage endCursor }
                 edges {
                   node {
@@ -117,17 +124,27 @@ export async function GET(request: NextRequest) {
       }
     `, { query: `email:${sessionEmail}`, after });
 
-    const customers = data?.customers?.edges || [];
-    if (customers.length === 0) {
-      return NextResponse.json({ firstName: "", email: sessionEmail, orders: [], hasNextPage: false, endCursor: null });
+      const customers = data?.customers?.edges || [];
+      if (customers.length === 0) break;
+
+      if (!firstName) firstName = customers[0].node.firstName || "";
+      const ordersConnection = customers[0].node.orders;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const pageOrders = ordersConnection.edges.map((e: any) => e.node);
+      allRawOrders.push(...pageOrders);
+
+      const pageInfo = ordersConnection.pageInfo;
+      if (!pageInfo?.hasNextPage) break;
+      after = pageInfo.endCursor ?? null;
+      if (!after) break;
+    } while (pagesLoaded < MAX_PAGES)
+
+    if (allRawOrders.length === 0) {
+      return NextResponse.json({ firstName: "", email: sessionEmail, orders: [] });
     }
 
-    const firstName = customers[0].node.firstName || "";
-    const ordersConnection = customers[0].node.orders;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const rawOrders = ordersConnection.edges.map((e: any) => e.node);
-    const hasNextPage: boolean = ordersConnection.pageInfo?.hasNextPage ?? false;
-    const endCursor: string | null = ordersConnection.pageInfo?.endCursor ?? null;
+    const rawOrders = allRawOrders as any[];
 
     // Paginate line items and returns when an order exceeds the first page
     await Promise.all(
@@ -567,7 +584,7 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    return NextResponse.json({ firstName, email: sessionEmail, orders: processedOrders, hasNextPage, endCursor });
+    return NextResponse.json({ firstName, email: sessionEmail, orders: processedOrders });
   } catch (err) {
     const error = err as Error;
     console.error("get-orders error:", error.message);

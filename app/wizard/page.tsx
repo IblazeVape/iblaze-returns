@@ -783,10 +783,15 @@ function WizardInner() {
   const [statusFilter, setStatusFilter] = useState<string[]>([])
 
   const searchParams = useSearchParams()
-  // useSearchParams() can return null on first mount after an OAuth redirect
-  // in Next.js App Router. Read directly from window.location.search as a reliable fallback.
+  // useSearchParams() can return null on first mount after an OAuth redirect in
+  // Next.js App Router. Fall back to window.location.search for reliability.
   const deepLinkOrderId = searchParams.get("order") ||
     (typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("order") : null)
+
+  // Tracks whether the deep-link pre-selection has already fired once.
+  // Prevents the safety-net effect from re-selecting the order after the user
+  // intentionally clicks Back.
+  const deepLinkApplied = useRef(false)
 
   useEffect(() => {
     fetch("/api/get-orders")
@@ -796,22 +801,22 @@ function WizardInner() {
         setData(d)
         // Re-read from window.location in case searchParams was null at effect registration
         const orderId = new URLSearchParams(window.location.search).get("order")
-        if (orderId) {
+        if (orderId && !deepLinkApplied.current) {
           const target = (d.orders as Order[]).find(o => o.id.split("/").pop() === orderId)
-          if (target) { setOrder(target); setStep(2) }
+          if (target) { deepLinkApplied.current = true; setOrder(target); setStep(2) }
         }
       })
       .catch(() => setError("Failed to load orders."))
       .finally(() => setLoading(false))
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Safety net: if data loaded before deepLinkOrderId resolved (hydration timing),
-  // try again whenever either value changes
+  // Safety net: if data loaded before deepLinkOrderId resolved (hydration race),
+  // re-try when either value changes — but only if pre-selection hasn't fired yet.
   useEffect(() => {
-    if (!deepLinkOrderId || !data || order) return
+    if (!deepLinkOrderId || !data || deepLinkApplied.current) return
     const target = (data.orders as Order[]).find(o => o.id.split("/").pop() === deepLinkOrderId)
-    if (target) { setOrder(target); setStep(2) }
-  }, [deepLinkOrderId, data, order])
+    if (target) { deepLinkApplied.current = true; setOrder(target); setStep(2) }
+  }, [deepLinkOrderId, data])
 
   const avgPrice = useMemo(() => {
     if (!order) return 0
@@ -931,6 +936,7 @@ function WizardInner() {
             )
           }
           showSearch={false} firstName={data?.firstName} email={data?.email}
+          orderStatusUrl={order ? `https://account.iblazevape.co.uk/orders/${order.id.split("/").pop()}` : undefined}
         />
 
         {/* Full-height scrollable body */}
