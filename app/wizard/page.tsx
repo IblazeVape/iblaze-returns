@@ -198,7 +198,7 @@ function OrderGridCard({ order, onClick }: { order: Order; onClick: () => void }
     <button
       onClick={cancelled ? undefined : onClick}
       className={cn(
-        "group w-full h-full text-left bg-card border rounded-xl transition-[border-color,box-shadow] duration-150 focus:outline-none focus-visible:ring-0 flex flex-col overflow-hidden",
+        "group w-full text-left bg-card border rounded-xl transition-[border-color,box-shadow] duration-150 focus:outline-none focus-visible:ring-0 flex flex-col overflow-hidden",
         cancelled ? "border-border opacity-60 cursor-not-allowed" : cn("border-border", cardGlowClass(order))
       )}
     >

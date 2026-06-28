@@ -2452,7 +2452,7 @@ function OrderCard({ order, onClick, index = 0 }: { order: Order; onClick: () =>
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.28, delay: Math.min(index * 0.055, 0.4), ease: [0.25, 0.1, 0.25, 1] }}
       className={cn(
-        "group w-full h-full text-left bg-card border rounded-xl transition-[border-color,box-shadow] duration-150 focus:outline-none focus-visible:ring-0 flex flex-col overflow-hidden",
+        "group w-full text-left bg-card border rounded-xl transition-[border-color,box-shadow] duration-150 focus:outline-none focus-visible:ring-0 flex flex-col overflow-hidden",
         cancelled ? "border-border opacity-60 cursor-not-allowed" : cn("border-border", orderGlowClass(order))
       )}
     >
