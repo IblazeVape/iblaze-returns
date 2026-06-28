@@ -795,9 +795,12 @@ function WizardInner() {
 
   useEffect(() => {
     fetch("/api/get-orders")
-      .then(r => r.json())
-      .then(d => {
-        if (d.error) { setError(d.error); return }
+      .then(async r => {
+        const d = await r.json()
+        if (!r.ok || d.error != null) {
+          setError(d.error || "Failed to load your orders. Please try again.")
+          return
+        }
         setData(d)
         // Re-read from window.location in case searchParams was null at effect registration
         const orderId = new URLSearchParams(window.location.search).get("order")
@@ -863,8 +866,8 @@ function WizardInner() {
     setSubmitting(true)
     try {
       // Pre-flight: re-fetch current eligibility to catch any race (item fulfilled/returned since wizard loaded)
-      const freshData = await fetch("/api/get-orders").then(r => r.json()).catch(() => null)
-      if (freshData && !freshData.error) {
+      const freshData = await fetch("/api/get-orders").then(async r => { const d = await r.json(); return r.ok && d.error == null ? d : null }).catch(() => null)
+      if (freshData) {
         const freshOrder = (freshData.orders as Order[]).find(o => o.id === order.id)
         if (freshOrder) {
           const nowIneligible = selectedLineItemIds.filter(id => {

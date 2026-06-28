@@ -183,42 +183,52 @@ export async function GET(request: NextRequest) {
       } while (pages < MAX_PAGES);
     }
 
-    // Step 4: REST fallback — catches orders linked to this customer in Shopify Admin
-    // but missing from the GraphQL customer.orders connection (e.g. Turnr exchange orders).
+    // Step 4: GraphQL customer_id: search fallback (Sidekick-recommended approach).
+    // orders(query: "customer_id:...") matches what Shopify Admin's customer_id filter uses
+    // and may return orders missing from customer.orders (e.g. Turnr exchange orders).
+    // Also test direct lookup of a known missing order to diagnose scope issues.
     if (customerId) {
       try {
         const numericId = customerId.replace("gid://shopify/Customer/", "");
-        const restData = await shopifyAdminRest(
-          `customers/${numericId}/orders.json`,
-          { status: "any", fields: "id,name", limit: "250" }
-        );
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const restOrders: { id: number; name: string }[] = restData?.orders ?? [];
-        const knownIds = new Set((allRawOrders as any[]).map((o: any) => o.id));
-        const missingGids = restOrders
-          .map(o => `gid://shopify/Order/${o.id}`)
-          .filter(gid => !knownIds.has(gid));
 
-        console.log(`[get-orders] REST found ${restOrders.length} orders, ${missingGids.length} missing from GraphQL`);
-
-        if (missingGids.length > 0) {
-          // Fetch each missing order individually via GraphQL (one order = very low cost)
-          const missing = await Promise.all(
-            missingGids.map(gid =>
-              shopifyAdmin(`
-                query GetOrder($id: ID!) {
-                  order(id: $id) { ${ORDER_FIELDS} }
-                }
-              `, { id: gid }).then(d => d?.order).catch(() => null)
-            )
-          );
-          for (const order of missing) {
-            if (order) allRawOrders.push(order);
+        // Diagnostic: try fetching one known-missing order directly
+        const directTest = await shopifyAdmin(`
+          query TestMissingOrder($id: ID!) {
+            order(id: $id) { id name }
           }
-          console.log(`[get-orders] added ${missing.filter(Boolean).length} orders from REST fallback`);
-        }
-      } catch (restErr) {
-        console.warn(`[get-orders] REST fallback failed:`, (restErr as Error).message);
+        `, { id: "gid://shopify/Order/11419307933961" }).catch(() => null);
+        console.log(`[get-orders] direct order(#1018) lookup:`, JSON.stringify(directTest?.order ?? null));
+
+        const knownIds = new Set((allRawOrders as any[]).map((o: any) => o.id));// eslint-disable-line @typescript-eslint/no-explicit-any
+        let cur: string | null = null;
+        let pages = 0;
+        let newFromCustomerIdQuery = 0;
+        do {
+          pages++;
+          const data = await shopifyAdmin(`
+            query OrdersByCustomerId($query: String!, $after: String) {
+              orders(first: 20, after: $after, query: $query, sortKey: CREATED_AT, reverse: true) {
+                pageInfo { hasNextPage endCursor }
+                edges { node { ${ORDER_FIELDS} } }
+              }
+            }
+          `, { query: `customer_id:${numericId}`, after: cur });
+          const conn = data?.orders;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          for (const edge of (conn?.edges ?? []) as any[]) {
+            if (!knownIds.has(edge.node.id)) {
+              knownIds.add(edge.node.id);
+              allRawOrders.push(edge.node);
+              newFromCustomerIdQuery++;
+            }
+          }
+          if (!conn?.pageInfo?.hasNextPage) break;
+          cur = conn.pageInfo.endCursor ?? null;
+          if (!cur) break;
+        } while (pages < MAX_PAGES);
+        console.log(`[get-orders] customer_id: query added ${newFromCustomerIdQuery} new orders`);
+      } catch (err) {
+        console.warn(`[get-orders] customer_id: fallback failed:`, (err as Error).message);
       }
     }
 
@@ -677,9 +687,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ firstName, email: sessionEmail, orders: processedOrders });
   } catch (err) {
-    const error = err as Error;
-    console.error("get-orders error:", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("get-orders error:", message);
+    return NextResponse.json({ error: message || "Unexpected server error" }, { status: 500 });
   }
 }
 

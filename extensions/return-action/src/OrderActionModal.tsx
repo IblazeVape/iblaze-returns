@@ -1,10 +1,9 @@
 /** @jsxRuntime classic */
 /** @jsx h */
 /**
- * customer-account.order.action.render
- *
- * Only triggered if the menu-item button has no href (fallback modal).
- * Uses Preact + native web components as per Shopify's official docs.
+ * Fallback modal — shown if the menu-item href approach causes the button to disappear.
+ * Uses onClick + window.open to bypass <s-customer-account-action>'s internal router,
+ * which intercepts href on primary-action buttons and swallows external URLs.
  */
 import { h, render } from "preact"
 import "@shopify/ui-extensions/preact"
@@ -17,19 +16,24 @@ declare const shopify: {
 const PORTAL_BASE_URL = "https://iblaze-returns.vercel.app"
 
 export default async () => {
-  render(<OrderActionModal />, document.body)
+  const orderId = shopify.order?.value?.id?.split("/").pop() ?? ""
+  render(<OrderActionModal orderId={orderId} />, document.body)
 }
 
-function OrderActionModal() {
-  const order = shopify.order?.value
-  const numericOrderId = order?.id?.split("/").pop()
-  const wizardUrl = numericOrderId
-    ? `${PORTAL_BASE_URL}/wizard?order=${numericOrderId}`
+function OrderActionModal({ orderId }: { orderId: string }) {
+  const wizardUrl = orderId
+    ? `${PORTAL_BASE_URL}/wizard?order=${orderId}`
     : `${PORTAL_BASE_URL}/wizard`
+
+  const handleOpen = () => {
+    // window.open bypasses the web component router; _blank ensures a new tab
+    // even if Shopify's extension frame blocks top-level navigation.
+    window.open(wizardUrl, "_blank")
+  }
 
   return (
     <s-customer-account-action heading="Start a return">
-      <s-button slot="primary-action" href={wizardUrl}>
+      <s-button slot="primary-action" onClick={handleOpen}>
         Open returns portal →
       </s-button>
       <s-button slot="secondary-action" onClick={() => shopify.close()}>

@@ -62,7 +62,7 @@ export async function shopifyAdmin(
   operationName?: string
 ) {
   const shop = process.env.SHOPIFY_STORE_URL!;
-  const token = await getShopifyToken();
+  const token = await getShopifyToken() || process.env.SHOPIFY_ACCESS_TOKEN || null;
 
   if (!token) {
     throw new Error("No Shopify access token found. Please reinstall the app.");
@@ -94,6 +94,10 @@ export async function shopifyAdmin(
     }
   }
 
-  if (result.errors) throw new Error(result.errors[0].message);
+  if (result.errors) {
+    const msg = result.errors[0]?.message || JSON.stringify(result.errors[0]) || "Unknown Shopify error";
+    console.error("[Shopify GQL] Error response:", JSON.stringify(result.errors));
+    throw new Error(msg);
+  }
   return result.data;
 }
