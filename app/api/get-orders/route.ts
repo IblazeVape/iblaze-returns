@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { validateSession } from "@/lib/auth";
-import { shopifyAdmin } from "@/lib/shopify";
+import { shopifyAdmin, shopifyAdminRest } from "@/lib/shopify";
 import { getOrderReturnInfo, ReturnInfo } from "@/lib/customerAccount";
 import { getAdminReturnableInfo, fetchRemainingLineItems, fetchRemainingReturns } from "@/lib/returnEligibility";
 
@@ -43,84 +43,34 @@ export async function GET(request: NextRequest) {
     // Each page fetches 50 orders; most customers will need only 1 page.
     const allRawOrders: unknown[] = []
     let firstName = ""
-    let after: string | null = null
-    let pagesLoaded = 0
-    const MAX_PAGES = 10 // safety cap: 10 × 50 = 500 orders max
+    const MAX_PAGES = 10
 
-    // Fetch firstName once via the customer record
-    const customerData = await shopifyAdmin(`
-      query GetCustomer($query: String!) {
-        customers(first: 1, query: $query) {
-          edges { node { firstName } }
+    // ORDER_FIELDS: kept conservative to stay under Shopify's 1000 query-cost limit.
+    // Key reductions vs naive values:
+    //   refunds/fulfillments get explicit first: (no first = Shopify uses a large default = expensive)
+    //   returns(5) × returnLineItems(5) = 25 cost vs returns(25) × returnLineItems(25) = 625
+    // Pagination handlers below fetch additional pages when hasNextPage is true.
+    const ORDER_FIELDS = `
+      id name createdAt cancelledAt displayFulfillmentStatus displayFinancialStatus
+      customer { firstName }
+      totalPriceSet { shopMoney { amount currencyCode } }
+      totalRefundedSet { shopMoney { amount } }
+      refunds(first: 5) {
+        refundLineItems(first: 5) {
+          edges { node { quantity lineItem { id } } }
         }
       }
-    `, { query: `email:${sessionEmail}` });
-    firstName = customerData?.customers?.edges?.[0]?.node?.firstName || "";
-
-    // Use the top-level orders connection so ALL orders with this email are
-    // returned — including guest-checkout orders that aren't linked to the
-    // customer record but still show on Shopify's native account page.
-    do {
-      pagesLoaded++
-      const data = await shopifyAdmin(`
-      query GetOrders($query: String!, $after: String) {
-        orders(first: 15, after: $after, query: $query, sortKey: CREATED_AT, reverse: true) {
-          pageInfo { hasNextPage endCursor }
-          edges {
-            node {
-              id name createdAt cancelledAt displayFulfillmentStatus displayFinancialStatus
-              customer { firstName }
-              totalPriceSet { shopMoney { amount currencyCode } }
-              totalRefundedSet { shopMoney { amount } }
-              refunds {
-                refundLineItems(first: 25) {
-                  edges {
-                    node {
-                      quantity
-                      lineItem { id }
-                    }
-                  }
-                }
-              }
-              returns(first: 25) {
-                pageInfo { hasNextPage endCursor }
-                edges {
-                  node {
-                    id status decline { reason note }
-                    returnLineItems(first: 25) {
-                      edges {
-                        node {
-                          ... on ReturnLineItem {
-                            quantity
-                            fulfillmentLineItem { lineItem { id } }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-              fulfillments {
-                id displayStatus createdAt deliveredAt updatedAt
-                trackingInfo { company number url }
-                fulfillmentLineItems(first: 50) {
-                  edges {
-                    node {
-                      lineItem { id }
-                      quantity
-                    }
-                  }
-                }
-              }
-              lineItems(first: 50) {
-                pageInfo { hasNextPage endCursor }
-                edges {
-                  node {
-                    id title quantity
-                    discountedUnitPriceSet { shopMoney { amount } }
-                    product { handle }
-                    image { url }
-                    variant { title }
+      returns(first: 5) {
+        pageInfo { hasNextPage endCursor }
+        edges {
+          node {
+            id status decline { reason note }
+            returnLineItems(first: 5) {
+              edges {
+                node {
+                  ... on ReturnLineItem {
+                    quantity
+                    fulfillmentLineItem { lineItem { id } }
                   }
                 }
               }
@@ -128,26 +78,157 @@ export async function GET(request: NextRequest) {
           }
         }
       }
-    `, { query: `email:${sessionEmail}`, after });
-
-      const ordersConnection = data?.orders;
-      if (!ordersConnection) break;
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const pageOrders = ordersConnection.edges.map((e: any) => e.node);
-      allRawOrders.push(...pageOrders);
-
-      // Use the customer firstName from the first order if not found via customer lookup
-      if (!firstName && pageOrders.length > 0) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        firstName = (pageOrders as any[])[0]?.customer?.firstName || ""
+      fulfillments(first: 5) {
+        id displayStatus createdAt deliveredAt updatedAt
+        trackingInfo { company number url }
+        fulfillmentLineItems(first: 15) {
+          edges { node { lineItem { id } quantity } }
+        }
       }
+      lineItems(first: 20) {
+        pageInfo { hasNextPage endCursor }
+        edges {
+          node {
+            id title quantity
+            discountedUnitPriceSet { shopMoney { amount } }
+            product { handle }
+            image { url }
+            variant { title }
+          }
+        }
+      }
+    `;
 
-      const pageInfo = ordersConnection.pageInfo;
-      if (!pageInfo?.hasNextPage) break;
-      after = pageInfo.endCursor ?? null;
-      if (!after) break;
-    } while (pagesLoaded < MAX_PAGES)
+    // Step 1: get customer ID + firstName
+    const customerData = await shopifyAdmin(`
+      query GetCustomer($query: String!) {
+        customers(first: 1, query: $query) {
+          edges { node { id firstName } }
+        }
+      }
+    `, { query: `email:${sessionEmail}` });
+    const customerNode = customerData?.customers?.edges?.[0]?.node;
+    firstName = customerNode?.firstName || "";
+    const customerId: string | null = customerNode?.id || null;
+
+    // Step 2: fetch orders through customer.orders — same source Shopify Admin uses,
+    // guaranteed to return ALL orders for this customer regardless of how they were placed.
+    console.log(`[get-orders] customerId: ${customerId}, email: ${sessionEmail}`);
+    if (customerId) {
+      let cur: string | null = null;
+      let pages = 0;
+      do {
+        pages++;
+        const data = await shopifyAdmin(`
+          query GetCustomerOrders($id: ID!, $after: String) {
+            customer(id: $id) {
+              firstName
+              orders(first: 20, after: $after, sortKey: CREATED_AT, reverse: true) {
+                pageInfo { hasNextPage endCursor }
+                edges { node { ${ORDER_FIELDS} } }
+              }
+            }
+          }
+        `, { id: customerId, after: cur });
+        const conn = data?.customer?.orders;
+        console.log(`[get-orders] customer.orders page ${pages}: ${conn?.edges?.length ?? 0} orders, hasNextPage: ${conn?.pageInfo?.hasNextPage}`);
+        if (!conn) break;
+        if (!firstName && data.customer?.firstName) firstName = data.customer.firstName;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        allRawOrders.push(...conn.edges.map((e: any) => e.node));
+        if (!conn.pageInfo?.hasNextPage) break;
+        cur = conn.pageInfo.endCursor ?? null;
+        if (!cur) break;
+      } while (pages < MAX_PAGES);
+    } else {
+      console.log(`[get-orders] WARNING: no customerId found for email ${sessionEmail}`);
+    }
+    console.log(`[get-orders] after customer.orders: ${allRawOrders.length} total`);
+
+    // Step 3: also fetch by email to catch any orphaned guest orders not linked
+    // to the customer record, then merge & deduplicate.
+    const seen = new Set<string>(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (allRawOrders as any[]).map((o) => o.id)
+    );
+    {
+      let cur: string | null = null;
+      let pages = 0;
+      do {
+        pages++;
+        const data = await shopifyAdmin(`
+          query GetOrdersByEmail($query: String!, $after: String) {
+            orders(first: 20, after: $after, query: $query, sortKey: CREATED_AT, reverse: true) {
+              pageInfo { hasNextPage endCursor }
+              edges { node { ${ORDER_FIELDS} } }
+            }
+          }
+        `, { query: `email:${sessionEmail}`, after: cur });
+        const conn = data?.orders;
+        console.log(`[get-orders] email query page ${pages}: ${conn?.edges?.length ?? 0} orders, hasNextPage: ${conn?.pageInfo?.hasNextPage}`);
+        if (!conn) break;
+        let newFromEmail = 0;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        for (const edge of conn.edges as any[]) {
+          if (!seen.has(edge.node.id)) {
+            seen.add(edge.node.id);
+            allRawOrders.push(edge.node);
+            newFromEmail++;
+          }
+        }
+        console.log(`[get-orders] email query page ${pages}: ${newFromEmail} new orders not in customer.orders`);
+        if (!conn.pageInfo?.hasNextPage) break;
+        cur = conn.pageInfo.endCursor ?? null;
+        if (!cur) break;
+      } while (pages < MAX_PAGES);
+    }
+
+    // Step 4: REST fallback — catches orders linked to this customer in Shopify Admin
+    // but missing from the GraphQL customer.orders connection (e.g. Turnr exchange orders).
+    if (customerId) {
+      try {
+        const numericId = customerId.replace("gid://shopify/Customer/", "");
+        const restData = await shopifyAdminRest(
+          `customers/${numericId}/orders.json`,
+          { status: "any", fields: "id,name", limit: "250" }
+        );
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const restOrders: { id: number; name: string }[] = restData?.orders ?? [];
+        const knownIds = new Set((allRawOrders as any[]).map((o: any) => o.id));
+        const missingGids = restOrders
+          .map(o => `gid://shopify/Order/${o.id}`)
+          .filter(gid => !knownIds.has(gid));
+
+        console.log(`[get-orders] REST found ${restOrders.length} orders, ${missingGids.length} missing from GraphQL`);
+
+        if (missingGids.length > 0) {
+          // Fetch each missing order individually via GraphQL (one order = very low cost)
+          const missing = await Promise.all(
+            missingGids.map(gid =>
+              shopifyAdmin(`
+                query GetOrder($id: ID!) {
+                  order(id: $id) { ${ORDER_FIELDS} }
+                }
+              `, { id: gid }).then(d => d?.order).catch(() => null)
+            )
+          );
+          for (const order of missing) {
+            if (order) allRawOrders.push(order);
+          }
+          console.log(`[get-orders] added ${missing.filter(Boolean).length} orders from REST fallback`);
+        }
+      } catch (restErr) {
+        console.warn(`[get-orders] REST fallback failed:`, (restErr as Error).message);
+      }
+    }
+
+    console.log(`[get-orders] FINAL total after merge: ${allRawOrders.length} orders`);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    console.log(`[get-orders] order names: ${(allRawOrders as any[]).map((o: any) => o.name).join(", ")}`);
+
+    // Sort merged list newest first
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (allRawOrders as any[]).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     if (allRawOrders.length === 0) {
       return NextResponse.json({ firstName: "", email: sessionEmail, orders: [] });

@@ -38,6 +38,24 @@ function logQueryCost(operationName: string, cost: GraphQLCost) {
   }
 }
 
+export async function shopifyAdminRest(
+  path: string,
+  params: Record<string, string> = {}
+) {
+  const shop = process.env.SHOPIFY_STORE_URL!;
+  const token = await getShopifyToken();
+  if (!token) throw new Error("No Shopify access token found.");
+
+  const url = new URL(`https://${shop}/admin/api/${SHOPIFY_API_VERSION}/${path}`);
+  Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+
+  const res = await fetch(url.toString(), {
+    headers: { "X-Shopify-Access-Token": token, "Content-Type": "application/json" },
+  });
+  if (!res.ok) throw new Error(`Shopify REST ${path} failed: ${res.status}`);
+  return res.json();
+}
+
 export async function shopifyAdmin(
   query: string,
   variables: Record<string, unknown> = {},
