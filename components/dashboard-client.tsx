@@ -2466,7 +2466,7 @@ function OrderCard({ order, onClick, index = 0 }: { order: Order; onClick: () =>
         <p className="text-xs text-muted-foreground">Ordered {fmt(order.createdAt)} &bull; {order.totalUnits} item{order.totalUnits !== 1 ? "s" : ""}</p>
       </div>
       {/* Images footer */}
-      <div className="px-4 py-2.5 border-t border-border bg-muted/60 flex items-center gap-1.5 shrink-0">
+      <div className="w-full px-4 py-2.5 border-t border-border bg-muted/60 flex items-center gap-1.5 shrink-0">
         <div className="flex items-center flex-1 min-w-0">
           <div className="flex -space-x-2">
             {uniqueImages.length > 0 ? uniqueImages.map((url, i) => (
