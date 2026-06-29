@@ -939,6 +939,12 @@ function buildOrderPageSummary(order: Order): OrderPageSummary {
 
   const mergeDeliveredEligible = delivered > 0 && totalEligibleUnits > 0 && delivered === totalEligibleUnits
 
+  // If all delivered items will be explained individually by return records below,
+  // don't also say "N delivered" — that would double-count the same items.
+  // e.g. "9 delivered" + "9 ineligible — 3 in progress, 1 declined, 5 returned" = 18 apparent items from 13.
+  const projectedReturnReasonCount = requested + inProgress + declined + completed + refunded + windowExpired + finalSale + other
+  const allDeliveredExplained = totalEligibleUnits + projectedReturnReasonCount >= delivered
+
   if (mergeDeliveredEligible) {
     partLabels.push(
       orderSummaryPartFromCount(
@@ -950,7 +956,8 @@ function buildOrderPageSummary(order: Order): OrderPageSummary {
       ),
     )
   } else {
-    if (delivered > 0) {
+    // Show "N delivered" only when it adds context not already covered by eligible/ineligible counts
+    if (delivered > 0 && (totalEligibleUnits > 0 || !allDeliveredExplained)) {
       partLabels.push(
         orderSummaryPartFromCount(
           delivered,
