@@ -2446,7 +2446,7 @@ function OrderCard({ order, onClick, index = 0 }: { order: Order; onClick: () =>
 
   const cancelled = !!order.cancelledAt
   return (
-    <div className="h-full">
+    <div className="h-full w-full">
     <motion.button
       onClick={cancelled ? undefined : onClick}
       initial={{ opacity: 0, y: 14 }}

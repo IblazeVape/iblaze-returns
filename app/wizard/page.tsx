@@ -195,7 +195,7 @@ function OrderGridCard({ order, onClick }: { order: Order; onClick: () => void }
   const cancelled = !!order.cancelledAt
 
   return (
-    <div className="h-full">
+    <div className="h-full w-full">
     <button
       onClick={cancelled ? undefined : onClick}
       className={cn(
