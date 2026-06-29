@@ -5,31 +5,23 @@ import "@shopify/ui-extensions/preact"
 
 declare const shopify: {
   orderId?: string
+  sessionToken: { get: () => Promise<string> }
 }
 
 const PORTAL_BASE_URL = "https://iblaze-returns.vercel.app"
-const API_VERSION = "2026-04"
 
 export default async () => {
   // shopify.orderId is synchronously available in menu-item.render context.
   // May be a GID ("gid://shopify/Order/12345") or plain numeric.
   const rawId = shopify.orderId ?? ""
   const numericId = rawId.includes("/") ? (rawId.split("/").pop() ?? "") : rawId
-  const orderGid = rawId.includes("gid://")
-    ? rawId
-    : numericId
-      ? `gid://shopify/Order/${numericId}`
-      : ""
 
-  // Only render the "Start a Return" button when Shopify reports at least one
-  // returnable line item — this mirrors the native "Return items" button, which
-  // Shopify hides when nothing is eligible. We read returnInformation.returnableLineItems,
-  // the same source the portal and Shopify's native page use.
-  //
-  // Fail open: if the eligibility check can't be completed (network/API error),
-  // show the button rather than risk hiding it on a genuinely returnable order.
-  // A successful-but-empty result still hides the button (the intended behaviour).
-  if (orderGid && !(await hasReturnableItems(orderGid))) return
+  // Only render "Start a Return" when the portal reports the order has at least
+  // one item eligible for return. The portal computes this via the Admin API
+  // (returnable + delivered + within the 30-day window), so it works even though
+  // native self-serve returns are disabled. Fail open so portal access is never
+  // blocked by a transient error.
+  if (numericId && !(await isOrderEligible(numericId))) return
 
   const portalUrl = numericId
     ? `${PORTAL_BASE_URL}/?order=${numericId}`
@@ -38,35 +30,16 @@ export default async () => {
   render(<s-button href={portalUrl}>Start a Return</s-button>, document.body)
 }
 
-async function hasReturnableItems(orderGid: string): Promise<boolean> {
+async function isOrderEligible(numericId: string): Promise<boolean> {
   try {
-    const res = await fetch(`shopify://customer-account/api/${API_VERSION}/graphql.json`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        query: `query OrderReturnable($id: ID!) {
-          order(id: $id) {
-            returnInformation {
-              returnableLineItems(first: 1) { nodes { quantity } }
-            }
-          }
-        }`,
-        variables: { id: orderGid },
-      }),
+    const token = await shopify.sessionToken.get()
+    const res = await fetch(`${PORTAL_BASE_URL}/api/order-eligible?order=${numericId}`, {
+      headers: { Authorization: `Bearer ${token}` },
     })
+    if (!res.ok) return true // fail open
     const json = await res.json()
-    if (json?.errors) return true // fail open on GraphQL errors
-
-    // Distinguish "can't determine eligibility" from "nothing eligible":
-    //   returnInformation null/absent  → feature unavailable (e.g. self-serve
-    //     returns disabled) → fail open so portal access is never blocked.
-    //   returnInformation present, returnableLineItems empty → genuinely nothing
-    //     eligible → hide the button (mirrors Shopify's native page).
-    const info = json?.data?.order?.returnInformation
-    if (!info) return true
-    const nodes = info.returnableLineItems?.nodes ?? []
-    return nodes.some((n: { quantity?: number }) => (n?.quantity ?? 0) > 0)
+    return json?.eligible !== false
   } catch {
-    return true // fail open on network errors
+    return true // fail open on any error
   }
 }
