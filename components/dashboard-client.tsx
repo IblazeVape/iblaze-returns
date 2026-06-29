@@ -627,6 +627,105 @@ function buildNarrativeOrderSummary(
   return { intro, fulfillmentLine, eligible: totalEligibleUnits, groups }
 }
 
+function buildNarrativeParagraph(
+  order: Order,
+  totalEligibleUnits: number,
+  ineligibleItems: DisplayItem[],
+): string {
+  const total = parseFloat(order.totalPriceSet.shopMoney.amount)
+  const refundedAmount = order.totalRefundedSet?.shopMoney?.amount
+    ? parseFloat(order.totalRefundedSet.shopMoney.amount)
+    : 0
+  const placedDate = new Date(order.createdAt).toLocaleDateString("en-GB", {
+    day: "numeric", month: "long", year: "numeric",
+  })
+  const n = order.totalUnits
+
+  let intro = `Your order of ${n} item${n !== 1 ? "s" : ""} was placed on ${placedDate} for £${total.toFixed(2)}`
+  if (refundedAmount > 0) intro += ` (£${refundedAmount.toFixed(2)} refunded)`
+  intro += "."
+
+  if (order.cancelledAt) return `${intro} This order was cancelled and returns are not available.`
+
+  // Fulfillment context when partially delivered/dispatched
+  const fparts = buildOrderFulfillmentBreakdownParts(order)
+  const fulfillmentClause = fparts.length > 1
+    ? " " + fparts.map((p, i) => i === 0 ? cap(p) : p).join(", ") + "."
+    : ""
+
+  // Eligible clause
+  let eligibleClause: string
+  if (totalEligibleUnits === n) {
+    eligibleClause = n === 1 ? " It is ready to return." : ` All ${n} items are ready to return.`
+  } else if (totalEligibleUnits > 0) {
+    eligibleClause = totalEligibleUnits === 1
+      ? " 1 item is ready to return."
+      : ` ${totalEligibleUnits} items are ready to return.`
+  } else {
+    eligibleClause = " None of the items are currently eligible to return."
+  }
+
+  // Ineligible bucket counts
+  const buckets = ineligibleBucketCounts(ineligibleItems)
+  const declined     = order.processedItems.reduce(
+    (s, item) => s + item.declinedReturnEntries.reduce((a, e) => a + e.quantity, 0), 0,
+  )
+  const requested    = buckets.requested || 0
+  const inProgress   = buckets.in_progress || 0
+  const attempted    = buckets.attempted_delivery || 0
+  const ofd          = buckets.out_for_delivery || 0
+  const inTransit    = buckets.in_transit || 0
+  const notShipped   = (buckets.not_shipped || 0) + (buckets.preparing || 0)
+  const expired      = buckets.window || 0
+  const completed    = buckets.completed || 0
+  const refunded     = buckets.refunded || 0
+  const finalSale    = buckets.final_sale || 0
+  const other        = buckets.other || 0
+
+  // Return window close date (show if all expired items share one date)
+  const expiredItems = ineligibleItems.filter(i => i.returnStatus === "Passed the return window")
+  const expiredDates = new Set(expiredItems.map(i => formatReturnWindowClosedForItem(i, order) ?? ""))
+  const expiredDateStr = expiredDates.size === 1 ? [...expiredDates][0] : null
+
+  const fragments: string[] = []
+  if (requested > 0)
+    fragments.push(requested === 1 ? "1 return request is awaiting our review" : `${requested} return requests are awaiting our review`)
+  if (inProgress > 0)
+    fragments.push(inProgress === 1 ? "1 return is being processed" : `${inProgress} returns are being processed`)
+  if (declined > 0)
+    fragments.push(declined === 1 ? "1 return request was declined" : `${declined} return requests were declined`)
+  if (attempted > 0)
+    fragments.push(attempted === 1 ? "1 item had a failed delivery attempt — please rebook or collect before returning" : `${attempted} items had failed delivery attempts`)
+  if (ofd > 0)
+    fragments.push(ofd === 1 ? "1 item is out for delivery today and will be returnable once it arrives" : `${ofd} items are out for delivery today and will be returnable once they arrive`)
+  if (inTransit > 0)
+    fragments.push(inTransit === 1 ? "1 item is still on its way and will be returnable once delivered" : `${inTransit} items are still on their way and will be returnable once delivered`)
+  if (notShipped > 0)
+    fragments.push(notShipped === 1 ? "1 item hasn't been shipped yet" : `${notShipped} items haven't been shipped yet`)
+  if (expired > 0) {
+    const datePart = expiredDateStr ? ` — the window closed on ${expiredDateStr}` : ""
+    fragments.push(expired === 1 ? `1 item is past the 30-day return window${datePart}` : `${expired} items are past the 30-day return window${datePart}`)
+  }
+  if (completed > 0)
+    fragments.push(completed === 1 ? "1 item has already been returned" : `${completed} items have already been returned`)
+  if (refunded > 0)
+    fragments.push(refunded === 1 ? "1 item has already been refunded" : `${refunded} items have already been refunded`)
+  if (finalSale > 0)
+    fragments.push(finalSale === 1 ? "1 item was final sale and can't be returned" : `${finalSale} items were final sale and can't be returned`)
+  if (other > 0)
+    fragments.push(other === 1 ? "1 item isn't eligible for return" : `${other} items aren't eligible for return`)
+
+  let ineligibleStr = ""
+  if (fragments.length === 1) {
+    ineligibleStr = " " + cap(fragments[0]) + "."
+  } else if (fragments.length > 1) {
+    const joined = fragments.slice(0, -1).join(", ") + ", and " + fragments[fragments.length - 1]
+    ineligibleStr = " " + cap(joined) + "."
+  }
+
+  return intro + fulfillmentClause + eligibleClause + ineligibleStr
+}
+
 function CountBadge({
   value,
   variant = "brand",
@@ -1910,6 +2009,8 @@ function isGenericDeclineNote(note: string): boolean {
   const t = note.trim()
   if (!t || /^decline reason\.?$/i.test(t)) return true
   if (/^n\/?a$/i.test(t)) return true
+  // Catch repeated/concatenated "Decline reason" strings from Shopify
+  if (/^(decline\s*reason\.?\s*)+$/i.test(t)) return true
   // Short opaque notes (e.g. "tet") aren't useful as group headers.
   if (t.length < 12 && !/\s/.test(t) && !/[.!?]/.test(t)) return true
   return false
@@ -2243,20 +2344,21 @@ function getIneligibleCoarseLabel(status: ReturnStatus): string {
 
 function getReturnStatusIcon(status: ReturnStatus): { icon: React.ElementType; color: string; label: string } {
   const label = getIneligibleCoarseLabel(status)
+  const black = "text-foreground"
   switch (status) {
-    case "Return requested":    return { icon: Eye,          color: "text-violet-600", label }
-    case "Return in progress":  return { icon: RotateCcw,    color: "text-orange-600", label }
-    case "Returned":            return { icon: CheckCircle2, color: "text-teal-600",   label }
-    case "Return cancelled":    return { icon: XCircle,      color: "text-zinc-500",   label }
-    case "Return declined":     return { icon: CircleX,      color: "text-red-600",    label }
-    case "Refunded":            return { icon: BadgeCheck,   color: "text-green-600",  label }
-    case "Attempted delivery":  return { icon: Truck,        color: "text-rose-600",   label }
-    case "Out for delivery":    return { icon: Truck,        color: "text-indigo-600", label }
-    case "On its way":          return { icon: Package,      color: "text-indigo-600", label }
-    case "Cancelled":           return { icon: XCircle,      color: "text-rose-600",   label }
-    case "Passed the return window": return { icon: Lock,    color: "text-stone-600",  label }
-    case "Confirmed":           return { icon: Clock,        color: "text-slate-600",  label }
-    default:                    return { icon: HelpCircle,   color: "text-zinc-400",   label }
+    case "Return requested":         return { icon: Eye,          color: black, label }
+    case "Return in progress":       return { icon: RotateCcw,    color: black, label }
+    case "Returned":                 return { icon: CheckCircle2, color: black, label }
+    case "Return cancelled":         return { icon: XCircle,      color: black, label }
+    case "Return declined":          return { icon: CircleX,      color: black, label }
+    case "Refunded":                 return { icon: BadgeCheck,   color: black, label }
+    case "Attempted delivery":       return { icon: Truck,        color: black, label }
+    case "Out for delivery":         return { icon: Truck,        color: black, label }
+    case "On its way":               return { icon: Package,      color: black, label }
+    case "Cancelled":                return { icon: XCircle,      color: black, label }
+    case "Passed the return window": return { icon: Lock,         color: black, label }
+    case "Confirmed":                return { icon: Clock,        color: black, label }
+    default:                         return { icon: HelpCircle,   color: black, label }
   }
 }
 
@@ -2763,6 +2865,11 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
     [order, totalEligibleUnits, ineligibleItems]
   )
 
+  const narrativeParagraph = useMemo(
+    () => buildNarrativeParagraph(order, totalEligibleUnits, ineligibleItems),
+    [order, totalEligibleUnits, ineligibleItems]
+  )
+
   const matchesSearch = (item: LineItem) => {
     if (!searchQuery) return true
     const q = searchQuery.toLowerCase()
@@ -2934,27 +3041,9 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
         <div className="rounded-lg border border-accent-foreground/20 bg-gradient-to-b from-accent to-transparent to-60% px-4 py-3 text-accent-foreground">
           <div className="flex items-start gap-3">
             <Info className="size-4 mt-0.5 shrink-0" aria-hidden />
-            <div className="min-w-0 flex-1 space-y-1">
+            <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold tracking-tight">Order summary</p>
-              <p className="text-xs text-accent-foreground/60">{narrativeSummary.intro}</p>
-              {narrativeSummary.fulfillmentLine && (
-                <p className="text-xs text-accent-foreground/70">{narrativeSummary.fulfillmentLine}</p>
-              )}
-              {narrativeSummary.eligible > 0 && (
-                <p className="text-xs font-medium text-green-600">
-                  {narrativeSummary.eligible === 1
-                    ? "1 item is ready to return."
-                    : `${narrativeSummary.eligible} items are ready to return.`}
-                </p>
-              )}
-              {narrativeSummary.groups.map((g, i) => (
-                <p key={i} className="text-xs text-accent-foreground/70">
-                  <span className="font-semibold text-accent-foreground">
-                    {g.count === 1 ? "1 item" : `${g.count} items`}:
-                  </span>{" "}
-                  {g.message}
-                </p>
-              ))}
+              <p className="text-xs text-accent-foreground/70 mt-1 leading-relaxed">{narrativeParagraph}</p>
             </div>
           </div>
         </div>
