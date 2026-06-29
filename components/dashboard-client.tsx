@@ -500,6 +500,61 @@ function joinSummaryClauses(clauses: string[], max = 2): string {
   return `${parts[0]} · ${parts[1]}.`
 }
 
+function buildFullSummaryText(
+  order: Order,
+  totalEligibleUnits: number,
+  ineligibleItems: DisplayItem[],
+): string {
+  if (order.cancelledAt) return "This order was cancelled — returns are not available."
+
+  const buckets = ineligibleBucketCounts(ineligibleItems)
+  const declined          = order.processedItems.reduce(
+    (s, item) => s + item.declinedReturnEntries.reduce((a, e) => a + e.quantity, 0), 0,
+  )
+  const requested         = buckets.requested || 0
+  const inProgress        = buckets.in_progress || 0
+  const attempted         = buckets.attempted_delivery || 0
+  const outForDelivery    = buckets.out_for_delivery || 0
+  const inTransit         = buckets.in_transit || 0
+  const notYetShipped     = (buckets.not_shipped || 0) + (buckets.preparing || 0)
+  const windowExpired     = buckets.window || 0
+  const completed         = buckets.completed || 0
+  const refunded          = buckets.refunded || 0
+  const finalSale         = buckets.final_sale || 0
+  const other             = buckets.other || 0
+
+  const clauses: string[] = []
+  if (totalEligibleUnits > 0)
+    clauses.push(totalEligibleUnits === 1 ? "1 item ready to return" : `${totalEligibleUnits} items ready to return`)
+  if (declined > 0)
+    clauses.push(declined === 1 ? "1 declined return" : `${declined} declined returns`)
+  if (requested > 0)
+    clauses.push(requested === 1 ? "1 return awaiting review" : `${requested} returns awaiting review`)
+  if (inProgress > 0)
+    clauses.push(inProgress === 1 ? "1 return being processed" : `${inProgress} returns being processed`)
+  if (attempted > 0)
+    clauses.push(attempted === 1 ? "1 failed delivery attempt" : `${attempted} failed delivery attempts`)
+  if (outForDelivery > 0)
+    clauses.push(outForDelivery === 1 ? "1 item out for delivery" : `${outForDelivery} items out for delivery`)
+  if (inTransit > 0)
+    clauses.push(inTransit === 1 ? "1 item in transit" : `${inTransit} items in transit`)
+  if (notYetShipped > 0)
+    clauses.push(notYetShipped === 1 ? "1 item not yet shipped" : `${notYetShipped} items not yet shipped`)
+  if (windowExpired > 0)
+    clauses.push(windowExpired === 1 ? "1 item past the return window" : `${windowExpired} items past the return window`)
+  if (completed > 0)
+    clauses.push(completed === 1 ? "1 item already returned" : `${completed} items already returned`)
+  if (refunded > 0)
+    clauses.push(refunded === 1 ? "1 item already refunded" : `${refunded} items already refunded`)
+  if (finalSale > 0)
+    clauses.push(finalSale === 1 ? "1 final sale item" : `${finalSale} final sale items`)
+  if (other > 0)
+    clauses.push(other === 1 ? "1 item not eligible" : `${other} items not eligible`)
+
+  if (clauses.length === 0) return "Nothing to return right now."
+  return clauses.join(" · ") + "."
+}
+
 function CountBadge({
   value,
   variant = "brand",
@@ -2626,6 +2681,11 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
     [order, totalEligibleUnits, ineligibleItems]
   )
 
+  const fullOrderSummary = useMemo(
+    () => buildFullSummaryText(order, totalEligibleUnits, ineligibleItems),
+    [order, totalEligibleUnits, ineligibleItems]
+  )
+
   const matchesSearch = (item: LineItem) => {
     if (!searchQuery) return true
     const q = searchQuery.toLowerCase()
@@ -2794,13 +2854,13 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
         )}
 
         {/* ── Return eligibility summary alert ── */}
-        {!order.cancelledAt && orderSummary.text && (
+        {!order.cancelledAt && (
           <div className="rounded-lg border border-accent-foreground/20 bg-gradient-to-b from-accent to-transparent to-60% px-4 py-3 text-accent-foreground">
             <div className="flex items-start gap-3">
               <Info className="size-4 mt-0.5 shrink-0" aria-hidden />
               <div>
                 <p className="text-sm font-medium tracking-tight">Return eligibility</p>
-                <p className="text-xs text-accent-foreground/60 mt-0.5">{orderSummary.text}</p>
+                <p className="text-xs text-accent-foreground/60 mt-0.5">{fullOrderSummary}</p>
               </div>
             </div>
           </div>
