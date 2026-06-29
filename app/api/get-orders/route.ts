@@ -544,15 +544,25 @@ export async function GET(request: NextRequest) {
           ? Math.min(shopifySlotEligible, deliveredAvailable)
           : deliveredAvailable;
 
+        // returnableFulfillments (the Admin fallback used when the Customer Account
+        // API / returnInformation is unavailable — e.g. native self-serve returns
+        // disabled) is NOT window-aware. Enforce the return window ourselves so an
+        // item delivered more than RETURN_WINDOW_DAYS ago is never eligible,
+        // regardless of which returnable source produced ri.returnableItems.
+        const windowExpired = delivery.latestDeliveredAt
+          ? (now.getTime() - delivery.latestDeliveredAt.getTime()) / (1000 * 60 * 60 * 24) > RETURN_WINDOW_DAYS
+          : false;
+        const effectiveEligibleWindowed = windowExpired ? 0 : effectiveEligible;
+
         let returnStatus: string;
         let returnReason: string;
-        let effectiveEligibleQty = effectiveEligible;
+        let effectiveEligibleQty = effectiveEligibleWindowed;
 
         if (order.cancelledAt) {
           returnStatus = "Cancelled";
           returnReason = "This order was cancelled.";
 
-        } else if (effectiveEligible > 0) {
+        } else if (effectiveEligibleWindowed > 0) {
           returnStatus = "Eligible";
           returnReason = "";
 
