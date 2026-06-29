@@ -30,9 +30,9 @@ import { cn } from "@/lib/utils"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type ReturnStatus =
-  | "Eligible" | "Not yet dispatched" | "Confirmed" | "On its way"
-  | "Passed the return window" | "Returned" | "Refunded" | "Refund pending"
-  | "Return requested" | "Return in progress" | "Return completed"
+  | "Eligible" | "Confirmed" | "On its way" | "Out for delivery" | "Attempted delivery"
+  | "Passed the return window" | "Returned" | "Refunded"
+  | "Return requested" | "Return in progress"
   | "Return declined" | "Return cancelled" | "Cancelled"
   | "Final sale" | "Not eligible"
 
@@ -56,7 +56,7 @@ interface Order {
   totalRefundedSet?: { shopMoney: { amount: string } } | null
   processedItems: LineItem[]
   orderStatus: string; totalUnits: number
-  deliveredCount: number; dispatchedCount: number; confirmedCount: number; notDispatchedCount: number
+  deliveredCount: number; dispatchedCount: number; outForDeliveryCount: number; attemptedDeliveryCount: number; confirmedCount: number; notDispatchedCount: number
   earliestDelivery?: string | null; latestDelivery?: string | null
   eligibilitySource?: "shopify" | "shopify-admin" | "fallback"
 }
@@ -105,7 +105,9 @@ function orderGlowClass(order: Order): string {
     case "Delivered":            return "hover:border-green-300 hover:shadow-[0_0_0_3px_rgba(34,197,94,0.1),0_2px_10px_rgba(34,197,94,0.08)]"
     case "Partially delivered":  return "hover:border-amber-300 hover:shadow-[0_0_0_3px_rgba(245,158,11,0.1),0_2px_10px_rgba(245,158,11,0.08)]"
     case "On its way":
-    case "Partially dispatched": return "hover:border-blue-300 hover:shadow-[0_0_0_3px_rgba(59,130,246,0.1),0_2px_10px_rgba(59,130,246,0.08)]"
+    case "Partially dispatched":
+    case "Out for delivery":     return "hover:border-blue-300 hover:shadow-[0_0_0_3px_rgba(59,130,246,0.1),0_2px_10px_rgba(59,130,246,0.08)]"
+    case "Attempted delivery":   return "hover:border-rose-300 hover:shadow-[0_0_0_3px_rgba(244,63,94,0.1),0_2px_10px_rgba(244,63,94,0.08)]"
     case "Confirmed":            return "hover:border-zinc-400 hover:shadow-[0_0_0_3px_rgba(161,161,170,0.15),0_2px_10px_rgba(161,161,170,0.1)]"
     default:                     return "hover:border-zinc-300 hover:shadow-sm"
   }
@@ -113,9 +115,11 @@ function orderGlowClass(order: Order): string {
 
 function getOrderFulfillmentBreakdown(order: Order): string | null {
   if (order.cancelledAt) return null
-  const { deliveredCount, dispatchedCount, confirmedCount, notDispatchedCount } = order
+  const { deliveredCount, dispatchedCount, outForDeliveryCount, attemptedDeliveryCount, confirmedCount, notDispatchedCount } = order
   const parts: string[] = []
   if (deliveredCount > 0) parts.push(`${deliveredCount} delivered`)
+  if (attemptedDeliveryCount > 0) parts.push(`${attemptedDeliveryCount} attempted delivery`)
+  if (outForDeliveryCount > 0) parts.push(`${outForDeliveryCount} out for delivery`)
   if (dispatchedCount > 0) parts.push(`${dispatchedCount} on its way`)
   const notYet = confirmedCount + notDispatchedCount
   if (notYet > 0) parts.push(`${notYet} not yet shipped`)
@@ -145,13 +149,13 @@ function getIneligibleGroupKey(item: LineItem): string {
 
 function getIneligibleGroupMessage(item: LineItem): string {
   switch (item.returnStatus) {
-    case "Not yet dispatched":
-    case "Confirmed":       return "These items haven't shipped yet. Your return window starts on delivery."
-    case "On its way":      return "These items are on their way. Your return window starts on delivery."
+    case "Confirmed":            return "These items haven't shipped yet. Your return window starts on delivery."
+    case "On its way":           return "These items are on their way. Your return window starts on delivery."
+    case "Out for delivery":     return "These items are out for delivery today. Your return window starts on delivery."
+    case "Attempted delivery":   return "A delivery attempt was made. Please rebook or collect — your return window starts once delivered."
     case "Passed the return window": return "The return window has expired for these items."
     case "Return requested":         return "We've received your return request."
     case "Return in progress":       return "Your return is in progress."
-    case "Return completed":
     case "Returned":                 return "These items have already been returned."
     case "Refunded":                 return "These items have already been refunded."
     case "Return declined":          return resolveDeclineMessage(item.returnReason || "Your return request was declined.")
@@ -166,15 +170,15 @@ function getReturnStatusIcon(status: ReturnStatus): { icon: React.ElementType; c
   switch (status) {
     case "Return requested":   return { icon: Eye,          color: "text-violet-600" }
     case "Return in progress": return { icon: RotateCcw,    color: "text-orange-600" }
-    case "Return completed":
     case "Returned":           return { icon: CheckCircle2, color: "text-teal-600"   }
     case "Return cancelled":   return { icon: XCircle,      color: "text-zinc-500"   }
     case "Return declined":    return { icon: CircleX,      color: "text-red-600"    }
     case "Refunded":           return { icon: BadgeCheck,   color: "text-green-600"  }
+    case "Attempted delivery": return { icon: Truck,        color: "text-rose-600"   }
+    case "Out for delivery":   return { icon: Truck,        color: "text-indigo-600" }
     case "On its way":         return { icon: Package,      color: "text-indigo-600" }
     case "Cancelled":          return { icon: XCircle,      color: "text-rose-600"   }
     case "Passed the return window": return { icon: Lock,   color: "text-stone-600"  }
-    case "Not yet dispatched":
     case "Confirmed":          return { icon: Clock,        color: "text-slate-600"  }
     default:                   return { icon: Lock,         color: "text-zinc-400"   }
   }

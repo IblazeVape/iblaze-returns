@@ -34,9 +34,9 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } f
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type ReturnStatus =
-  | "Eligible" | "Not yet dispatched" | "Confirmed" | "On its way"
-  | "Passed the return window" | "Returned" | "Refunded" | "Refund pending"
-  | "Return requested" | "Return in progress" | "Return completed"
+  | "Eligible" | "Confirmed" | "On its way" | "Out for delivery" | "Attempted delivery"
+  | "Passed the return window" | "Returned" | "Refunded"
+  | "Return requested" | "Return in progress"
   | "Return declined" | "Return cancelled" | "Cancelled"
   | "Final sale" | "Not eligible"
 
@@ -52,6 +52,8 @@ interface LineItem {
   declinedReturnQuantity: number
   declinedReturnEntries: { quantity: number; message: string; declineReason?: string }[]
   inTransitQuantity?: number
+  outForDeliveryQuantity?: number
+  attemptedDeliveryQuantity?: number
   pendingQuantity?: number
   unitPrice?: number | null
   returnStatus: ReturnStatus
@@ -88,6 +90,8 @@ interface Order {
   orderStatus: string
   deliveredCount: number
   dispatchedCount: number
+  outForDeliveryCount: number
+  attemptedDeliveryCount: number
   confirmedCount: number
   notDispatchedCount: number
   totalUnits: number
@@ -229,7 +233,6 @@ function ineligibleBucketCounts(ineligibleItems: DisplayItem[]): Record<string, 
       case "Return in progress":
         add("in_progress", q)
         break
-      case "Return completed":
       case "Returned":
         add("completed", q)
         break
@@ -248,7 +251,12 @@ function ineligibleBucketCounts(ineligibleItems: DisplayItem[]): Record<string, 
       case "On its way":
         add("in_transit", q)
         break
-      case "Not yet dispatched":
+      case "Out for delivery":
+        add("out_for_delivery", q)
+        break
+      case "Attempted delivery":
+        add("attempted_delivery", q)
+        break
       case "Confirmed":
         if (reason.includes("preparing")) add("preparing", q)
         else add("not_shipped", q)
@@ -269,7 +277,7 @@ const ALREADY_RETURNED_MESSAGE = "These items have already been returned."
 const ALREADY_REFUNDED_MESSAGE = "These items have already been refunded."
 
 function isAlreadyReturnedStatus(status: ReturnStatus): boolean {
-  return status === "Return completed" || status === "Returned"
+  return status === "Returned"
 }
 
 function statusFiltersMatch(a: string[], b: string[]): boolean {
@@ -320,14 +328,16 @@ function computeHeaderStatBlocks(
     { id: "requested", count: buckets.requested || 0, caption: "requested", textColor: "text-violet-600", statusFilter: ["Return requested"], title: "Return awaiting review" },
     { id: "declined", count: buckets.declined || 0, caption: "declined", textColor: "text-[#E5403B]", statusFilter: ["Return declined"], title: "Return declined" },
     { id: "in_transit", count: buckets.in_transit || 0, caption: "awaiting", textColor: "text-blue-600", statusFilter: ["On its way"], title: "Awaiting delivery — returnable once delivered" },
-    { id: "not_shipped", count: (buckets.not_shipped || 0) + (buckets.preparing || 0), caption: "not shipped", textColor: "text-zinc-600", statusFilter: ["Not yet dispatched", "Confirmed"], title: "Not dispatched yet" },
+    { id: "attempted", count: buckets.attempted_delivery || 0, caption: "attempted", textColor: "text-rose-600", statusFilter: ["Attempted delivery"], title: "Delivery attempted — action may be needed" },
+    { id: "out_for_delivery", count: buckets.out_for_delivery || 0, caption: "out for delivery", textColor: "text-blue-600", statusFilter: ["Out for delivery"], title: "Out for delivery today" },
+    { id: "not_shipped", count: (buckets.not_shipped || 0) + (buckets.preparing || 0), caption: "not shipped", textColor: "text-zinc-600", statusFilter: ["Confirmed"], title: "Not dispatched yet" },
     { id: "window", count: buckets.window || 0, caption: "expired", textColor: "text-zinc-500", statusFilter: ["Passed the return window"], title: "Past return window" },
     {
       id: "returned",
       count: buckets.completed || 0,
       caption: "returned",
       textColor: "text-teal-600",
-      statusFilter: ["Return completed", "Returned"],
+      statusFilter: ["Returned"],
       title: "Returned",
     },
     {
@@ -517,7 +527,9 @@ function getOrderStatusSegment(order: Order): { text: string; label: string } | 
     "Delivered":            ["text-green-700",  "Delivered"],
     "Partially delivered":  ["text-amber-700",  "Partially delivered"],
     "On its way":           ["text-blue-700",   "On its way"],
-    "Partially dispatched": ["text-blue-700",   "On its way"],
+    "Partially dispatched": ["text-blue-700",   "Partially dispatched"],
+    "Out for delivery":     ["text-indigo-700", "Out for delivery"],
+    "Attempted delivery":   ["text-rose-700",   "Attempted delivery"],
     "Confirmed":            ["text-zinc-600",   "Confirmed"],
   }
   const [text, label] = map[orderStatus] || ["text-zinc-600", orderStatus]
@@ -529,17 +541,21 @@ function getOrderFulfillmentHeadline(order: Order): string {
   switch (order.orderStatus) {
     case "Delivered":            return "Delivered"
     case "Partially delivered":  return "Partially delivered"
-    case "On its way":
-    case "Partially dispatched": return "On its way"
+    case "On its way":           return "On its way"
+    case "Partially dispatched": return "Partially dispatched"
+    case "Out for delivery":     return "Out for delivery"
+    case "Attempted delivery":   return "Attempted delivery"
     case "Confirmed":            return "Confirmed"
     default:                     return order.orderStatus
   }
 }
 
 function buildOrderFulfillmentBreakdownParts(order: Order): string[] {
-  const { deliveredCount, dispatchedCount, confirmedCount, notDispatchedCount } = order
+  const { deliveredCount, dispatchedCount, outForDeliveryCount, attemptedDeliveryCount, confirmedCount, notDispatchedCount } = order
   const parts: string[] = []
   if (deliveredCount > 0) parts.push(`${deliveredCount} delivered`)
+  if (attemptedDeliveryCount > 0) parts.push(`${attemptedDeliveryCount} attempted delivery`)
+  if (outForDeliveryCount > 0) parts.push(`${outForDeliveryCount} out for delivery`)
   if (dispatchedCount > 0) parts.push(`${dispatchedCount} on its way`)
   const notYetShipped = confirmedCount + notDispatchedCount
   if (notYetShipped > 0) parts.push(`${notYetShipped} not yet shipped`)
@@ -1174,10 +1190,12 @@ function StatusPill({ order }: { order: Order }) {
   const seg = getOrderStatusSegment(order)
   if (!seg) return null
   const borders: Record<string, string> = {
-    "text-green-700": "border-green-200",
-    "text-amber-700": "border-amber-200",
-    "text-blue-700":  "border-blue-200",
-    "text-zinc-600":  "border-zinc-200",
+    "text-green-700":  "border-green-200",
+    "text-amber-700":  "border-amber-200",
+    "text-blue-700":   "border-blue-200",
+    "text-indigo-700": "border-indigo-200",
+    "text-rose-700":   "border-rose-200",
+    "text-zinc-600":   "border-zinc-200",
   }
   return (
     <span className={cn("inline-flex items-center text-xs font-medium border px-2.5 py-1 rounded-full shrink-0 bg-card", seg.text, borders[seg.text] || "border-zinc-200")}>
@@ -1191,7 +1209,9 @@ function getStatusIcon(orderStatus: string): LucideIcon {
     case "Delivered":            return CheckCircle2
     case "Partially delivered":  return Package
     case "On its way":
-    case "Partially dispatched": return Truck
+    case "Partially dispatched":
+    case "Out for delivery":
+    case "Attempted delivery":   return Truck
     default:                     return Clock
   }
 }
@@ -1726,13 +1746,15 @@ function OrderStatusBadges({ order, deliveryDate }: { order: Order; deliveryDate
       case "Delivered":            return <span className="text-xs text-green-600">{headline}</span>
       case "Partially delivered":  return <span className="text-xs text-amber-600">{headline}</span>
       case "On its way":
-      case "Partially dispatched": return <span className="text-xs text-blue-600">{headline}</span>
+      case "Partially dispatched":
+      case "Out for delivery":     return <span className="text-xs text-blue-600">{headline}</span>
+      case "Attempted delivery":   return <span className="text-xs text-rose-600">{headline}</span>
       case "Confirmed":            return <span className="text-xs text-muted-foreground">{headline}</span>
       default:                     return <span className="text-xs text-muted-foreground">{headline}</span>
     }
   })()
 
-  const showStats = totalUnits > 0 && orderStatus !== "Delivered" && orderStatus !== "Confirmed" && orderStatus !== "Cancelled"
+  const showStats = totalUnits > 0 && orderStatus !== "Delivered" && orderStatus !== "Confirmed" && orderStatus !== "Cancelled" && orderStatus !== "Attempted delivery" && orderStatus !== "Out for delivery"
 
   return (
     <div className="flex flex-col gap-1">
@@ -1867,9 +1889,32 @@ function buildIneligibleDisplayItems(order: Order): DisplayItem[] {
     }
 
     if (isPartiallyEligible && remaining > 0) {
+      const attemptedQty = item.attemptedDeliveryQuantity ?? 0
+      const attemptedSplitQty = take(Math.min(remaining, attemptedQty))
+      if (attemptedSplitQty > 0) {
+        result.push({
+          ...item,
+          returnStatus: "Attempted delivery",
+          returnReason: "A delivery attempt was made. Please rebook or collect your parcel — your return window starts once it's delivered.",
+          splitQty: attemptedSplitQty,
+          splitKey: `${item.id}-remainder-attempted`,
+        })
+      }
+
+      const ofdQty = item.outForDeliveryQuantity ?? 0
+      const ofdSplitQty = take(Math.min(remaining, ofdQty))
+      if (ofdSplitQty > 0) {
+        result.push({
+          ...item,
+          returnStatus: "Out for delivery",
+          returnReason: "Your parcel is out for delivery today. Your return window starts once it's delivered.",
+          splitQty: ofdSplitQty,
+          splitKey: `${item.id}-remainder-ofd`,
+        })
+      }
+
       const inTransitQty = item.inTransitQuantity ?? 0
       const inTransitSplitQty = take(Math.min(remaining, inTransitQty))
-
       if (inTransitSplitQty > 0) {
         result.push({
           ...item,
@@ -1882,7 +1927,7 @@ function buildIneligibleDisplayItems(order: Order): DisplayItem[] {
       if (remaining > 0) {
         result.push({
           ...item,
-          returnStatus: "Not yet dispatched",
+          returnStatus: "Confirmed",
           returnReason: item.pendingQuantity && item.pendingQuantity > 0
             ? "This item hasn't been dispatched yet — check back once it ships."
             : "This item is not eligible for return.",
@@ -2002,13 +2047,12 @@ const INELIGIBLE_STATUS_ORDER: Partial<Record<ReturnStatus, number>> = {
   "Return requested": 0,
   "Return in progress": 1,
   "Return declined": 2,
-  "Return completed": 3,
   "Returned": 3,
   "Return cancelled": 4,
-  "Refund pending": 5,
-  "Refunded": 6,
-  "On its way": 7,
-  "Not yet dispatched": 8,
+  "Refunded": 5,
+  "Attempted delivery": 6,
+  "Out for delivery": 7,
+  "On its way": 8,
   "Confirmed": 9,
   "Passed the return window": 10,
   "Cancelled": 12,
@@ -2044,15 +2088,16 @@ function getIneligibleCoarseLabel(status: ReturnStatus): string {
       return "Return in progress"
     case "Return declined":
       return "Return declined"
-    case "Not yet dispatched":
     case "Confirmed":
       return "Not yet delivered"
+    case "Attempted delivery":
+      return "Attempted delivery"
+    case "Out for delivery":
+      return "Out for delivery"
     case "On its way":
       return "In transit"
     case "Passed the return window":
       return "Outside return window"
-    case "Refund pending":
-      return "Refund pending"
     case "Return cancelled":
     case "Cancelled":
     case "Final sale":
@@ -2068,16 +2113,15 @@ function getReturnStatusIcon(status: ReturnStatus): { icon: React.ElementType; c
   switch (status) {
     case "Return requested":    return { icon: Eye,          color: "text-violet-600", label }
     case "Return in progress":  return { icon: RotateCcw,    color: "text-orange-600", label }
-    case "Return completed":
     case "Returned":            return { icon: CheckCircle2, color: "text-teal-600",   label }
     case "Return cancelled":    return { icon: XCircle,      color: "text-zinc-500",   label }
     case "Return declined":     return { icon: CircleX,      color: "text-red-600",    label }
-    case "Refund pending":      return { icon: Clock,        color: "text-amber-600",  label }
     case "Refunded":            return { icon: BadgeCheck,   color: "text-green-600",  label }
+    case "Attempted delivery":  return { icon: Truck,        color: "text-rose-600",   label }
+    case "Out for delivery":    return { icon: Truck,        color: "text-indigo-600", label }
     case "On its way":          return { icon: Package,      color: "text-indigo-600", label }
     case "Cancelled":           return { icon: XCircle,      color: "text-rose-600",   label }
-    case "Passed the return window": return { icon: Lock,     color: "text-stone-600",  label }
-    case "Not yet dispatched":
+    case "Passed the return window": return { icon: Lock,    color: "text-stone-600",  label }
     case "Confirmed":           return { icon: Clock,        color: "text-slate-600",  label }
     default:                    return { icon: HelpCircle,   color: "text-zinc-400",   label }
   }
@@ -2086,11 +2130,14 @@ function getReturnStatusIcon(status: ReturnStatus): { icon: React.ElementType; c
 /** One customer-facing sentence per group — Sidekick-approved copy, no redundant label + sub-line. */
 function getIneligibleGroupMessage(item: LineItem, order: Order, groupItems?: LineItem[]): string {
   switch (item.returnStatus) {
-    case "Not yet dispatched":
     case "Confirmed":
       return "These items haven't shipped yet. Your return window starts on delivery and closes 30 days later."
     case "On its way":
       return "These items are on their way. Your return window starts on delivery and closes 30 days later."
+    case "Out for delivery":
+      return "These items are out for delivery today. Your return window starts on delivery and closes 30 days later."
+    case "Attempted delivery":
+      return "A delivery attempt was made for these items. Please rebook or collect — your return window starts once delivered."
     case "Passed the return window": {
       const closed = formatReturnWindowClosedForItem(item, order, groupItems)
       return closed
@@ -2101,7 +2148,6 @@ function getIneligibleGroupMessage(item: LineItem, order: Order, groupItems?: Li
       return "We've received your return request."
     case "Return in progress":
       return "Your return is in progress."
-    case "Return completed":
     case "Returned":
       return ALREADY_RETURNED_MESSAGE
     case "Refunded":
@@ -2110,8 +2156,6 @@ function getIneligibleGroupMessage(item: LineItem, order: Order, groupItems?: Li
       return resolveDeclineMessage(item.returnReason || "Your return request was declined.")
     case "Return cancelled":
       return "This return request was cancelled."
-    case "Refund pending":
-      return "Your refund is being processed."
     case "Cancelled":
       return "These items were cancelled."
     case "Final sale":

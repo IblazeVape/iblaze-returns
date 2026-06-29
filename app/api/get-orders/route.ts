@@ -411,6 +411,8 @@ export async function GET(request: NextRequest) {
       type LineDelivery = {
         deliveredQty: number;
         inTransitQty: number;
+        outForDeliveryQty: number;
+        attemptedDeliveryQty: number;
         confirmedQty: number;
         latestDeliveredAt: Date | null;
       };
@@ -424,7 +426,9 @@ export async function GET(request: NextRequest) {
         const s = f.displayStatus;
         const isDelivered = s === "DELIVERED";
         const isConfirmed = s === "CONFIRMED" || s === "SUBMITTED" || s === "LABEL_PURCHASED" || s === "LABEL_PRINTED";
-        const inTransit = s === "IN_TRANSIT" || s === "OUT_FOR_DELIVERY" || s === "ATTEMPTED_DELIVERY" || s === "READY_FOR_PICKUP" || s === "PICKED_UP" || s === "FULFILLED" || s === "MARKED_AS_FULFILLED";
+        const outForDelivery = s === "OUT_FOR_DELIVERY";
+        const attemptedDelivery = s === "ATTEMPTED_DELIVERY";
+        const inTransit = s === "IN_TRANSIT" || s === "READY_FOR_PICKUP" || s === "PICKED_UP" || s === "FULFILLED" || s === "MARKED_AS_FULFILLED";
 
         let dDate: Date | null = null;
         if (isDelivered) {
@@ -439,14 +443,18 @@ export async function GET(request: NextRequest) {
           const qty = edge.node.quantity;
           
           if (!lineItemDelivery[liId]) {
-            lineItemDelivery[liId] = { deliveredQty: 0, inTransitQty: 0, confirmedQty: 0, latestDeliveredAt: null };
+            lineItemDelivery[liId] = { deliveredQty: 0, inTransitQty: 0, outForDeliveryQty: 0, attemptedDeliveryQty: 0, confirmedQty: 0, latestDeliveredAt: null };
           }
-          
+
           if (isDelivered) {
             lineItemDelivery[liId].deliveredQty += qty;
             if (!lineItemDelivery[liId].latestDeliveredAt || (dDate && dDate > lineItemDelivery[liId].latestDeliveredAt!)) {
               lineItemDelivery[liId].latestDeliveredAt = dDate;
             }
+          } else if (outForDelivery) {
+            lineItemDelivery[liId].outForDeliveryQty += qty;
+          } else if (attemptedDelivery) {
+            lineItemDelivery[liId].attemptedDeliveryQty += qty;
           } else if (inTransit) {
             lineItemDelivery[liId].inTransitQty += qty;
           } else if (isConfirmed) {
@@ -459,17 +467,21 @@ export async function GET(request: NextRequest) {
       const now = new Date();
       let totalUnits = 0;
       let deliveredCount = 0;
-      let dispatchedCount = 0;  
-      let confirmedCount = 0;   
+      let dispatchedCount = 0;
+      let outForDeliveryCount = 0;
+      let attemptedDeliveryCount = 0;
+      let confirmedCount = 0;
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const items = order.lineItems.edges.map(({ node: item }: any) => {
         totalUnits += item.quantity;
-        const delivery = lineItemDelivery[item.id] || { deliveredQty: 0, inTransitQty: 0, confirmedQty: 0, latestDeliveredAt: null };
+        const delivery = lineItemDelivery[item.id] || { deliveredQty: 0, inTransitQty: 0, outForDeliveryQty: 0, attemptedDeliveryQty: 0, confirmedQty: 0, latestDeliveredAt: null };
         const bestReturn = itemReturnStatus[item.id];
 
         deliveredCount += delivery.deliveredQty;
         dispatchedCount += delivery.inTransitQty;
+        outForDeliveryCount += delivery.outForDeliveryQty;
+        attemptedDeliveryCount += delivery.attemptedDeliveryQty;
         confirmedCount += delivery.confirmedQty;
 
         const refQty          = directRefundQtyByLine[item.id] || 0;
@@ -505,15 +517,20 @@ export async function GET(request: NextRequest) {
           returnStatus = "Eligible";
           returnReason = "";
 
+        } else if (shopifySlotEligible > 0 && delivery.attemptedDeliveryQty > 0) {
+          returnStatus = "Attempted delivery";
+          returnReason = "A delivery attempt was made. Please rebook or collect your parcel — your return window starts once it's delivered.";
+        } else if (shopifySlotEligible > 0 && delivery.outForDeliveryQty > 0) {
+          returnStatus = "Out for delivery";
+          returnReason = "Your parcel is out for delivery today. Your return window starts once it's delivered.";
         } else if (shopifySlotEligible > 0 && delivery.inTransitQty > 0) {
-          // Shopify says returnable, but we wait for delivery before the customer can request
           returnStatus = "On its way";
           returnReason = "Your parcel is on its way. Your return window starts once it's delivered.";
 
         } else if (bestReturn && Math.max(0, item.quantity - reservedQty) <= 0) {
           // ── Priority 2: Return record covers all units ─────────────────────
           const statusMap: Record<string, string> = {
-            REQUESTED: "Return requested", OPEN: "Return in progress", CLOSED: "Return completed", DECLINED: "Return declined", CANCELED: "Return cancelled — please contact us",
+            REQUESTED: "Return requested", OPEN: "Return in progress", CLOSED: "Returned", DECLINED: "Return declined", CANCELED: "Return cancelled — please contact us",
           };
           returnStatus = statusMap[bestReturn.status] || "Return in progress";
           if (bestReturn.status === "DECLINED") {
@@ -549,7 +566,7 @@ export async function GET(request: NextRequest) {
             }
 
             if (reasonCodes.includes("UNFULFILLED")) {
-              // Not yet dispatched/delivered — delivery state takes precedence
+              // Item confirmed as unfulfilled — delivery state takes precedence
               const undelivered = statusFromUndeliveredDelivery(delivery);
               returnStatus = undelivered.returnStatus;
               returnReason = undelivered.returnReason;
@@ -578,11 +595,17 @@ export async function GET(request: NextRequest) {
             }
           } else {
             // Not in either Shopify list — fall back to delivery state
-            if (delivery.inTransitQty > 0) {
+            if (delivery.attemptedDeliveryQty > 0) {
+              returnStatus = "Attempted delivery";
+              returnReason = "A delivery attempt was made. Please rebook or collect your parcel — your return window starts once it's delivered.";
+            } else if (delivery.outForDeliveryQty > 0) {
+              returnStatus = "Out for delivery";
+              returnReason = "Your parcel is out for delivery today. Your return window starts once it's delivered.";
+            } else if (delivery.inTransitQty > 0) {
               returnStatus = "On its way";
               returnReason = "Your parcel is on its way. Your return window starts once it's delivered.";
             } else {
-              returnStatus = "Not yet dispatched";
+              returnStatus = "Confirmed";
               returnReason = delivery.confirmedQty > 0
                 ? "We're preparing your items for shipping."
                 : "This item hasn't been dispatched yet — check back once it ships.";
@@ -593,7 +616,7 @@ export async function GET(request: NextRequest) {
           // ── Priority 4: Manual fallback (Customer Account API unavailable) ─
           if (bestReturn) {
             const statusMap: Record<string, string> = {
-              REQUESTED: "Return requested", OPEN: "Return in progress", CLOSED: "Return completed", DECLINED: "Return declined", CANCELED: "Return cancelled — please contact us",
+              REQUESTED: "Return requested", OPEN: "Return in progress", CLOSED: "Returned", DECLINED: "Return declined", CANCELED: "Return cancelled — please contact us",
             };
             returnStatus = statusMap[bestReturn.status] || "Return in progress";
             returnReason = "You have an active or completed return for this item.";
@@ -615,11 +638,17 @@ export async function GET(request: NextRequest) {
               returnReason = "";
             }
           } else {
-            if (delivery.inTransitQty > 0) {
+            if (delivery.attemptedDeliveryQty > 0) {
+              returnStatus = "Attempted delivery";
+              returnReason = "A delivery attempt was made. Please rebook or collect your parcel — your return window starts once it's delivered.";
+            } else if (delivery.outForDeliveryQty > 0) {
+              returnStatus = "Out for delivery";
+              returnReason = "Your parcel is out for delivery today. Your return window starts once it's delivered.";
+            } else if (delivery.inTransitQty > 0) {
               returnStatus = "On its way";
               returnReason = "Your parcel is on its way. Your return window starts once it's delivered.";
             } else {
-              returnStatus = "Not yet dispatched";
+              returnStatus = "Confirmed";
               returnReason = delivery.confirmedQty > 0
                 ? "We're preparing your items for shipping."
                 : "This item hasn't been dispatched yet — check back once it ships.";
@@ -641,7 +670,9 @@ export async function GET(request: NextRequest) {
           declinedReturnQuantity: declinedQty,
           declinedReturnEntries: declinedEntries,
           inTransitQuantity: delivery.inTransitQty,
-          pendingQuantity: Math.max(0, item.quantity - delivery.deliveredQty - delivery.inTransitQty - delivery.confirmedQty),
+          outForDeliveryQuantity: delivery.outForDeliveryQty,
+          attemptedDeliveryQuantity: delivery.attemptedDeliveryQty,
+          pendingQuantity: Math.max(0, item.quantity - delivery.deliveredQty - delivery.inTransitQty - delivery.outForDeliveryQty - delivery.attemptedDeliveryQty - delivery.confirmedQty),
           returnStatus,
           returnReason,
           lineDeliveredAt: delivery.latestDeliveredAt
@@ -650,8 +681,9 @@ export async function GET(request: NextRequest) {
         };
       });
 
-      const notDispatchedCount = Math.max(0, totalUnits - deliveredCount - dispatchedCount - confirmedCount);
+      const notDispatchedCount = Math.max(0, totalUnits - deliveredCount - dispatchedCount - outForDeliveryCount - attemptedDeliveryCount - confirmedCount);
 
+      const totalInTransit = dispatchedCount + outForDeliveryCount + attemptedDeliveryCount;
       let orderStatus: string;
       if (order.cancelledAt) {
         orderStatus = "Cancelled";
@@ -659,12 +691,14 @@ export async function GET(request: NextRequest) {
         orderStatus = "Delivered";
       } else if (deliveredCount > 0) {
         orderStatus = "Partially delivered";
-      } else if (dispatchedCount > 0 && (dispatchedCount + confirmedCount + deliveredCount) === totalUnits) {
+      } else if (attemptedDeliveryCount > 0) {
+        orderStatus = attemptedDeliveryCount === totalUnits ? "Attempted delivery" : "Partially dispatched";
+      } else if (outForDeliveryCount > 0 && outForDeliveryCount === totalUnits) {
+        orderStatus = "Out for delivery";
+      } else if (totalInTransit > 0 && totalInTransit === totalUnits) {
         orderStatus = "On its way";
-      } else if (dispatchedCount > 0) {
+      } else if (totalInTransit > 0) {
         orderStatus = "Partially dispatched";
-      } else if (confirmedCount > 0) {
-        orderStatus = "Confirmed";
       } else {
         orderStatus = "Confirmed";
       }
@@ -677,6 +711,8 @@ export async function GET(request: NextRequest) {
         eligibilitySource,
         deliveredCount,
         dispatchedCount,
+        outForDeliveryCount,
+        attemptedDeliveryCount,
         confirmedCount,
         notDispatchedCount,
         totalUnits,
@@ -745,8 +781,22 @@ const RETURN_WINDOW_DAYS = 30;
 
 function statusFromUndeliveredDelivery(delivery: {
   inTransitQty: number;
+  outForDeliveryQty: number;
+  attemptedDeliveryQty: number;
   confirmedQty: number;
 }): { returnStatus: string; returnReason: string } {
+  if (delivery.attemptedDeliveryQty > 0) {
+    return {
+      returnStatus: "Attempted delivery",
+      returnReason: "A delivery attempt was made. Please rebook or collect your parcel — your return window starts once it's delivered.",
+    };
+  }
+  if (delivery.outForDeliveryQty > 0) {
+    return {
+      returnStatus: "Out for delivery",
+      returnReason: "Your parcel is out for delivery today. Your return window starts once it's delivered.",
+    };
+  }
   if (delivery.inTransitQty > 0) {
     return {
       returnStatus: "On its way",
@@ -755,12 +805,12 @@ function statusFromUndeliveredDelivery(delivery: {
   }
   if (delivery.confirmedQty > 0) {
     return {
-      returnStatus: "Not yet dispatched",
+      returnStatus: "Confirmed",
       returnReason: "We're preparing your items for shipping.",
     };
   }
   return {
-    returnStatus: "Not yet dispatched",
+    returnStatus: "Confirmed",
     returnReason: "This item hasn't been dispatched yet — check back once it ships.",
   };
 }

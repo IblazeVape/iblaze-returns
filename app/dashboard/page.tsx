@@ -34,9 +34,9 @@ import { cn } from "@/lib/utils"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type ReturnStatus =
-  | "Eligible" | "Not yet dispatched" | "Confirmed" | "On its way"
+  | "Eligible" | "Confirmed" | "On its way" | "Out for delivery" | "Attempted delivery"
   | "Passed the return window" | "Returned" | "Refunded"
-  | "Return requested" | "Return in progress" | "Return completed"
+  | "Return requested" | "Return in progress"
   | "Return declined" | "Return cancelled" | "Cancelled"
 
 interface LineItem {
@@ -57,7 +57,7 @@ interface Order {
   totalPriceSet: { shopMoney: { amount: string; currencyCode: string } }
   totalRefundedSet?: { shopMoney: { amount: string } } | null
   processedItems: LineItem[]; shipments: Shipment[]; orderStatus: string
-  deliveredCount: number; dispatchedCount: number; confirmedCount: number
+  deliveredCount: number; dispatchedCount: number; outForDeliveryCount: number; attemptedDeliveryCount: number; confirmedCount: number
   notDispatchedCount: number; totalUnits: number
   earliestDelivery?: string | null; latestDelivery?: string | null
 }
@@ -82,7 +82,9 @@ function orderStatusBorderColor(order: Order): string {
     case "Delivered":            return "#22c55e"   // green-500
     case "Partially delivered":  return "#fb923c"   // amber-400 (orange-ish)
     case "On its way":
-    case "Partially dispatched": return "#60a5fa"   // blue-400
+    case "Partially dispatched":
+    case "Out for delivery":     return "#60a5fa"   // blue-400
+    case "Attempted delivery":   return "#fb7185"   // rose-400
     case "Confirmed":            return "#a1a1aa"   // zinc-400
     default:                     return "#a1a1aa"
   }
@@ -97,6 +99,8 @@ function OrderStatusBadge({ order }: { order: Order }) {
     case "Partially delivered":  return <Badge className="bg-amber-50 text-amber-700 hover:bg-amber-50 border border-amber-200 rounded-full text-xs font-medium inline-flex items-center gap-1"><Truck className="size-3"/>Partially delivered</Badge>
     case "On its way":           return <Badge className="bg-blue-50 text-blue-700 hover:bg-blue-50 border border-blue-200 rounded-full text-xs font-medium inline-flex items-center gap-1"><Truck className="size-3"/>On its way</Badge>
     case "Partially dispatched": return <Badge className="bg-blue-50 text-blue-700 hover:bg-blue-50 border border-blue-200 rounded-full text-xs font-medium inline-flex items-center gap-1"><Truck className="size-3"/>Partially dispatched</Badge>
+    case "Out for delivery":     return <Badge className="bg-indigo-50 text-indigo-700 hover:bg-indigo-50 border border-indigo-200 rounded-full text-xs font-medium inline-flex items-center gap-1"><Truck className="size-3"/>Out for delivery</Badge>
+    case "Attempted delivery":   return <Badge className="bg-rose-50 text-rose-700 hover:bg-rose-50 border border-rose-200 rounded-full text-xs font-medium inline-flex items-center gap-1"><Truck className="size-3"/>Attempted delivery</Badge>
     case "Confirmed":            return <Badge variant="secondary" className="rounded-full text-xs font-medium">Confirmed</Badge>
     default:                     return <Badge variant="secondary" className="rounded-full text-xs font-medium">{order.orderStatus}</Badge>
   }
@@ -105,12 +109,14 @@ function OrderStatusBadge({ order }: { order: Order }) {
 // Badge + breakdown text (e.g. "9 delivered · 21 on its way") — used ONLY in the list row
 function OrderStatusBadges({ order }: { order: Order }) {
   const { orderStatus, cancelledAt, deliveredCount, dispatchedCount, confirmedCount, notDispatchedCount, totalUnits } = order
-  const showStats = !cancelledAt && totalUnits > 0 && orderStatus !== "Delivered" && orderStatus !== "Confirmed" && orderStatus !== "Cancelled"
+  const showStats = !cancelledAt && totalUnits > 0 && orderStatus !== "Delivered" && orderStatus !== "Confirmed" && orderStatus !== "Cancelled" && orderStatus !== "Out for delivery" && orderStatus !== "Attempted delivery"
   const parts: string[] = []
-  if (deliveredCount > 0)     parts.push(`${deliveredCount} delivered`)
-  if (dispatchedCount > 0)    parts.push(`${dispatchedCount} on its way`)
-  if (confirmedCount > 0)     parts.push(`${confirmedCount} confirmed`)
-  if (notDispatchedCount > 0) parts.push(`${notDispatchedCount} pending`)
+  if (deliveredCount > 0)          parts.push(`${deliveredCount} delivered`)
+  if (attemptedDeliveryCount > 0)  parts.push(`${attemptedDeliveryCount} attempted delivery`)
+  if (outForDeliveryCount > 0)     parts.push(`${outForDeliveryCount} out for delivery`)
+  if (dispatchedCount > 0)         parts.push(`${dispatchedCount} on its way`)
+  if (confirmedCount > 0)          parts.push(`${confirmedCount} confirmed`)
+  if (notDispatchedCount > 0)      parts.push(`${notDispatchedCount} pending`)
   return (
     <div className="flex flex-col gap-0.5">
       <div className="flex items-center gap-1.5 flex-wrap">
@@ -130,13 +136,14 @@ function OutlineBadge({ className, children }: { className: string; children: Re
 function IneligibleBadge({ status }: { status: ReturnStatus }) {
   if (status === "Confirmed")                return <OutlineBadge className="bg-zinc-50 text-zinc-500 border-zinc-200">Confirmed</OutlineBadge>
   if (status === "On its way")               return <OutlineBadge className="bg-amber-50 text-amber-700 border-amber-200"><Truck className="size-3"/>On its way</OutlineBadge>
-  if (status === "Not yet dispatched")       return <OutlineBadge className="bg-zinc-50 text-zinc-500 border-zinc-200">Not dispatched</OutlineBadge>
+  if (status === "Out for delivery")         return <OutlineBadge className="bg-indigo-50 text-indigo-700 border-indigo-200"><Truck className="size-3"/>Out for delivery</OutlineBadge>
+  if (status === "Attempted delivery")       return <OutlineBadge className="bg-rose-50 text-rose-700 border-rose-200"><Truck className="size-3"/>Attempted delivery</OutlineBadge>
   if (status === "Refunded")                 return <OutlineBadge className="bg-zinc-100 text-zinc-600 border-zinc-300">Refunded</OutlineBadge>
   if (status === "Cancelled")                return <OutlineBadge className="bg-red-50 text-red-700 border-red-200">Cancelled</OutlineBadge>
   if (status === "Passed the return window") return <OutlineBadge className="bg-zinc-100 text-zinc-500 border-zinc-200"><XCircle className="size-3"/>Window expired</OutlineBadge>
   if (status === "Return requested")         return <OutlineBadge className="bg-blue-50 text-blue-700 border-blue-200">Requested</OutlineBadge>
   if (status === "Return in progress")       return <OutlineBadge className="bg-purple-50 text-purple-700 border-purple-200">In progress</OutlineBadge>
-  if (status === "Return completed" || status === "Returned") return <OutlineBadge className="bg-teal-50 text-teal-700 border-teal-200">Completed</OutlineBadge>
+  if (status === "Returned") return <OutlineBadge className="bg-teal-50 text-teal-700 border-teal-200">Returned</OutlineBadge>
   if (status === "Return declined")          return <OutlineBadge className="bg-zinc-100 text-zinc-500 border-zinc-200">Declined</OutlineBadge>
   if (status === "Return cancelled")         return <OutlineBadge className="bg-orange-50 text-orange-600 border-orange-200">Cancelled</OutlineBadge>
   return <span className="text-xs text-muted-foreground">{status}</span>
@@ -146,8 +153,9 @@ function ineligibleReasonText(status: ReturnStatus, reason?: string, lineDeliver
   if (status === "Return declined")    return reason || "This return was declined by our team."
   if (status === "Refunded")           return "This item has already been refunded."
   if (status === "On its way")         return "Items can only be returned once delivered."
-  if (status === "Not yet dispatched") return "This item hasn't been dispatched yet."
-  if (status === "Confirmed")          return "This order is confirmed but not yet dispatched."
+  if (status === "Out for delivery")   return "Your parcel is out for delivery today — returns open once delivered."
+  if (status === "Attempted delivery") return "A delivery attempt was made — please rebook or collect your parcel."
+  if (status === "Confirmed")          return "This item hasn't been dispatched yet."
   return reason || null
 }
 // Ineligible cell — popover on click, no overlay/opacity change
