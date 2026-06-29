@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 const AUTH_URL = "https://account.iblazevape.co.uk/authentication/oauth/authorize";
 
-const PROTECTED_PATHS = ["/", "/wizard"];
+const PROTECTED_PATHS = ["/"];
 
 export async function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
@@ -22,7 +22,7 @@ export async function middleware(request: NextRequest) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL!;
   const redirectUri = `${appUrl}/api/callback`;
 
-  const returnTo = pathname + search; // e.g. /wizard?order=123
+  const returnTo = pathname + search;
   const encoded = btoa(returnTo).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
   const state = `${Math.random().toString(36).substring(2)}_${encoded}`;
 
@@ -37,5 +37,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/", "/wizard", "/wizard/:path*"],
+  matcher: ["/"],
 };

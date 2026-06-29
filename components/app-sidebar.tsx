@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ShoppingBag, FileText, Newspaper, MessageCircle, ExternalLink, LayoutDashboard, Wand2, Bot } from "lucide-react"
+import { ShoppingBag, FileText, Newspaper, MessageCircle, ExternalLink, LayoutDashboard } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
@@ -15,8 +15,6 @@ import {
 const navMain = [
   { title: "Dashboard", url: "#home", icon: LayoutDashboard },
   { title: "My Orders", url: "#orders", icon: ShoppingBag },
-  { title: "Return Wizard", url: "/wizard", icon: Wand2 },
-  { title: "AI Return", url: "/ai-return", icon: Bot },
 ]
 
 const navSecondary = [
