@@ -33,7 +33,12 @@ export default async () => {
 async function isOrderEligible(numericId: string): Promise<boolean> {
   try {
     const token = await shopify.sessionToken.get()
-    const res = await fetch(`${PORTAL_BASE_URL}/api/order-eligible?order=${numericId}`, {
+    // Cache-bust the URL so the extension sandbox never serves a stale cached
+    // response — eligibility changes over time (return window expiry).
+    const url = `${PORTAL_BASE_URL}/api/order-eligible?order=${numericId}&t=${Date.now()}`
+    const res = await fetch(url, {
+      method: "GET",
+      cache: "no-store",
       headers: { Authorization: `Bearer ${token}` },
     })
     if (!res.ok) return true // fail open
