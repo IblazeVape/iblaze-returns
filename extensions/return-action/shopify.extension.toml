@@ -13,3 +13,6 @@ target = "customer-account.order.action.menu-item.render"
 [[extensions.targeting]]
 module = "./src/OrderActionModal.tsx"
 target = "customer-account.order.action.render"
+
+[extensions.capabilities]
+network_access = true
