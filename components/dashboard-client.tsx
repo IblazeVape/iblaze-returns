@@ -627,6 +627,12 @@ function buildNarrativeOrderSummary(
   return { intro, fulfillmentLine, eligible: totalEligibleUnits, groups }
 }
 
+function joinFragments(fragments: string[]): string {
+  if (fragments.length === 0) return ""
+  if (fragments.length === 1) return " " + cap(fragments[0]) + "."
+  return " " + cap(fragments.slice(0, -1).join(", ") + ", and " + fragments[fragments.length - 1]) + "."
+}
+
 function buildNarrativeParagraph(
   order: Order,
   totalEligibleUnits: number,
@@ -647,46 +653,97 @@ function buildNarrativeParagraph(
 
   if (order.cancelledAt) return `${intro} This order was cancelled and returns are not available.`
 
-  // Fulfillment context when partially delivered/dispatched
+  // Bucket counts
+  const buckets = ineligibleBucketCounts(ineligibleItems)
+  const declined   = order.processedItems.reduce(
+    (s, item) => s + item.declinedReturnEntries.reduce((a, e) => a + e.quantity, 0), 0,
+  )
+  const requested  = buckets.requested || 0
+  const inProgress = buckets.in_progress || 0
+  const attempted  = buckets.attempted_delivery || 0
+  const ofd        = buckets.out_for_delivery || 0
+  const inTransit  = buckets.in_transit || 0
+  const notShipped = (buckets.not_shipped || 0) + (buckets.preparing || 0)
+  const expired    = buckets.window || 0
+  const completed  = buckets.completed || 0
+  const refunded   = buckets.refunded || 0
+  const finalSale  = buckets.final_sale || 0
+  const other      = buckets.other || 0
+
+  const awaitingDelivery = notShipped + inTransit + ofd + attempted
+  const activeReturns    = requested + inProgress + declined
+  const alreadyDone      = completed + refunded + finalSale + expired + other
+
+  // Return window close date (show if all expired items share one date)
+  const expiredItems  = ineligibleItems.filter(i => i.returnStatus === "Passed the return window")
+  const expiredDates  = new Set(expiredItems.map(i => formatReturnWindowClosedForItem(i, order) ?? ""))
+  const expiredDateStr = expiredDates.size === 1 && [...expiredDates][0] ? [...expiredDates][0] : null
+
+  // ── Scenario: all items awaiting delivery, nothing else going on ──────────
+  if (awaitingDelivery === n && totalEligibleUnits === 0 && activeReturns === 0 && alreadyDone === 0) {
+    if (notShipped === n)
+      return `${intro} Your order hasn't been dispatched yet — your return window opens once the items are delivered.`
+    if (inTransit === n)
+      return `${intro} Your order is still on its way — returns open once delivered.`
+    if (ofd === n)
+      return `${intro} Your order is out for delivery today — returns open once it arrives.`
+    if (attempted === n)
+      return `${intro} A delivery attempt was made for your order. Please rebook or collect — returns open once delivered.`
+    return `${intro} None of the items have been delivered yet — returns open once they arrive.`
+  }
+
+  // ── Scenario: everything already done (no eligible, no pending delivery, no active returns) ──
+  if (totalEligibleUnits === 0 && awaitingDelivery === 0 && activeReturns === 0) {
+    if (completed === n) return `${intro} All ${n === 1 ? "" : `${n} `}item${n !== 1 ? "s have" : " has"} already been returned.`
+    if (refunded  === n) return `${intro} All ${n === 1 ? "" : `${n} `}item${n !== 1 ? "s have" : " has"} already been refunded.`
+    if (expired   === n) {
+      const datePart = expiredDateStr ? ` — it closed on ${expiredDateStr}` : ""
+      return `${intro} All items are past the 30-day return window${datePart}.`
+    }
+    if (finalSale === n) return `${intro} All items were final sale and cannot be returned.`
+  }
+
+  // ── Scenario: partially delivered — all delivered items eligible, rest awaiting ──
+  // e.g. "4 delivered, 14 not yet shipped" → merge into one sentence
+  const otherIneligible = activeReturns + alreadyDone
+  if (totalEligibleUnits > 0 && awaitingDelivery > 0 && otherIneligible === 0 && totalEligibleUnits + awaitingDelivery === n) {
+    const readyPart  = totalEligibleUnits === 1 ? "1 item has been delivered and is ready to return" : `${totalEligibleUnits} items have been delivered and are ready to return`
+    const waitPart   = notShipped > 0 && inTransit === 0 && ofd === 0 && attempted === 0
+      ? `the remaining ${awaitingDelivery === 1 ? "1 hasn't" : `${awaitingDelivery} haven't`} been shipped yet`
+      : inTransit > 0 && notShipped === 0 && ofd === 0 && attempted === 0
+        ? `the remaining ${awaitingDelivery === 1 ? "1 is" : `${awaitingDelivery} are`} still on their way`
+        : `the remaining ${awaitingDelivery} ${awaitingDelivery === 1 ? "hasn't" : "haven't"} arrived yet`
+    return `${intro} ${cap(readyPart)} — ${waitPart}.`
+  }
+
+  // ── Default: build paragraph with clauses, suppressing delivery fragments
+  //    that are already covered by the fulfillment clause ───────────────────
   const fparts = buildOrderFulfillmentBreakdownParts(order)
-  const fulfillmentClause = fparts.length > 1
+  const hasFulfillmentClause = fparts.length > 1
+  const fulfillmentClause    = hasFulfillmentClause
     ? " " + fparts.map((p, i) => i === 0 ? cap(p) : p).join(", ") + "."
     : ""
 
-  // Eligible clause
+  // Eligible clause — suppress when fulfillment clause already contextualises it
   let eligibleClause: string
   if (totalEligibleUnits === n) {
     eligibleClause = n === 1 ? " It is ready to return." : ` All ${n} items are ready to return.`
   } else if (totalEligibleUnits > 0) {
-    eligibleClause = totalEligibleUnits === 1
-      ? " 1 item is ready to return."
-      : ` ${totalEligibleUnits} items are ready to return.`
+    // If fulfillment clause already said "N delivered" and eligible === delivered, be concise
+    if (hasFulfillmentClause && totalEligibleUnits === order.deliveredCount) {
+      eligibleClause = totalEligibleUnits === 1
+        ? " The delivered item is ready to return."
+        : ` The ${totalEligibleUnits} delivered items are ready to return.`
+    } else {
+      eligibleClause = totalEligibleUnits === 1
+        ? " 1 item is ready to return."
+        : ` ${totalEligibleUnits} items are ready to return.`
+    }
   } else {
     eligibleClause = " None of the items are currently eligible to return."
   }
 
-  // Ineligible bucket counts
-  const buckets = ineligibleBucketCounts(ineligibleItems)
-  const declined     = order.processedItems.reduce(
-    (s, item) => s + item.declinedReturnEntries.reduce((a, e) => a + e.quantity, 0), 0,
-  )
-  const requested    = buckets.requested || 0
-  const inProgress   = buckets.in_progress || 0
-  const attempted    = buckets.attempted_delivery || 0
-  const ofd          = buckets.out_for_delivery || 0
-  const inTransit    = buckets.in_transit || 0
-  const notShipped   = (buckets.not_shipped || 0) + (buckets.preparing || 0)
-  const expired      = buckets.window || 0
-  const completed    = buckets.completed || 0
-  const refunded     = buckets.refunded || 0
-  const finalSale    = buckets.final_sale || 0
-  const other        = buckets.other || 0
-
-  // Return window close date (show if all expired items share one date)
-  const expiredItems = ineligibleItems.filter(i => i.returnStatus === "Passed the return window")
-  const expiredDates = new Set(expiredItems.map(i => formatReturnWindowClosedForItem(i, order) ?? ""))
-  const expiredDateStr = expiredDates.size === 1 ? [...expiredDates][0] : null
-
+  // Ineligible fragments — skip delivery-state ones when fulfillment clause covers them
   const fragments: string[] = []
   if (requested > 0)
     fragments.push(requested === 1 ? "1 return request is awaiting our review" : `${requested} return requests are awaiting our review`)
@@ -694,13 +751,13 @@ function buildNarrativeParagraph(
     fragments.push(inProgress === 1 ? "1 return is being processed" : `${inProgress} returns are being processed`)
   if (declined > 0)
     fragments.push(declined === 1 ? "1 return request was declined" : `${declined} return requests were declined`)
-  if (attempted > 0)
+  if (!hasFulfillmentClause && attempted > 0)
     fragments.push(attempted === 1 ? "1 item had a failed delivery attempt — please rebook or collect before returning" : `${attempted} items had failed delivery attempts`)
-  if (ofd > 0)
+  if (!hasFulfillmentClause && ofd > 0)
     fragments.push(ofd === 1 ? "1 item is out for delivery today and will be returnable once it arrives" : `${ofd} items are out for delivery today and will be returnable once they arrive`)
-  if (inTransit > 0)
+  if (!hasFulfillmentClause && inTransit > 0)
     fragments.push(inTransit === 1 ? "1 item is still on its way and will be returnable once delivered" : `${inTransit} items are still on their way and will be returnable once delivered`)
-  if (notShipped > 0)
+  if (!hasFulfillmentClause && notShipped > 0)
     fragments.push(notShipped === 1 ? "1 item hasn't been shipped yet" : `${notShipped} items haven't been shipped yet`)
   if (expired > 0) {
     const datePart = expiredDateStr ? ` — the window closed on ${expiredDateStr}` : ""
@@ -715,15 +772,7 @@ function buildNarrativeParagraph(
   if (other > 0)
     fragments.push(other === 1 ? "1 item isn't eligible for return" : `${other} items aren't eligible for return`)
 
-  let ineligibleStr = ""
-  if (fragments.length === 1) {
-    ineligibleStr = " " + cap(fragments[0]) + "."
-  } else if (fragments.length > 1) {
-    const joined = fragments.slice(0, -1).join(", ") + ", and " + fragments[fragments.length - 1]
-    ineligibleStr = " " + cap(joined) + "."
-  }
-
-  return intro + fulfillmentClause + eligibleClause + ineligibleStr
+  return intro + fulfillmentClause + eligibleClause + joinFragments(fragments)
 }
 
 function CountBadge({
