@@ -195,12 +195,12 @@ function OrderGridCard({ order, onClick }: { order: Order; onClick: () => void }
   const cancelled = !!order.cancelledAt
 
   return (
-    <div className="h-full w-full">
+    <div className={cn("h-full w-full", cancelled && "opacity-50")}>
     <button
       onClick={cancelled ? undefined : onClick}
       className={cn(
         "group w-full h-full text-left bg-card border rounded-xl transition-[border-color,box-shadow] duration-150 focus:outline-none focus-visible:ring-0 flex flex-col overflow-hidden",
-        cancelled ? "border-border opacity-60 cursor-not-allowed" : cn("border-border", cardGlowClass(order))
+        cancelled ? "border-border cursor-not-allowed" : cn("border-border", cardGlowClass(order))
       )}
     >
       {/* Info section */}

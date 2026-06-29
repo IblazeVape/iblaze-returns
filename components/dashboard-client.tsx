@@ -2446,7 +2446,7 @@ function OrderCard({ order, onClick, index = 0 }: { order: Order; onClick: () =>
 
   const cancelled = !!order.cancelledAt
   return (
-    <div className="h-full w-full">
+    <div className={cn("h-full w-full", cancelled && "opacity-50")}>
     <motion.button
       onClick={cancelled ? undefined : onClick}
       initial={{ opacity: 0, y: 14 }}
@@ -2454,7 +2454,7 @@ function OrderCard({ order, onClick, index = 0 }: { order: Order; onClick: () =>
       transition={{ duration: 0.28, delay: Math.min(index * 0.055, 0.4), ease: [0.25, 0.1, 0.25, 1] }}
       className={cn(
         "group w-full h-full text-left bg-card border rounded-xl transition-[border-color,box-shadow] duration-150 focus:outline-none focus-visible:ring-0 flex flex-col overflow-hidden",
-        cancelled ? "border-border opacity-60 cursor-not-allowed" : cn("border-border", orderGlowClass(order))
+        cancelled ? "border-border cursor-not-allowed" : cn("border-border", orderGlowClass(order))
       )}
     >
       {/* Info section */}
