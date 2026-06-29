@@ -677,12 +677,14 @@ type ZeroEligibilitySkip = {
 type IneligibleReason = { count: number; because: string }
 
 function firstIneligibleBreakdownPhrase(count: number, because: string): string {
-  if (because.startsWith("they have ")) return `${count} have ${because.slice(10)}`
-  if (because.startsWith("they're ")) return `${count} are ${because.slice(7)}`
-  if (because.startsWith("they've ")) return `${count} have ${because.slice(7)}`
-  if (because.startsWith("it has ")) return `${count} has ${because.slice(7)}`
-  if (because.startsWith("it's ")) return `${count} is ${because.slice(5)}`
-  return `${count} because ${because}`
+  if (because.startsWith("they have "))  return `${count} have ${because.slice(10)}`
+  if (because.startsWith("they're "))    return `${count} are ${because.slice(7)}`
+  if (because.startsWith("they've "))    return `${count} have ${because.slice(7)}`
+  if (because.startsWith("they can't ")) return `${count} can't ${because.slice(11)}`
+  if (because.startsWith("it has "))     return `${count} has ${because.slice(7)}`
+  if (because.startsWith("it's "))       return `${count} is ${because.slice(5)}`
+  if (because.startsWith("it can't "))   return `${count} can't ${because.slice(9)}`
+  return `${count} ${because}`
 }
 
 function joinIneligibleReasonClauses(reasons: IneligibleReason[]): string {
@@ -694,19 +696,14 @@ function joinIneligibleReasonClauses(reasons: IneligibleReason[]): string {
       : `${count} items are ineligible for return because ${because}`
   }
 
+  // Multiple reasons: "N items are ineligible — X have A, Y have B, and Z have C"
   const total = reasons.reduce((sum, r) => sum + r.count, 0)
-  const segments = reasons.map((r, i) =>
-    i === 0 ? firstIneligibleBreakdownPhrase(r.count, r.because) : `${r.count} because ${r.because}`,
-  )
-
-  const head = total === 1
-    ? `1 item is ineligible for return because ${segments[0]}`
-    : `${total} items are ineligible for return because ${segments[0]}`
-
-  const tail = segments.slice(1)
-  if (tail.length === 1) return `${head}, and ${tail[0]}`
-  if (tail.length === 0) return head
-  return `${head}, ${tail.slice(0, -1).join(", ")}, and ${tail[tail.length - 1]}`
+  const segments = reasons.map(r => firstIneligibleBreakdownPhrase(r.count, r.because))
+  const segmentStr = segments.length === 2
+    ? `${segments[0]} and ${segments[1]}`
+    : `${segments.slice(0, -1).join(", ")}, and ${segments[segments.length - 1]}`
+  const head = total === 1 ? `1 item is ineligible for return` : `${total} items are ineligible for return`
+  return `${head} — ${segmentStr}`
 }
 
 function buildZeroEligibilityExplanation(params: {
@@ -1001,15 +998,15 @@ function buildOrderPageSummary(order: Order): OrderPageSummary {
   })
   if (requested > 0 && !zeroSkip.requested) ineligibleReasons.push({
     count: requested,
-    because: requested === 1 ? "a return has already been submitted" : "returns have already been submitted",
+    because: requested === 1 ? "it has a pending return" : "they have pending returns",
   })
   if (inProgress > 0 && !zeroSkip.inProgress) ineligibleReasons.push({
     count: inProgress,
-    because: inProgress === 1 ? "a return is in process" : "returns are in process",
+    because: inProgress === 1 ? "it has a return in progress" : "they have returns in progress",
   })
   if (declined > 0 && !zeroSkip.declined) ineligibleReasons.push({
     count: declined,
-    because: declined === 1 ? "the return was declined" : "the returns were declined",
+    because: declined === 1 ? "it has a declined return" : "they have declined returns",
   })
   if (completed > 0 && !zeroSkip.completed) {
     ineligibleReasons.push({
