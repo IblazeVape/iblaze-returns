@@ -2793,6 +2793,19 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
           </div>
         )}
 
+        {/* ── Return eligibility summary alert ── */}
+        {!order.cancelledAt && orderSummary.text && (
+          <div className="rounded-lg border border-accent-foreground/20 bg-gradient-to-b from-accent to-transparent to-60% px-4 py-3 text-accent-foreground">
+            <div className="flex items-start gap-3">
+              <Info className="size-4 mt-0.5 shrink-0" aria-hidden />
+              <div>
+                <p className="text-sm font-medium tracking-tight">Return eligibility</p>
+                <p className="text-xs text-accent-foreground/60 mt-0.5">{orderSummary.text}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ── Unified order + items card ── */}
         <Card className={cn(C, "overflow-hidden flex flex-col", order.cancelledAt && "border-red-200")}>
           {/* Cancelled accent stripe */}
@@ -3081,19 +3094,6 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                 >
                   View return progress on your order
                 </a>
-              </div>
-            )}
-
-            {/* ── Info summary alert above table ── */}
-            {!order.cancelledAt && orderSummary.text && (
-              <div className="border-b px-4 py-3">
-                <Alert className="bg-gradient-to-b from-accent to-transparent to-60% border-accent-foreground/20 text-accent-foreground">
-                  <Info className="size-4" />
-                  <AlertTitle>Return eligibility</AlertTitle>
-                  <AlertDescription className="text-accent-foreground/60">
-                    {orderSummary.text}
-                  </AlertDescription>
-                </Alert>
               </div>
             )}
 
