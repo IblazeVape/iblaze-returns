@@ -555,6 +555,78 @@ function buildFullSummaryText(
   return clauses.join(" · ") + "."
 }
 
+// ─── Narrative order summary (structured, for the alert) ─────────────────────
+type NarrativeGroup = { count: number; message: string; status: ReturnStatus }
+
+type NarrativeOrderSummary = {
+  intro: string
+  fulfillmentLine: string | null
+  eligible: number
+  groups: NarrativeGroup[]
+}
+
+function cap(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1)
+}
+
+function buildNarrativeOrderSummary(
+  order: Order,
+  totalEligibleUnits: number,
+  ineligibleItems: DisplayItem[],
+): NarrativeOrderSummary {
+  const total = parseFloat(order.totalPriceSet.shopMoney.amount)
+  const refundedAmount = order.totalRefundedSet?.shopMoney?.amount
+    ? parseFloat(order.totalRefundedSet.shopMoney.amount)
+    : 0
+  const placedDate = new Date(order.createdAt).toLocaleDateString("en-GB", {
+    day: "numeric", month: "long", year: "numeric",
+  })
+  const n = order.totalUnits
+  let intro = `Placed on ${placedDate} · £${total.toFixed(2)} · ${n} item${n !== 1 ? "s" : ""}`
+  if (refundedAmount > 0) intro += ` (£${refundedAmount.toFixed(2)} refunded)`
+
+  if (order.cancelledAt) {
+    return {
+      intro,
+      fulfillmentLine: "This order was cancelled — returns are not available.",
+      eligible: 0,
+      groups: [],
+    }
+  }
+
+  // Fulfillment line — only when there's a breakdown worth showing
+  let fulfillmentLine: string | null = null
+  const fparts = buildOrderFulfillmentBreakdownParts(order)
+  if (fparts.length > 1) {
+    fulfillmentLine = fparts.map((p, i) => i === 0 ? cap(p) : p).join(" · ")
+  } else if (fparts.length === 1 && order.orderStatus !== "Delivered") {
+    fulfillmentLine = cap(fparts[0])
+  }
+
+  // Group ineligible items by their narrative key (reuses existing grouping logic)
+  const groupMap = new Map<string, { items: DisplayItem[]; count: number; status: ReturnStatus }>()
+  for (const item of ineligibleItems) {
+    const key = getIneligibleGroupKey(item, order)
+    const existing = groupMap.get(key)
+    if (existing) {
+      existing.items.push(item)
+      existing.count += item.splitQty ?? item.quantity
+    } else {
+      groupMap.set(key, { items: [item], count: item.splitQty ?? item.quantity, status: item.returnStatus })
+    }
+  }
+
+  const groups: NarrativeGroup[] = Array.from(groupMap.values())
+    .sort((a, b) => (INELIGIBLE_STATUS_ORDER[a.status] ?? 99) - (INELIGIBLE_STATUS_ORDER[b.status] ?? 99))
+    .map(({ items, count, status }) => ({
+      count,
+      status,
+      message: getIneligibleGroupMessage(items[0], order, items as LineItem[]),
+    }))
+
+  return { intro, fulfillmentLine, eligible: totalEligibleUnits, groups }
+}
+
 function CountBadge({
   value,
   variant = "brand",
@@ -2686,6 +2758,11 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
     [order, totalEligibleUnits, ineligibleItems]
   )
 
+  const narrativeSummary = useMemo(
+    () => buildNarrativeOrderSummary(order, totalEligibleUnits, ineligibleItems),
+    [order, totalEligibleUnits, ineligibleItems]
+  )
+
   const matchesSearch = (item: LineItem) => {
     if (!searchQuery) return true
     const q = searchQuery.toLowerCase()
@@ -2853,18 +2930,34 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
           </div>
         )}
 
-        {/* ── Return eligibility summary alert ── */}
-        {!order.cancelledAt && (
-          <div className="rounded-lg border border-accent-foreground/20 bg-gradient-to-b from-accent to-transparent to-60% px-4 py-3 text-accent-foreground">
-            <div className="flex items-start gap-3">
-              <Info className="size-4 mt-0.5 shrink-0" aria-hidden />
-              <div>
-                <p className="text-sm font-medium tracking-tight">Return eligibility</p>
-                <p className="text-xs text-accent-foreground/60 mt-0.5">{fullOrderSummary}</p>
-              </div>
+        {/* ── Return eligibility narrative alert ── */}
+        <div className="rounded-lg border border-accent-foreground/20 bg-gradient-to-b from-accent to-transparent to-60% px-4 py-3 text-accent-foreground">
+          <div className="flex items-start gap-3">
+            <Info className="size-4 mt-0.5 shrink-0" aria-hidden />
+            <div className="min-w-0 flex-1 space-y-1">
+              <p className="text-sm font-semibold tracking-tight">Order summary</p>
+              <p className="text-xs text-accent-foreground/60">{narrativeSummary.intro}</p>
+              {narrativeSummary.fulfillmentLine && (
+                <p className="text-xs text-accent-foreground/70">{narrativeSummary.fulfillmentLine}</p>
+              )}
+              {narrativeSummary.eligible > 0 && (
+                <p className="text-xs font-medium text-green-600">
+                  {narrativeSummary.eligible === 1
+                    ? "1 item is ready to return."
+                    : `${narrativeSummary.eligible} items are ready to return.`}
+                </p>
+              )}
+              {narrativeSummary.groups.map((g, i) => (
+                <p key={i} className="text-xs text-accent-foreground/70">
+                  <span className="font-semibold text-accent-foreground">
+                    {g.count === 1 ? "1 item" : `${g.count} items`}:
+                  </span>{" "}
+                  {g.message}
+                </p>
+              ))}
             </div>
           </div>
-        )}
+        </div>
 
         {/* ── Unified order + items card ── */}
         <Card className={cn(C, "overflow-hidden flex flex-col", order.cancelledAt && "border-red-200")}>
