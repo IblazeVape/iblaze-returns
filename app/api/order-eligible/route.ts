@@ -2,6 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { shopifyAdmin } from "@/lib/shopify";
 import { getAdminReturnableInfo } from "@/lib/returnEligibility";
+import { redis } from "@/lib/redis";
+
+// TEMP DIAGNOSTIC: record each invocation to Redis so we can inspect it directly
+// (Vercel log search has been unreliable). Read via Upstash REST: GET /get/oe_diag_last
+async function writeDiag(d: Record<string, unknown>) {
+  try {
+    const entry = JSON.stringify({ ts: new Date().toISOString(), ...d });
+    await redis.set("oe_diag_last", entry);
+    await redis.lpush("oe_diag_log", entry);
+    await redis.ltrim("oe_diag_log", 0, 14);
+  } catch {
+    /* diagnostics must never break the endpoint */
+  }
+}
 
 // Called by the customer-account UI extension to decide whether to render the
 // "Start a Return" button. Eligibility is computed purely from the Admin API so
@@ -85,32 +99,37 @@ export async function GET(req: NextRequest) {
     const auth = req.headers.get("authorization") || "";
     const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
 
-    // TEMP DIAGNOSTIC: decode (without verifying) to see what Shopify sent.
-    // Logs claim metadata only — never the signature or secrets.
-    try {
-      const p = token.split(".")[1];
-      const decoded = p ? JSON.parse(Buffer.from(p, "base64url").toString("utf8")) : null;
-      console.log("[order-eligible] diag", JSON.stringify({
-        hasToken: !!token,
-        secretsConfigured: SIGNING_SECRETS.length,
-        aud: decoded?.aud,
-        expectedAud: CLIENT_ID,
-        audMatch: decoded?.aud === CLIENT_ID,
-        dest: decoded?.dest,
-        hasSub: !!decoded?.sub,
-        order: req.nextUrl.searchParams.get("order"),
-      }));
-    } catch (e) {
-      console.log("[order-eligible] diag decode failed:", (e as Error).message);
-    }
+    const orderParam = req.nextUrl.searchParams.get("order") || "";
+
+    // Decode (without verifying) to capture the token's STRUCTURE so we can see
+    // what format Shopify actually sends. Header (parts[0]) is not secret.
+    const parts = token.split(".");
+    let header: unknown = null;
+    let decoded: SessionClaims | null = null;
+    try { header = parts[0] ? JSON.parse(Buffer.from(parts[0], "base64url").toString("utf8")) : null; } catch { /* ignore */ }
+    try { decoded = parts[1] ? JSON.parse(Buffer.from(parts[1], "base64url").toString("utf8")) : null; } catch { /* ignore */ }
 
     const claims = token ? verifySessionToken(token) : null;
-    console.log("[order-eligible] verify result:", claims ? "VERIFIED" : "FAILED");
+    await writeDiag({
+      order: orderParam,
+      hasToken: !!token,
+      tokenLen: token.length,
+      tokenPrefix: token.slice(0, 16),
+      partsCount: parts.length,
+      partLens: parts.map((p) => p.length),
+      header,
+      secretsConfigured: SIGNING_SECRETS.length,
+      aud: decoded?.aud,
+      audMatch: decoded?.aud === CLIENT_ID,
+      dest: decoded?.dest,
+      hasSub: !!decoded?.sub,
+      verified: !!claims,
+    });
+
     if (!claims) {
       return NextResponse.json({ eligible: true, reason: "unauthenticated" }, { headers });
     }
 
-    const orderParam = req.nextUrl.searchParams.get("order") || "";
     if (!orderParam) {
       return NextResponse.json({ eligible: true, reason: "no-order" }, { headers });
     }
