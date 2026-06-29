@@ -35,11 +35,14 @@ export default async () => {
 
 /** Wait (briefly) for the order ID — it may be undefined on first render. */
 async function resolveOrderId(): Promise<string> {
-  if (shopify.orderId) return shopify.orderId
-  for (let i = 0; i < 25; i++) {
+  // Fast path — synchronous on most loads.
+  const fast = shopify.order?.value?.id || shopify.orderId
+  if (fast) return fast
+  // Poll up to 500ms so we don't burn the extension time budget waiting.
+  for (let i = 0; i < 5; i++) {
+    await new Promise((r) => setTimeout(r, 100))
     const id = shopify.order?.value?.id || shopify.orderId
     if (id) return id
-    await new Promise((r) => setTimeout(r, 100))
   }
   return shopify.order?.value?.id || shopify.orderId || ""
 }
@@ -51,8 +54,6 @@ async function isOrderEligible(numericId: string): Promise<boolean> {
     // eligibility changes over time (return window expiry).
     const url = `${PORTAL_BASE_URL}/api/order-eligible?order=${numericId}&t=${Date.now()}`
     const res = await fetch(url, {
-      method: "GET",
-      cache: "no-store",
       headers: { Authorization: `Bearer ${token}` },
     })
     if (!res.ok) return true // fail open
