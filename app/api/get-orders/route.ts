@@ -8,6 +8,9 @@ import { getAdminReturnableInfo, fetchRemainingLineItems, fetchRemainingReturns,
 // Never cache at the Next.js data layer — always recompute per request.
 export const dynamic = "force-dynamic";
 
+// Applied to every response so no eligibility result is ever cached by the browser.
+const NO_STORE = { "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0" };
+
 type EligibilitySource = "shopify" | "shopify-admin" | "fallback";
 
 async function resolveReturnInfo(
@@ -39,7 +42,7 @@ export async function GET(request: NextRequest) {
     const cookieHeader = request.headers.get("cookie");
     const session = validateSession(cookieHeader);
     if (!session.valid) {
-      return NextResponse.json({ error: "Session missing. Please log in." }, { status: 401 });
+      return NextResponse.json({ error: "Session missing. Please log in." }, { status: 401, headers: NO_STORE });
     }
     const { email: sessionEmail, accessToken } = session;
 
@@ -246,7 +249,7 @@ export async function GET(request: NextRequest) {
     (allRawOrders as any[]).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     if (allRawOrders.length === 0) {
-      return NextResponse.json({ firstName: "", email: sessionEmail, orders: [] });
+      return NextResponse.json({ firstName: "", email: sessionEmail, orders: [] }, { headers: NO_STORE });
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -769,12 +772,12 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(
       { firstName, email: sessionEmail, orders: processedOrders },
-      { headers: { "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0" } }
+      { headers: NO_STORE }
     );
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("get-orders error:", message);
-    return NextResponse.json({ error: message || "Unexpected server error" }, { status: 500 });
+    return NextResponse.json({ error: message || "Unexpected server error" }, { status: 500, headers: NO_STORE });
   }
 }
 
