@@ -79,7 +79,28 @@ export async function GET(req: NextRequest) {
   try {
     const auth = req.headers.get("authorization") || "";
     const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+
+    // TEMP DIAGNOSTIC: decode (without verifying) to see what Shopify sent.
+    // Logs claim metadata only — never the signature or secrets.
+    try {
+      const p = token.split(".")[1];
+      const decoded = p ? JSON.parse(Buffer.from(p, "base64url").toString("utf8")) : null;
+      console.log("[order-eligible] diag", JSON.stringify({
+        hasToken: !!token,
+        secretsConfigured: SIGNING_SECRETS.length,
+        aud: decoded?.aud,
+        expectedAud: CLIENT_ID,
+        audMatch: decoded?.aud === CLIENT_ID,
+        dest: decoded?.dest,
+        hasSub: !!decoded?.sub,
+        order: req.nextUrl.searchParams.get("order"),
+      }));
+    } catch (e) {
+      console.log("[order-eligible] diag decode failed:", (e as Error).message);
+    }
+
     const claims = token ? verifySessionToken(token) : null;
+    console.log("[order-eligible] verify result:", claims ? "VERIFIED" : "FAILED");
     if (!claims) {
       return NextResponse.json({ eligible: true, reason: "unauthenticated" }, { headers });
     }
