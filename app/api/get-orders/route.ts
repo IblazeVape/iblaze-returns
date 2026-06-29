@@ -415,6 +415,7 @@ export async function GET(request: NextRequest) {
         attemptedDeliveryQty: number;
         confirmedQty: number;
         latestDeliveredAt: Date | null;
+        earliestShippedAt: Date | null; // earliest fulfillment createdAt for in-transit items
       };
       
       const lineItemDelivery: Record<string, LineDelivery> = {};
@@ -443,7 +444,7 @@ export async function GET(request: NextRequest) {
           const qty = edge.node.quantity;
           
           if (!lineItemDelivery[liId]) {
-            lineItemDelivery[liId] = { deliveredQty: 0, inTransitQty: 0, outForDeliveryQty: 0, attemptedDeliveryQty: 0, confirmedQty: 0, latestDeliveredAt: null };
+            lineItemDelivery[liId] = { deliveredQty: 0, inTransitQty: 0, outForDeliveryQty: 0, attemptedDeliveryQty: 0, confirmedQty: 0, latestDeliveredAt: null, earliestShippedAt: null };
           }
 
           if (isDelivered) {
@@ -451,12 +452,15 @@ export async function GET(request: NextRequest) {
             if (!lineItemDelivery[liId].latestDeliveredAt || (dDate && dDate > lineItemDelivery[liId].latestDeliveredAt!)) {
               lineItemDelivery[liId].latestDeliveredAt = dDate;
             }
-          } else if (outForDelivery) {
-            lineItemDelivery[liId].outForDeliveryQty += qty;
-          } else if (attemptedDelivery) {
-            lineItemDelivery[liId].attemptedDeliveryQty += qty;
-          } else if (inTransit) {
-            lineItemDelivery[liId].inTransitQty += qty;
+          } else if (outForDelivery || attemptedDelivery || inTransit) {
+            if (outForDelivery) lineItemDelivery[liId].outForDeliveryQty += qty;
+            else if (attemptedDelivery) lineItemDelivery[liId].attemptedDeliveryQty += qty;
+            else lineItemDelivery[liId].inTransitQty += qty;
+            // Track earliest ship date so fallback can detect expired return windows
+            const shippedAt = f.createdAt ? new Date(f.createdAt) : null;
+            if (shippedAt && (!lineItemDelivery[liId].earliestShippedAt || shippedAt < lineItemDelivery[liId].earliestShippedAt!)) {
+              lineItemDelivery[liId].earliestShippedAt = shippedAt;
+            }
           } else if (isConfirmed) {
             lineItemDelivery[liId].confirmedQty += qty;
           }
@@ -567,13 +571,13 @@ export async function GET(request: NextRequest) {
 
             if (reasonCodes.includes("UNFULFILLED")) {
               // Item confirmed as unfulfilled — delivery state takes precedence
-              const undelivered = statusFromUndeliveredDelivery(delivery);
+              const undelivered = statusFromUndeliveredDelivery(delivery, now);
               returnStatus = undelivered.returnStatus;
               returnReason = undelivered.returnReason;
             } else if (reasonCodes.includes("RETURN_WINDOW_EXPIRED")) {
               // Window can't be expired before delivery — guard against Shopify API edge cases
               if (delivery.deliveredQty <= 0) {
-                const undelivered = statusFromUndeliveredDelivery(delivery);
+                const undelivered = statusFromUndeliveredDelivery(delivery, now);
                 returnStatus = undelivered.returnStatus;
                 returnReason = undelivered.returnReason;
               } else {
@@ -595,21 +599,9 @@ export async function GET(request: NextRequest) {
             }
           } else {
             // Not in either Shopify list — fall back to delivery state
-            if (delivery.attemptedDeliveryQty > 0) {
-              returnStatus = "Attempted delivery";
-              returnReason = "A delivery attempt was made. Please rebook or collect your parcel — your return window starts once it's delivered.";
-            } else if (delivery.outForDeliveryQty > 0) {
-              returnStatus = "Out for delivery";
-              returnReason = "Your parcel is out for delivery today. Your return window starts once it's delivered.";
-            } else if (delivery.inTransitQty > 0) {
-              returnStatus = "On its way";
-              returnReason = "Your parcel is on its way. Your return window starts once it's delivered.";
-            } else {
-              returnStatus = "Confirmed";
-              returnReason = delivery.confirmedQty > 0
-                ? "We're preparing your items for shipping."
-                : "This item hasn't been dispatched yet — check back once it ships.";
-            }
+            const undelivered2 = statusFromUndeliveredDelivery(delivery, now);
+            returnStatus = undelivered2.returnStatus;
+            returnReason = undelivered2.returnReason;
           }
 
         } else {
@@ -638,21 +630,9 @@ export async function GET(request: NextRequest) {
               returnReason = "";
             }
           } else {
-            if (delivery.attemptedDeliveryQty > 0) {
-              returnStatus = "Attempted delivery";
-              returnReason = "A delivery attempt was made. Please rebook or collect your parcel — your return window starts once it's delivered.";
-            } else if (delivery.outForDeliveryQty > 0) {
-              returnStatus = "Out for delivery";
-              returnReason = "Your parcel is out for delivery today. Your return window starts once it's delivered.";
-            } else if (delivery.inTransitQty > 0) {
-              returnStatus = "On its way";
-              returnReason = "Your parcel is on its way. Your return window starts once it's delivered.";
-            } else {
-              returnStatus = "Confirmed";
-              returnReason = delivery.confirmedQty > 0
-                ? "We're preparing your items for shipping."
-                : "This item hasn't been dispatched yet — check back once it ships.";
-            }
+            const undelivered3 = statusFromUndeliveredDelivery(delivery, now);
+            returnStatus = undelivered3.returnStatus;
+            returnReason = undelivered3.returnReason;
           }
         }
 
@@ -779,12 +759,30 @@ function capDeclinedEntries(
 // Keep in sync with iBlaze's configured return window in Shopify Settings → Policies.
 const RETURN_WINDOW_DAYS = 30;
 
-function statusFromUndeliveredDelivery(delivery: {
-  inTransitQty: number;
-  outForDeliveryQty: number;
-  attemptedDeliveryQty: number;
-  confirmedQty: number;
-}): { returnStatus: string; returnReason: string } {
+function statusFromUndeliveredDelivery(
+  delivery: {
+    inTransitQty: number;
+    outForDeliveryQty: number;
+    attemptedDeliveryQty: number;
+    confirmedQty: number;
+    earliestShippedAt: Date | null;
+  },
+  now: Date,
+): { returnStatus: string; returnReason: string } {
+  const isInTransit = delivery.attemptedDeliveryQty > 0 || delivery.outForDeliveryQty > 0 || delivery.inTransitQty > 0;
+
+  // Fallback window check: if shipped more than 30 days ago and still not delivered,
+  // treat as past return window rather than showing "On its way" indefinitely.
+  if (isInTransit && delivery.earliestShippedAt) {
+    const daysSinceShipped = (now.getTime() - delivery.earliestShippedAt.getTime()) / (1000 * 60 * 60 * 24);
+    if (daysSinceShipped > RETURN_WINDOW_DAYS) {
+      return {
+        returnStatus: "Passed the return window",
+        returnReason: formatReturnWindowExpiredReason(delivery.earliestShippedAt),
+      };
+    }
+  }
+
   if (delivery.attemptedDeliveryQty > 0) {
     return {
       returnStatus: "Attempted delivery",

@@ -108,7 +108,7 @@ function OrderStatusBadge({ order }: { order: Order }) {
 
 // Badge + breakdown text (e.g. "9 delivered · 21 on its way") — used ONLY in the list row
 function OrderStatusBadges({ order }: { order: Order }) {
-  const { orderStatus, cancelledAt, deliveredCount, dispatchedCount, confirmedCount, notDispatchedCount, totalUnits } = order
+  const { orderStatus, cancelledAt, deliveredCount, dispatchedCount, outForDeliveryCount, attemptedDeliveryCount, confirmedCount, notDispatchedCount, totalUnits } = order
   const showStats = !cancelledAt && totalUnits > 0 && orderStatus !== "Delivered" && orderStatus !== "Confirmed" && orderStatus !== "Cancelled" && orderStatus !== "Out for delivery" && orderStatus !== "Attempted delivery"
   const parts: string[] = []
   if (deliveredCount > 0)          parts.push(`${deliveredCount} delivered`)
