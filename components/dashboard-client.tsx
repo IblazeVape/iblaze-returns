@@ -716,6 +716,51 @@ function buildNarrativeParagraph(
     return `${intro} ${cap(readyPart)} — ${waitPart}.`
   }
 
+  // ── Scenario: partial delivery + return statuses on delivered items ─────────
+  // e.g. 9 delivered (3 in progress, 1 declined, 5 returned), 4 not shipped
+  // → "Of the 9 delivered items, 3 returns are being processed, 1 return
+  //    request was declined, and 5 have already been returned — the remaining
+  //    4 haven't shipped yet."
+  if (awaitingDelivery > 0 && order.deliveredCount > 0) {
+    const retF: string[] = []
+    if (totalEligibleUnits > 0)
+      retF.push(totalEligibleUnits === 1 ? "1 is ready to return" : `${totalEligibleUnits} are ready to return`)
+    if (requested > 0)
+      retF.push(requested === 1 ? "1 return request is awaiting our review" : `${requested} return requests are awaiting our review`)
+    if (inProgress > 0)
+      retF.push(inProgress === 1 ? "1 return is being processed" : `${inProgress} returns are being processed`)
+    if (declined > 0)
+      retF.push(declined === 1 ? "1 return request was declined" : `${declined} return requests were declined`)
+    if (expired > 0) {
+      const dp = expiredDateStr ? ` (window closed ${expiredDateStr})` : ""
+      retF.push(expired === 1 ? `1 is past the return window${dp}` : `${expired} are past the return window${dp}`)
+    }
+    if (completed > 0)
+      retF.push(completed === 1 ? "1 has already been returned" : `${completed} have already been returned`)
+    if (refunded > 0)
+      retF.push(refunded === 1 ? "1 has already been refunded" : `${refunded} have already been refunded`)
+    if (finalSale > 0)
+      retF.push(finalSale === 1 ? "1 was final sale and can't be returned" : `${finalSale} were final sale and can't be returned`)
+    if (other > 0)
+      retF.push(other === 1 ? "1 isn't eligible" : `${other} aren't eligible`)
+
+    if (retF.length > 0) {
+      const dc = order.deliveredCount
+      const deliveredStr = `Of the ${dc} delivered item${dc !== 1 ? "s" : ""}`
+      const retStr = retF.length === 1
+        ? retF[0]
+        : retF.slice(0, -1).join(", ") + ", and " + retF[retF.length - 1]
+      const awaitTail = notShipped > 0 && inTransit === 0 && ofd === 0 && attempted === 0
+        ? (awaitingDelivery === 1 ? "the remaining 1 hasn't shipped yet" : `the remaining ${awaitingDelivery} haven't shipped yet`)
+        : inTransit > 0 && notShipped === 0 && ofd === 0 && attempted === 0
+          ? (awaitingDelivery === 1 ? "the remaining 1 is still on its way" : `the remaining ${awaitingDelivery} are still on their way`)
+          : ofd > 0 && notShipped === 0 && inTransit === 0 && attempted === 0
+            ? (awaitingDelivery === 1 ? "the remaining 1 is out for delivery today" : `the remaining ${awaitingDelivery} are out for delivery today`)
+            : (awaitingDelivery === 1 ? "the remaining 1 hasn't arrived yet" : `the remaining ${awaitingDelivery} haven't arrived yet`)
+      return `${intro} ${deliveredStr}, ${retStr} — ${awaitTail}.`
+    }
+  }
+
   // ── Default: build paragraph with clauses, suppressing delivery fragments
   //    that are already covered by the fulfillment clause ───────────────────
   const fparts = buildOrderFulfillmentBreakdownParts(order)
