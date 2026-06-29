@@ -1055,7 +1055,7 @@ function DashboardClientInner() {
   const isDesktop = useMediaQuery("(min-width: 1024px)")
 
   useEffect(() => {
-    fetch("/api/get-orders")
+    fetch("/api/get-orders", { cache: "no-store" })
       .then(r => r.json())
       .then(d => { if (d.error) setError(d.error); else setData(d) })
       .catch(() => setError("Failed to load orders."))

@@ -3729,7 +3729,7 @@ function DashboardClientInner() {
   }, [endCursor])
 
   useEffect(() => {
-    fetch("/api/get-orders")
+    fetch("/api/get-orders", { cache: "no-store" })
       .then(r => r.json())
       .then(d => {
         if (d.error) { setError(d.error); return }
@@ -3764,7 +3764,7 @@ function DashboardClientInner() {
     loadingMoreRef.current = true
     setLoadingMore(true)
     const cursor = endCursorRef.current
-    fetch(`/api/get-orders?after=${encodeURIComponent(cursor)}`)
+    fetch(`/api/get-orders?after=${encodeURIComponent(cursor)}`, { cache: "no-store" })
       .then(r => r.json())
       .then(d => {
         if (d.error) {

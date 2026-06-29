@@ -4,6 +4,10 @@ import { shopifyAdmin, shopifyAdminRest } from "@/lib/shopify";
 import { getOrderReturnInfo, ReturnInfo } from "@/lib/customerAccount";
 import { getAdminReturnableInfo, fetchRemainingLineItems, fetchRemainingReturns, fetchRemainingFulfillmentLineItems } from "@/lib/returnEligibility";
 
+// Eligibility is time-sensitive (return window expires by date) and user-specific.
+// Never cache at the Next.js data layer — always recompute per request.
+export const dynamic = "force-dynamic";
+
 type EligibilitySource = "shopify" | "shopify-admin" | "fallback";
 
 async function resolveReturnInfo(
@@ -763,7 +767,10 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    return NextResponse.json({ firstName, email: sessionEmail, orders: processedOrders });
+    return NextResponse.json(
+      { firstName, email: sessionEmail, orders: processedOrders },
+      { headers: { "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0" } }
+    );
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("get-orders error:", message);
