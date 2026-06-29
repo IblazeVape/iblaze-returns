@@ -609,10 +609,21 @@ export async function GET(request: NextRequest) {
               returnReason = "This item is not eligible for return.";
             }
           } else {
-            // Not in either Shopify list — fall back to delivery state
-            const undelivered2 = statusFromUndeliveredDelivery(delivery, now);
-            returnStatus = undelivered2.returnStatus;
-            returnReason = undelivered2.returnReason;
+            // Not in either Shopify list — item has been zeroed out by Shopify
+            // (currentQuantity=0 after refund/return removes it from both lists).
+            // Check if it was delivered and fully covered before falling to transit state.
+            if (delivery.deliveredQty > 0 && slotAvailable <= 0) {
+              // Delivered but all quantity accounted for by refunds or return records
+              const isDirectRefund = refQty > 0 && completedQty === 0 && openQty === 0;
+              returnStatus = isDirectRefund ? "Refunded" : "Returned";
+              returnReason = isDirectRefund
+                ? "This item has already been refunded."
+                : "This item has already been returned.";
+            } else {
+              const undelivered2 = statusFromUndeliveredDelivery(delivery, now);
+              returnStatus = undelivered2.returnStatus;
+              returnReason = undelivered2.returnReason;
+            }
           }
 
         } else {
