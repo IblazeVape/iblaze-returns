@@ -404,6 +404,16 @@ export async function GET(request: NextRequest) {
         if (allocated.directRefund > 0) directRefundQtyByLine[lid] = allocated.directRefund;
       }
 
+      // Items refunded directly with NO return record never enter the loop above
+      // (it only iterates returnsByItem). Reserve their refunded quantity here so a
+      // refunded-only item (e.g. Shopify zeroes currentQuantity) can never appear
+      // eligible. Matches Shopify's native page, which excludes refunded units.
+      for (const [lid, refundedQty] of Object.entries(refundedQuantities)) {
+        if (returnsByItem[lid]) continue; // already allocated above
+        const directRefund = Math.min(lineItemQuantities[lid] ?? 0, refundedQty);
+        if (directRefund > 0) directRefundQtyByLine[lid] = directRefund;
+      }
+
       // ── 3. Build shipments with tracking ─────────────────────────────────
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const shipments = (order.fulfillments || []).map((f: any) => ({
@@ -487,27 +497,10 @@ export async function GET(request: NextRequest) {
 
       // ── 5. Map each line item ─────────────────────────────────────────────
 
-      // Guard: Shopify's Customer Account API sometimes returns a stale RETURNED
-      // reason for line items that have no actual return records in Admin (CA API
-      // cache bug observed across different OAuth tokens for the same customer).
-      // Cross-reference against Admin return records and correct false positives
-      // so both browsers always see consistent eligibility.
-      const ri = (() => {
-        if (!returnInfo) return null;
-        const pReturnableItems = { ...returnInfo.returnableItems };
-        const pNonReturnableItems: typeof returnInfo.nonReturnableItems = {};
-        for (const [lid, details] of Object.entries(returnInfo.nonReturnableItems)) {
-          const hasReturnedCode = details.some((d) => d.reasonCode === "RETURNED");
-          const hasAdminRecord = (returnsByItem[lid]?.length ?? 0) > 0;
-          if (hasReturnedCode && !hasAdminRecord) {
-            // CA API stale: no Admin return record exists — treat as returnable
-            pReturnableItems[lid] = lineItemQuantities[lid] ?? 0;
-          } else {
-            pNonReturnableItems[lid] = details;
-          }
-        }
-        return { ...returnInfo, returnableItems: pReturnableItems, nonReturnableItems: pNonReturnableItems };
-      })();
+      // Shopify's returnInformation is the single source of truth for eligibility,
+      // exactly as Shopify's own native order-status page uses it. We do NOT override
+      // it: anything Shopify omits from returnableLineItems is not eligible here either.
+      const ri = returnInfo;
 
       const now = new Date();
       let totalUnits = 0;
