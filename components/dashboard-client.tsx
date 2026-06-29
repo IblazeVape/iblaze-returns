@@ -828,20 +828,19 @@ function SnakeBorderAlert({ paragraph }: { paragraph: string }) {
   useLayoutEffect(() => {
     const el = ref.current
     if (!el) return
-    // Measure immediately so the border starts drawing on first paint
-    const rect = el.getBoundingClientRect()
-    setSize({ w: rect.width, h: rect.height })
-    const ro = new ResizeObserver(([e]) => {
-      setSize({ w: e.contentRect.width, h: e.contentRect.height })
-    })
+    const measure = () => {
+      const { width, height } = el.getBoundingClientRect()
+      setSize({ w: width, h: height })
+    }
+    measure()
+    const ro = new ResizeObserver(measure)
     ro.observe(el)
     return () => ro.disconnect()
   }, [])
 
-  // Build a rounded-rect SVG path in pixel coordinates
-  const r = 8, sw = 1.5, o = sw / 2
-  const bw = Math.max(0, size.w - sw)
-  const bh = Math.max(0, size.h - sw)
+  const r = 8, o = 0.75
+  const bw = Math.max(0, size.w - 1.5)
+  const bh = Math.max(0, size.h - 1.5)
   const d = bw > 0 && bh > 0
     ? [
         `M${o + r},${o}`,
@@ -856,32 +855,44 @@ function SnakeBorderAlert({ paragraph }: { paragraph: string }) {
       ].join(" ")
     : ""
 
+  const loop = { duration: 3, repeat: Infinity, ease: "linear" as const }
+
   return (
-    <div
-      ref={ref}
-      className="relative rounded-lg bg-gradient-to-b from-accent to-transparent to-60% px-4 py-3 text-accent-foreground"
-    >
+    <div ref={ref} className="relative rounded-lg bg-gradient-to-b from-accent to-transparent to-60% px-4 py-3 text-accent-foreground">
       {d && (
         <svg
           className="absolute inset-0 pointer-events-none"
           width={size.w}
           height={size.h}
-          style={{ overflow: "visible" }}
           aria-hidden
         >
+          {/* Static track — always visible, very dim */}
+          <path d={d} fill="none" stroke="currentColor" strokeOpacity={0.08} strokeWidth={1} />
+
+          {/* Wide glow halo — soft light that wraps the core */}
           <motion.path
             d={d}
             fill="none"
             stroke="currentColor"
-            strokeOpacity={0.3}
-            strokeWidth={sw}
+            strokeOpacity={0.1}
+            strokeWidth={7}
             strokeLinecap="round"
-            initial={{ pathLength: 0, opacity: 0 }}
-            animate={{ pathLength: 1, opacity: 1 }}
-            transition={{
-              pathLength: { duration: 2, ease: [0.4, 0, 0.2, 1] },
-              opacity: { duration: 0.05 },
-            }}
+            initial={{ pathLength: 0.2, pathOffset: 0 }}
+            animate={{ pathOffset: 1 }}
+            transition={loop}
+          />
+
+          {/* Bright core snake */}
+          <motion.path
+            d={d}
+            fill="none"
+            stroke="currentColor"
+            strokeOpacity={0.5}
+            strokeWidth={1.5}
+            strokeLinecap="round"
+            initial={{ pathLength: 0.15, pathOffset: 0 }}
+            animate={{ pathOffset: 1 }}
+            transition={loop}
           />
         </svg>
       )}
