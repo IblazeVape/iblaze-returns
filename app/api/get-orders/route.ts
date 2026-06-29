@@ -546,6 +546,7 @@ export async function GET(request: NextRequest) {
 
         let returnStatus: string;
         let returnReason: string;
+        let effectiveEligibleQty = effectiveEligible;
 
         if (order.cancelledAt) {
           returnStatus = "Cancelled";
@@ -642,6 +643,22 @@ export async function GET(request: NextRequest) {
               returnReason = isDirectRefund
                 ? "This item has already been refunded."
                 : "This item has already been returned.";
+            } else if (delivery.deliveredQty > 0) {
+              // Delivered but Shopify doesn't list it in either returnable or non-returnable.
+              // Common with Admin API fallback: returnableFulfillments omits expired items.
+              // Use delivery date to determine correct status rather than falling through
+              // to statusFromUndeliveredDelivery which would incorrectly show "Confirmed".
+              const daysSince = delivery.latestDeliveredAt
+                ? (now.getTime() - delivery.latestDeliveredAt.getTime()) / (1000 * 60 * 60 * 24)
+                : Infinity;
+              if (daysSince > RETURN_WINDOW_DAYS) {
+                returnStatus = "Passed the return window";
+                returnReason = formatReturnWindowExpiredReason(delivery.latestDeliveredAt);
+              } else {
+                returnStatus = "Eligible";
+                returnReason = "";
+                effectiveEligibleQty = deliveredAvailable;
+              }
             } else {
               const undelivered2 = statusFromUndeliveredDelivery(delivery, now);
               returnStatus = undelivered2.returnStatus;
@@ -687,7 +704,7 @@ export async function GET(request: NextRequest) {
           unitPrice: item.discountedUnitPriceSet?.shopMoney?.amount
             ? parseFloat(item.discountedUnitPriceSet.shopMoney.amount)
             : null,
-          eligibleQuantity: returnStatus === "Eligible" ? effectiveEligible : 0,
+          eligibleQuantity: returnStatus === "Eligible" ? effectiveEligibleQty : 0,
           refundedQuantity: refQty,
           requestedReturnQuantity: requestedQty,
           openReturnQuantity: openQty,
