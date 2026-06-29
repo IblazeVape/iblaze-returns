@@ -5,22 +5,25 @@ import "@shopify/ui-extensions/preact"
 
 declare const shopify: {
   orderId?: string
+  // Order data loads asynchronously and is undefined until ready.
+  order?: { value?: { id?: string } }
   sessionToken: { get: () => Promise<string> }
 }
 
 const PORTAL_BASE_URL = "https://iblaze-returns.vercel.app"
 
 export default async () => {
-  // shopify.orderId is synchronously available in menu-item.render context.
-  // May be a GID ("gid://shopify/Order/12345") or plain numeric.
-  const rawId = shopify.orderId ?? ""
+  // Order identity can be undefined on first render (loads async), so wait for it.
+  // Without this the eligibility check below is skipped and the button renders
+  // unconditionally.
+  const rawId = await resolveOrderId()
   const numericId = rawId.includes("/") ? (rawId.split("/").pop() ?? "") : rawId
 
   // Only render "Start a Return" when the portal reports the order has at least
-  // one item eligible for return. The portal computes this via the Admin API
-  // (returnable + delivered + within the 30-day window), so it works even though
-  // native self-serve returns are disabled. Fail open so portal access is never
-  // blocked by a transient error.
+  // one item eligible for return (returnable + delivered + within the 30-day
+  // window, computed via the Admin API — works with native self-serve returns off).
+  // Fail open if we can't determine eligibility, so a transient error never hides
+  // the button on a genuinely returnable order.
   if (numericId && !(await isOrderEligible(numericId))) return
 
   const portalUrl = numericId
@@ -30,11 +33,22 @@ export default async () => {
   render(<s-button href={portalUrl}>Start a Return</s-button>, document.body)
 }
 
+/** Wait (briefly) for the order ID — it may be undefined on first render. */
+async function resolveOrderId(): Promise<string> {
+  if (shopify.orderId) return shopify.orderId
+  for (let i = 0; i < 25; i++) {
+    const id = shopify.order?.value?.id || shopify.orderId
+    if (id) return id
+    await new Promise((r) => setTimeout(r, 100))
+  }
+  return shopify.order?.value?.id || shopify.orderId || ""
+}
+
 async function isOrderEligible(numericId: string): Promise<boolean> {
   try {
     const token = await shopify.sessionToken.get()
-    // Cache-bust the URL so the extension sandbox never serves a stale cached
-    // response — eligibility changes over time (return window expiry).
+    // Cache-bust so the extension sandbox never serves a stale response —
+    // eligibility changes over time (return window expiry).
     const url = `${PORTAL_BASE_URL}/api/order-eligible?order=${numericId}&t=${Date.now()}`
     const res = await fetch(url, {
       method: "GET",
