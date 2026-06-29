@@ -23,6 +23,7 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -3080,6 +3081,19 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                 >
                   View return progress on your order
                 </a>
+              </div>
+            )}
+
+            {/* ── Info summary alert above table ── */}
+            {!order.cancelledAt && orderSummary.text && (
+              <div className="border-b px-4 py-3">
+                <Alert className="bg-gradient-to-b from-accent to-transparent to-60% border-accent-foreground/20 text-accent-foreground">
+                  <Info className="size-4" />
+                  <AlertTitle>Return eligibility</AlertTitle>
+                  <AlertDescription className="text-accent-foreground/60">
+                    {orderSummary.text}
+                  </AlertDescription>
+                </Alert>
               </div>
             )}
 
