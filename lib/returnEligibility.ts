@@ -87,6 +87,36 @@ export async function fetchRemainingLineItems(orderId: string, after: string): P
   return extra;
 }
 
+/** Fetch fulfillment line items beyond the first page — fulfillments with >30 variants need this. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function fetchRemainingFulfillmentLineItems(fulfillmentId: string, after: string): Promise<any[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const extra: any[] = [];
+  let cursor: string | null = after;
+
+  while (cursor) {
+    const data = await shopifyAdmin(
+      `
+      query FulfillmentLineItems($id: ID!, $first: Int!, $after: String) {
+        fulfillment(id: $id) {
+          fulfillmentLineItems(first: $first, after: $after) {
+            pageInfo { hasNextPage endCursor }
+            edges { node { lineItem { id } quantity } }
+          }
+        }
+      }
+    `,
+      { id: fulfillmentId, first: PAGE, after: cursor }
+    );
+
+    extra.push(...(data?.fulfillment?.fulfillmentLineItems?.edges || []));
+    const pageInfo = data?.fulfillment?.fulfillmentLineItems?.pageInfo;
+    cursor = pageInfo?.hasNextPage ? pageInfo.endCursor : null;
+  }
+
+  return extra;
+}
+
 /** Fetch return records beyond the first page — orders with many returns (e.g. #1033) need this. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function fetchRemainingReturns(orderId: string, after: string): Promise<any[]> {

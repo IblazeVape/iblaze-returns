@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { validateSession } from "@/lib/auth";
 import { shopifyAdmin, shopifyAdminRest } from "@/lib/shopify";
 import { getOrderReturnInfo, ReturnInfo } from "@/lib/customerAccount";
-import { getAdminReturnableInfo, fetchRemainingLineItems, fetchRemainingReturns } from "@/lib/returnEligibility";
+import { getAdminReturnableInfo, fetchRemainingLineItems, fetchRemainingReturns, fetchRemainingFulfillmentLineItems } from "@/lib/returnEligibility";
 
 type EligibilitySource = "shopify" | "shopify-admin" | "fallback";
 
@@ -82,6 +82,7 @@ export async function GET(request: NextRequest) {
         id displayStatus createdAt deliveredAt updatedAt
         trackingInfo { company number url }
         fulfillmentLineItems(first: 30) {
+          pageInfo { hasNextPage endCursor }
           edges { node { lineItem { id } quantity } }
         }
       }
@@ -261,6 +262,16 @@ export async function GET(request: NextRequest) {
         if (returnsPageInfo?.hasNextPage && returnsPageInfo.endCursor) {
           const extraReturns = await fetchRemainingReturns(order.id, returnsPageInfo.endCursor);
           order.returns.edges.push(...extraReturns.map((node: unknown) => ({ node })));
+        }
+
+        // Paginate fulfillment line items for fulfillments with >30 variants
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        for (const f of (order.fulfillments || []) as any[]) {
+          const fliPageInfo = f.fulfillmentLineItems?.pageInfo;
+          if (fliPageInfo?.hasNextPage && fliPageInfo.endCursor) {
+            const extraFLIs = await fetchRemainingFulfillmentLineItems(f.id, fliPageInfo.endCursor);
+            f.fulfillmentLineItems.edges.push(...extraFLIs);
+          }
         }
       })
     );
