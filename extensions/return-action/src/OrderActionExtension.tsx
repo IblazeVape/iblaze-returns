@@ -3,55 +3,71 @@
 import { h, render } from "preact"
 import "@shopify/ui-extensions/preact"
 
+// Shopify Customer Account Extension API typings for menu-item.render target.
+// The ONLY way to get the order is through shopify.order (SubscribableSignalLike).
+// There is no shopify.orderId shortcut on this target.
 declare const shopify: {
-  orderId?: string
-  // Order data loads asynchronously and is undefined until ready.
-  order?: { value?: { id?: string } }
+  order: {
+    value: { id?: string } | undefined
+    subscribe: (cb: (order: { id?: string } | undefined) => void) => () => void
+  }
   sessionToken: { get: () => Promise<string> }
 }
 
 const PORTAL_BASE_URL = "https://iblaze-returns.vercel.app"
 
 export default async () => {
-  // Order identity can be undefined on first render (loads async), so wait for it.
-  // Without this the eligibility check below is skipped and the button renders
-  // unconditionally.
-  const rawId = await resolveOrderId()
-  const numericId = rawId.includes("/") ? (rawId.split("/").pop() ?? "") : rawId
+  // Get the order GID — use the subscribe pattern so we wait for it to be
+  // available even if undefined on first render, without burning the time budget
+  // on a polling loop.
+  const orderGid = await resolveOrderGid()
+  const numericId = orderGid.includes("/") ? (orderGid.split("/").pop() ?? "") : orderGid
 
-  // Only render "Start a Return" when the portal reports the order has at least
-  // one item eligible for return (returnable + delivered + within the 30-day
-  // window, computed via the Admin API — works with native self-serve returns off).
-  // Fail open if we can't determine eligibility, so a transient error never hides
-  // the button on a genuinely returnable order.
-  if (numericId && !(await isOrderEligible(numericId))) return
+  if (!numericId) {
+    // Order ID never became available — fail open so we don't permanently hide
+    // the button for a customer with returnable items.
+    render(<s-button href={PORTAL_BASE_URL}>Start a Return</s-button>, document.body)
+    return
+  }
 
-  const portalUrl = numericId
-    ? `${PORTAL_BASE_URL}/?order=${numericId}`
-    : PORTAL_BASE_URL
+  // Ask the portal whether this order has any returnable items (Admin-API-backed,
+  // window-aware, works with native self-serve returns disabled).
+  const eligible = await isOrderEligible(numericId)
+  if (!eligible) return
 
+  const portalUrl = `${PORTAL_BASE_URL}/?order=${numericId}`
   render(<s-button href={portalUrl}>Start a Return</s-button>, document.body)
 }
 
-/** Wait (briefly) for the order ID — it may be undefined on first render. */
-async function resolveOrderId(): Promise<string> {
-  // Fast path — synchronous on most loads.
-  const fast = shopify.order?.value?.id || shopify.orderId
-  if (fast) return fast
-  // Poll up to 500ms so we don't burn the extension time budget waiting.
-  for (let i = 0; i < 5; i++) {
-    await new Promise((r) => setTimeout(r, 100))
-    const id = shopify.order?.value?.id || shopify.orderId
-    if (id) return id
-  }
-  return shopify.order?.value?.id || shopify.orderId || ""
+/** Wait for the order GID via the SubscribableSignalLike, with a 4s timeout. */
+function resolveOrderGid(): Promise<string> {
+  return new Promise((resolve) => {
+    // Synchronous check first (often available immediately)
+    const immediate = shopify.order?.value?.id
+    if (immediate) { resolve(immediate); return }
+
+    // Subscribe and resolve as soon as the order lands
+    let unsub: (() => void) | undefined
+    const timer = setTimeout(() => {
+      unsub?.()
+      resolve("") // fail open after timeout
+    }, 4000)
+
+    unsub = shopify.order?.subscribe?.((order) => {
+      const id = order?.id
+      if (id) {
+        clearTimeout(timer)
+        unsub?.()
+        resolve(id)
+      }
+    })
+  })
 }
 
 async function isOrderEligible(numericId: string): Promise<boolean> {
   try {
     const token = await shopify.sessionToken.get()
-    // Cache-bust so the extension sandbox never serves a stale response —
-    // eligibility changes over time (return window expiry).
+    // Timestamp busts any CDN/browser cache so the button reflects current eligibility.
     const url = `${PORTAL_BASE_URL}/api/order-eligible?order=${numericId}&t=${Date.now()}`
     const res = await fetch(url, {
       headers: { Authorization: `Bearer ${token}` },
