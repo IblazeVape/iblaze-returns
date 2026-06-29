@@ -80,7 +80,7 @@ export function AppSidebar({ user, onNavigate, activeSection, ...props }: AppSid
           <NavSecondary items={navSecondary} className="mt-auto" />
         </div>
       </SidebarContent>
-      <SidebarFooter className="overflow-visible">
+      <SidebarFooter className="overflow-visible group-data-[collapsible=icon]:pb-3">
         <div className="w-full group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
           <NavUser user={user || { name: "Customer", email: "" }} />
         </div>
