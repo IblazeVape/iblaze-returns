@@ -1,7 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { useEffect, useState, useMemo, useRef, useLayoutEffect, useCallback } from "react"
+import { useEffect, useState, useMemo, useRef, useLayoutEffect, useCallback, Suspense } from "react"
+import { useSearchParams } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { toast } from "sonner"
 import { ChevronRight, LayoutGrid, List, ArrowLeft, RotateCcw, CheckCircle2, ShoppingBag, ShieldCheck, ExternalLink, Lock, Truck, Package, Search, MapPin, SlidersHorizontal, CreditCard, XCircle, CircleX, Columns2, LayoutDashboard, MessageCircle, FileText, Clock, BadgeCheck, HelpCircle, Eye, Archive, Info, type LucideIcon } from "lucide-react"
@@ -3687,13 +3688,16 @@ function DashboardHome({
 export default function DashboardClient() {
   return (
     <SidebarLayoutProvider>
-      <DashboardClientInner />
+      <Suspense>
+        <DashboardClientInner />
+      </Suspense>
     </SidebarLayoutProvider>
   )
 }
 
 function DashboardClientInner() {
   const { layout } = useSidebarLayout()
+  const searchParams = useSearchParams()
   const [data, setData]                   = useState<OrdersData | null>(null)
   const [loading, setLoading]             = useState(true)
   const [loadingMore, setLoadingMore]     = useState(false)
@@ -3736,6 +3740,22 @@ function DashboardClientInner() {
       .catch(() => setError("Failed to load orders."))
       .finally(() => setLoading(false))
   }, [])
+
+  // Auto-select an order when ?order=<numericId> is in the URL (e.g. from Shopify extension)
+  const autoOrderId = searchParams.get("order")
+  useEffect(() => {
+    if (!data || !autoOrderId) return
+    const match = data.orders.find(o =>
+      o.id.split("/").pop() === autoOrderId ||
+      o.name === `#${autoOrderId}`
+    )
+    if (match) {
+      setSelectedOrder(match)
+      setActiveSection("#orders")
+      // Remove the param so refreshing or navigating back doesn't re-trigger
+      window.history.replaceState({}, "", window.location.pathname)
+    }
+  }, [data, autoOrderId])
 
   const showOrdersList = activeSection !== "#home" && !selectedOrder
 

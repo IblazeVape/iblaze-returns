@@ -15,9 +15,9 @@ export default async () => {
   // May be a GID ("gid://shopify/Order/12345") or plain numeric — extract the number
   const numericId = rawId.includes("/") ? (rawId.split("/").pop() ?? "") : rawId
 
-  const wizardUrl = numericId
-    ? `${PORTAL_BASE_URL}/wizard?order=${numericId}`
-    : `${PORTAL_BASE_URL}/wizard`
+  const portalUrl = numericId
+    ? `${PORTAL_BASE_URL}/?order=${numericId}`
+    : PORTAL_BASE_URL
 
-  render(<s-button href={wizardUrl}>Start a Return</s-button>, document.body)
+  render(<s-button href={portalUrl}>Start a Return</s-button>, document.body)
 }

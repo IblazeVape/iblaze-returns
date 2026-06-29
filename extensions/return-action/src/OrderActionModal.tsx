@@ -21,14 +21,12 @@ export default async () => {
 }
 
 function OrderActionModal({ orderId }: { orderId: string }) {
-  const wizardUrl = orderId
-    ? `${PORTAL_BASE_URL}/wizard?order=${orderId}`
-    : `${PORTAL_BASE_URL}/wizard`
+  const portalUrl = orderId
+    ? `${PORTAL_BASE_URL}/?order=${orderId}`
+    : PORTAL_BASE_URL
 
   const handleOpen = () => {
-    // window.open bypasses the web component router; _blank ensures a new tab
-    // even if Shopify's extension frame blocks top-level navigation.
-    window.open(wizardUrl, "_blank")
+    window.open(portalUrl, "_blank")
   }
 
   return (
