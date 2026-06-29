@@ -682,7 +682,7 @@ function buildNarrativeParagraph(
   // ── Scenario: all items awaiting delivery, nothing else going on ──────────
   if (awaitingDelivery === n && totalEligibleUnits === 0 && activeReturns === 0 && alreadyDone === 0) {
     if (notShipped === n)
-      return `${intro} Your order hasn't been dispatched yet — your return window opens once the items are delivered.`
+      return `${intro} Your order hasn't shipped yet — your return window opens once the items are delivered.`
     if (inTransit === n)
       return `${intro} Your order is still on its way — returns open once delivered.`
     if (ofd === n)
@@ -773,6 +773,82 @@ function buildNarrativeParagraph(
     fragments.push(other === 1 ? "1 item isn't eligible for return" : `${other} items aren't eligible for return`)
 
   return intro + fulfillmentClause + eligibleClause + joinFragments(fragments)
+}
+
+// ─── Snake-border animated alert ─────────────────────────────────────────────
+function SnakeBorderAlert({ paragraph }: { paragraph: string }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [size, setSize] = useState({ w: 0, h: 0 })
+
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    // Measure immediately so the border starts drawing on first paint
+    const rect = el.getBoundingClientRect()
+    setSize({ w: rect.width, h: rect.height })
+    const ro = new ResizeObserver(([e]) => {
+      setSize({ w: e.contentRect.width, h: e.contentRect.height })
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
+  // Build a rounded-rect SVG path in pixel coordinates
+  const r = 8, sw = 1.5, o = sw / 2
+  const bw = Math.max(0, size.w - sw)
+  const bh = Math.max(0, size.h - sw)
+  const d = bw > 0 && bh > 0
+    ? [
+        `M${o + r},${o}`,
+        `H${o + bw - r}`,
+        `A${r},${r} 0 0 1 ${o + bw},${o + r}`,
+        `V${o + bh - r}`,
+        `A${r},${r} 0 0 1 ${o + bw - r},${o + bh}`,
+        `H${o + r}`,
+        `A${r},${r} 0 0 1 ${o},${o + bh - r}`,
+        `V${o + r}`,
+        `A${r},${r} 0 0 1 ${o + r},${o} Z`,
+      ].join(" ")
+    : ""
+
+  return (
+    <div
+      ref={ref}
+      className="relative rounded-lg bg-gradient-to-b from-accent to-transparent to-60% px-4 py-3 text-accent-foreground"
+    >
+      {d && (
+        <svg
+          className="absolute inset-0 pointer-events-none"
+          width={size.w}
+          height={size.h}
+          style={{ overflow: "visible" }}
+          aria-hidden
+        >
+          <motion.path
+            d={d}
+            fill="none"
+            stroke="currentColor"
+            strokeOpacity={0.3}
+            strokeWidth={sw}
+            strokeLinecap="round"
+            initial={{ pathLength: 0, opacity: 0 }}
+            animate={{ pathLength: 1, opacity: 1 }}
+            transition={{
+              pathLength: { duration: 2, ease: [0.4, 0, 0.2, 1] },
+              opacity: { duration: 0.05 },
+            }}
+          />
+        </svg>
+      )}
+      <div className="flex items-start gap-3">
+        <Info className="size-4 mt-0.5 shrink-0" aria-hidden />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold tracking-tight">Order summary</p>
+          <p className="text-xs text-accent-foreground/70 mt-1 leading-relaxed">{paragraph}</p>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 function CountBadge({
@@ -3087,15 +3163,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
         )}
 
         {/* ── Return eligibility narrative alert ── */}
-        <div className="rounded-lg border border-accent-foreground/20 bg-gradient-to-b from-accent to-transparent to-60% px-4 py-3 text-accent-foreground">
-          <div className="flex items-start gap-3">
-            <Info className="size-4 mt-0.5 shrink-0" aria-hidden />
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold tracking-tight">Order summary</p>
-              <p className="text-xs text-accent-foreground/70 mt-1 leading-relaxed">{narrativeParagraph}</p>
-            </div>
-          </div>
-        </div>
+        <SnakeBorderAlert key={order.id} paragraph={narrativeParagraph} />
 
         {/* ── Unified order + items card ── */}
         <Card className={cn(C, "overflow-hidden flex flex-col", order.cancelledAt && "border-red-200")}>
