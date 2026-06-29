@@ -13,20 +13,21 @@ declare const shopify: {
 const PORTAL_BASE_URL = "https://iblaze-returns.vercel.app"
 
 export default async () => {
-  const orderId = shopify.orderId  // synchronous per Shopify's own tutorial
+  console.log("[iBlaze v45] extension running, shopify.orderId =", shopify.orderId)
+
+  const orderId = shopify.orderId
 
   if (!orderId) {
-    // orderId unavailable — don't render (Shopify's documented pattern for this case)
+    console.log("[iBlaze v45] orderId is falsy — not rendering button")
     return
   }
 
-  // Extract numeric ID from GID (e.g. "gid://shopify/Order/12345" → "12345")
   const numericId = orderId.includes("/") ? (orderId.split("/").pop() ?? orderId) : orderId
+  console.log("[iBlaze v45] numericId =", numericId, "— checking eligibility")
 
-  // Check eligibility via portal API — Admin-backed, window-aware, works with
-  // native self-serve returns disabled. Fail open so a transient error never hides
-  // the button for a genuinely returnable order.
   const eligible = await isOrderEligible(numericId)
+  console.log("[iBlaze v45] eligible =", eligible)
+
   if (!eligible) return
 
   const portalUrl = `${PORTAL_BASE_URL}/?order=${numericId}`
