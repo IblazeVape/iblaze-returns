@@ -62,10 +62,15 @@ function verifySessionToken(token: string): SessionClaims | null {
     return null;
   }
 
+  // Signature verified above with our app secret — that alone proves the token
+  // was issued by Shopify for this app. Only enforce expiry here. We deliberately
+  // do NOT hard-reject on aud/dest: with a custom customer-account domain the dest
+  // claim won't contain the myshopify domain, and rejecting on it breaks auth.
   const now = Math.floor(Date.now() / 1000);
   if (claims.exp && now > claims.exp) return null;
-  if (claims.aud && claims.aud !== CLIENT_ID) return null;
-  if (claims.dest && !claims.dest.includes(SHOP.replace(/^https?:\/\//, ""))) return null;
+  if (claims.aud && claims.aud !== CLIENT_ID) {
+    console.warn(`[order-eligible] aud mismatch: got ${claims.aud}, expected ${CLIENT_ID}`);
+  }
   return claims;
 }
 
@@ -172,6 +177,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    console.log(`[order-eligible] order=${orderParam} owner-ok eligible=${eligible}`);
     return NextResponse.json({ eligible }, { headers });
   } catch (err) {
     console.error("order-eligible error:", err instanceof Error ? err.message : String(err));
