@@ -479,6 +479,29 @@ export async function GET(request: NextRequest) {
       }
 
       // ── 5. Map each line item ─────────────────────────────────────────────
+
+      // Guard: Shopify's Customer Account API sometimes returns a stale RETURNED
+      // reason for line items that have no actual return records in Admin (CA API
+      // cache bug observed across different OAuth tokens for the same customer).
+      // Cross-reference against Admin return records and correct false positives
+      // so both browsers always see consistent eligibility.
+      const ri = (() => {
+        if (!returnInfo) return null;
+        const pReturnableItems = { ...returnInfo.returnableItems };
+        const pNonReturnableItems: typeof returnInfo.nonReturnableItems = {};
+        for (const [lid, details] of Object.entries(returnInfo.nonReturnableItems)) {
+          const hasReturnedCode = details.some((d) => d.reasonCode === "RETURNED");
+          const hasAdminRecord = (returnsByItem[lid]?.length ?? 0) > 0;
+          if (hasReturnedCode && !hasAdminRecord) {
+            // CA API stale: no Admin return record exists — treat as returnable
+            pReturnableItems[lid] = lineItemQuantities[lid] ?? 0;
+          } else {
+            pNonReturnableItems[lid] = details;
+          }
+        }
+        return { ...returnInfo, returnableItems: pReturnableItems, nonReturnableItems: pNonReturnableItems };
+      })();
+
       const now = new Date();
       let totalUnits = 0;
       let deliveredCount = 0;
@@ -510,14 +533,14 @@ export async function GET(request: NextRequest) {
           item.quantity,
           refQty + requestedQty + openQty + completedQty + declinedQty
         );
-        const shopifyReturnableQty = returnInfo ? (returnInfo.returnableItems[item.id] ?? 0) : 0;
+        const shopifyReturnableQty = ri ? (ri.returnableItems[item.id] ?? 0) : 0;
         const slotAvailable = Math.max(0, item.quantity - reservedQty);
         const deliveredAvailable = Math.max(0, delivery.deliveredQty - reservedQty);
         // Shopify return rules (returnInformation) + portal rule: must be delivered before selectable
-        const shopifySlotEligible = returnInfo
+        const shopifySlotEligible = ri
           ? Math.min(shopifyReturnableQty, slotAvailable)
           : deliveredAvailable;
-        const effectiveEligible = returnInfo
+        const effectiveEligible = ri
           ? Math.min(shopifySlotEligible, deliveredAvailable)
           : deliveredAvailable;
 
@@ -560,9 +583,9 @@ export async function GET(request: NextRequest) {
               : "You have an active or completed return for this item.";
           }
 
-        } else if (returnInfo) {
+        } else if (ri) {
           // ── Priority 3: Shopify returnInformation (no returnable qty right now) ─
-          const nonReturnableDetail = returnInfo.nonReturnableItems[item.id];
+          const nonReturnableDetail = ri.nonReturnableItems[item.id];
 
           if (nonReturnableDetail) {
             // Sidekick-aligned priority order for nonReturnable reason codes:
