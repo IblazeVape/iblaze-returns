@@ -2132,7 +2132,7 @@ function getReturnStatusIcon(status: ReturnStatus): { icon: React.ElementType; c
 function getIneligibleGroupMessage(item: LineItem, order: Order, groupItems?: LineItem[]): string {
   switch (item.returnStatus) {
     case "Confirmed":
-      return "These items haven't shipped yet. Your return window starts on delivery and closes 30 days later."
+      return "We're preparing these items for shipping. Your return window starts on delivery and closes 30 days later."
     case "On its way":
       return "These items are on their way. Your return window starts on delivery and closes 30 days later."
     case "Out for delivery":

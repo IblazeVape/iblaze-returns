@@ -809,7 +809,7 @@ function statusFromUndeliveredDelivery(
   }
   return {
     returnStatus: "Confirmed",
-    returnReason: "This item hasn't been dispatched yet — check back once it ships.",
+    returnReason: "We're preparing your items for shipping.",
   };
 }
 

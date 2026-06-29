@@ -155,7 +155,7 @@ function ineligibleReasonText(status: ReturnStatus, reason?: string, lineDeliver
   if (status === "On its way")         return "Items can only be returned once delivered."
   if (status === "Out for delivery")   return "Your parcel is out for delivery today — returns open once delivered."
   if (status === "Attempted delivery") return "A delivery attempt was made — please rebook or collect your parcel."
-  if (status === "Confirmed")          return "This item hasn't been dispatched yet."
+  if (status === "Confirmed")          return "We're preparing these items for shipping."
   return reason || null
 }
 // Ineligible cell — popover on click, no overlay/opacity change
