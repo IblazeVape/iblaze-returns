@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
       fulfillments(first: 5) {
         id displayStatus createdAt deliveredAt updatedAt
         trackingInfo { company number url }
-        fulfillmentLineItems(first: 15) {
+        fulfillmentLineItems(first: 30) {
           edges { node { lineItem { id } quantity } }
         }
       }
