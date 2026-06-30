@@ -1,13 +1,13 @@
 "use client"
 
-import { Search, Home, PanelLeft, Package, type LucideIcon } from "lucide-react"
+import { Search, Home, PanelLeft, Package, MoreHorizontal, type LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Separator } from "@/components/ui/separator"
 import { useSidebar } from "@/components/ui/sidebar"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuSeparator, DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { UserAccountMenuItems, UserAccountMenuLabel, userAccountMenuPanelClass } from "@/components/user-account-menu"
 
@@ -84,32 +84,71 @@ export function SiteHeader({
           </div>
         )}
 
-        <div className="ml-auto flex items-center gap-4">
+        <div className="ml-auto flex items-center gap-2 min-[1025px]:gap-4">
+
+          {/* ── Desktop: all links inline ── */}
           {orderStatusUrl && (
-            <>
-              <a
-                href={orderStatusUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <Package className="size-4" />
-                <span className="min-[1025px]:hidden text-xs font-medium">Status</span>
-                <span className="hidden min-[1025px]:inline">Order Status</span>
-              </a>
-              <Separator orientation="vertical" className="data-[orientation=vertical]:h-4" />
-            </>
+            <a
+              href={orderStatusUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden min-[1025px]:flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Package className="size-4" />
+              Order Status
+            </a>
           )}
           <a
             href="https://iblazevape.co.uk"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="hidden min-[1025px]:flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             <Home className="size-4" />
-            <span className="min-[1025px]:hidden text-xs font-medium">Store</span>
-            <span className="hidden min-[1025px]:inline">Store</span>
+            Store
           </a>
+          <Separator orientation="vertical" className="hidden min-[1025px]:block data-[orientation=vertical]:h-4" />
+
+          {/* ── Mobile: "⋯" dropdown when 2+ links (order selected = Status + Store) ── */}
+          {orderStatusUrl ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="min-[1025px]:hidden size-7 flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+                  aria-label="More options"
+                >
+                  <MoreHorizontal className="size-4" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-[10rem]">
+                <DropdownMenuItem asChild>
+                  <a href={orderStatusUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                    <Package className="size-4" />
+                    Order Status
+                  </a>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <a href="https://iblazevape.co.uk" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                    <Home className="size-4" />
+                    Store
+                  </a>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            /* Mobile: single Store link when no Status */
+            <a
+              href="https://iblazevape.co.uk"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="min-[1025px]:hidden flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Home className="size-4" />
+              <span className="text-xs font-medium">Store</span>
+            </a>
+          )}
           <Separator orientation="vertical" className="data-[orientation=vertical]:h-4" />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
