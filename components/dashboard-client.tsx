@@ -966,10 +966,10 @@ function StickyOrderSummaryStrip({ order }: { order: Order }) {
               <span className="truncate">{triggerLabel}</span>
             </span>
           </AccordionTrigger>
-          {/* Content: white background, full-width top border (no horizontal inset) */}
+          {/* Content: white background, full-width top border (no horizontal inset).
+              Paragraph starts at the same left edge as the ⓘ icon (no spacer). */}
           <AccordionContent className="p-0 bg-card border-t border-border">
-            <div className="pt-2 pb-2 flex gap-2" style={hPad}>
-              <div className="size-3.5 shrink-0" aria-hidden />
+            <div className="pt-2 pb-2" style={hPad}>
               <p className="text-xs text-muted-foreground leading-relaxed">{paragraph}</p>
             </div>
           </AccordionContent>
