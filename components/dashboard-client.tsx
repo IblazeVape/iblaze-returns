@@ -638,6 +638,7 @@ function buildNarrativeParagraph(
   order: Order,
   totalEligibleUnits: number,
   ineligibleItems: DisplayItem[],
+  { showWindowDate = true }: { showWindowDate?: boolean } = {},
 ): string {
   const total = parseFloat(order.totalPriceSet.shopMoney.amount)
   const refundedAmount = order.totalRefundedSet?.shopMoney?.amount
@@ -703,7 +704,7 @@ function buildNarrativeParagraph(
     if (completed === n) return `${intro} All ${n === 1 ? "" : `${n} `}item${n !== 1 ? "s have" : " has"} already been returned.`
     if (refunded  === n) return `${intro} All ${n === 1 ? "" : `${n} `}item${n !== 1 ? "s have" : " has"} already been refunded.`
     if (expired   === n) {
-      const datePart = expiredDateStr ? ` — it closed on ${expiredDateStr}` : ""
+      const datePart = showWindowDate && expiredDateStr ? ` — it closed on ${expiredDateStr}` : ""
       return `${intro} All items are past the 30-day return window${datePart}.`
     }
     if (finalSale === n) return `${intro} All items were final sale and cannot be returned.`
@@ -738,7 +739,7 @@ function buildNarrativeParagraph(
     if (declined > 0)
       retF.push(declined === 1 ? "1 return request was declined" : `${declined} return requests were declined`)
     if (expired > 0) {
-      const dp = expiredDateStr ? ` (window closed ${expiredDateStr})` : ""
+      const dp = showWindowDate && expiredDateStr ? ` (window closed ${expiredDateStr})` : ""
       retF.push(expired === 1 ? `1 is past the return window${dp}` : `${expired} are past the return window${dp}`)
     }
     if (completed > 0)
@@ -811,7 +812,7 @@ function buildNarrativeParagraph(
   if (!hasFulfillmentClause && notShipped > 0)
     fragments.push(notShipped === 1 ? "1 item hasn't been shipped yet" : `${notShipped} items haven't been shipped yet`)
   if (expired > 0) {
-    const datePart = expiredDateStr ? ` (closed ${expiredDateStr})` : ""
+    const datePart = showWindowDate && expiredDateStr ? ` (closed ${expiredDateStr})` : ""
     fragments.push(expired === 1 ? `1 item is past the 30-day return window${datePart}` : `${expired} items are past the 30-day return window${datePart}`)
   }
   if (completed > 0)
@@ -932,19 +933,21 @@ function StickyOrderSummaryStrip({ order }: { order: Order }) {
   const ineligibleItems    = useMemo(() => buildIneligibleDisplayItems(order), [order])
   const totalEligibleUnits = eligibleItems.reduce((s, i) => s + i.eligibleQuantity, 0)
   const paragraph          = useMemo(
-    () => buildNarrativeParagraph(order, totalEligibleUnits, ineligibleItems),
+    () => buildNarrativeParagraph(order, totalEligibleUnits, ineligibleItems, { showWindowDate: false }),
     [order, totalEligibleUnits, ineligibleItems],
   )
 
+  // No order name — already shown in the header title above
   const triggerLabel = totalEligibleUnits > 0
-    ? `${order.name} · ${totalEligibleUnits} item${totalEligibleUnits !== 1 ? "s" : ""} ready to return`
+    ? `${totalEligibleUnits} item${totalEligibleUnits !== 1 ? "s" : ""} ready to return`
     : order.cancelledAt
-      ? `${order.name} · Cancelled`
-      : `${order.name} · Order summary`
+      ? "Order cancelled"
+      : "Order summary"
 
-  // Header uses paddingLeft: 1rem / paddingRight: max(1rem, safe-area-inset-right)
+  // Match SiteHeader exactly: paddingLeft 1rem, sidebar button is -ml-1 (4px left)
+  // so we use calc(1rem - 0.25rem) = 12px to align ⓘ with the □ sidebar icon
   const hPad: React.CSSProperties = {
-    paddingLeft:  "1rem",
+    paddingLeft:  "calc(1rem - 0.25rem)",
     paddingRight: "max(1rem, env(safe-area-inset-right))",
   }
 
@@ -961,9 +964,9 @@ function StickyOrderSummaryStrip({ order }: { order: Order }) {
               <span className="truncate">{triggerLabel}</span>
             </span>
           </AccordionTrigger>
-          <AccordionContent>
-            {/* Indent content to align with trigger text (past the Info icon + gap) */}
-            <div className="pb-3" style={hPad}>
+          {/* className="p-0" removes the default pb-4 inside AccordionContent */}
+          <AccordionContent className="p-0">
+            <div className="pb-2" style={hPad}>
               <div className="flex gap-2">
                 <div className="size-3.5 shrink-0" aria-hidden />
                 <p className="text-xs text-muted-foreground leading-relaxed">{paragraph}</p>
