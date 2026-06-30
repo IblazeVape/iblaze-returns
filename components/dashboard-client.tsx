@@ -872,7 +872,7 @@ function SnakeBorderAlert({ paragraph }: { paragraph: string }) {
         aria-hidden
       />
       {/* Inner content */}
-      <div className="relative rounded-[7px] bg-card px-4 py-3 text-foreground">
+      <div className="relative rounded-lg bg-card px-4 py-3 text-foreground">
         <div className="flex items-start gap-3">
           <Info className="size-4 mt-0.5 shrink-0" aria-hidden />
           <div className="min-w-0 flex-1">
@@ -4312,7 +4312,7 @@ function DashboardClientInner() {
           orderStatusUrl={selectedOrder ? `https://account.iblazevape.co.uk/orders/${selectedOrder.id.split("/").pop()}` : undefined}
         />
         {selectedOrder && (
-          <div className="px-4 pb-2 pt-1 border-b border-border">
+          <div className="px-4 pb-2 pt-1">
             <OrderSummaryAlertFromOrder order={selectedOrder} />
           </div>
         )}
