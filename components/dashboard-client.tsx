@@ -931,44 +931,39 @@ function StickyOrderSummaryStrip({ order }: { order: Order }) {
     [order, totalEligibleUnits, ineligibleItems],
   )
 
-  const [dismissed, setDismissed] = useState(false)
-
-  useEffect(() => { setDismissed(false) }, [order.id])
-
-  if (dismissed) return null
-
-  // Trigger label: quick glance — order name + top-level status
   const triggerLabel = totalEligibleUnits > 0
     ? `${order.name} · ${totalEligibleUnits} item${totalEligibleUnits !== 1 ? "s" : ""} ready to return`
     : order.cancelledAt
       ? `${order.name} · Cancelled`
       : `${order.name} · Order summary`
 
+  // Header uses paddingLeft: 1rem / paddingRight: max(1rem, safe-area-inset-right)
+  const hPad: React.CSSProperties = {
+    paddingLeft:  "1rem",
+    paddingRight: "max(1rem, env(safe-area-inset-right))",
+  }
+
   return (
     <div className="relative shrink-0 bg-muted/20">
       <Accordion type="single" collapsible className="w-full">
         <AccordionItem value="summary" className="border-0">
-          <div className="flex items-center px-4 pr-3">
-            <Info className="size-3.5 shrink-0 text-foreground/60 mr-2 flex-none" aria-hidden />
-            <AccordionTrigger className="flex-1 py-3 text-xs font-medium text-foreground hover:no-underline [&>svg]:size-3.5 [&>svg]:text-foreground/50 gap-2">
-              {triggerLabel}
-            </AccordionTrigger>
-            {/* Close */}
-            <button
-              type="button"
-              onClick={() => setDismissed(true)}
-              aria-label="Dismiss"
-              className="ml-2 flex-none text-foreground/40 hover:text-foreground transition-colors"
-            >
-              <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <path d="M1 1l10 10M11 1L1 11" />
-              </svg>
-            </button>
-          </div>
-          <AccordionContent className="px-4 pb-3 pt-0">
-            <p className="text-xs text-muted-foreground leading-relaxed pl-[calc(0.875rem+0.5rem)]">
-              {paragraph}
-            </p>
+          <AccordionTrigger
+            className="py-3 text-xs font-medium text-foreground hover:no-underline items-center [&>svg]:size-3.5 [&>svg]:shrink-0 [&>svg]:text-foreground/50"
+            style={hPad}
+          >
+            <span className="flex items-center gap-2 min-w-0">
+              <Info className="size-3.5 shrink-0 text-foreground/60" aria-hidden />
+              <span className="truncate">{triggerLabel}</span>
+            </span>
+          </AccordionTrigger>
+          <AccordionContent>
+            {/* Indent content to align with trigger text (past the Info icon + gap) */}
+            <div className="pb-3" style={hPad}>
+              <div className="flex gap-2">
+                <div className="size-3.5 shrink-0" aria-hidden />
+                <p className="text-xs text-muted-foreground leading-relaxed">{paragraph}</p>
+              </div>
+            </div>
           </AccordionContent>
         </AccordionItem>
       </Accordion>
