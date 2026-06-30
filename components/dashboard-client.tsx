@@ -2694,7 +2694,8 @@ function IneligibleGroupSummary({ item, order, groupItems, count }: { item: Line
         <span className="text-[10px] font-medium leading-snug text-muted-foreground shrink-0 tabular-nums">{count}</span>
       </div>
 
-      {/* Mobile: collapsible — short label + count far right; message takes full width below */}
+      {/* Mobile: collapsible — short label + count far right (on the muted title row);
+          expanded message breaks out of the cell padding into a full-width white panel */}
       <div className="min-[1025px]:hidden">
         <button
           type="button"
@@ -2708,7 +2709,9 @@ function IneligibleGroupSummary({ item, order, groupItems, count }: { item: Line
           <span className="ml-auto text-[10px] font-medium text-muted-foreground shrink-0 tabular-nums">{count}</span>
         </button>
         {open && (
-          <p className="mt-1.5 w-full text-[11px] leading-snug text-muted-foreground break-words">{message}</p>
+          <p className="mt-3 -ml-5 -mr-4 -mb-3 border-t border-border bg-card px-5 py-2.5 text-[11px] leading-snug text-muted-foreground break-words">
+            {message}
+          </p>
         )}
       </div>
     </>
