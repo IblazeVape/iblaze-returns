@@ -902,6 +902,21 @@ function SnakeBorderAlert({ paragraph }: { paragraph: string }) {
   )
 }
 
+// Wrapper: computes narrative from an Order, renders SnakeBorderAlert
+function OrderSummaryAlertFromOrder({ order }: { order: Order }) {
+  const eligibleItems   = useMemo(
+    () => order.processedItems.filter(i => i.returnStatus === "Eligible" && i.eligibleQuantity > 0),
+    [order],
+  )
+  const ineligibleItems = useMemo(() => buildIneligibleDisplayItems(order), [order])
+  const totalEligibleUnits = eligibleItems.reduce((s, i) => s + i.eligibleQuantity, 0)
+  const paragraph = useMemo(
+    () => buildNarrativeParagraph(order, totalEligibleUnits, ineligibleItems),
+    [order, totalEligibleUnits, ineligibleItems],
+  )
+  return <SnakeBorderAlert key={order.id} paragraph={paragraph} />
+}
+
 function CountBadge({
   value,
   variant = "brand",
@@ -3213,9 +3228,6 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
           </div>
         )}
 
-        {/* ── Return eligibility narrative alert ── */}
-        <SnakeBorderAlert key={order.id} paragraph={narrativeParagraph} />
-
         {/* ── Unified order + items card ── */}
         <Card className={cn(C, "overflow-hidden flex flex-col", order.cancelledAt && "border-red-200")}>
           {/* Cancelled accent stripe */}
@@ -4299,7 +4311,11 @@ function DashboardClientInner() {
           email={data?.email}
           orderStatusUrl={selectedOrder ? `https://account.iblazevape.co.uk/orders/${selectedOrder.id.split("/").pop()}` : undefined}
         />
-        {selectedOrder && <OrderPageSummaryStrip order={selectedOrder} />}
+        {selectedOrder && (
+          <div className="px-4 pb-2 pt-1 border-b border-border">
+            <OrderSummaryAlertFromOrder order={selectedOrder} />
+          </div>
+        )}
         {activeSection === "#home" && !selectedOrder && (
           <>
             {/* 30-day returns strip */}
