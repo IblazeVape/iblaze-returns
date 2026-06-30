@@ -805,7 +805,7 @@ function buildNarrativeParagraph(
   if (!hasFulfillmentClause && notShipped > 0)
     fragments.push(notShipped === 1 ? "1 item hasn't been shipped yet" : `${notShipped} items haven't been shipped yet`)
   if (expired > 0) {
-    const datePart = expiredDateStr ? ` — the window closed on ${expiredDateStr}` : ""
+    const datePart = expiredDateStr ? ` (closed ${expiredDateStr})` : ""
     fragments.push(expired === 1 ? `1 item is past the 30-day return window${datePart}` : `${expired} items are past the 30-day return window${datePart}`)
   }
   if (completed > 0)
@@ -817,90 +817,52 @@ function buildNarrativeParagraph(
   if (other > 0)
     fragments.push(other === 1 ? "1 item isn't eligible for return" : `${other} items aren't eligible for return`)
 
-  return intro + fulfillmentClause + eligibleClause + joinFragments(fragments)
+  // Inline join — lowercase, no leading space, no trailing period (used inside a sentence)
+  const inline = (f: string[]) =>
+    f.length === 0 ? "" :
+    f.length === 1 ? f[0] :
+    f.slice(0, -1).join(", ") + ", and " + f[f.length - 1]
+
+  // Blend reasons directly into the eligibility sentence
+  if (fragments.length > 0 && totalEligibleUnits === 0) {
+    return `${intro}${fulfillmentClause} None of the items are currently eligible to return — ${inline(fragments)}.`
+  }
+  if (fragments.length > 0 && totalEligibleUnits > 0) {
+    const readyStr = totalEligibleUnits === 1 ? "1 item is ready to return" : `${totalEligibleUnits} items are ready to return`
+    const otherCount = n - totalEligibleUnits
+    return `${intro}${fulfillmentClause} ${cap(readyStr)}. The other ${otherCount}: ${inline(fragments)}.`
+  }
+
+  return intro + fulfillmentClause + eligibleClause
 }
 
-// ─── Snake-border animated alert ─────────────────────────────────────────────
+// ─── Spinning conic-gradient border alert (matches button technique) ──────────
 function SnakeBorderAlert({ paragraph }: { paragraph: string }) {
-  const ref = useRef<HTMLDivElement>(null)
-  const [size, setSize] = useState({ w: 0, h: 0 })
-
-  useLayoutEffect(() => {
-    const el = ref.current
-    if (!el) return
-    const measure = () => {
-      const { width, height } = el.getBoundingClientRect()
-      setSize({ w: width, h: height })
-    }
-    measure()
-    const ro = new ResizeObserver(measure)
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [])
-
-  const r = 8, o = 0.75
-  const bw = Math.max(0, size.w - 1.5)
-  const bh = Math.max(0, size.h - 1.5)
-  const d = bw > 0 && bh > 0
-    ? [
-        `M${o + r},${o}`,
-        `H${o + bw - r}`,
-        `A${r},${r} 0 0 1 ${o + bw},${o + r}`,
-        `V${o + bh - r}`,
-        `A${r},${r} 0 0 1 ${o + bw - r},${o + bh}`,
-        `H${o + r}`,
-        `A${r},${r} 0 0 1 ${o},${o + bh - r}`,
-        `V${o + r}`,
-        `A${r},${r} 0 0 1 ${o + r},${o} Z`,
-      ].join(" ")
-    : ""
-
-  const loop = { duration: 3, repeat: Infinity, ease: "linear" as const }
-
   return (
-    <div ref={ref} className="relative rounded-lg bg-gradient-to-b from-accent to-transparent to-60% px-4 py-3 text-accent-foreground">
-      {d && (
-        <svg
-          className="absolute inset-0 pointer-events-none"
-          width={size.w}
-          height={size.h}
-          aria-hidden
-        >
-          {/* Static track — always visible, very dim */}
-          <path d={d} fill="none" stroke="currentColor" strokeOpacity={0.08} strokeWidth={1} />
-
-          {/* Wide glow halo — soft light that wraps the core */}
-          <motion.path
-            d={d}
-            fill="none"
-            stroke="currentColor"
-            strokeOpacity={0.1}
-            strokeWidth={7}
-            strokeLinecap="round"
-            initial={{ pathLength: 0.2, pathOffset: 0 }}
-            animate={{ pathOffset: 1 }}
-            transition={loop}
-          />
-
-          {/* Bright core snake */}
-          <motion.path
-            d={d}
-            fill="none"
-            stroke="currentColor"
-            strokeOpacity={0.5}
-            strokeWidth={1.5}
-            strokeLinecap="round"
-            initial={{ pathLength: 0.15, pathOffset: 0 }}
-            animate={{ pathOffset: 1 }}
-            transition={loop}
-          />
-        </svg>
-      )}
-      <div className="flex items-start gap-3">
-        <Info className="size-4 mt-0.5 shrink-0" aria-hidden />
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold tracking-tight">Order summary</p>
-          <p className="text-xs text-accent-foreground/70 mt-1 leading-relaxed">{paragraph}</p>
+    <div className="relative rounded-lg overflow-hidden p-[1px]">
+      {/* Spinning gradient layer — same technique as the button example */}
+      <motion.div
+        className="absolute pointer-events-none"
+        style={{
+          inset: "-100%",
+          width: "300%",
+          height: "300%",
+          background:
+            "conic-gradient(from 0deg, transparent 65%, currentColor 75%, transparent 85%)",
+          opacity: 0.35,
+        }}
+        animate={{ rotate: 360 }}
+        transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+        aria-hidden
+      />
+      {/* Inner content — opaque background covers gradient except the 1px border */}
+      <div className="relative rounded-[7px] bg-card px-4 py-3 text-foreground">
+        <div className="flex items-start gap-3">
+          <Info className="size-4 mt-0.5 shrink-0" aria-hidden />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold tracking-tight">Order summary</p>
+            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{paragraph}</p>
+          </div>
         </div>
       </div>
     </div>
