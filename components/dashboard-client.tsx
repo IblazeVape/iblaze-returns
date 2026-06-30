@@ -3070,6 +3070,9 @@ function OrderRow({ order, onClick }: { order: Order; onClick: () => void }) {
   )
 }
 
+// ─── Review-before-submit variant — switch "A" (dialog) or "B" (inline) ───────
+const RETURN_REVIEW_VARIANT: "A" | "B" = "A"
+
 // ─── Order Detail ─────────────────────────────────────────────────────────────
 function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
   const [policyAccepted, setPolicyAccepted] = useState(false)
@@ -3077,6 +3080,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
   const [submitting, setSubmitting]   = useState(false)
   const [submitted, setSubmitted]     = useState(false)
   const [submittedInTransit, setSubmittedInTransit] = useState(false)
+  const [showReview, setShowReview] = useState(false)
   const [searchQuery, setSearchQuery]         = useState("")
   const [pageSize, setPageSize]               = useState("10")
   const [currentPage, setCurrentPage]         = useState(1)
@@ -3174,6 +3178,23 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
   const canSubmit = selectedCount > 0 && policyAccepted && Object.entries(selectedItems)
     .filter(([, v]) => v.selected)
     .every(([, v]) => v.reason && (v.reason !== "OTHER" || v.description.trim().length > 0))
+
+  const reviewItems = useMemo(() =>
+    Object.entries(selectedItems)
+      .filter(([, v]) => v.selected)
+      .map(([id, v]) => {
+        const item = order.processedItems.find(i => i.id === id)!
+        return {
+          id,
+          item,
+          quantity: v.quantity,
+          reason: RETURN_REASONS.find(r => r.value === v.reason)?.label ?? v.reason,
+          description: v.description,
+          subtotal: (item?.unitPrice ?? orderAvgPrice) * v.quantity,
+        }
+      }),
+    [selectedItems, order.processedItems, orderAvgPrice],
+  )
 
   const handleSelectAll = (checked: boolean) => {
     if (!policyAccepted) return
@@ -3299,8 +3320,43 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
           </div>
         )}
 
+        {/* ── Option B: inline review card ── */}
+        {RETURN_REVIEW_VARIANT === "B" && showReview && (
+          <Card className={cn(C, "overflow-hidden")}>
+            <div className="px-5 py-4 border-b bg-muted/20 flex items-center gap-2">
+              <CheckCircle2 className="size-4 text-[#E5403B]" />
+              <span className="text-sm font-semibold">Review your return</span>
+              <span className="text-xs text-muted-foreground ml-auto">{selectedCount} item{selectedCount !== 1 ? "s" : ""}</span>
+            </div>
+            <div className="divide-y overflow-y-auto max-h-[55vh]">
+              {reviewItems.map(({ id, item, quantity, reason, description, subtotal }) => (
+                <div key={id} className="flex items-start gap-3 px-4 py-3">
+                  {item?.image?.url && (
+                    <img src={item.image.url} alt={item.title} className="size-12 rounded-md object-cover shrink-0 border" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium leading-tight truncate">{item?.title}</p>
+                    {item?.variant?.title && item.variant.title !== "Default Title" && (
+                      <p className="text-xs text-muted-foreground">{item.variant.title}</p>
+                    )}
+                    <p className="text-xs text-muted-foreground mt-0.5">Qty {quantity} · {reason}</p>
+                    {description && <p className="text-xs text-muted-foreground italic mt-0.5">"{description}"</p>}
+                  </div>
+                  <p className="text-sm font-semibold tabular-nums shrink-0">£{subtotal.toFixed(2)}</p>
+                </div>
+              ))}
+            </div>
+            <div className="px-5 py-3 border-t flex items-center justify-between">
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Estimated refund</p>
+                <p className="text-lg font-bold text-[#E5403B]">£{estimatedRefund.toFixed(2)}</p>
+              </div>
+            </div>
+          </Card>
+        )}
+
         {/* ── Unified order + items card ── */}
-        <Card className={cn(C, "overflow-hidden flex flex-col", order.cancelledAt && "border-red-200")}>
+        <Card className={cn(C, "overflow-hidden flex flex-col", order.cancelledAt && "border-red-200", RETURN_REVIEW_VARIANT === "B" && showReview && "hidden")}>
           {/* Cancelled accent stripe */}
           {order.cancelledAt && <div className="h-1 bg-red-400 w-full" />}
 
@@ -3807,16 +3863,73 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
             </div>
             <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
               <Button variant="ghost" size="sm" onClick={onBack} className="text-muted-foreground hidden min-[1025px]:inline-flex">Cancel</Button>
-              <Button size="sm" className="bg-[#E5403B] hover:bg-[#cc3935] text-white disabled:opacity-50" disabled={!canSubmit || submitting} onClick={submitReturn}>
-                {submitting
-                  ? <><Spinner className="size-4" /><span className="hidden min-[1025px]:inline ml-1">Submitting...</span></>
-                  : <><RotateCcw className="size-4" /><span className="hidden min-[1025px]:inline ml-1">Submit Return</span></>}
-              </Button>
+              {/* Option B: when in review mode the footer shows Confirm instead */}
+              {RETURN_REVIEW_VARIANT === "B" && showReview ? (
+                <>
+                  <Button variant="outline" size="sm" onClick={() => setShowReview(false)}>Back</Button>
+                  <Button size="sm" className="bg-[#E5403B] hover:bg-[#cc3935] text-white disabled:opacity-50" disabled={submitting} onClick={submitReturn}>
+                    {submitting ? <Spinner className="size-4" /> : <><CheckCircle2 className="size-4" /><span className="hidden min-[1025px]:inline ml-1">Confirm return</span></>}
+                  </Button>
+                </>
+              ) : (
+                <Button size="sm" className="bg-[#E5403B] hover:bg-[#cc3935] text-white disabled:opacity-50"
+                  disabled={!canSubmit || submitting}
+                  onClick={RETURN_REVIEW_VARIANT === "A" ? () => setShowReview(true) : RETURN_REVIEW_VARIANT === "B" ? () => setShowReview(true) : submitReturn}
+                >
+                  {submitting
+                    ? <><Spinner className="size-4" /><span className="hidden min-[1025px]:inline ml-1">Submitting...</span></>
+                    : <><RotateCcw className="size-4" /><span className="hidden min-[1025px]:inline ml-1">Review return</span></>}
+                </Button>
+              )}
             </div>
           </div>
         </motion.div>
       )}
       </AnimatePresence>
+
+      {/* ── Option A: confirmation dialog ── */}
+      {RETURN_REVIEW_VARIANT === "A" && (
+        <Dialog open={showReview} onOpenChange={setShowReview}>
+          <DialogContent className="max-w-md sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Review your return</DialogTitle>
+              <DialogDescription>Check the items below before confirming your request.</DialogDescription>
+            </DialogHeader>
+            <div className="divide-y max-h-[50vh] overflow-y-auto -mx-6 px-6">
+              {reviewItems.map(({ id, item, quantity, reason, description, subtotal }) => (
+                <div key={id} className="flex items-start gap-3 py-3">
+                  {item?.image?.url && (
+                    <img src={item.image.url} alt={item.title} className="size-12 rounded-md object-cover shrink-0 border" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium leading-tight">{item?.title}</p>
+                    {item?.variant?.title && item.variant.title !== "Default Title" && (
+                      <p className="text-xs text-muted-foreground">{item.variant.title}</p>
+                    )}
+                    <p className="text-xs text-muted-foreground mt-0.5">Qty {quantity} · {reason}</p>
+                    {description && <p className="text-xs text-muted-foreground italic mt-0.5">"{description}"</p>}
+                  </div>
+                  <p className="text-sm font-semibold tabular-nums shrink-0">£{subtotal.toFixed(2)}</p>
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center justify-between pt-3 border-t">
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Estimated refund</p>
+                <p className="text-xl font-bold text-[#E5403B]">£{estimatedRefund.toFixed(2)}</p>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => setShowReview(false)}>Back</Button>
+                <Button size="sm" className="bg-[#E5403B] hover:bg-[#cc3935] text-white" disabled={submitting}
+                  onClick={() => { setShowReview(false); submitReturn() }}
+                >
+                  {submitting ? <Spinner className="size-4" /> : "Confirm return"}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   )
 }
