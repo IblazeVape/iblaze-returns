@@ -24,7 +24,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -937,6 +936,9 @@ function StickyOrderSummaryStrip({ order }: { order: Order }) {
     [order, totalEligibleUnits, ineligibleItems],
   )
 
+  const [summaryOpen, setSummaryOpen] = useState(false)
+  useEffect(() => { setSummaryOpen(false) }, [order.id])
+
   // No order name — already shown in the header title above
   const triggerLabel = totalEligibleUnits > 0
     ? `${totalEligibleUnits} item${totalEligibleUnits !== 1 ? "s" : ""} ready to return`
@@ -954,27 +956,42 @@ function StickyOrderSummaryStrip({ order }: { order: Order }) {
 
   return (
     <div className="relative shrink-0">
-      <Accordion type="single" collapsible className="w-full">
-        <AccordionItem value="summary" className="border-0">
-          {/* Trigger keeps the muted header background */}
-          <AccordionTrigger
-            className="py-3 text-xs font-medium text-foreground hover:no-underline items-center bg-muted/20 [&>svg]:size-3.5 [&>svg]:shrink-0 [&>svg]:text-foreground/50"
-            style={hPad}
+      {/* Trigger keeps the muted header background */}
+      <button
+        type="button"
+        onClick={() => setSummaryOpen(o => !o)}
+        aria-expanded={summaryOpen}
+        className="flex w-full items-center justify-between py-3 text-xs font-medium text-foreground bg-muted/20 text-left"
+        style={hPad}
+      >
+        <span className="flex items-center gap-2 min-w-0">
+          <Info className="size-3.5 shrink-0 text-foreground/60" aria-hidden />
+          <span className="truncate">{triggerLabel}</span>
+        </span>
+        <ChevronDown className={cn("size-3.5 shrink-0 text-foreground/50 transition-transform duration-300", summaryOpen && "rotate-180")} aria-hidden />
+      </button>
+
+      {/* Content: white background, full-width top border, smooth framer-motion open.
+          Paragraph starts at the same left edge as the ⓘ icon. */}
+      <AnimatePresence initial={false}>
+        {summaryOpen && (
+          <motion.div
+            key="summary-content"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{
+              height:  { duration: 0.3, ease: [0.4, 0, 0.2, 1] },
+              opacity: { duration: 0.25, ease: "easeInOut" },
+            }}
+            className="overflow-hidden bg-card border-t border-border"
           >
-            <span className="flex items-center gap-2 min-w-0">
-              <Info className="size-3.5 shrink-0 text-foreground/60" aria-hidden />
-              <span className="truncate">{triggerLabel}</span>
-            </span>
-          </AccordionTrigger>
-          {/* Content: white background, full-width top border (no horizontal inset).
-              Paragraph starts at the same left edge as the ⓘ icon (no spacer). */}
-          <AccordionContent className="p-0 bg-card border-t border-border">
             <div className="pt-2 pb-2" style={hPad}>
               <p className="text-xs text-muted-foreground leading-relaxed">{paragraph}</p>
             </div>
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Static bottom border */}
       <div className="absolute bottom-0 left-0 right-0 h-px bg-border" />
@@ -2608,6 +2625,18 @@ function getIneligibleCoarseLabel(status: ReturnStatus): string {
   }
 }
 
+// More descriptive titles for the mobile group accordion (distinct from the
+// coarse labels used in the filter dropdown).
+function getIneligibleAccordionTitle(status: ReturnStatus): string {
+  switch (status) {
+    case "On its way":               return "These items are on their way"
+    case "Confirmed":                return "We're preparing these items for shipping"
+    case "Passed the return window": return "The return window has expired for these items"
+    case "Return requested":         return "We've received your return request"
+    default:                         return getIneligibleCoarseLabel(status)
+  }
+}
+
 function getReturnStatusIcon(status: ReturnStatus): { icon: React.ElementType; color: string; label: string } {
   const label = getIneligibleCoarseLabel(status)
   const black = "text-foreground"
@@ -2679,8 +2708,9 @@ function getIneligibleFilterOptions(items: DisplayItem[]): { label: string; stat
 }
 
 function IneligibleGroupSummary({ item, order, groupItems, count }: { item: LineItem; order: Order; groupItems?: LineItem[]; count: string }) {
-  const { icon: Icon, color, label } = getReturnStatusIcon(item.returnStatus)
+  const { icon: Icon, color } = getReturnStatusIcon(item.returnStatus)
   const message = getIneligibleGroupMessage(item, order, groupItems)
+  const title = getIneligibleAccordionTitle(item.returnStatus)
   const [open, setOpen] = useState(false)
 
   return (
@@ -2694,7 +2724,7 @@ function IneligibleGroupSummary({ item, order, groupItems, count }: { item: Line
         <span className="text-[10px] font-medium leading-snug text-muted-foreground shrink-0 tabular-nums">{count}</span>
       </div>
 
-      {/* Mobile: collapsible — short label + count far right (on the muted title row);
+      {/* Mobile: collapsible — descriptive title + count far right (on the muted title row);
           expanded message breaks out of the cell padding into a full-width white panel */}
       <div className="min-[1025px]:hidden">
         <button
@@ -2704,15 +2734,26 @@ function IneligibleGroupSummary({ item, order, groupItems, count }: { item: Line
           className="flex items-center gap-1.5 text-left w-full"
         >
           <Icon className={cn("inline size-3 shrink-0", color)} aria-hidden />
-          <span className="text-[11px] font-medium text-foreground">{label}</span>
-          <ChevronDown className={cn("size-3 text-muted-foreground transition-transform duration-200", open && "rotate-180")} aria-hidden />
+          <span className="min-w-0 truncate text-[11px] font-medium text-foreground">{title}</span>
+          <ChevronDown className={cn("size-3 shrink-0 text-muted-foreground transition-transform duration-200", open && "rotate-180")} aria-hidden />
           <span className="ml-auto text-[10px] font-medium text-muted-foreground shrink-0 tabular-nums">{count}</span>
         </button>
-        {open && (
-          <p className="mt-3 -ml-5 -mr-4 -mb-3 border-t border-border bg-card px-5 py-2.5 text-[11px] leading-snug text-muted-foreground break-words">
-            {message}
-          </p>
-        )}
+        <AnimatePresence initial={false}>
+          {open && (
+            <motion.div
+              key="content"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+              className="overflow-hidden"
+            >
+              <p className="mt-3 -ml-5 -mr-4 -mb-3 border-t border-border bg-card px-5 py-2.5 text-[11px] leading-snug text-muted-foreground break-words">
+                {message}
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </>
   )
