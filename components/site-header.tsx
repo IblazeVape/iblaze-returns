@@ -1,6 +1,6 @@
 "use client"
 
-import { Search, Home, PanelLeft, Package, MoreHorizontal, type LucideIcon } from "lucide-react"
+import { Search, Home, PanelLeft, Package, Menu, type LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Separator } from "@/components/ui/separator"
 import { useSidebar } from "@/components/ui/sidebar"
@@ -109,16 +109,16 @@ export function SiteHeader({
           </a>
           <Separator orientation="vertical" className="hidden min-[1025px]:block data-[orientation=vertical]:h-4" />
 
-          {/* ── Mobile: "⋯" dropdown when 2+ links (order selected = Status + Store) ── */}
+          {/* ── Mobile: menu dropdown when 2+ links (order selected = Status + Store) ── */}
           {orderStatusUrl ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
                   className="min-[1025px]:hidden size-7 flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
-                  aria-label="More options"
+                  aria-label="Menu"
                 >
-                  <MoreHorizontal className="size-4" />
+                  <Menu className="size-4" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="min-w-[10rem]">
