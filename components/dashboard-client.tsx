@@ -664,12 +664,13 @@ function buildNarrativeParagraph(
   const attempted  = buckets.attempted_delivery || 0
   const ofd        = buckets.out_for_delivery || 0
   const inTransit  = buckets.in_transit || 0
-  const notShipped = (buckets.not_shipped || 0) + (buckets.preparing || 0)
-  const expired    = buckets.window || 0
-  const completed  = buckets.completed || 0
-  const refunded   = buckets.refunded || 0
-  const finalSale  = buckets.final_sale || 0
-  const other      = buckets.other || 0
+  const preparing   = buckets.preparing || 0
+  const notShipped  = (buckets.not_shipped || 0) + preparing
+  const expired     = buckets.window || 0
+  const completed   = buckets.completed || 0
+  const refunded    = buckets.refunded || 0
+  const finalSale   = buckets.final_sale || 0
+  const other       = buckets.other || 0
 
   const awaitingDelivery = notShipped + inTransit + ofd + attempted
   const activeReturns    = requested + inProgress + declined
@@ -682,8 +683,12 @@ function buildNarrativeParagraph(
 
   // ── Scenario: all items awaiting delivery, nothing else going on ──────────
   if (awaitingDelivery === n && totalEligibleUnits === 0 && activeReturns === 0 && alreadyDone === 0) {
-    if (notShipped === n)
+    if (notShipped === n) {
+      // Distinguish "being prepared" (Confirmed + preparing reason) from "not yet dispatched"
+      if (preparing === n)
+        return `${intro} We're preparing your order for shipping. Your return window starts on delivery and closes 30 days later.`
       return `${intro} Your order hasn't shipped yet — your return window opens once the items are delivered.`
+    }
     if (inTransit === n)
       return `${intro} Your order is still on its way — returns open once delivered.`
     if (ofd === n)
