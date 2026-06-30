@@ -944,27 +944,29 @@ function StickyOrderSummaryStrip({ order }: { order: Order }) {
       ? "Order cancelled"
       : "Order summary"
 
+  // Padding aligns ⓘ with the □ sidebar icon above (which sits at -ml-1 = 12px)
+  const hPad: React.CSSProperties = {
+    paddingLeft:  "calc(1rem - 0.25rem)",
+    paddingRight: "max(1rem, env(safe-area-inset-right))",
+  }
+
   return (
-    // Padding on the outer div so absolute-positioned borders stay full-width
-    // while accordion content aligns ⓘ with the □ sidebar icon (-ml-1 = 12px)
-    <div
-      className="relative shrink-0 bg-muted/20"
-      style={{
-        paddingLeft:  "calc(1rem - 0.25rem)",
-        paddingRight: "max(1rem, env(safe-area-inset-right))",
-      }}
-    >
+    <div className="relative shrink-0">
       <Accordion type="single" collapsible className="w-full">
         <AccordionItem value="summary" className="border-0">
-          <AccordionTrigger className="py-3 text-xs font-medium text-foreground hover:no-underline items-center [&>svg]:size-3.5 [&>svg]:shrink-0 [&>svg]:text-foreground/50">
+          {/* Trigger keeps the muted header background */}
+          <AccordionTrigger
+            className="py-3 text-xs font-medium text-foreground hover:no-underline items-center bg-muted/20 [&>svg]:size-3.5 [&>svg]:shrink-0 [&>svg]:text-foreground/50"
+            style={hPad}
+          >
             <span className="flex items-center gap-2 min-w-0">
               <Info className="size-3.5 shrink-0 text-foreground/60" aria-hidden />
               <span className="truncate">{triggerLabel}</span>
             </span>
           </AccordionTrigger>
-          <AccordionContent className="p-0">
-            {/* Border separates trigger from content; pt-2/pb-2 keeps it compact */}
-            <div className="border-t border-border pt-2 pb-2 flex gap-2">
+          {/* Content: white background, full-width top border (no horizontal inset) */}
+          <AccordionContent className="p-0 bg-card border-t border-border">
+            <div className="pt-2 pb-2 flex gap-2" style={hPad}>
               <div className="size-3.5 shrink-0" aria-hidden />
               <p className="text-xs text-muted-foreground leading-relaxed">{paragraph}</p>
             </div>
@@ -972,7 +974,7 @@ function StickyOrderSummaryStrip({ order }: { order: Order }) {
         </AccordionItem>
       </Accordion>
 
-      {/* Static bottom border — absolute so it ignores the outer div's padding */}
+      {/* Static bottom border */}
       <div className="absolute bottom-0 left-0 right-0 h-px bg-border" />
       {/* Sweeping light */}
       <motion.div
@@ -3071,7 +3073,7 @@ function OrderRow({ order, onClick }: { order: Order; onClick: () => void }) {
 }
 
 // ─── Review-before-submit variant — switch "A" (dialog) or "B" (inline) ───────
-const RETURN_REVIEW_VARIANT: "A" | "B" = "A"
+const RETURN_REVIEW_VARIANT: "A" | "B" = "B"
 
 // ─── Order Detail ─────────────────────────────────────────────────────────────
 function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
