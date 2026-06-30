@@ -917,6 +917,93 @@ function OrderSummaryAlertFromOrder({ order }: { order: Order }) {
   return <SnakeBorderAlert key={order.id} paragraph={paragraph} />
 }
 
+// ─── Sticky header strip: edge-to-edge, bottom-border only, sweeping light ────
+function StickyOrderSummaryStrip({ order }: { order: Order }) {
+  const eligibleItems      = useMemo(
+    () => order.processedItems.filter(i => i.returnStatus === "Eligible" && i.eligibleQuantity > 0),
+    [order],
+  )
+  const ineligibleItems    = useMemo(() => buildIneligibleDisplayItems(order), [order])
+  const totalEligibleUnits = eligibleItems.reduce((s, i) => s + i.eligibleQuantity, 0)
+  const paragraph          = useMemo(
+    () => buildNarrativeParagraph(order, totalEligibleUnits, ineligibleItems),
+    [order, totalEligibleUnits, ineligibleItems],
+  )
+
+  const [expanded, setExpanded]   = useState(false)
+  const [overflows, setOverflows] = useState(false)
+  const [dismissed, setDismissed] = useState(false)
+  const textRef = useRef<HTMLParagraphElement>(null)
+
+  useLayoutEffect(() => {
+    if (expanded) return
+    const el = textRef.current
+    if (!el) return
+    setOverflows(el.scrollHeight > el.clientHeight + 1)
+  }, [expanded, paragraph])
+
+  // Reset when order changes
+  useEffect(() => {
+    setExpanded(false)
+    setDismissed(false)
+  }, [order.id])
+
+  if (dismissed) return null
+
+  return (
+    <div className="relative bg-muted/20 px-4 py-3 shrink-0">
+      <div className="flex min-w-0 items-start gap-2 pr-6">
+        <Info className="size-3.5 shrink-0 text-foreground mt-0.5" aria-hidden />
+        <div className="min-w-0 flex-1">
+          <p
+            ref={textRef}
+            className={cn(
+              "text-xs font-medium leading-snug text-foreground",
+              !expanded && "line-clamp-2",
+            )}
+          >
+            {paragraph}
+          </p>
+          {overflows && (
+            <button
+              type="button"
+              onClick={() => setExpanded(e => !e)}
+              className="mt-0.5 text-xs text-foreground/50 hover:text-foreground transition-colors"
+            >
+              {expanded ? "Show less" : "Read more"}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Close button */}
+      <button
+        type="button"
+        onClick={() => setDismissed(true)}
+        aria-label="Dismiss"
+        className="absolute right-3 top-3 text-foreground/40 hover:text-foreground transition-colors"
+      >
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <path d="M1 1l10 10M11 1L1 11" />
+        </svg>
+      </button>
+
+      {/* Static bottom border */}
+      <div className="absolute bottom-0 left-0 right-0 h-px bg-border" />
+      {/* Sweeping light along the bottom border */}
+      <motion.div
+        className="absolute bottom-0 h-px opacity-70"
+        style={{
+          width: "30%",
+          background: "linear-gradient(to right, transparent, currentColor, transparent)",
+        }}
+        animate={{ left: ["-30%", "100%"] }}
+        transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+      />
+    </div>
+  )
+}
+
 function CountBadge({
   value,
   variant = "brand",
@@ -4311,11 +4398,7 @@ function DashboardClientInner() {
           email={data?.email}
           orderStatusUrl={selectedOrder ? `https://account.iblazevape.co.uk/orders/${selectedOrder.id.split("/").pop()}` : undefined}
         />
-        {selectedOrder && (
-          <div className="px-4 pb-2 pt-1">
-            <OrderSummaryAlertFromOrder order={selectedOrder} />
-          </div>
-        )}
+        {selectedOrder && <StickyOrderSummaryStrip key={selectedOrder.id} order={selectedOrder} />}
         {activeSection === "#home" && !selectedOrder && (
           <>
             {/* 30-day returns strip */}
