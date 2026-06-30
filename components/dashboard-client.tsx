@@ -839,8 +839,11 @@ function buildNarrativeParagraph(
 // ─── Spinning conic-gradient border alert (matches button technique) ──────────
 function SnakeBorderAlert({ paragraph }: { paragraph: string }) {
   return (
-    <div className="relative rounded-lg overflow-hidden p-[1px]">
-      {/* Spinning gradient layer — same technique as the button example */}
+    <div
+      className="relative rounded-lg overflow-hidden p-[1px]"
+      style={{ background: "hsl(var(--border))" }}
+    >
+      {/* Spinning bright light sweeps over the static border */}
       <motion.div
         className="absolute pointer-events-none"
         style={{
@@ -849,13 +852,13 @@ function SnakeBorderAlert({ paragraph }: { paragraph: string }) {
           height: "300%",
           background:
             "conic-gradient(from 0deg, transparent 65%, currentColor 75%, transparent 85%)",
-          opacity: 0.35,
+          opacity: 0.55,
         }}
         animate={{ rotate: 360 }}
-        transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+        transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
         aria-hidden
       />
-      {/* Inner content — opaque background covers gradient except the 1px border */}
+      {/* Inner content */}
       <div className="relative rounded-[7px] bg-card px-4 py-3 text-foreground">
         <div className="flex items-start gap-3">
           <Info className="size-4 mt-0.5 shrink-0" aria-hidden />
