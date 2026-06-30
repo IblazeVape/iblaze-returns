@@ -24,6 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -930,67 +931,51 @@ function StickyOrderSummaryStrip({ order }: { order: Order }) {
     [order, totalEligibleUnits, ineligibleItems],
   )
 
-  const [expanded, setExpanded]   = useState(false)
-  const [overflows, setOverflows] = useState(false)
   const [dismissed, setDismissed] = useState(false)
-  const textRef = useRef<HTMLParagraphElement>(null)
 
-  useLayoutEffect(() => {
-    if (expanded) return
-    const el = textRef.current
-    if (!el) return
-    setOverflows(el.scrollHeight > el.clientHeight + 1)
-  }, [expanded, paragraph])
-
-  // Reset when order changes
-  useEffect(() => {
-    setExpanded(false)
-    setDismissed(false)
-  }, [order.id])
+  useEffect(() => { setDismissed(false) }, [order.id])
 
   if (dismissed) return null
 
+  // Trigger label: quick glance — order name + top-level status
+  const triggerLabel = totalEligibleUnits > 0
+    ? `${order.name} · ${totalEligibleUnits} item${totalEligibleUnits !== 1 ? "s" : ""} ready to return`
+    : order.cancelledAt
+      ? `${order.name} · Cancelled`
+      : `${order.name} · Order summary`
+
   return (
-    <div className="relative bg-muted/20 px-4 py-3 shrink-0">
-      <div className="flex min-w-0 items-start gap-2 pr-6">
-        <Info className="size-3.5 shrink-0 text-foreground mt-0.5" aria-hidden />
-        <div className="min-w-0 flex-1">
-          <p
-            ref={textRef}
-            className={cn(
-              "text-xs font-medium leading-snug text-foreground",
-              !expanded && "line-clamp-2",
-            )}
-          >
-            {paragraph}
-          </p>
-          {overflows && (
+    <div className="relative shrink-0 bg-muted/20">
+      <Accordion type="single" collapsible className="w-full">
+        <AccordionItem value="summary" className="border-0">
+          <div className="flex items-center px-4 pr-3">
+            <Info className="size-3.5 shrink-0 text-foreground/60 mr-2 flex-none" aria-hidden />
+            <AccordionTrigger className="flex-1 py-3 text-xs font-medium text-foreground hover:no-underline [&>svg]:size-3.5 [&>svg]:text-foreground/50 gap-2">
+              {triggerLabel}
+            </AccordionTrigger>
+            {/* Close */}
             <button
               type="button"
-              onClick={() => setExpanded(e => !e)}
-              className="mt-0.5 text-xs text-foreground/50 hover:text-foreground transition-colors"
+              onClick={() => setDismissed(true)}
+              aria-label="Dismiss"
+              className="ml-2 flex-none text-foreground/40 hover:text-foreground transition-colors"
             >
-              {expanded ? "Show less" : "Read more"}
+              <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M1 1l10 10M11 1L1 11" />
+              </svg>
             </button>
-          )}
-        </div>
-      </div>
-
-      {/* Close button */}
-      <button
-        type="button"
-        onClick={() => setDismissed(true)}
-        aria-label="Dismiss"
-        className="absolute right-3 top-3 text-foreground/40 hover:text-foreground transition-colors"
-      >
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-          <path d="M1 1l10 10M11 1L1 11" />
-        </svg>
-      </button>
+          </div>
+          <AccordionContent className="px-4 pb-3 pt-0">
+            <p className="text-xs text-muted-foreground leading-relaxed pl-[calc(0.875rem+0.5rem)]">
+              {paragraph}
+            </p>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
 
       {/* Static bottom border */}
       <div className="absolute bottom-0 left-0 right-0 h-px bg-border" />
-      {/* Sweeping light along the bottom border */}
+      {/* Sweeping light */}
       <motion.div
         className="absolute bottom-0 h-px opacity-70"
         style={{
