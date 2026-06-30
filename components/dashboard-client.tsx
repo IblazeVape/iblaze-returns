@@ -2628,11 +2628,15 @@ function getIneligibleCoarseLabel(status: ReturnStatus): string {
 // More descriptive titles for the mobile group accordion (distinct from the
 // coarse labels used in the filter dropdown).
 function getIneligibleAccordionTitle(status: ReturnStatus): string {
+  if (isAlreadyReturnedStatus(status)) return "These items have already been returned"
   switch (status) {
     case "On its way":               return "These items are on their way"
     case "Confirmed":                return "We're preparing these items for shipping"
     case "Passed the return window": return "The return window has expired for these items"
     case "Return requested":         return "We've received your return request"
+    case "Return in progress":       return "Your return is in progress"
+    case "Return declined":          return "Your return request was declined"
+    case "Returned":                 return "These items have already been returned"
     default:                         return getIneligibleCoarseLabel(status)
   }
 }
@@ -2715,8 +2719,9 @@ function IneligibleGroupSummary({ item, order, groupItems, count }: { item: Line
 
   return (
     <>
-      {/* Desktop: full message inline + count on the right */}
-      <div className="hidden min-[1025px]:flex items-center justify-between gap-x-4">
+      {/* Desktop: full message inline + count on the right. Padding lives here
+          (parent cell is p-0) so the mobile content panel can go edge-to-edge. */}
+      <div className="hidden min-[1025px]:flex items-center justify-between gap-x-4 py-3 pl-5 pr-4">
         <p className="my-0 min-w-0 flex-1 text-[11px] leading-snug text-muted-foreground break-words">
           <Icon className={cn("mr-1 inline size-3 shrink-0 align-[-0.15em]", color)} aria-hidden />
           {message}
@@ -2724,14 +2729,14 @@ function IneligibleGroupSummary({ item, order, groupItems, count }: { item: Line
         <span className="text-[10px] font-medium leading-snug text-muted-foreground shrink-0 tabular-nums">{count}</span>
       </div>
 
-      {/* Mobile: collapsible — descriptive title + count far right (on the muted title row);
-          expanded message breaks out of the cell padding into a full-width white panel */}
+      {/* Mobile: collapsible — descriptive title + count far right (muted title row);
+          expanded message is a full-width edge-to-edge white panel */}
       <div className="min-[1025px]:hidden">
         <button
           type="button"
           onClick={() => setOpen(o => !o)}
           aria-expanded={open}
-          className="flex items-center gap-1.5 text-left w-full"
+          className="flex items-center gap-1.5 text-left w-full py-3 pl-5 pr-4"
         >
           <Icon className={cn("inline size-3 shrink-0", color)} aria-hidden />
           <span className="min-w-0 truncate text-[11px] font-medium text-foreground">{title}</span>
@@ -2748,7 +2753,7 @@ function IneligibleGroupSummary({ item, order, groupItems, count }: { item: Line
               transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
               className="overflow-hidden"
             >
-              <p className="mt-3 -ml-5 -mr-4 -mb-3 border-t border-border bg-card px-5 py-2.5 text-[11px] leading-snug text-muted-foreground break-words">
+              <p className="border-t border-border bg-card px-5 py-2.5 text-[11px] leading-snug text-muted-foreground break-words">
                 {message}
               </p>
             </motion.div>
@@ -3764,7 +3769,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                       <React.Fragment key={`${item.id}-${rowIdx}`}>
                         {showGroupHeader && (
                           <TableRow className="bg-muted/80 hover:bg-muted/80 border-b border-border/60">
-                            <TableCell colSpan={ineligibleTableColSpan(colsVisible)} className="py-3 pl-5 pr-4 whitespace-normal">
+                            <TableCell colSpan={ineligibleTableColSpan(colsVisible)} className="p-0 whitespace-normal">
                               <IneligibleGroupSummary item={item} order={order} groupItems={groupRows} count={formatGroupCount(groupRows)} />
                             </TableCell>
                           </TableRow>
@@ -3884,11 +3889,11 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
               </Table>
             </div>
             {pageSize !== "all" && currentData.length > size && (
-              <div className="p-4 border-t flex items-center justify-between text-sm text-muted-foreground">
+              <div className="px-4 py-2 border-t flex items-center justify-between text-xs text-muted-foreground">
                 <span>Showing {Math.min((currentPage - 1) * size + 1, currentData.length)}–{Math.min(currentPage * size, currentData.length)} of {currentData.length} entries</span>
-                <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>Previous</Button>
-                  <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage >= totalPages}>Next</Button>
+                <div className="flex items-center gap-1.5">
+                  <Button variant="outline" size="sm" className="h-7 px-2.5 text-xs" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>Previous</Button>
+                  <Button variant="outline" size="sm" className="h-7 px-2.5 text-xs" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage >= totalPages}>Next</Button>
                 </div>
               </div>
             )}
@@ -4043,7 +4048,7 @@ function SpendingChart({ orders }: { orders: Order[] }) {
   const hasData = chartData.some(m => m.spend > 0)
 
   return (
-    <Card className="shadow-sm py-0 gap-0 overflow-hidden">
+    <Card className="shadow-sm py-0 gap-0 overflow-hidden rounded-xl h-full">
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-border">
         <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Monthly Spend</p>
         <p className="text-[10px] text-muted-foreground">Last 6 months</p>
