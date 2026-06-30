@@ -2589,7 +2589,7 @@ function getIneligibleCoarseLabel(status: ReturnStatus): string {
     case "Return declined":
       return "Return declined"
     case "Confirmed":
-      return "Not yet delivered"
+      return "Not yet shipped"
     case "Attempted delivery":
       return "Attempted delivery"
     case "Out for delivery":
@@ -2678,20 +2678,23 @@ function getIneligibleFilterOptions(items: DisplayItem[]): { label: string; stat
   return Array.from(groups.entries()).map(([label, statuses]) => ({ label, statuses }))
 }
 
-function IneligibleGroupSummary({ item, order, groupItems }: { item: LineItem; order: Order; groupItems?: LineItem[] }) {
+function IneligibleGroupSummary({ item, order, groupItems, count }: { item: LineItem; order: Order; groupItems?: LineItem[]; count: string }) {
   const { icon: Icon, color, label } = getReturnStatusIcon(item.returnStatus)
   const message = getIneligibleGroupMessage(item, order, groupItems)
   const [open, setOpen] = useState(false)
 
   return (
-    <div className="min-w-0 flex-1">
-      {/* Desktop: full message inline */}
-      <p className="hidden min-[1025px]:block my-0 text-[11px] leading-snug text-muted-foreground break-words">
-        <Icon className={cn("mr-1 inline size-3 shrink-0 align-[-0.15em]", color)} aria-hidden />
-        {message}
-      </p>
+    <>
+      {/* Desktop: full message inline + count on the right */}
+      <div className="hidden min-[1025px]:flex items-center justify-between gap-x-4">
+        <p className="my-0 min-w-0 flex-1 text-[11px] leading-snug text-muted-foreground break-words">
+          <Icon className={cn("mr-1 inline size-3 shrink-0 align-[-0.15em]", color)} aria-hidden />
+          {message}
+        </p>
+        <span className="text-[10px] font-medium leading-snug text-muted-foreground shrink-0 tabular-nums">{count}</span>
+      </div>
 
-      {/* Mobile: collapsible — short status label, tap to reveal full message */}
+      {/* Mobile: collapsible — short label + count far right; message takes full width below */}
       <div className="min-[1025px]:hidden">
         <button
           type="button"
@@ -2702,12 +2705,13 @@ function IneligibleGroupSummary({ item, order, groupItems }: { item: LineItem; o
           <Icon className={cn("inline size-3 shrink-0", color)} aria-hidden />
           <span className="text-[11px] font-medium text-foreground">{label}</span>
           <ChevronDown className={cn("size-3 text-muted-foreground transition-transform duration-200", open && "rotate-180")} aria-hidden />
+          <span className="ml-auto text-[10px] font-medium text-muted-foreground shrink-0 tabular-nums">{count}</span>
         </button>
         {open && (
-          <p className="mt-1 text-[11px] leading-snug text-muted-foreground break-words">{message}</p>
+          <p className="mt-1.5 w-full text-[11px] leading-snug text-muted-foreground break-words">{message}</p>
         )}
       </div>
-    </div>
+    </>
   )
 }
 
@@ -3717,12 +3721,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                         {showGroupHeader && (
                           <TableRow className="bg-muted/80 hover:bg-muted/80 border-b border-border/60">
                             <TableCell colSpan={ineligibleTableColSpan(colsVisible)} className="py-3 pl-5 pr-4 whitespace-normal">
-                              <div className="flex items-center justify-between gap-x-4 gap-y-1">
-                                <IneligibleGroupSummary item={item} order={order} groupItems={groupRows} />
-                                <span className="text-[10px] font-medium leading-snug text-muted-foreground shrink-0 tabular-nums">
-                                  {formatGroupCount(groupRows)}
-                                </span>
-                              </div>
+                              <IneligibleGroupSummary item={item} order={order} groupItems={groupRows} count={formatGroupCount(groupRows)} />
                             </TableCell>
                           </TableRow>
                         )}
