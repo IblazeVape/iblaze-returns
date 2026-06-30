@@ -838,6 +838,19 @@ function buildNarrativeParagraph(
 
 // ─── Spinning conic-gradient border alert (matches button technique) ──────────
 function SnakeBorderAlert({ paragraph }: { paragraph: string }) {
+  const [expanded, setExpanded] = useState(false)
+  const [overflows, setOverflows] = useState(false)
+  const textRef = useRef<HTMLParagraphElement>(null)
+
+  // Measure whether the clamped text actually overflows — skip when expanded
+  // so overflows stays true and the "Show less" button remains visible
+  useLayoutEffect(() => {
+    if (expanded) return
+    const el = textRef.current
+    if (!el) return
+    setOverflows(el.scrollHeight > el.clientHeight + 1)
+  }, [expanded, paragraph])
+
   return (
     <div
       className="relative rounded-lg overflow-hidden p-[1px]"
@@ -864,7 +877,24 @@ function SnakeBorderAlert({ paragraph }: { paragraph: string }) {
           <Info className="size-4 mt-0.5 shrink-0" aria-hidden />
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold tracking-tight">Order summary</p>
-            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{paragraph}</p>
+            <p
+              ref={textRef}
+              className={cn(
+                "text-xs text-muted-foreground mt-1 leading-relaxed",
+                !expanded && "line-clamp-2",
+              )}
+            >
+              {paragraph}
+            </p>
+            {overflows && (
+              <button
+                type="button"
+                onClick={() => setExpanded(e => !e)}
+                className="mt-1 text-xs font-medium text-foreground/50 hover:text-foreground transition-colors"
+              >
+                {expanded ? "Show less" : "Read more"}
+              </button>
+            )}
           </div>
         </div>
       </div>
