@@ -944,9 +944,11 @@ function StickyOrderSummaryStrip({ order }: { order: Order }) {
       ? "Order cancelled"
       : "Order summary"
 
-  // Padding aligns ⓘ with the □ sidebar icon above (which sits at -ml-1 = 12px)
+  // Align the ⓘ icon's CENTER with the □ sidebar icon's center above.
+  // Sidebar: size-7 button (-ml-1) at 1rem padding → icon center = 1.625rem.
+  // ⓘ is size-3.5 (0.875rem) → left edge must sit at 1.625 - 0.4375 = 1.1875rem.
   const hPad: React.CSSProperties = {
-    paddingLeft:  "calc(1rem - 0.25rem)",
+    paddingLeft:  "1.1875rem",
     paddingRight: "max(1rem, env(safe-area-inset-right))",
   }
 
