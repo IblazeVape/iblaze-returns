@@ -2739,7 +2739,7 @@ function IneligibleGroupSummary({ item, order, groupItems, count }: { item: Line
           className="flex items-center gap-1.5 text-left w-full py-3 pl-5 pr-4"
         >
           <Icon className={cn("inline size-3 shrink-0", color)} aria-hidden />
-          <span className="min-w-0 truncate text-[11px] font-medium text-foreground">{title}</span>
+          <span className="min-w-0 truncate text-[11px] font-medium text-muted-foreground">{title}</span>
           <ChevronDown className={cn("size-3 shrink-0 text-muted-foreground transition-transform duration-200", open && "rotate-180")} aria-hidden />
           <span className="ml-auto text-[10px] font-medium text-muted-foreground shrink-0 tabular-nums">{count}</span>
         </button>
@@ -4090,6 +4090,67 @@ function SpendingChart({ orders }: { orders: Order[] }) {
   )
 }
 
+// ─── Bento tile wrapper — stagger-in + hover lift ─────────────────────────────
+function BentoTile({
+  children,
+  className,
+  delay = 0,
+  onClick,
+  ariaLabel,
+}: {
+  children: React.ReactNode
+  className?: string
+  delay?: number
+  onClick?: () => void
+  ariaLabel?: string
+}) {
+  const ease = [0.25, 0.1, 0.25, 1] as const
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, delay, ease }}
+      whileHover={onClick ? { y: -3 } : undefined}
+      onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick() } } : undefined}
+      aria-label={ariaLabel}
+      className={cn(
+        "rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col",
+        onClick && "cursor-pointer transition-shadow hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+        className,
+      )}
+    >
+      {children}
+    </motion.div>
+  )
+}
+
+function ThumbStack({ urls, max = 4 }: { urls: string[]; max?: number }) {
+  const shown = urls.slice(0, max)
+  const extra = urls.length - shown.length
+  if (shown.length === 0) {
+    return (
+      <div className="size-10 rounded-lg border border-border bg-card overflow-hidden shrink-0">
+        <ProductImagePlaceholder />
+      </div>
+    )
+  }
+  return (
+    <div className="flex items-center">
+      <div className="flex -space-x-3">
+        {shown.map((url, i) => (
+          <div key={i} className="size-10 rounded-lg border-2 border-card dark:border-border bg-card overflow-hidden shadow-sm shrink-0">
+            <img src={url} alt="" className="w-full h-full object-cover" />
+          </div>
+        ))}
+      </div>
+      {extra > 0 && <span className="ml-1.5 text-xs text-muted-foreground">+{extra}</span>}
+    </div>
+  )
+}
+
 function DashboardHome({
   data,
   onViewOrders,
@@ -4128,48 +4189,160 @@ function DashboardHome({
 
   const ease = [0.25, 0.1, 0.25, 1] as const
 
+  // ── Bento-derived values ──
+  const distinctEligible  = eligibleItems.length
+  const mostUrgent        = eligibleItems.find(e => e.daysLeft !== null)?.daysLeft ?? null
+  const isUrgent          = mostUrgent !== null && mostUrgent <= 7
+  const eligibleThumbs    = eligibleItems.map(e => e.item.image?.url).filter(Boolean).slice(0, 5) as string[]
+  const firstEligibleOrder = eligibleItems[0]?.order
+  const activeReturnsCount = new Set(activeReturnItems.map(r => r.order.id)).size
+  const inTransitThumbs   = inTransit
+    ? (inTransit.processedItems.map(p => p.image?.url).filter((u, i, a) => u && a.indexOf(u) === i) as string[])
+    : []
+
   return (
-    <div className="flex flex-col gap-5 pb-4">
+    <div className="flex flex-col gap-4 pb-4">
 
       {/* Greeting */}
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.22, ease }}
-        className="pb-1"
+        className="pb-0.5"
       >
         <h2 className="text-lg font-semibold">{data?.firstName ? `Hi, ${data.firstName} 👋` : "Welcome back"}</h2>
         <p className="text-sm text-muted-foreground mt-0.5">Here&apos;s a summary of your orders and returns.</p>
       </motion.div>
 
-      {/* Stats + recent orders */}
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25, delay: 0.13, ease }}>
-        <Card className="shadow-sm overflow-hidden py-0 gap-0">
-          <div className="grid grid-cols-3 divide-x divide-border border-b border-border">
-            {[
-              { label: "Orders",   value: activeOrders.length,         sub: orders.length - activeOrders.length > 0 ? `${orders.length - activeOrders.length} cancelled` : "No cancellations" },
-              { label: "Spent",    value: `£${totalSpent.toFixed(2)}`,  sub: `Across ${activeOrders.length} order${activeOrders.length !== 1 ? "s" : ""}` },
-              { label: "Refunded", value: `£${totalRefunded.toFixed(2)}`, sub: totalRefunded > 0 ? "Allow 5–10 days" : "No refunds yet" },
-            ].map(s => (
-              <div key={s.label} className="px-4 pt-2 pb-2">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">{s.label}</p>
-                <p className="text-sm font-bold tracking-tight leading-none">{s.value}</p>
-                <p className="text-xs text-muted-foreground mt-1">{s.sub}</p>
+      {/* Bento grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+
+        {/* HERO — Ready to return */}
+        <BentoTile
+          delay={0.05}
+          onClick={firstEligibleOrder ? () => onViewOrders() : undefined}
+          ariaLabel="Ready to return"
+          className={cn("col-span-2 relative", isUrgent && "ring-1 ring-red-200")}
+        >
+          {isUrgent && <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-red-50/70 to-transparent dark:from-red-950/30" />}
+          <div className="relative flex flex-1 flex-col p-4 sm:p-5">
+            <div className="flex items-center gap-1.5 mb-3">
+              <BadgeCheck className="size-4 text-green-600" />
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Ready to return</p>
+            </div>
+            {distinctEligible > 0 ? (
+              <div className="flex flex-1 flex-col">
+                <div className="flex items-end gap-2">
+                  <span className="text-4xl font-bold leading-none tracking-tight">{distinctEligible}</span>
+                  <span className="text-sm text-muted-foreground mb-0.5">item{distinctEligible !== 1 ? "s" : ""} eligible</span>
+                </div>
+                {mostUrgent !== null && (
+                  <p className={cn("mt-2 flex items-center gap-1 text-xs font-medium", isUrgent ? "text-red-600" : "text-muted-foreground")}>
+                    <Clock className="size-3" />
+                    {mostUrgent} day{mostUrgent !== 1 ? "s" : ""} left on your soonest return
+                  </p>
+                )}
+                <div className="mt-auto pt-4 flex items-center justify-between">
+                  <ThumbStack urls={eligibleThumbs} max={4} />
+                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-foreground whitespace-nowrap">
+                    Start a return <ChevronRight className="size-3.5" />
+                  </span>
+                </div>
               </div>
-            ))}
+            ) : (
+              <div className="flex flex-1 flex-col items-start justify-center py-2">
+                <CheckCircle2 className="size-7 text-green-500/70 mb-2" />
+                <p className="text-sm font-medium">You&apos;re all caught up</p>
+                <p className="text-xs text-muted-foreground">Nothing to return right now.</p>
+              </div>
+            )}
           </div>
-          <div className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-muted/60">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Recent Orders</p>
-            <button onClick={onViewOrders} className="text-xs text-foreground hover:text-foreground/70 flex items-center gap-0.5 transition-colors font-medium">
+        </BentoTile>
+
+        {/* Next delivery */}
+        <BentoTile
+          delay={0.1}
+          onClick={inTransit ? () => onViewOrder(inTransit) : undefined}
+          ariaLabel="Next delivery"
+          className="col-span-2"
+        >
+          <div className="flex flex-1 flex-col p-4 sm:p-5">
+            <div className="flex items-center gap-1.5 mb-3">
+              <Truck className="size-4 text-blue-500" />
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Next delivery</p>
+            </div>
+            {inTransit ? (
+              <div className="flex flex-1 flex-col">
+                <p className="text-base font-semibold leading-tight">{inTransit.name}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {inTransit.totalUnits} item{inTransit.totalUnits !== 1 ? "s" : ""}
+                  {inTransit.latestDelivery && inTransit.orderStatus === "On its way"
+                    ? ` · Expected ${fmt(inTransit.latestDelivery)}`
+                    : ` · ${getOrderFulfillmentHeadline(inTransit)}`}
+                </p>
+                <div className="mt-auto pt-4 flex items-center justify-between">
+                  <ThumbStack urls={inTransitThumbs} max={4} />
+                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-foreground whitespace-nowrap">
+                    Track order <ChevronRight className="size-3.5" />
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-1 flex-col items-start justify-center py-2">
+                <Package className="size-7 text-muted-foreground/40 mb-2" />
+                <p className="text-sm font-medium">No incoming orders</p>
+                <p className="text-xs text-muted-foreground">Everything has been delivered.</p>
+              </div>
+            )}
+          </div>
+        </BentoTile>
+
+        {/* Active returns */}
+        <BentoTile
+          delay={0.14}
+          onClick={activeReturnsCount > 0 ? () => onViewOrders() : undefined}
+          ariaLabel="Active returns"
+          className="col-span-1"
+        >
+          <div className="flex flex-1 flex-col p-4">
+            <div className="flex items-center gap-1.5 mb-2">
+              <RotateCcw className="size-3.5 text-amber-500" />
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Active returns</p>
+            </div>
+            <span className="text-3xl font-bold leading-none tracking-tight">{activeReturnsCount}</span>
+            <p className="mt-auto pt-2 text-xs text-muted-foreground">{activeReturnsCount === 0 ? "None in progress" : "In progress"}</p>
+          </div>
+        </BentoTile>
+
+        {/* Refunded */}
+        <BentoTile delay={0.17} ariaLabel="Refunded" className="col-span-1">
+          <div className="flex flex-1 flex-col p-4">
+            <div className="flex items-center gap-1.5 mb-2">
+              <CreditCard className="size-3.5 text-green-500" />
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Refunded</p>
+            </div>
+            <span className="text-2xl font-bold leading-none tracking-tight">£{totalRefunded.toFixed(2)}</span>
+            <p className="mt-auto pt-2 text-xs text-muted-foreground">{totalRefunded > 0 ? "Allow 5–10 days" : "No refunds yet"}</p>
+          </div>
+        </BentoTile>
+
+        {/* Spend chart */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, delay: 0.2, ease }}
+          className="col-span-2"
+        >
+          <SpendingChart orders={orders} />
+        </motion.div>
+
+        {/* Recent orders — full width */}
+        <BentoTile delay={0.24} ariaLabel="Recent orders" className="col-span-2 lg:col-span-4">
+          <div className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-muted/30">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Recent orders</p>
+            <button onClick={onViewOrders} className="text-xs font-medium text-foreground hover:text-foreground/70 flex items-center gap-0.5 transition-colors">
               View all <ChevronRight className="size-3" />
             </button>
-          </div>
-          {/* grid: [thumb | order | status | total+chevron] */}
-          <div className="grid items-center gap-x-3 px-4 py-1 border-b border-border bg-muted/40"
-            style={{ gridTemplateColumns: "88px 1fr 64px 80px" }}>
-            <p className="col-span-2 text-sm font-medium text-foreground">Order</p>
-            <p className="text-sm font-medium text-foreground text-center">Status</p>
-            <p className="text-sm font-medium text-foreground text-right">Total</p>
           </div>
           <div className="divide-y divide-border">
             {recentOrders.length === 0 ? (
@@ -4192,7 +4365,7 @@ function DashboardHome({
                 : { icon: Clock,        color: "text-zinc-400" }
               return (
                 <button key={o.id} onClick={isCancelled ? undefined : () => onViewOrder(o)}
-                  className={cn("w-full grid items-center gap-x-3 px-4 py-3.5 text-left group focus:outline-none transition-colors",
+                  className={cn("w-full grid items-center gap-x-3 px-4 py-3 text-left group focus:outline-none transition-colors",
                     isCancelled ? "opacity-50 cursor-not-allowed" : "hover:bg-muted/50")}
                   style={{ gridTemplateColumns: "88px 1fr 64px 80px" }}>
                   <div className="flex -space-x-4 shrink-0">
@@ -4222,162 +4395,9 @@ function DashboardHome({
               )
             })}
           </div>
-        </Card>
-      </motion.div>
+        </BentoTile>
 
-      {/* Spending chart */}
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25, delay: 0.16, ease }}>
-        <SpendingChart orders={orders} />
-      </motion.div>
-
-      {/* On Its Way + Active Returns */}
-      {(inTransit || activeReturnItems.length > 0) && (
-        <motion.div
-          className="flex flex-col gap-5"
-          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25, delay: 0.18, ease }}
-        >
-          {inTransit && (
-            <Card className="shadow-sm py-0 gap-0">
-              <div className="flex items-center justify-between px-4 py-2.5 border-b border-border">
-                <div className="flex items-center gap-1.5">
-                  <Truck className="size-3.5 text-blue-500 shrink-0" />
-                  <p className="text-xs font-semibold text-foreground">On Its Way</p>
-                </div>
-                <button onClick={() => onViewOrder(inTransit)} className="text-xs text-foreground hover:text-foreground/70 flex items-center gap-0.5 transition-colors font-medium">
-                  View <ChevronRight className="size-3" />
-                </button>
-              </div>
-              <button onClick={() => onViewOrder(inTransit)} className="w-full px-3 py-3 flex items-center gap-3 text-left hover:bg-muted/50 transition-colors focus:outline-none group">
-                {(() => {
-                  const uniqueImgs = inTransit.processedItems
-                    .map(p => p.image?.url).filter((u, i, a) => u && a.indexOf(u) === i) as string[]
-                  const shown = uniqueImgs.slice(0, 3)
-                  const extra = uniqueImgs.length - shown.length
-                  return shown.length > 0 ? (
-                    <div className="flex items-center shrink-0">
-                      <div className="flex -space-x-2">
-                        {shown.map((url, i) => (
-                          <div key={i} className="size-10 rounded-md border-2 border-card dark:border-border bg-card overflow-hidden shadow-sm shrink-0">
-                            <img src={url} alt="" className="w-full h-full object-cover" />
-                          </div>
-                        ))}
-                      </div>
-                      {extra > 0 && <span className="text-xs text-muted-foreground ml-1.5">+{extra}</span>}
-                    </div>
-                  ) : (
-                    <div className="size-10 rounded-md border border-border bg-card overflow-hidden shrink-0">
-                      <ProductImagePlaceholder />
-                    </div>
-                  )
-                })()}
-                <div className="min-w-0">
-                  <p className="font-medium text-sm">{inTransit.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {inTransit.totalUnits} item{inTransit.totalUnits !== 1 ? "s" : ""}
-                    {inTransit.latestDelivery && inTransit.orderStatus === "On its way" ? ` · Expected ${fmt(inTransit.latestDelivery)}` : ""}
-                  </p>
-                </div>
-              </button>
-            </Card>
-          )}
-          {activeReturnItems.length > 0 && (
-            <Card className="shadow-sm py-0 gap-0">
-              <div className="flex items-center justify-between px-4 py-2.5 border-b border-border">
-                <div className="flex items-center gap-1.5">
-                  <RotateCcw className="size-3.5 text-amber-500 shrink-0" />
-                  <p className="text-xs font-semibold text-foreground">Active Returns</p>
-                </div>
-                <span className="inline-flex items-center justify-center size-5 text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-full">{activeReturnItems.length}</span>
-              </div>
-              <div className="divide-y divide-border">
-                {Object.values(
-                  activeReturnItems.reduce<Record<string, { order: Order; items: typeof activeReturnItems[0]["item"][] }>>((acc, { item, order }) => {
-                    if (!acc[order.id]) acc[order.id] = { order, items: [] }
-                    acc[order.id].items.push(item)
-                    return acc
-                  }, {})
-                ).slice(0, 3).map(({ order, items }) => {
-                  const images = items.map(i => i.image?.url).filter((u, i, a) => u && a.indexOf(u) === i) as string[]
-                  const hasRequested = items.some(i => i.returnStatus === "Return requested")
-                  const hasInProgress = items.some(i => i.returnStatus === "Return in progress")
-                  const statusLabel = hasRequested && hasInProgress ? "Requested & in progress"
-                    : hasRequested ? "Return requested"
-                    : "Return in progress"
-                  const statusCls = hasRequested ? "bg-violet-50 text-violet-700 border-violet-200" : "bg-orange-50 text-orange-700 border-orange-200"
-                  return (
-                    <button key={order.id} onClick={() => onViewOrder(order)}
-                      className="w-full flex items-center gap-3 px-3 py-3 text-left hover:bg-muted/50 transition-colors focus:outline-none group">
-                      <div className="flex -space-x-4 shrink-0">
-                        {images.slice(0, 3).map((url, i) => (
-                          <div key={i} className="size-10 rounded-md border-2 border-card dark:border-border bg-card overflow-hidden shadow-sm shrink-0">
-                            <img src={url} alt="" className="w-full h-full object-cover" />
-                          </div>
-                        ))}
-                        {images.length === 0 && (
-                          <div className="size-10 rounded-md border border-border bg-card overflow-hidden shrink-0">
-                            <ProductImagePlaceholder />
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate group-hover:underline">{order.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {items.length} active return{items.length !== 1 ? "s" : ""}
-                        </p>
-                      </div>
-                      <span className={cn("text-[10px] font-medium px-1.5 py-0.5 rounded-full border shrink-0", statusCls)}>
-                        {statusLabel}
-                      </span>
-                    </button>
-                  )
-                })}
-              </div>
-            </Card>
-          )}
-        </motion.div>
-      )}
-
-      {/* Eligible to return */}
-      {eligibleItems.length > 0 && (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25, delay: 0.22, ease }}>
-          <Card className="shadow-sm py-0 gap-0">
-            <div className="flex items-center justify-between px-4 py-2.5 border-b border-border">
-              <div className="flex items-center gap-1.5">
-                <BadgeCheck className="size-3.5 text-green-500 shrink-0" />
-                <p className="text-xs font-semibold text-foreground">Eligible to Return</p>
-              </div>
-              <span className="inline-flex items-center justify-center size-5 text-[10px] font-semibold text-green-700 bg-green-50 border border-green-200 rounded-full">{eligibleItems.length}</span>
-            </div>
-            <div className="divide-y divide-border">
-              {eligibleItems.slice(0, 4).map(({ item, order, daysLeft }, i) => (
-                <button key={`${order.id}-${item.id}-${i}`} onClick={() => onViewOrder(order)}
-                  className="w-full flex items-center gap-3 px-3 py-3 text-left hover:bg-muted/50 transition-colors focus:outline-none group">
-                  <div className="size-10 rounded-md border border-border bg-card overflow-hidden shrink-0">
-                    {item.image?.url
-                      ? <img src={item.image.url} alt={item.title} className="w-full h-full object-cover" />
-                      : <ProductImagePlaceholder />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate group-hover:underline">{item.title}</p>
-                    <p className="text-xs text-muted-foreground">{order.name} · {item.eligibleQuantity} eligible</p>
-                  </div>
-                  {daysLeft !== null && (
-                    <span className={cn("text-[10px] font-medium px-1.5 py-0.5 rounded-full border shrink-0 flex items-center gap-0.5",
-                      daysLeft <= 7  ? "bg-red-50 text-red-700 border-red-200" :
-                      daysLeft <= 14 ? "bg-amber-50 text-amber-700 border-amber-200" :
-                                       "bg-green-50 text-green-700 border-green-200")}>
-                      <Clock className="size-2.5" />{daysLeft}d left
-                    </span>
-                  )}
-                  <ChevronRight className="size-3.5 text-muted-foreground shrink-0" />
-                </button>
-              ))}
-            </div>
-          </Card>
-        </motion.div>
-      )}
-
-
+      </div>
     </div>
   )
 }
