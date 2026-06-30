@@ -944,39 +944,35 @@ function StickyOrderSummaryStrip({ order }: { order: Order }) {
       ? "Order cancelled"
       : "Order summary"
 
-  // Match SiteHeader exactly: paddingLeft 1rem, sidebar button is -ml-1 (4px left)
-  // so we use calc(1rem - 0.25rem) = 12px to align ⓘ with the □ sidebar icon
-  const hPad: React.CSSProperties = {
-    paddingLeft:  "calc(1rem - 0.25rem)",
-    paddingRight: "max(1rem, env(safe-area-inset-right))",
-  }
-
   return (
-    <div className="relative shrink-0 bg-muted/20">
+    // Padding on the outer div so absolute-positioned borders stay full-width
+    // while accordion content aligns ⓘ with the □ sidebar icon (-ml-1 = 12px)
+    <div
+      className="relative shrink-0 bg-muted/20"
+      style={{
+        paddingLeft:  "calc(1rem - 0.25rem)",
+        paddingRight: "max(1rem, env(safe-area-inset-right))",
+      }}
+    >
       <Accordion type="single" collapsible className="w-full">
         <AccordionItem value="summary" className="border-0">
-          <AccordionTrigger
-            className="py-3 text-xs font-medium text-foreground hover:no-underline items-center [&>svg]:size-3.5 [&>svg]:shrink-0 [&>svg]:text-foreground/50"
-            style={hPad}
-          >
+          <AccordionTrigger className="py-3 text-xs font-medium text-foreground hover:no-underline items-center [&>svg]:size-3.5 [&>svg]:shrink-0 [&>svg]:text-foreground/50">
             <span className="flex items-center gap-2 min-w-0">
               <Info className="size-3.5 shrink-0 text-foreground/60" aria-hidden />
               <span className="truncate">{triggerLabel}</span>
             </span>
           </AccordionTrigger>
-          {/* className="p-0" removes the default pb-4 inside AccordionContent */}
           <AccordionContent className="p-0">
-            <div className="pb-2" style={hPad}>
-              <div className="flex gap-2">
-                <div className="size-3.5 shrink-0" aria-hidden />
-                <p className="text-xs text-muted-foreground leading-relaxed">{paragraph}</p>
-              </div>
+            {/* Border separates trigger from content; pt-2/pb-2 keeps it compact */}
+            <div className="border-t border-border pt-2 pb-2 flex gap-2">
+              <div className="size-3.5 shrink-0" aria-hidden />
+              <p className="text-xs text-muted-foreground leading-relaxed">{paragraph}</p>
             </div>
           </AccordionContent>
         </AccordionItem>
       </Accordion>
 
-      {/* Static bottom border */}
+      {/* Static bottom border — absolute so it ignores the outer div's padding */}
       <div className="absolute bottom-0 left-0 right-0 h-px bg-border" />
       {/* Sweeping light */}
       <motion.div

@@ -123,16 +123,16 @@ export function SiteHeader({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="min-w-[10rem]">
                 <DropdownMenuItem asChild>
-                  <a href={orderStatusUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-                    <Package className="size-4" />
-                    Order Status
+                  <a href="https://iblazevape.co.uk" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                    <Home className="size-4" />
+                    Store
                   </a>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <a href="https://iblazevape.co.uk" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-                    <Home className="size-4" />
-                    Store
+                  <a href={orderStatusUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                    <Package className="size-4" />
+                    Order Status
                   </a>
                 </DropdownMenuItem>
               </DropdownMenuContent>
