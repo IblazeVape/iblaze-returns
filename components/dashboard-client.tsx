@@ -5,7 +5,7 @@ import { useEffect, useState, useMemo, useRef, useLayoutEffect, useCallback, Sus
 import { useSearchParams } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { toast } from "sonner"
-import { ChevronRight, LayoutGrid, List, ArrowLeft, RotateCcw, CheckCircle2, ShoppingBag, ShieldCheck, ExternalLink, Lock, Truck, Package, Search, MapPin, SlidersHorizontal, CreditCard, XCircle, CircleX, Columns2, LayoutDashboard, MessageCircle, FileText, Clock, BadgeCheck, HelpCircle, Eye, Archive, Info, type LucideIcon } from "lucide-react"
+import { ChevronRight, ChevronDown, LayoutGrid, List, ArrowLeft, RotateCcw, CheckCircle2, ShoppingBag, ShieldCheck, ExternalLink, Lock, Truck, Package, Search, MapPin, SlidersHorizontal, CreditCard, XCircle, CircleX, Columns2, LayoutDashboard, MessageCircle, FileText, Clock, BadgeCheck, HelpCircle, Eye, Archive, Info, type LucideIcon } from "lucide-react"
 
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { AppSidebar } from "@/components/app-sidebar"
@@ -2679,14 +2679,35 @@ function getIneligibleFilterOptions(items: DisplayItem[]): { label: string; stat
 }
 
 function IneligibleGroupSummary({ item, order, groupItems }: { item: LineItem; order: Order; groupItems?: LineItem[] }) {
-  const { icon: Icon, color } = getReturnStatusIcon(item.returnStatus)
+  const { icon: Icon, color, label } = getReturnStatusIcon(item.returnStatus)
   const message = getIneligibleGroupMessage(item, order, groupItems)
+  const [open, setOpen] = useState(false)
 
   return (
-    <p className="my-0 min-w-0 flex-1 text-[11px] leading-snug text-muted-foreground break-words">
-      <Icon className={cn("mr-1 inline size-3 shrink-0 align-[-0.15em]", color)} aria-hidden />
-      {message}
-    </p>
+    <div className="min-w-0 flex-1">
+      {/* Desktop: full message inline */}
+      <p className="hidden min-[1025px]:block my-0 text-[11px] leading-snug text-muted-foreground break-words">
+        <Icon className={cn("mr-1 inline size-3 shrink-0 align-[-0.15em]", color)} aria-hidden />
+        {message}
+      </p>
+
+      {/* Mobile: collapsible — short status label, tap to reveal full message */}
+      <div className="min-[1025px]:hidden">
+        <button
+          type="button"
+          onClick={() => setOpen(o => !o)}
+          aria-expanded={open}
+          className="flex items-center gap-1.5 text-left w-full"
+        >
+          <Icon className={cn("inline size-3 shrink-0", color)} aria-hidden />
+          <span className="text-[11px] font-medium text-foreground">{label}</span>
+          <ChevronDown className={cn("size-3 text-muted-foreground transition-transform duration-200", open && "rotate-180")} aria-hidden />
+        </button>
+        {open && (
+          <p className="mt-1 text-[11px] leading-snug text-muted-foreground break-words">{message}</p>
+        )}
+      </div>
+    </div>
   )
 }
 
