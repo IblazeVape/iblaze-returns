@@ -9,7 +9,11 @@ html, body {
 
 /* The dashboard app manages its own internal scroll containers, so the
    root html/body is locked to the viewport by default. Marketing pages
-   are normal scrolling documents, so let the body scroll when one is mounted. */
+   are normal scrolling documents, so let html and body scroll when one is
+   mounted — overriding only body isn't enough, since html would still
+   clip content past the viewport. (:has() can't nest inside :has(), so
+   both selectors target #marketing-root directly rather than the body.) */
+html:has(#marketing-root),
 body:has(#marketing-root) {
   height: auto;
   overflow: auto;

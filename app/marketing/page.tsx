@@ -224,13 +224,10 @@ export default function MarketingPage() {
           </div>
         </div>
         <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
-          <div
-            className="rounded-2xl border border-border bg-cover bg-center p-8 text-white"
-            style={{ backgroundImage: "linear-gradient(to top, rgba(0,0,0,0.75), rgba(0,0,0,0.35)), url(https://picsum.photos/seed/reflow-parcel-packaging/600/500)" }}
-          >
+          <div className="rounded-2xl bg-iblaze-red p-8 text-white">
             <Truck className="size-6" />
             <h3 className="mt-4 text-lg font-semibold">Native Shopify sync</h3>
-            <p className="mt-2 text-sm text-zinc-200 max-w-[36ch]">Orders, refunds, and inventory update the moment Shopify does.</p>
+            <p className="mt-2 text-sm text-white/80 max-w-[36ch]">Orders, refunds, and inventory update the moment Shopify does.</p>
           </div>
           <div className="rounded-2xl border border-border p-8">
             <Boxes className="size-6 text-iblaze-red" />
