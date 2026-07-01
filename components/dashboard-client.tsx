@@ -3951,13 +3951,13 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
               {/* Option B: when in review mode the footer shows Confirm instead */}
               {RETURN_REVIEW_VARIANT === "B" && showReview ? (
                 <>
-                  <Button variant="outline" size="sm" onClick={() => setShowReview(false)}>Back</Button>
-                  <Button size="sm" className="bg-[#E5403B] hover:bg-[#cc3935] text-white disabled:opacity-50 text-xs" disabled={submitting} onClick={submitReturn}>
+                  <Button variant="outline" size="sm" onClick={() => setShowReview(false)} className="text-xs">Back</Button>
+                  <Button size="sm" className="bg-[#E5403B] hover:bg-[#cc3935] text-white disabled:opacity-50 text-xs font-bold" disabled={submitting} onClick={submitReturn}>
                     {submitting ? <Spinner className="size-3.5" /> : <><CheckCircle2 className="size-3.5" /><span className="hidden min-[1025px]:inline ml-1">Confirm return</span></>}
                   </Button>
                 </>
               ) : (
-                <Button size="sm" className="bg-[#E5403B] hover:bg-[#cc3935] text-white disabled:opacity-50 text-xs"
+                <Button size="sm" className="bg-[#E5403B] hover:bg-[#cc3935] text-white disabled:opacity-50 text-xs font-bold"
                   disabled={!canSubmit || submitting}
                   onClick={RETURN_REVIEW_VARIANT === "A" ? () => setShowReview(true) : RETURN_REVIEW_VARIANT === "B" ? () => setShowReview(true) : submitReturn}
                 >
