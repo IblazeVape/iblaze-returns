@@ -3438,17 +3438,9 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                 </TableBody>
               </Table>
             </div>
-            <div className="px-5 py-3 border-t flex items-center justify-between gap-3">
-              <div>
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Estimated refund</p>
-                <p className="text-lg font-bold text-foreground">£{estimatedRefund.toFixed(2)}</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={() => setShowReview(false)}>Back</Button>
-                <Button size="sm" className="bg-black hover:bg-zinc-800 text-white disabled:opacity-50" disabled={submitting} onClick={submitReturn}>
-                  {submitting ? <Spinner className="size-4" /> : <><CheckCircle2 className="size-4" /><span className="ml-1">Submit return</span></>}
-                </Button>
-              </div>
+            <div className="px-5 py-3 border-t">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Estimated refund</p>
+              <p className="text-lg font-bold text-foreground">£{estimatedRefund.toFixed(2)}</p>
             </div>
           </Card>
         )}
