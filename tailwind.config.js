@@ -38,15 +38,30 @@ module.exports = {
       borderRadius: {
         lg: "var(--radius)", md: "calc(var(--radius) - 2px)", sm: "calc(var(--radius) - 4px)",
       },
+      backgroundImage: {
+        "gradient-conic": "conic-gradient(var(--conic-position), var(--tw-gradient-stops))",
+      },
       keyframes: {
         "accordion-down": { from: { height: "0" }, to: { height: "var(--radix-accordion-content-height)" } },
         "accordion-up": { from: { height: "var(--radix-accordion-content-height)" }, to: { height: "0" } },
         "fade-in": { from: { opacity: "0", transform: "translateY(4px)" }, to: { opacity: "1", transform: "translateY(0)" } },
+        "image-glow": {
+          "0%": { opacity: "0" },
+          "10%": { opacity: "0.5" },
+          "100%": { opacity: "0.7" },
+        },
+        "border-beam": { "100%": { "offset-distance": "100%" } },
+        "flip": { to: { transform: "rotate(360deg)" } },
+        "spin-slow": { to: { transform: "rotate(90deg)" } },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "fade-in": "fade-in 0.3s ease-out",
+        "image-glow": "image-glow 4s ease-out 0.6s forwards",
+        "border-beam": "border-beam calc(var(--duration)*1s) infinite linear",
+        "flip": "flip 6s infinite steps(2, end)",
+        "spin-slow": "spin-slow 3s linear infinite both",
       },
     },
   },
