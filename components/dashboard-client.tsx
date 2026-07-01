@@ -977,7 +977,7 @@ function StickyOrderSummaryStrip({ order }: { order: Order }) {
           what caused the lag on mobile. */}
       <div
         className={cn(
-          "grid overflow-hidden transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
+          "grid overflow-hidden transition-[grid-template-rows] duration-[250ms] ease-[cubic-bezier(0.4,0,0.2,1)]",
           summaryOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
         )}
       >
@@ -3952,18 +3952,18 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
               {RETURN_REVIEW_VARIANT === "B" && showReview ? (
                 <>
                   <Button variant="outline" size="sm" onClick={() => setShowReview(false)}>Back</Button>
-                  <Button size="sm" className="bg-black hover:bg-zinc-800 text-white disabled:opacity-50" disabled={submitting} onClick={submitReturn}>
-                    {submitting ? <Spinner className="size-4" /> : <><CheckCircle2 className="size-4" /><span className="hidden min-[1025px]:inline ml-1">Confirm return</span></>}
+                  <Button size="sm" className="bg-[#E5403B] hover:bg-[#cc3935] text-white disabled:opacity-50 text-xs" disabled={submitting} onClick={submitReturn}>
+                    {submitting ? <Spinner className="size-3.5" /> : <><CheckCircle2 className="size-3.5" /><span className="hidden min-[1025px]:inline ml-1">Confirm return</span></>}
                   </Button>
                 </>
               ) : (
-                <Button size="sm" className="bg-black hover:bg-zinc-800 text-white disabled:opacity-50"
+                <Button size="sm" className="bg-[#E5403B] hover:bg-[#cc3935] text-white disabled:opacity-50 text-xs"
                   disabled={!canSubmit || submitting}
                   onClick={RETURN_REVIEW_VARIANT === "A" ? () => setShowReview(true) : RETURN_REVIEW_VARIANT === "B" ? () => setShowReview(true) : submitReturn}
                 >
                   {submitting
-                    ? <><Spinner className="size-4" /><span className="hidden min-[1025px]:inline ml-1">Submitting...</span></>
-                    : <><RotateCcw className="size-4" /><span className="hidden min-[1025px]:inline ml-1">Review return</span></>}
+                    ? <><Spinner className="size-3.5" /><span className="hidden min-[1025px]:inline ml-1">Submitting...</span></>
+                    : <><RotateCcw className="size-3.5" /><span className="hidden min-[1025px]:inline ml-1">Review return</span></>}
                 </Button>
               )}
             </div>
@@ -4005,10 +4005,10 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={() => setShowReview(false)}>Back</Button>
-                <Button size="sm" className="bg-black hover:bg-zinc-800 text-white" disabled={submitting}
+                <Button size="sm" className="bg-[#E5403B] hover:bg-[#cc3935] text-white text-xs" disabled={submitting}
                   onClick={() => { setShowReview(false); submitReturn() }}
                 >
-                  {submitting ? <Spinner className="size-4" /> : "Confirm return"}
+                  {submitting ? <Spinner className="size-3.5" /> : "Confirm return"}
                 </Button>
               </div>
             </div>

@@ -94,7 +94,7 @@ export function SiteHeader({
               rel="noopener noreferrer"
               className="hidden min-[1025px]:flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-              <Package className="size-4" />
+              <Package className="size-3.5" />
               Order Status
             </a>
           )}
@@ -104,10 +104,9 @@ export function SiteHeader({
             rel="noopener noreferrer"
             className="hidden min-[1025px]:flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
-            <Home className="size-4" />
+            <Home className="size-3.5" />
             Store
           </a>
-          <Separator orientation="vertical" className="hidden min-[1025px]:block data-[orientation=vertical]:h-4" />
 
           {/* ── Mobile: menu dropdown when 2+ links (order selected = Status + Store) ── */}
           {orderStatusUrl ? (
