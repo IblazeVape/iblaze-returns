@@ -971,27 +971,22 @@ function StickyOrderSummaryStrip({ order }: { order: Order }) {
         <ChevronDown className={cn("size-3.5 shrink-0 text-foreground/50 transition-transform duration-300", summaryOpen && "rotate-180")} aria-hidden />
       </button>
 
-      {/* Content: white background, full-width top border, smooth framer-motion open.
-          Paragraph starts at the same left edge as the ⓘ icon. */}
-      <AnimatePresence initial={false}>
-        {summaryOpen && (
-          <motion.div
-            key="summary-content"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{
-              height:  { duration: 0.3, ease: [0.4, 0, 0.2, 1] },
-              opacity: { duration: 0.25, ease: "easeInOut" },
-            }}
-            className="overflow-hidden bg-card border-t border-border"
-          >
-            <div className="pt-2 pb-2" style={hPad}>
-              <p className="text-xs text-muted-foreground leading-relaxed">{paragraph}</p>
-            </div>
-          </motion.div>
+      {/* Content: white background, full-width top border. Same CSS grid-rows
+          technique the sidebar uses for its expand/collapse — a GPU-friendly
+          CSS transition instead of a JS-driven height:auto animation, which is
+          what caused the lag on mobile. */}
+      <div
+        className={cn(
+          "grid overflow-hidden transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
+          summaryOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
         )}
-      </AnimatePresence>
+      >
+        <div className="min-h-0 bg-card border-t border-border">
+          <div className="pt-2 pb-2" style={hPad}>
+            <p className="text-xs text-muted-foreground leading-relaxed">{paragraph}</p>
+          </div>
+        </div>
+      </div>
 
       {/* Static bottom border */}
       <div className="absolute bottom-0 left-0 right-0 h-px bg-border" />
@@ -1746,7 +1741,7 @@ function getOrderHeaderStatusIcon(order: Order): { icon: LucideIcon; color: stri
     case "Partially dispatched":
       return { icon: Truck, color: "text-slate-600", label: seg.label }
     default:
-      return { icon: Clock, color: "text-zinc-600", label: seg.label }
+      return { icon: Clock, color: "text-zinc-900", label: seg.label }
   }
 }
 
@@ -2743,22 +2738,18 @@ function IneligibleGroupSummary({ item, order, groupItems, count }: { item: Line
           <ChevronDown className={cn("size-3 shrink-0 text-muted-foreground transition-transform duration-200", open && "rotate-180")} aria-hidden />
           <span className="ml-auto text-[10px] font-medium text-muted-foreground shrink-0 tabular-nums">{count}</span>
         </button>
-        <AnimatePresence initial={false}>
-          {open && (
-            <motion.div
-              key="content"
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
-              className="overflow-hidden"
-            >
-              <p className="border-t border-border bg-card px-5 py-2.5 text-[11px] leading-snug text-muted-foreground break-words">
-                {message}
-              </p>
-            </motion.div>
+        <div
+          className={cn(
+            "grid overflow-hidden transition-[grid-template-rows] duration-[250ms] ease-[cubic-bezier(0.4,0,0.2,1)]",
+            open ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
           )}
-        </AnimatePresence>
+        >
+          <div className="min-h-0">
+            <p className="border-t border-border bg-card px-5 py-2.5 text-[11px] leading-snug text-muted-foreground break-words">
+              {message}
+            </p>
+          </div>
+        </div>
       </div>
     </>
   )
@@ -3014,7 +3005,7 @@ function StatusLabel({ order }: { order: Order }) {
         </span>
       ),
       notYetShipped > 0 && (
-        <span key="p" className="inline-flex items-center gap-0.5 text-muted-foreground">
+        <span key="p" className="inline-flex items-center gap-0.5 text-zinc-900">
           <Clock className="size-3 shrink-0" aria-hidden />
           {notYetShipped} not yet shipped
         </span>
@@ -3036,11 +3027,12 @@ function StatusLabel({ order }: { order: Order }) {
 
   const meta = getOrderHeaderStatusIcon(order)
   const Icon = meta?.icon ?? Clock
-  const color = meta?.color ?? "text-muted-foreground"
+  const isDispatchedDate = isOnItsWay && earliestDispatch
+  const color = isDispatchedDate ? "text-zinc-900" : (meta?.color ?? "text-muted-foreground")
 
   const label = orderStatus === "Delivered" && deliveryDate
     ? `Delivered ${fmt(deliveryDate)}`
-    : isOnItsWay && earliestDispatch
+    : isDispatchedDate
     ? `Dispatched ${fmt(earliestDispatch)}`
     : orderStatus === "Partially dispatched"
     ? "On its way"
@@ -3398,36 +3390,64 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
           </div>
         )}
 
-        {/* ── Option B: inline review card ── */}
+        {/* ── Option B: inline review card — same table layout (Product, Variant, Qty, Total)
+             used for order-item selection, so the review step matches it exactly ── */}
         {RETURN_REVIEW_VARIANT === "B" && showReview && (
           <Card className={cn(C, "overflow-hidden")}>
             <div className="px-5 py-4 border-b bg-muted/20 flex items-center gap-2">
-              <CheckCircle2 className="size-4 text-[#E5403B]" />
+              <CheckCircle2 className="size-4 text-foreground" />
               <span className="text-sm font-semibold">Review your return</span>
               <span className="text-xs text-muted-foreground ml-auto">{selectedCount} item{selectedCount !== 1 ? "s" : ""}</span>
             </div>
-            <div className="divide-y overflow-y-auto max-h-[55vh]">
-              {reviewItems.map(({ id, item, quantity, reason, description, subtotal }) => (
-                <div key={id} className="flex items-start gap-3 px-4 py-3">
-                  {item?.image?.url && (
-                    <img src={item.image.url} alt={item.title} className="size-12 rounded-md object-cover shrink-0 border" />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium leading-tight truncate">{item?.title}</p>
-                    {item?.variant?.title && item.variant.title !== "Default Title" && (
-                      <p className="text-xs text-muted-foreground">{item.variant.title}</p>
-                    )}
-                    <p className="text-xs text-muted-foreground mt-0.5">Qty {quantity} · {reason}</p>
-                    {description && <p className="text-xs text-muted-foreground italic mt-0.5">"{description}"</p>}
-                  </div>
-                  <p className="text-sm font-semibold tabular-nums shrink-0">£{subtotal.toFixed(2)}</p>
-                </div>
-              ))}
+            <div className="overflow-y-auto max-h-[55vh]">
+              <Table>
+                <TableHeader className="bg-background">
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="pl-5">Product</TableHead>
+                    <TableHead className="hidden min-[1025px]:table-cell">Variant</TableHead>
+                    <TableHead className="text-center hidden min-[1025px]:table-cell">Qty</TableHead>
+                    <TableHead className="text-right pr-4">Total</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {reviewItems.map(({ id, item, quantity, reason, description, subtotal }) => (
+                    <TableRow key={id}>
+                      <TableCell className="pl-5 py-3">
+                        <div className="flex items-center gap-3">
+                          {item?.image?.url
+                            ? <img src={item.image.url} alt={item.title} className="size-10 rounded-md object-cover shrink-0 border" />
+                            : <div className="size-10 rounded-md border bg-muted shrink-0" />}
+                          <div className="min-w-0">
+                            <p className="font-medium text-sm truncate max-w-[160px] min-[1025px]:max-w-[200px]">{item?.title}</p>
+                            <span className="min-[1025px]:hidden text-[11px] text-muted-foreground block truncate max-w-[140px]">
+                              {quantity}×{item?.variant?.title && item.variant.title !== "Default Title" ? ` ${item.variant.title}` : ""}
+                            </span>
+                            <span className="text-[11px] text-muted-foreground block truncate max-w-[200px]">
+                              {reason}{description ? ` · "${description}"` : ""}
+                            </span>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-3 text-sm hidden min-[1025px]:table-cell">
+                        {item?.variant?.title && item.variant.title !== "Default Title" ? item.variant.title : <span className="text-muted-foreground">—</span>}
+                      </TableCell>
+                      <TableCell className="py-3 text-sm text-center tabular-nums hidden min-[1025px]:table-cell">{quantity}</TableCell>
+                      <TableCell className="text-right pr-4 py-3 font-semibold text-sm tabular-nums">£{subtotal.toFixed(2)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
-            <div className="px-5 py-3 border-t flex items-center justify-between">
+            <div className="px-5 py-3 border-t flex items-center justify-between gap-3">
               <div>
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Estimated refund</p>
-                <p className="text-lg font-bold text-[#E5403B]">£{estimatedRefund.toFixed(2)}</p>
+                <p className="text-lg font-bold text-foreground">£{estimatedRefund.toFixed(2)}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => setShowReview(false)}>Back</Button>
+                <Button size="sm" className="bg-black hover:bg-zinc-800 text-white disabled:opacity-50" disabled={submitting} onClick={submitReturn}>
+                  {submitting ? <Spinner className="size-4" /> : <><CheckCircle2 className="size-4" /><span className="ml-1">Submit return</span></>}
+                </Button>
               </div>
             </div>
           </Card>
@@ -3940,12 +3960,12 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
               {RETURN_REVIEW_VARIANT === "B" && showReview ? (
                 <>
                   <Button variant="outline" size="sm" onClick={() => setShowReview(false)}>Back</Button>
-                  <Button size="sm" className="bg-[#E5403B] hover:bg-[#cc3935] text-white disabled:opacity-50" disabled={submitting} onClick={submitReturn}>
+                  <Button size="sm" className="bg-black hover:bg-zinc-800 text-white disabled:opacity-50" disabled={submitting} onClick={submitReturn}>
                     {submitting ? <Spinner className="size-4" /> : <><CheckCircle2 className="size-4" /><span className="hidden min-[1025px]:inline ml-1">Confirm return</span></>}
                   </Button>
                 </>
               ) : (
-                <Button size="sm" className="bg-[#E5403B] hover:bg-[#cc3935] text-white disabled:opacity-50"
+                <Button size="sm" className="bg-black hover:bg-zinc-800 text-white disabled:opacity-50"
                   disabled={!canSubmit || submitting}
                   onClick={RETURN_REVIEW_VARIANT === "A" ? () => setShowReview(true) : RETURN_REVIEW_VARIANT === "B" ? () => setShowReview(true) : submitReturn}
                 >
@@ -3993,7 +4013,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={() => setShowReview(false)}>Back</Button>
-                <Button size="sm" className="bg-[#E5403B] hover:bg-[#cc3935] text-white" disabled={submitting}
+                <Button size="sm" className="bg-black hover:bg-zinc-800 text-white" disabled={submitting}
                   onClick={() => { setShowReview(false); submitReturn() }}
                 >
                   {submitting ? <Spinner className="size-4" /> : "Confirm return"}
