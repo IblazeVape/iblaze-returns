@@ -1,4 +1,6 @@
+import type { CSSProperties } from "react"
 import Link from "next/link"
+import { Inter } from "next/font/google"
 import {
   Store, Palette, UserCheck, ShieldCheck, Boxes, Users, Truck, Clock,
   CheckCircle2, ArrowRight, LayoutDashboard, Menu,
@@ -16,6 +18,8 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table"
+
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" })
 
 const CTA_LABEL = "Start free trial"
 
@@ -93,13 +97,13 @@ const TESTIMONIALS = [
 
 export default function MarketingPage() {
   return (
-    <div id="marketing-root" className="min-h-[100dvh] bg-background text-foreground">
+    <div id="marketing-root" className={`${inter.variable} min-h-[100dvh] bg-background text-foreground`}>
 
       {/* ── Nav ── */}
       <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
           <Link href="/marketing" className="flex items-center gap-2 font-semibold">
-            <span className="flex size-7 items-center justify-center rounded-md bg-iblaze-red text-white text-sm font-bold">R</span>
+            <span className="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground text-sm font-bold">R</span>
             Reflow
           </Link>
           <nav className="hidden items-center gap-8 text-sm text-muted-foreground md:flex">
@@ -112,7 +116,7 @@ export default function MarketingPage() {
             <Link href="/sign-in" className="hidden sm:inline-flex text-sm text-muted-foreground hover:text-foreground transition-colors px-3">
               Sign in
             </Link>
-            <Button asChild size="sm" className="bg-iblaze-red hover:bg-[#cc3935] text-white">
+            <Button asChild size="sm">
               <Link href="/sign-up">{CTA_LABEL}</Link>
             </Button>
             <DropdownMenu>
@@ -125,7 +129,23 @@ export default function MarketingPage() {
                   <Menu className="size-4" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="min-w-[10rem]">
+              <DropdownMenuContent
+                align="end"
+                className="min-w-[10rem]"
+                style={{
+                  // Radix portals this content to document.body, outside
+                  // #marketing-root, so the scoped dark theme variables
+                  // don't cascade down to it via CSS inheritance. Redeclare
+                  // them here instead — Item/Separator are real DOM children
+                  // of this element, so they still inherit from it normally.
+                  "--popover": "210 5% 8%",
+                  "--popover-foreground": "180 7% 97%",
+                  "--border": "240 5% 22%",
+                  "--accent": "210 4% 10%",
+                  "--accent-foreground": "180 7% 97%",
+                  "--muted-foreground": "219 6% 57%",
+                } as CSSProperties}
+              >
                 <DropdownMenuItem asChild><a href="#features">Features</a></DropdownMenuItem>
                 <DropdownMenuItem asChild><a href="#admin">Admin panel</a></DropdownMenuItem>
                 <DropdownMenuItem asChild><a href="#pricing">Pricing</a></DropdownMenuItem>
@@ -142,14 +162,14 @@ export default function MarketingPage() {
       <section className="mx-auto max-w-7xl px-4 pt-16 pb-20 sm:px-6 lg:pt-20">
         <div className="grid items-center gap-12 lg:grid-cols-2">
           <div>
-            <h1 className="text-4xl font-semibold tracking-tight leading-none sm:text-5xl lg:text-6xl">
+            <h1 className="text-[44px] font-semibold leading-[1.05] tracking-[-1.8px] sm:text-[64px] sm:tracking-[-2.4px] lg:text-[80px] lg:tracking-[-3px]">
               Your brand&apos;s returns page, not Shopify&apos;s.
             </h1>
-            <p className="mt-5 max-w-[46ch] text-base text-muted-foreground leading-relaxed">
+            <p className="mt-5 max-w-[46ch] text-[18px] text-muted-foreground leading-relaxed tracking-[-0.1px]">
               Give every customer a returns experience that looks like your store, built in, tracked automatically, and ready in one afternoon.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
-              <Button asChild size="lg" className="bg-iblaze-red hover:bg-[#cc3935] text-white">
+              <Button asChild size="lg">
                 <Link href="/sign-up">{CTA_LABEL}</Link>
               </Button>
               <Button asChild size="lg" variant="outline">
@@ -185,7 +205,7 @@ export default function MarketingPage() {
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Estimated refund</p>
                 <p className="text-base font-bold">£82.00</p>
               </div>
-              <Button size="sm" className="bg-iblaze-red hover:bg-[#cc3935] text-white text-xs font-bold">
+              <Button size="sm" className="text-xs font-bold">
                 <CheckCircle2 className="size-3.5" /> Submit return
               </Button>
             </div>
@@ -204,39 +224,39 @@ export default function MarketingPage() {
 
       {/* ── Features: bento grid, 2+3 rhythm ── */}
       <section id="features" className="mx-auto max-w-7xl px-4 py-24 sm:px-6">
-        <h2 className="max-w-md text-3xl font-semibold tracking-tight sm:text-4xl">
+        <h2 className="max-w-md text-[32px] font-semibold leading-[1.15] tracking-[-1px] sm:text-[40px]">
           Everything a returns page needs, none of the Shopify branding.
         </h2>
         <div className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div className="rounded-2xl bg-zinc-900 p-8 text-white md:row-span-1">
-            <Palette className="size-6" />
-            <h3 className="mt-4 text-lg font-semibold">Branded from domain to receipt</h3>
-            <p className="mt-2 text-sm text-zinc-300 max-w-[42ch]">
+          <div className="rounded-xl border border-border bg-[hsl(var(--surface-2))] p-8 md:row-span-1">
+            <Palette className="size-6 text-primary" />
+            <h3 className="mt-4 text-[22px] font-medium tracking-[-0.4px]">Branded from domain to receipt</h3>
+            <p className="mt-2 text-sm text-muted-foreground max-w-[42ch]">
               Custom domain, logo, colours, and email templates, so the portal reads as part of your store, not a bolt-on.
             </p>
           </div>
-          <div className="rounded-2xl border border-border p-8">
-            <Clock className="size-6 text-iblaze-red" />
-            <h3 className="mt-4 text-lg font-semibold">Return rules that fit your policy</h3>
+          <div className="rounded-xl border border-border p-8">
+            <Clock className="size-6 text-primary" />
+            <h3 className="mt-4 text-[22px] font-medium tracking-[-0.4px]">Return rules that fit your policy</h3>
             <p className="mt-2 text-sm text-muted-foreground max-w-[42ch]">
               Configurable expiry windows, categories, and reasons, applied automatically at checkout time.
             </p>
           </div>
         </div>
         <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
-          <div className="rounded-2xl bg-iblaze-red p-8 text-white">
-            <Truck className="size-6" />
-            <h3 className="mt-4 text-lg font-semibold">Native Shopify sync</h3>
-            <p className="mt-2 text-sm text-white/80 max-w-[36ch]">Orders, refunds, and inventory update the moment Shopify does.</p>
+          <div className="rounded-xl border border-border bg-[hsl(var(--surface-2))] p-8">
+            <Truck className="size-6 text-primary" />
+            <h3 className="mt-4 text-[22px] font-medium tracking-[-0.4px]">Native Shopify sync</h3>
+            <p className="mt-2 text-sm text-muted-foreground max-w-[36ch]">Orders, refunds, and inventory update the moment Shopify does.</p>
           </div>
-          <div className="rounded-2xl border border-border p-8">
-            <Boxes className="size-6 text-iblaze-red" />
-            <h3 className="mt-4 text-lg font-semibold">One login, every store</h3>
+          <div className="rounded-xl border border-border p-8">
+            <Boxes className="size-6 text-primary" />
+            <h3 className="mt-4 text-[22px] font-medium tracking-[-0.4px]">One login, every store</h3>
             <p className="mt-2 text-sm text-muted-foreground max-w-[36ch]">Manage several storefronts from a single multi-tenant admin panel.</p>
           </div>
-          <div className="rounded-2xl border border-border p-8">
-            <ShieldCheck className="size-6 text-iblaze-red" />
-            <h3 className="mt-4 text-lg font-semibold">Fraud aware by default</h3>
+          <div className="rounded-xl border border-border p-8">
+            <ShieldCheck className="size-6 text-primary" />
+            <h3 className="mt-4 text-[22px] font-medium tracking-[-0.4px]">Fraud aware by default</h3>
             <p className="mt-2 text-sm text-muted-foreground max-w-[36ch]">Eligibility windows and proof-of-issue uploads catch bad-faith returns early.</p>
           </div>
         </div>
@@ -246,8 +266,8 @@ export default function MarketingPage() {
       <section id="admin" className="border-y bg-muted/20 py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
           <div className="flex items-center gap-2">
-            <LayoutDashboard className="size-5 text-iblaze-red" />
-            <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">The same admin panel you already trust</h2>
+            <LayoutDashboard className="size-5 text-primary" />
+            <h2 className="text-[32px] font-semibold leading-[1.15] tracking-[-1px] sm:text-[40px]">The same admin panel you already trust</h2>
           </div>
           <p className="mt-4 max-w-[60ch] text-muted-foreground">
             No separate tool to learn. Every store's returns, statuses, and refunds sit in the one dashboard your team already uses.
@@ -259,7 +279,7 @@ export default function MarketingPage() {
                 <p className="text-sm font-semibold">Order #10482</p>
                 <p className="text-xs text-muted-foreground">Northfield Goods · placed 12 June 2026</p>
               </div>
-              <Badge className="bg-black text-white hover:bg-black">2 items ready to return</Badge>
+              <Badge>2 items ready to return</Badge>
             </div>
             <Table>
               <TableHeader className="bg-background">
@@ -308,7 +328,7 @@ export default function MarketingPage() {
               </div>
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" className="text-xs">Decline</Button>
-                <Button size="sm" className="bg-iblaze-red hover:bg-[#cc3935] text-white text-xs font-bold">
+                <Button size="sm" className="text-xs font-bold">
                   <CheckCircle2 className="size-3.5" /> Approve refund
                 </Button>
               </div>
@@ -321,7 +341,7 @@ export default function MarketingPage() {
       <section className="mx-auto max-w-7xl px-4 py-24 sm:px-6">
         <div className="grid items-center gap-12 lg:grid-cols-2">
           <div>
-            <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+            <h2 className="text-[32px] font-semibold leading-[1.15] tracking-[-1px] sm:text-[40px]">
               Connect once. Never touch Shopify settings again.
             </h2>
             <p className="mt-4 max-w-[50ch] text-muted-foreground">
@@ -337,7 +357,7 @@ export default function MarketingPage() {
               <div key={step.title} className="flex gap-4">
                 <div className="flex flex-col items-center">
                   <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-border bg-background">
-                    <step.icon className="size-4 text-iblaze-red" />
+                    <step.icon className="size-4 text-primary" />
                   </span>
                   {i < 2 && <span className="mt-1 h-full w-px flex-1 bg-border" />}
                 </div>
@@ -354,7 +374,7 @@ export default function MarketingPage() {
       {/* ── Pricing: card grid ── */}
       <section id="pricing" className="border-y bg-muted/20 py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
-          <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">Simple pricing, no per-return fees</h2>
+          <h2 className="text-[32px] font-semibold leading-[1.15] tracking-[-1px] sm:text-[40px]">Simple pricing, no per-return fees</h2>
           <p className="mt-3 text-muted-foreground">14 day free trial. Billing secured by Stripe. Cancel anytime.</p>
           <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-3">
             {PLANS.map((plan) => (
@@ -362,12 +382,12 @@ export default function MarketingPage() {
                 key={plan.name}
                 className={
                   plan.highlighted
-                    ? "border-iblaze-red shadow-md py-8 gap-6"
+                    ? "border-primary/40 bg-[hsl(var(--surface-2))] shadow-md py-8 gap-6"
                     : "py-8 gap-6"
                 }
               >
                 <div className="px-6">
-                  {plan.highlighted && <Badge className="bg-iblaze-red text-white hover:bg-iblaze-red mb-3">Most popular</Badge>}
+                  {plan.highlighted && <Badge className="mb-3">Most popular</Badge>}
                   <p className="text-sm font-semibold">{plan.name}</p>
                   <p className="mt-2 text-3xl font-bold tabular-nums">{plan.price}<span className="text-sm font-normal text-muted-foreground">{plan.period}</span></p>
                   <p className="mt-2 text-sm text-muted-foreground">{plan.blurb}</p>
@@ -376,7 +396,7 @@ export default function MarketingPage() {
                   <ul className="space-y-2.5">
                     {plan.features.map((f) => (
                       <li key={f} className="flex items-center gap-2 text-sm">
-                        <CheckCircle2 className="size-4 shrink-0 text-iblaze-red" /> {f}
+                        <CheckCircle2 className="size-4 shrink-0 text-primary" /> {f}
                       </li>
                     ))}
                   </ul>
@@ -384,7 +404,7 @@ export default function MarketingPage() {
                 <div className="px-6">
                   <Button
                     asChild
-                    className={plan.highlighted ? "w-full bg-iblaze-red hover:bg-[#cc3935] text-white" : "w-full"}
+                    className="w-full"
                     variant={plan.highlighted ? "default" : "outline"}
                   >
                     <Link href={plan.cta === CTA_LABEL ? "/sign-up" : "/contact"}>{plan.cta}</Link>
@@ -401,7 +421,7 @@ export default function MarketingPage() {
         <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
           {TESTIMONIALS.map((t) => (
             <div key={t.name} className="flex flex-col">
-              <p className="text-base leading-relaxed">&quot;{t.quote}&quot;</p>
+              <p className="text-base leading-relaxed tracking-[-0.05px]">&quot;{t.quote}&quot;</p>
               <div className="mt-5 flex items-center gap-3">
                 <Avatar className="size-9">
                   <AvatarFallback className="bg-muted text-xs font-semibold">
@@ -421,7 +441,7 @@ export default function MarketingPage() {
       {/* ── FAQ: accordion ── */}
       <section id="faq" className="border-t bg-muted/20 py-24">
         <div className="mx-auto max-w-3xl px-4 sm:px-6">
-          <h2 className="text-3xl font-semibold tracking-tight text-center sm:text-4xl">Frequently asked questions</h2>
+          <h2 className="text-[32px] font-semibold leading-[1.15] tracking-[-1px] text-center sm:text-[40px]">Frequently asked questions</h2>
           <Accordion type="single" collapsible className="mt-10">
             {FAQS.map((item, i) => (
               <AccordionItem key={item.q} value={`item-${i}`}>
@@ -439,7 +459,7 @@ export default function MarketingPage() {
           <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
             <div className="col-span-2 sm:col-span-1">
               <Link href="/marketing" className="flex items-center gap-2 font-semibold">
-                <span className="flex size-7 items-center justify-center rounded-md bg-iblaze-red text-white text-sm font-bold">R</span>
+                <span className="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground text-sm font-bold">R</span>
                 Reflow
               </Link>
               <p className="mt-3 text-sm text-muted-foreground max-w-[24ch]">

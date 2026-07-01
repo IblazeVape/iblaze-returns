@@ -19,6 +19,47 @@ body:has(#marketing-root) {
   overflow: auto;
 }
 
+/* Marketing page theme — Linear-style dark canvas, scoped to #marketing-root
+   only. Deliberately NOT the shared .dark class: the dashboard keeps its
+   forced-light ThemeProvider untouched, and its dormant .dark block (Onyx
+   palette) is left alone in case it's used for a future product dark mode. */
+#marketing-root {
+  --background: 240 33% 1%;
+  --foreground: 180 7% 97%;
+  --card: 210 6% 6%;
+  --card-foreground: 180 7% 97%;
+  --popover: 210 5% 8%;
+  --popover-foreground: 180 7% 97%;
+  --primary: 234 56% 60%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 210 4% 10%;
+  --secondary-foreground: 180 7% 97%;
+  --muted: 210 5% 8%;
+  --muted-foreground: 219 6% 57%;
+  --accent: 210 4% 10%;
+  --accent-foreground: 180 7% 97%;
+  --border: 223 9% 15%;
+  --input: 223 9% 15%;
+  --ring: 234 100% 75%;
+  --radius: 0.75rem;
+
+  /* Extra Linear-specific tokens beyond the standard shadcn set, for the
+     finer surface/hairline/ink distinctions the DESIGN.md spec calls for —
+     consumed directly via arbitrary-value classes like
+     bg-[hsl(var(--surface-2))] where a component needs more grain than
+     card/popover/muted/accent alone provide. */
+  --surface-1: 210 6% 6%;
+  --surface-2: 210 5% 8%;
+  --surface-3: 210 4% 10%;
+  --surface-4: 210 4% 10%;
+  --hairline-strong: 240 5% 22%;
+  --hairline-tertiary: 240 5% 25%;
+  --ink-muted: 218 21% 85%;
+  --ink-tertiary: 218 5% 41%;
+
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
 /* Custom scrollbar — matches shadcn ScrollArea appearance */
 .styled-scroll::-webkit-scrollbar {
   width: 10px;
