@@ -7,6 +7,14 @@ html, body {
   overflow: hidden;
 }
 
+/* The dashboard app manages its own internal scroll containers, so the
+   root html/body is locked to the viewport by default. Marketing pages
+   are normal scrolling documents, so let the body scroll when one is mounted. */
+body:has(#marketing-root) {
+  height: auto;
+  overflow: auto;
+}
+
 /* Custom scrollbar — matches shadcn ScrollArea appearance */
 .styled-scroll::-webkit-scrollbar {
   width: 10px;
