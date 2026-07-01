@@ -32,7 +32,7 @@ export function BentoCard({
     >
       {background}
       <div className="pointer-events-none z-10 flex flex-col gap-1 p-6 transition-all duration-300 group-hover:-translate-y-4">
-        <Icon className="mb-2 size-9 origin-left text-[#E5403B] transition-all duration-300 ease-in-out group-hover:scale-75" strokeWidth={1.5} />
+        <Icon className="mb-2 size-9 origin-left text-violet-400 transition-all duration-300 ease-in-out group-hover:scale-75" strokeWidth={1.5} />
         <h3 className="text-lg font-semibold text-neutral-100">{name}</h3>
         <p className="max-w-[32ch] text-sm text-neutral-400">{description}</p>
       </div>

@@ -29,7 +29,7 @@ export function MagicCard({ children, className }: { children: React.ReactNode; 
         className="pointer-events-none absolute -inset-px opacity-0 transition duration-300"
         style={{
           opacity,
-          background: `radial-gradient(500px circle at ${position.x}px ${position.y}px, rgba(229,64,59,.15), transparent 60%)`,
+          background: `radial-gradient(500px circle at ${position.x}px ${position.y}px, rgba(168,85,247,.15), transparent 60%)`,
         }}
       />
       {children}

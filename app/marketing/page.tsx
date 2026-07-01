@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react"
 import Link from "next/link"
 import {
   Store, Palette, Boxes, Truck, Clock,
@@ -125,7 +126,7 @@ export default function MarketingPage() {
             <Link href="/sign-in" className="hidden sm:inline-flex text-sm text-muted-foreground hover:text-foreground transition-colors px-3">
               Sign in
             </Link>
-            <Button asChild size="sm" className="bg-iblaze-red hover:bg-[#cc3935] text-white">
+            <Button asChild size="sm" className="bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:opacity-90 text-white">
               <Link href="/sign-up">{CTA_LABEL}</Link>
             </Button>
             <DropdownMenu>
@@ -134,7 +135,24 @@ export default function MarketingPage() {
                   <Menu className="size-4" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="min-w-[10rem]">
+              <DropdownMenuContent
+                align="end"
+                className="min-w-[10rem]"
+                style={{
+                  // Radix portals this content to document.body, outside
+                  // #marketing-root, so the .dark class's scoped theme
+                  // variables don't cascade to it via CSS inheritance.
+                  // Redeclare the Onyx dark values here instead — Item/
+                  // Separator are real DOM children of this element, so
+                  // they still inherit from it normally.
+                  "--popover": "0 0% 4%",
+                  "--popover-foreground": "0 0% 98%",
+                  "--border": "0 0% 10%",
+                  "--accent": "0 0% 7%",
+                  "--accent-foreground": "0 0% 98%",
+                  "--muted-foreground": "0 0% 63%",
+                } as CSSProperties}
+              >
                 <DropdownMenuItem asChild><a href="#features">Features</a></DropdownMenuItem>
                 <DropdownMenuItem asChild><a href="#admin">Admin panel</a></DropdownMenuItem>
                 <DropdownMenuItem asChild><a href="#pricing">Pricing</a></DropdownMenuItem>
@@ -154,7 +172,7 @@ export default function MarketingPage() {
             <MagicBadge title="White-label returns for Shopify" />
             <h1 className="w-full py-6 text-center text-4xl font-medium leading-[1.15] tracking-tight text-balance sm:text-5xl md:text-6xl lg:text-7xl">
               Your brand&apos;s returns page,{" "}
-              <span className="bg-gradient-to-r from-[#E5403B] to-rose-300 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-violet-500 to-fuchsia-500 bg-clip-text text-transparent">
                 not Shopify&apos;s.
               </span>
             </h1>
@@ -162,7 +180,7 @@ export default function MarketingPage() {
               Give every customer a returns experience that looks like your store, built in, tracked automatically, and ready in one afternoon.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3">
-              <Button asChild size="lg" className="bg-iblaze-red hover:bg-[#cc3935] text-white">
+              <Button asChild size="lg" className="bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:opacity-90 text-white">
                 <Link href="/sign-up">{CTA_LABEL}<ArrowRight className="ml-1 size-4" /></Link>
               </Button>
               <Button asChild size="lg" variant="outline" className="border-white/15 bg-transparent hover:bg-white/5">
@@ -280,7 +298,7 @@ export default function MarketingPage() {
         <div id="admin" className="scroll-mt-24">
           <AnimationContainer delay={0.1}>
             <div className="flex items-center gap-2">
-              <LayoutDashboard className="size-5 text-iblaze-red" />
+              <LayoutDashboard className="size-5 text-violet-400" />
               <h2 className="text-3xl font-medium leading-[1.1] sm:text-4xl">The same admin panel you already trust</h2>
             </div>
             <p className="mt-4 max-w-[60ch] text-lg text-muted-foreground">
@@ -370,21 +388,21 @@ export default function MarketingPage() {
           <div className="grid grid-cols-1 gap-6 py-8 md:grid-cols-3">
             {PLANS.map((plan, i) => (
               <AnimationContainer delay={0.15 * i} key={plan.name}>
-                <MagicCard className={plan.highlighted ? "h-full !border-iblaze-red/40" : "h-full"}>
-                  {plan.highlighted && <Badge className="bg-iblaze-red text-white hover:bg-iblaze-red mb-3">Most popular</Badge>}
+                <MagicCard className={plan.highlighted ? "h-full !border-fuchsia-500/40" : "h-full"}>
+                  {plan.highlighted && <Badge className="bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white hover:opacity-90 mb-3">Most popular</Badge>}
                   <p className="text-sm font-semibold text-white">{plan.name}</p>
                   <p className="mt-2 text-3xl font-bold tabular-nums text-white">{plan.price}<span className="text-sm font-normal text-muted-foreground">{plan.period}</span></p>
                   <p className="mt-2 text-sm text-muted-foreground">{plan.blurb}</p>
                   <ul className="mt-5 space-y-2.5">
                     {plan.features.map((f) => (
                       <li key={f} className="flex items-center gap-2 text-sm text-zinc-300">
-                        <CheckCircle2 className="size-4 shrink-0 text-iblaze-red" /> {f}
+                        <CheckCircle2 className="size-4 shrink-0 text-violet-400" /> {f}
                       </li>
                     ))}
                   </ul>
                   <Button
                     asChild
-                    className={plan.highlighted ? "w-full mt-6 bg-iblaze-red hover:bg-[#cc3935] text-white" : "w-full mt-6 border-white/15 bg-transparent hover:bg-white/5"}
+                    className={plan.highlighted ? "w-full mt-6 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:opacity-90 text-white" : "w-full mt-6 border-white/15 bg-transparent hover:bg-white/5"}
                     variant={plan.highlighted ? "default" : "outline"}
                   >
                     <Link href={plan.cta === CTA_LABEL ? "/sign-up" : "/contact"}>{plan.cta}</Link>
@@ -422,7 +440,7 @@ export default function MarketingPage() {
                 </div>
                 <div className="mt-4 flex gap-0.5">
                   {Array.from({ length: 5 }, (_, s) => (
-                    <Star key={s} className="size-3.5 fill-iblaze-red text-iblaze-red" />
+                    <Star key={s} className="size-3.5 fill-yellow-500 text-yellow-500" />
                   ))}
                 </div>
               </MagicCard>
@@ -461,7 +479,7 @@ export default function MarketingPage() {
               <p className="mx-auto mt-6 max-w-md text-muted-foreground">
                 Branded, automated, and synced with Shopify from day one.
               </p>
-              <Button asChild size="lg" className="mt-6 bg-iblaze-red hover:bg-[#cc3935] text-white">
+              <Button asChild size="lg" className="mt-6 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:opacity-90 text-white">
                 <Link href="/sign-up">{CTA_LABEL}<ArrowRight className="ml-1 size-4" /></Link>
               </Button>
             </div>

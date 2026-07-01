@@ -12,7 +12,7 @@ export function LampContainer({ children, className }: { children: React.ReactNo
           whileInView={{ opacity: 1, width: "30rem" }}
           transition={{ delay: 0.3, duration: 0.8, ease: "easeInOut" }}
           style={{ backgroundImage: "conic-gradient(var(--conic-position), var(--tw-gradient-stops))" }}
-          className="absolute inset-auto right-1/2 h-56 w-[30rem] overflow-visible bg-gradient-conic from-[#E5403B] via-transparent to-transparent text-white [--conic-position:from_70deg_at_center_top]"
+          className="absolute inset-auto right-1/2 h-56 w-[30rem] overflow-visible bg-gradient-conic from-purple-500 via-transparent to-transparent text-white [--conic-position:from_70deg_at_center_top]"
         >
           <div className="absolute bottom-0 left-0 z-20 h-40 w-full bg-background [mask-image:linear-gradient(to_top,white,transparent)]" />
           <div className="absolute bottom-0 left-0 z-20 h-full w-40 bg-background [mask-image:linear-gradient(to_right,white,transparent)]" />
@@ -22,7 +22,7 @@ export function LampContainer({ children, className }: { children: React.ReactNo
           whileInView={{ opacity: 1, width: "30rem" }}
           transition={{ delay: 0.3, duration: 0.8, ease: "easeInOut" }}
           style={{ backgroundImage: "conic-gradient(var(--conic-position), var(--tw-gradient-stops))" }}
-          className="absolute inset-auto left-1/2 h-56 w-[30rem] bg-gradient-conic from-transparent via-transparent to-[#E5403B] text-white [--conic-position:from_290deg_at_center_top]"
+          className="absolute inset-auto left-1/2 h-56 w-[30rem] bg-gradient-conic from-transparent via-transparent to-purple-500 text-white [--conic-position:from_290deg_at_center_top]"
         >
           <div className="absolute bottom-0 right-0 z-20 h-full w-40 bg-background [mask-image:linear-gradient(to_left,white,transparent)]" />
           <div className="absolute bottom-0 right-0 z-20 h-40 w-full bg-background [mask-image:linear-gradient(to_top,white,transparent)]" />
@@ -33,13 +33,13 @@ export function LampContainer({ children, className }: { children: React.ReactNo
           initial={{ width: "8rem" }}
           whileInView={{ width: "16rem" }}
           transition={{ delay: 0.3, duration: 0.8, ease: "easeInOut" }}
-          className="absolute inset-auto z-30 h-36 w-64 -translate-y-24 rounded-full bg-[#E5403B] blur-2xl"
+          className="absolute inset-auto z-30 h-36 w-64 -translate-y-24 rounded-full bg-purple-400 blur-2xl"
         />
         <motion.div
           initial={{ width: "15rem" }}
           whileInView={{ width: "30rem" }}
           transition={{ delay: 0.3, duration: 0.8, ease: "easeInOut" }}
-          className="absolute inset-auto z-50 h-0.5 w-[30rem] -translate-y-28 bg-[#E5403B]"
+          className="absolute inset-auto z-50 h-0.5 w-[30rem] -translate-y-28 bg-purple-400"
         />
         <div className="absolute inset-auto z-40 h-44 w-full -translate-y-[12.5rem] bg-background" />
       </div>
