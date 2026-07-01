@@ -1,8 +1,7 @@
-import type { CSSProperties } from "react"
 import Link from "next/link"
 import {
   Store, Palette, Boxes, Truck, Clock,
-  CheckCircle2, ArrowRight, LayoutDashboard, Menu, Star, SparklesIcon,
+  CheckCircle2, ArrowRight, LayoutDashboard, Star, SparklesIcon,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -11,9 +10,6 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
   Accordion, AccordionContent, AccordionItem, AccordionTrigger,
 } from "@/components/ui/accordion"
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table"
@@ -24,6 +20,10 @@ import { MagicCard } from "@/components/marketing/magic-card"
 import { BorderBeam } from "@/components/marketing/border-beam"
 import { LampContainer } from "@/components/marketing/lamp"
 import { BentoGrid, BentoCard } from "@/components/marketing/bento"
+import { BrandDomainWidget, OrderSearchWidget, ShopifySyncWidget, ReturnWindowWidget } from "@/components/marketing/bento-widgets"
+import { Navbar } from "@/components/marketing/navbar"
+import { Footer } from "@/components/marketing/footer"
+import { HeroPortalScreenshot } from "@/components/marketing/hero-screenshot"
 
 const CTA_LABEL = "Start free trial"
 
@@ -69,101 +69,11 @@ const TESTIMONIALS = [
   { quote: "Multi-tenant admin means our whole portfolio of brands runs off one login now.", name: "Ines Callaghan", role: "Operations Director", company: "Marrow & Co" },
 ]
 
-function PortalPreview() {
-  return (
-    <Card className="light overflow-hidden bg-white py-0 gap-0 shadow-2xl">
-      <div className="flex items-center gap-2 border-b bg-muted/30 px-4 py-3">
-        <span className="flex size-6 items-center justify-center rounded bg-foreground text-background text-[10px] font-bold">NG</span>
-        <span className="text-sm font-medium">Northfield Goods Returns</span>
-        <Badge variant="outline" className="ml-auto text-[10px]">returns.northfieldgoods.com</Badge>
-      </div>
-      <div className="divide-y">
-        {[
-          { name: "Waxed Canvas Tote", meta: "Colour: Olive · Qty 1", price: "£58.00" },
-          { name: "Field Notebook Set", meta: "Qty 2", price: "£24.00" },
-        ].map((item) => (
-          <div key={item.name} className="flex items-center gap-3 px-4 py-3">
-            <div className="size-10 shrink-0 rounded-md border bg-muted" />
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium">{item.name}</p>
-              <p className="text-xs text-muted-foreground">{item.meta}</p>
-            </div>
-            <p className="text-sm font-semibold tabular-nums">{item.price}</p>
-          </div>
-        ))}
-      </div>
-      <div className="flex items-center justify-between border-t bg-muted/20 px-4 py-3">
-        <div>
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Estimated refund</p>
-          <p className="text-base font-bold">£82.00</p>
-        </div>
-        <Button size="sm" className="bg-iblaze-red hover:bg-[#cc3935] text-white text-xs font-bold">
-          <CheckCircle2 className="size-3.5" /> Submit return
-        </Button>
-      </div>
-    </Card>
-  )
-}
-
 export default function MarketingPage() {
   return (
     <div id="marketing-root" className="dark min-h-[100dvh] bg-background text-foreground">
 
-      {/* ── Nav ── */}
-      <header className="sticky top-0 z-40 border-b border-white/10 bg-background/80 backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
-          <Link href="/marketing" className="flex items-center gap-2 font-semibold">
-            <span className="flex size-7 items-center justify-center rounded-md bg-iblaze-red text-white text-sm font-bold">R</span>
-            Reflow
-          </Link>
-          <nav className="hidden items-center gap-8 text-sm text-muted-foreground md:flex">
-            <a href="#features" className="hover:text-foreground transition-colors">Features</a>
-            <a href="#admin" className="hover:text-foreground transition-colors">Admin panel</a>
-            <a href="#pricing" className="hover:text-foreground transition-colors">Pricing</a>
-            <a href="#faq" className="hover:text-foreground transition-colors">FAQ</a>
-          </nav>
-          <div className="flex items-center gap-2">
-            <Link href="/sign-in" className="hidden sm:inline-flex text-sm text-muted-foreground hover:text-foreground transition-colors px-3">
-              Sign in
-            </Link>
-            <Button asChild size="sm" className="bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:opacity-90 text-white">
-              <Link href="/sign-up">{CTA_LABEL}</Link>
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button type="button" className="md:hidden size-8 flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors" aria-label="Menu">
-                  <Menu className="size-4" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="end"
-                className="min-w-[10rem]"
-                style={{
-                  // Radix portals this content to document.body, outside
-                  // #marketing-root, so the .dark class's scoped theme
-                  // variables don't cascade to it via CSS inheritance.
-                  // Redeclare the Onyx dark values here instead — Item/
-                  // Separator are real DOM children of this element, so
-                  // they still inherit from it normally.
-                  "--popover": "0 0% 4%",
-                  "--popover-foreground": "0 0% 98%",
-                  "--border": "0 0% 10%",
-                  "--accent": "0 0% 7%",
-                  "--accent-foreground": "0 0% 98%",
-                  "--muted-foreground": "0 0% 63%",
-                } as CSSProperties}
-              >
-                <DropdownMenuItem asChild><a href="#features">Features</a></DropdownMenuItem>
-                <DropdownMenuItem asChild><a href="#admin">Admin panel</a></DropdownMenuItem>
-                <DropdownMenuItem asChild><a href="#pricing">Pricing</a></DropdownMenuItem>
-                <DropdownMenuItem asChild><a href="#faq">FAQ</a></DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild><Link href="/sign-in">Sign in</Link></DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-      </header>
+      <Navbar />
 
       {/* ── Hero ── */}
       <MaxWidthWrapper>
@@ -184,16 +94,16 @@ export default function MarketingPage() {
                 <Link href="/sign-up">{CTA_LABEL}<ArrowRight className="ml-1 size-4" /></Link>
               </Button>
               <Button asChild size="lg" variant="outline" className="border-white/15 bg-transparent hover:bg-white/5">
-                <a href="#admin">View live demo</a>
+                <Link href="/demo">View live demo</Link>
               </Button>
             </div>
           </AnimationContainer>
 
           <AnimationContainer delay={0.2} className="relative w-full px-2 pb-10 pt-16 md:pt-20">
             <div className="marketing-gradient absolute inset-0 left-1/2 top-[10%] h-1/3 w-3/4 -translate-x-1/2 animate-image-glow blur-[6rem]" />
-            <div className="relative mx-auto max-w-lg rounded-2xl p-2 ring-1 ring-inset ring-white/10 backdrop-blur-3xl">
+            <div className="relative mx-auto max-w-4xl rounded-2xl p-2 ring-1 ring-inset ring-white/10 backdrop-blur-3xl">
               <BorderBeam size={250} duration={12} delay={9} />
-              <PortalPreview />
+              <HeroPortalScreenshot />
             </div>
           </AnimationContainer>
         </div>
@@ -233,14 +143,16 @@ export default function MarketingPage() {
               href="#pricing"
               cta="See plans"
               className="col-span-3 lg:col-span-1"
+              background={<BrandDomainWidget />}
             />
             <BentoCard
-              name="Return rules that fit your policy"
-              description="Configurable expiry windows, categories, and reasons, applied automatically."
+              name="Search your orders"
+              description="Quickly find any order across every connected store."
               Icon={Clock}
-              href="#pricing"
-              cta="See plans"
+              href="#admin"
+              cta="View the panel"
               className="col-span-3 lg:col-span-2"
+              background={<OrderSearchWidget />}
             />
             <BentoCard
               name="Native Shopify sync"
@@ -249,14 +161,16 @@ export default function MarketingPage() {
               href="#admin"
               cta="View the panel"
               className="col-span-3 lg:col-span-2"
+              background={<ShopifySyncWidget />}
             />
             <BentoCard
-              name="One login, every store"
-              description="Manage several storefronts from a single multi-tenant admin panel."
+              name="Return windows"
+              description="Configurable expiry windows applied automatically per product."
               Icon={Boxes}
-              href="#admin"
-              cta="View the panel"
+              href="#pricing"
+              cta="See plans"
               className="col-span-3 lg:col-span-1"
+              background={<ReturnWindowWidget />}
             />
           </BentoGrid>
         </AnimationContainer>
@@ -487,51 +401,7 @@ export default function MarketingPage() {
         </AnimationContainer>
       </MaxWidthWrapper>
 
-      {/* ── Footer ── */}
-      <footer className="border-t border-white/10 py-16">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6">
-          <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
-            <div className="col-span-2 sm:col-span-1">
-              <Link href="/marketing" className="flex items-center gap-2 font-semibold">
-                <span className="flex size-7 items-center justify-center rounded-md bg-iblaze-red text-white text-sm font-bold">R</span>
-                Reflow
-              </Link>
-              <p className="mt-3 text-sm text-muted-foreground max-w-[24ch]">
-                White-label returns for growing Shopify stores.
-              </p>
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Product</p>
-              <ul className="mt-3 space-y-2 text-sm">
-                <li><a href="#features" className="text-muted-foreground hover:text-foreground transition-colors">Features</a></li>
-                <li><a href="#admin" className="text-muted-foreground hover:text-foreground transition-colors">Admin panel</a></li>
-                <li><a href="#pricing" className="text-muted-foreground hover:text-foreground transition-colors">Pricing</a></li>
-              </ul>
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Company</p>
-              <ul className="mt-3 space-y-2 text-sm">
-                <li><Link href="/about" className="text-muted-foreground hover:text-foreground transition-colors">About</Link></li>
-                <li><Link href="/contact" className="text-muted-foreground hover:text-foreground transition-colors">Contact</Link></li>
-              </ul>
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Legal</p>
-              <ul className="mt-3 space-y-2 text-sm">
-                <li><Link href="/privacy" className="text-muted-foreground hover:text-foreground transition-colors">Privacy</Link></li>
-                <li><Link href="/terms" className="text-muted-foreground hover:text-foreground transition-colors">Terms</Link></li>
-              </ul>
-            </div>
-          </div>
-          <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-white/10 pt-6 text-xs text-muted-foreground sm:flex-row">
-            <p>&copy; 2026 Reflow. All rights reserved.</p>
-            <div className="flex items-center gap-1.5">
-              <ArrowRight className="size-3.5" />
-              <span>Ready when you are.</span>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   )
 }

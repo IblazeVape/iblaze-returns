@@ -3,7 +3,7 @@ import Link from "next/link"
 import { cn } from "@/lib/utils"
 
 export function BentoGrid({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={cn("grid w-full auto-rows-[20rem] grid-cols-3 gap-4", className)}>{children}</div>
+  return <div className={cn("grid w-full auto-rows-[22rem] grid-cols-3 gap-4", className)}>{children}</div>
 }
 
 export function BentoCard({
@@ -30,7 +30,7 @@ export function BentoCard({
         className,
       )}
     >
-      {background}
+      <div>{background}</div>
       <div className="pointer-events-none z-10 flex flex-col gap-1 p-6 transition-all duration-300 group-hover:-translate-y-4">
         <Icon className="mb-2 size-9 origin-left text-violet-400 transition-all duration-300 ease-in-out group-hover:scale-75" strokeWidth={1.5} />
         <h3 className="text-lg font-semibold text-neutral-100">{name}</h3>
