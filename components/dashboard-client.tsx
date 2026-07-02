@@ -4635,12 +4635,13 @@ function DashboardClientInner() {
                 { icon: RotateCcw,     label: "Start a Return",  onClick: () => setActiveSection("#orders") },
                 { icon: ShoppingBag,   label: "View All Orders", onClick: () => setActiveSection("#orders") },
                 { icon: MessageCircle, label: "Contact Support", href: "mailto:info@iblazevape.co.uk" },
+                { icon: FileText,      label: "Help & Docs",     href: "/docs" },
                 { icon: HelpCircle,    label: "Order Statuses",  onClick: () => setStatusSheetOpen(true) },
               ] as const).map(({ icon: Icon, label, onClick, href }: { icon: React.ElementType, label: string, onClick?: () => void, href?: string }) => {
                 const cls = "flex flex-col items-center justify-center gap-1 py-2.5 px-4 text-center hover:bg-muted/50 transition-colors flex-1 min-w-[80px] border-r border-border last:border-r-0 focus:outline-none"
                 const content = <><Icon className="size-4 text-zinc-500 dark:text-white" /><span className="text-xs font-medium text-foreground leading-tight">{label}</span></>
                 return href
-                  ? <a key={label} href={href} target="_blank" rel="noopener noreferrer" className={cls}>{content}</a>
+                  ? <a key={label} href={href} {...(href.startsWith("/") ? {} : { target: "_blank", rel: "noopener noreferrer" })} className={cls}>{content}</a>
                   : <button key={label} onClick={onClick} className={cls}>{content}</button>
               })}
             </div>

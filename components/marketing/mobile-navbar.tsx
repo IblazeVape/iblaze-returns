@@ -5,14 +5,14 @@ import {
     AccordionContent,
     AccordionItem,
     AccordionTrigger,
-} from "@/components/ui/accordion";
-import { Button, buttonVariants } from "@/components/ui/button";
+} from "@/components/marketing/ui/accordion";
+import { Button, buttonVariants } from "@/components/marketing/ui/button";
 import {
     Sheet,
     SheetClose,
     SheetContent,
     SheetTrigger
-} from "@/components/ui/sheet";
+} from "@/components/marketing/ui/sheet";
 import { cn } from "@/lib/utils";
 import { NAV_LINKS } from "@/components/marketing/constants";
 import { LucideIcon, Menu, X } from "lucide-react";
@@ -51,20 +51,18 @@ const MobileNavbar = () => {
                         <Menu className="w-5 h-5" />
                     </Button>
                 </SheetTrigger>
-                <SheetContent className="w-screen" style={MARKETING_DARK_VARS}>
+                <SheetContent className="w-screen bg-background text-foreground" style={MARKETING_DARK_VARS}>
                     <SheetClose asChild className="absolute top-3 right-5 bg-background z-20 flex items-center justify-center">
                         <Button size="icon" variant="ghost" className="text-neutral-600">
                             <X className="w-5 h-5" />
                         </Button>
                     </SheetClose>
                     <div className="flex flex-col items-start w-full py-2 mt-10">
-                        {/* "shrink" overrides the shrink-0 baked into this app's newer
-                            button styles, so the two w-full links split 50/50 like Linkify */}
                         <div className="flex items-center justify-evenly w-full space-x-2">
-                            <Link href="/auth/sign-in" className={buttonVariants({ variant: "outline", className: "w-full shrink" })}>
+                            <Link href="/auth/sign-in" className={buttonVariants({ variant: "outline", className: "w-full" })}>
                                 Sign In
                             </Link>
-                            <Link href="/auth/sign-up" className={buttonVariants({ className: "w-full shrink" })}>
+                            <Link href="/auth/sign-up" className={buttonVariants({ className: "w-full" })}>
                                 Sign Up
                             </Link>
                         </div>

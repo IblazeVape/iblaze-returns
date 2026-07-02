@@ -1,5 +1,5 @@
 import {
-  BarChart3Icon, ClockIcon, HelpCircleIcon, LayoutDashboardIcon, LineChartIcon,
+  BarChart3Icon, BookOpenIcon, ClockIcon, LayoutDashboardIcon, LineChartIcon,
   NewspaperIcon, PaletteIcon, FolderOpenIcon, WandSparklesIcon,
 } from "lucide-react"
 
@@ -54,10 +54,10 @@ export const NAV_LINKS = [
         icon: NewspaperIcon,
       },
       {
-        title: "Help",
-        tagline: "Get answers to your questions.",
-        href: "/demo",
-        icon: HelpCircleIcon,
+        title: "Docs",
+        tagline: "Publish help docs your customers can read.",
+        href: "/docs",
+        icon: BookOpenIcon,
       },
     ],
   },
@@ -66,15 +66,6 @@ export const NAV_LINKS = [
     href: "/marketing",
   },
 ]
-
-export const COMPANIES = [
-  { name: "Asana", logo: "/assets/company-01.svg" },
-  { name: "Tidal", logo: "/assets/company-02.svg" },
-  { name: "Innovaccer", logo: "/assets/company-03.svg" },
-  { name: "Linear", logo: "/assets/company-04.svg" },
-  { name: "Raycast", logo: "/assets/company-05.svg" },
-  { name: "Labelbox", logo: "/assets/company-06.svg" },
-] as const
 
 export const PROCESS = [
   {
