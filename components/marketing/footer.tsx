@@ -98,7 +98,12 @@ const Footer = () => {
                                         </Link>
                                     </li>
                                     <li className="mt-2">
-                                        <Link href="/demo" className="hover:text-foreground transition-all duration-300">
+                                        <Link href="/docs" className="hover:text-foreground transition-all duration-300">
+                                            Docs
+                                        </Link>
+                                    </li>
+                                    <li className="mt-2">
+                                        <Link href="/docs/contact-us" className="hover:text-foreground transition-all duration-300">
                                             Support
                                         </Link>
                                     </li>

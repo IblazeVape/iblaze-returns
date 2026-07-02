@@ -1,6 +1,6 @@
 "use client";
 
-import { buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/marketing/ui/button";
 import {
     NavigationMenu,
     NavigationMenuContent,
@@ -9,7 +9,7 @@ import {
     NavigationMenuList,
     NavigationMenuTrigger,
     navigationMenuTriggerStyle,
-} from "@/components/ui/navigation-menu";
+} from "@/components/marketing/ui/navigation-menu";
 import { cn } from "@/lib/utils";
 import { NAV_LINKS } from "@/components/marketing/constants";
 import { LucideIcon, ZapIcon } from "lucide-react";

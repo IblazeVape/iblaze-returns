@@ -3,14 +3,14 @@ import MaxWidthWrapper from "@/components/marketing/max-width-wrapper";
 import PricingCards from "@/components/marketing/pricing-cards";
 import { BentoCard, BentoGrid, CARDS } from "@/components/marketing/bento-grid";
 import { BorderBeam } from "@/components/marketing/border-beam";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/marketing/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/marketing/card";
 import { LampContainer } from "@/components/marketing/lamp";
 import MagicBadge from "@/components/marketing/magic-badge";
 import MagicCard from "@/components/marketing/magic-card";
 import Navbar from "@/components/marketing/navbar";
 import Footer from "@/components/marketing/footer";
-import { COMPANIES, PROCESS, REVIEWS } from "@/components/marketing/constants";
+import { PROCESS, REVIEWS } from "@/components/marketing/constants";
 import { aeonik, inter } from "@/lib/marketing-fonts";
 import { cn } from "@/lib/utils";
 import { ArrowRightIcon, CreditCardIcon, StarIcon } from "lucide-react";
@@ -68,7 +68,9 @@ const MarketingPage = () => {
                             </div>
                         </AnimationContainer>
 
-                        <AnimationContainer delay={0.2} className="relative pt-20 pb-20 md:py-32 px-2 bg-transparent w-full">
+                        {/* Linkify had a companies strip after the hero; without it the
+                            original pb-20/py-32 left a huge empty band before Features */}
+                        <AnimationContainer delay={0.2} className="relative pt-20 pb-4 md:pt-32 md:pb-10 px-2 bg-transparent w-full">
                             <div className="absolute md:top-[10%] left-1/2 gradient w-3/4 -translate-x-1/2 h-1/4 md:h-1/3 inset-0 blur-[5rem] animate-image-glow"></div>
                             <div className="-m-2 rounded-xl p-2 ring-1 ring-inset ring-foreground/20 lg:-m-4 lg:rounded-2xl bg-opacity-50 backdrop-blur-3xl">
                                 <BorderBeam
@@ -91,35 +93,6 @@ const MarketingPage = () => {
                     </div>
                 </MaxWidthWrapper>
 
-                {/* Companies Section */}
-                <MaxWidthWrapper>
-                    <AnimationContainer delay={0.4}>
-                        <div className="py-14">
-                            <div className="mx-auto px-4 md:px-8">
-                                <h2 className="text-center text-sm font-medium font-heading text-neutral-400 uppercase">
-                                    Trusted by the best in the industry
-                                </h2>
-                                <div className="mt-8">
-                                    <ul className="flex flex-wrap items-center gap-x-6 gap-y-6 md:gap-x-16 justify-center">
-                                        {COMPANIES.map((company) => (
-                                            <li key={company.name}>
-                                                <Image
-                                                    src={company.logo}
-                                                    alt={company.name}
-                                                    width={80}
-                                                    height={80}
-                                                    quality={100}
-                                                    className="w-28 h-auto"
-                                                />
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    </AnimationContainer>
-                </MaxWidthWrapper>
-
                 {/* Features Section */}
                 <MaxWidthWrapper className="pt-10">
                     <AnimationContainer delay={0.1}>
@@ -129,7 +102,7 @@ const MarketingPage = () => {
                                 Manage Returns Like a Pro
                             </h2>
                             <p className="mt-4 text-center lg:text-center text-lg text-muted-foreground max-w-lg">
-                                Reflow is a powerful returns management tool that helps you brand, track, and manage all your Shopify returns in one place.
+                                Reflow gives your Shopify store its own branded returns portal — your customers help themselves, and you stay in control from one simple admin dashboard.
                             </p>
                         </div>
                     </AnimationContainer>
