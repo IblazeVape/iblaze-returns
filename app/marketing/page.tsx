@@ -1,407 +1,341 @@
-import Link from "next/link"
-import {
-  Store, Palette, Boxes, Truck, Clock,
-  CheckCircle2, ArrowRight, LayoutDashboard, Star, SparklesIcon,
-} from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import {
-  Accordion, AccordionContent, AccordionItem, AccordionTrigger,
-} from "@/components/ui/accordion"
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table"
-import { AnimationContainer } from "@/components/marketing/animation-container"
-import { MaxWidthWrapper } from "@/components/marketing/max-width-wrapper"
-import { MagicBadge } from "@/components/marketing/magic-badge"
-import { MagicCard } from "@/components/marketing/magic-card"
-import { BorderBeam } from "@/components/marketing/border-beam"
-import { LampContainer } from "@/components/marketing/lamp"
-import { BentoGrid, BentoCard } from "@/components/marketing/bento"
-import { BrandDomainWidget, OrderSearchWidget, ShopifySyncWidget, ReturnWindowWidget } from "@/components/marketing/bento-widgets"
-import { Navbar } from "@/components/marketing/navbar"
-import { Footer } from "@/components/marketing/footer"
-import { HeroPortalScreenshot } from "@/components/marketing/hero-screenshot"
+import AnimationContainer from "@/components/marketing/animation-container";
+import MaxWidthWrapper from "@/components/marketing/max-width-wrapper";
+import PricingCards from "@/components/marketing/pricing-cards";
+import { BentoCard, BentoGrid, CARDS } from "@/components/marketing/bento-grid";
+import { BorderBeam } from "@/components/marketing/border-beam";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/marketing/card";
+import { LampContainer } from "@/components/marketing/lamp";
+import MagicBadge from "@/components/marketing/magic-badge";
+import MagicCard from "@/components/marketing/magic-card";
+import Navbar from "@/components/marketing/navbar";
+import Footer from "@/components/marketing/footer";
+import { COMPANIES, PROCESS, REVIEWS } from "@/components/marketing/constants";
+import { aeonik, inter } from "@/lib/marketing-fonts";
+import { cn } from "@/lib/utils";
+import { ArrowRightIcon, CreditCardIcon, StarIcon } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
 
-const CTA_LABEL = "Start free trial"
+// Port of linkify/src/app/(marketing)/page.tsx + layout.tsx, adapted to the
+// returns product. Same sections, same order, same markup.
+const MarketingPage = () => {
+    return (
+        <div
+            id="marketing-root"
+            className={cn(
+                "min-h-[100dvh] bg-background text-foreground font-default overflow-x-hidden scrollbar-hide",
+                aeonik.variable,
+                inter.variable,
+            )}
+        >
+            <div id="home" className="absolute inset-0 bg-[linear-gradient(to_right,#161616_1px,transparent_1px),linear-gradient(to_bottom,#161616_1px,transparent_1px)] bg-[size:3rem_3rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)] h-full" />
+            <Navbar />
+            <main className="mt-20 mx-auto w-full z-0 relative">
 
-function Monogram({ name }: { name: string }) {
-  return (
-    <Avatar className="size-12 border border-white/10 bg-white/5">
-      <AvatarFallback className="bg-transparent text-sm font-semibold text-zinc-300">
-        {name.slice(0, 2).toUpperCase()}
-      </AvatarFallback>
-      <span className="sr-only">{name}</span>
-    </Avatar>
-  )
-}
+                {/* Hero Section */}
+                <MaxWidthWrapper>
+                    <div className="flex flex-col items-center justify-center w-full text-center bg-gradient-to-t from-background">
+                        <AnimationContainer className="flex flex-col items-center justify-center w-full text-center">
+                            <button className="group relative grid overflow-hidden rounded-full px-4 py-1 shadow-[0_1000px_0_0_hsl(0_0%_20%)_inset] transition-colors duration-200">
+                                <span>
+                                    <span className="spark mask-gradient absolute inset-0 h-[100%] w-[100%] animate-flip overflow-hidden rounded-full [mask:linear-gradient(white,_transparent_50%)] before:absolute before:aspect-square before:w-[200%] before:rotate-[-90deg] before:animate-rotate before:bg-[conic-gradient(from_0deg,transparent_0_340deg,white_360deg)] before:content-[''] before:[inset:0_auto_auto_50%] before:[translate:-50%_-15%]" />
+                                </span>
+                                <span className="backdrop absolute inset-[1px] rounded-full bg-neutral-950 transition-colors duration-200 group-hover:bg-neutral-900" />
+                                <span className="h-full w-full blur-md absolute bottom-0 inset-x-0 bg-gradient-to-tr from-primary/20"></span>
+                                <span className="z-10 py-0.5 text-sm text-neutral-100 flex items-center justify-center gap-1">
+                                    ✨ Manage returns smarter
+                                    <ArrowRightIcon className="ml-1 size-3 transition-transform duration-300 ease-in-out group-hover:translate-x-0.5" />
+                                </span>
+                            </button>
+                            <h1 className="text-foreground text-center py-6 text-5xl font-medium tracking-normal text-balance sm:text-6xl md:text-7xl lg:text-8xl !leading-[1.15] w-full font-heading">
+                                Smart Returns with <span className="text-transparent bg-gradient-to-r from-violet-500 to-fuchsia-500 bg-clip-text inline-bloc">
+                                    Precision
+                                </span>
+                            </h1>
+                            <p className="mb-12 text-lg tracking-tight text-muted-foreground md:text-xl text-balance">
+                                Effortlessly streamline your Shopify returns with Reflow.
+                                <br className="hidden md:block" />
+                                <span className="hidden md:block">Brand, track, and manage all your returns in one place.</span>
+                            </p>
+                            <div className="flex items-center justify-center whitespace-nowrap gap-4 z-50">
+                                <Button asChild>
+                                    <Link href="/demo" className="flex items-center">
+                                        Start creating for free
+                                        <ArrowRightIcon className="w-4 h-4 ml-2" />
+                                    </Link>
+                                </Button>
+                            </div>
+                        </AnimationContainer>
 
-const CUSTOMERS = ["Northfield Goods", "Marrow & Co", "Ardent Studio", "Lowland Supply", "Halcyon Beauty", "Fenwick & Rowe"]
+                        <AnimationContainer delay={0.2} className="relative pt-20 pb-20 md:py-32 px-2 bg-transparent w-full">
+                            <div className="absolute md:top-[10%] left-1/2 gradient w-3/4 -translate-x-1/2 h-1/4 md:h-1/3 inset-0 blur-[5rem] animate-image-glow"></div>
+                            <div className="-m-2 rounded-xl p-2 ring-1 ring-inset ring-foreground/20 lg:-m-4 lg:rounded-2xl bg-opacity-50 backdrop-blur-3xl">
+                                <BorderBeam
+                                    size={250}
+                                    duration={12}
+                                    delay={9}
+                                />
+                                <Image
+                                    src="/assets/dashboard.png"
+                                    alt="Dashboard"
+                                    width={1200}
+                                    height={1200}
+                                    quality={100}
+                                    className="rounded-md lg:rounded-xl bg-foreground/10 ring-1 ring-border"
+                                />
+                                <div className="absolute -bottom-4 inset-x-0 w-full h-1/2 bg-gradient-to-t from-background z-40"></div>
+                                <div className="absolute bottom-0 md:-bottom-8 inset-x-0 w-full h-1/4 bg-gradient-to-t from-background z-50"></div>
+                            </div>
+                        </AnimationContainer>
+                    </div>
+                </MaxWidthWrapper>
 
-const PROCESS = [
-  { icon: Store, title: "Install from the Shopify App Store", description: "One click, no developer needed." },
-  { icon: Palette, title: "Add your domain and brand", description: "Logo, colours, and copy in the admin panel." },
-  { icon: SparklesIcon, title: "Customers see your portal, not Shopify's", description: "Live on your own domain from day one." },
-]
-
-const FAQS = [
-  { q: "Do customers ever see Shopify's default returns page?", a: "No. Every request happens on your own domain with your branding from start to finish." },
-  { q: "How do return windows and rules work?", a: "Set expiry windows, exclusions, and reasons per product type from the admin panel. Changes apply instantly." },
-  { q: "How does billing work?", a: "Plans are billed monthly through Stripe. Upgrade, downgrade, or cancel at any time from your account." },
-  { q: "Can my team share one login?", a: "Yes. Team accounts and role based access are handled through Clerk, so you can invite staff without sharing passwords." },
-  { q: "Does it work with my existing Shopify theme?", a: "Yes. The portal lives on its own subdomain or custom domain, so it never touches your theme code." },
-]
-
-const PLANS = [
-  { name: "Starter", price: "£29", period: "/mo", blurb: "For a single store finding its footing.", features: ["1 store", "100 returns / mo", "Branded subdomain", "Email support"], cta: CTA_LABEL, highlighted: false },
-  { name: "Growth", price: "£79", period: "/mo", blurb: "For stores that want a portal that feels fully their own.", features: ["5 stores", "Unlimited returns", "Custom domain", "Priority support"], cta: CTA_LABEL, highlighted: true },
-  { name: "Scale", price: "Custom", period: "", blurb: "For agencies and multi-brand groups managing several storefronts.", features: ["Unlimited stores", "Role based team access", "Dedicated onboarding", "SLA support"], cta: "Talk to sales", highlighted: false },
-]
-
-const TESTIMONIALS = [
-  { quote: "Our return complaints dropped almost overnight once customers could see our own branding instead of a generic form.", name: "Priya Shah", role: "Ecommerce Manager", company: "Northfield Goods" },
-  { quote: "Setting return windows per category took ten minutes. It used to take a spreadsheet and a Slack thread.", name: "Owen Marsh", role: "Operations Lead", company: "Ardent Studio" },
-  { quote: "The admin panel is the first returns tool our support team has actually liked using.", name: "Femi Douglas", role: "Founder", company: "Halcyon Beauty" },
-  { quote: "We connected our domain in an afternoon. It felt like our own product from day one.", name: "Dana Okafor", role: "Head of CX", company: "Lowland Supply" },
-  { quote: "Support tickets about returns dropped by half once customers could track everything themselves.", name: "Marcus Webb", role: "Founder", company: "Fenwick & Rowe" },
-  { quote: "Multi-tenant admin means our whole portfolio of brands runs off one login now.", name: "Ines Callaghan", role: "Operations Director", company: "Marrow & Co" },
-]
-
-export default function MarketingPage() {
-  return (
-    <div id="marketing-root" className="dark min-h-[100dvh] bg-background text-foreground">
-
-      <Navbar />
-
-      {/* ── Hero ── */}
-      <MaxWidthWrapper>
-        <div className="flex flex-col items-center justify-center bg-gradient-to-t from-background pt-16 pb-8 text-center lg:pt-24">
-          <AnimationContainer className="flex w-full flex-col items-center justify-center text-center">
-            <MagicBadge title="White-label returns for Shopify" />
-            <h1 className="w-full py-6 text-center text-4xl font-medium leading-[1.15] tracking-tight text-balance sm:text-5xl md:text-6xl lg:text-7xl">
-              Your brand&apos;s returns page,{" "}
-              <span className="bg-gradient-to-r from-violet-500 to-fuchsia-500 bg-clip-text text-transparent">
-                not Shopify&apos;s.
-              </span>
-            </h1>
-            <p className="mb-10 max-w-[46ch] text-lg text-muted-foreground text-balance">
-              Give every customer a returns experience that looks like your store, built in, tracked automatically, and ready in one afternoon.
-            </p>
-            <div className="flex flex-wrap items-center justify-center gap-3">
-              <Button asChild size="lg" className="bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:opacity-90 text-white">
-                <Link href="/sign-up">{CTA_LABEL}<ArrowRight className="ml-1 size-4" /></Link>
-              </Button>
-              <Button asChild size="lg" variant="outline" className="border-white/15 bg-transparent hover:bg-white/5">
-                <Link href="/demo">View live demo</Link>
-              </Button>
-            </div>
-          </AnimationContainer>
-
-          <AnimationContainer delay={0.2} className="relative w-full px-2 pb-10 pt-16 md:pt-20">
-            <div className="marketing-gradient absolute inset-0 left-1/2 top-[10%] h-1/3 w-3/4 -translate-x-1/2 animate-image-glow blur-[6rem]" />
-            <div className="relative mx-auto max-w-4xl rounded-2xl p-2 ring-1 ring-inset ring-white/10 backdrop-blur-3xl">
-              <BorderBeam size={250} duration={12} delay={9} />
-              <HeroPortalScreenshot />
-            </div>
-          </AnimationContainer>
-        </div>
-      </MaxWidthWrapper>
-
-      {/* ── Logo wall ── */}
-      <MaxWidthWrapper>
-        <AnimationContainer delay={0.3}>
-          <div className="border-y border-white/10 py-10">
-            <p className="text-center text-sm font-medium uppercase tracking-wider text-zinc-500">Built for stores like these</p>
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-6 sm:gap-10">
-              {CUSTOMERS.map((name) => <Monogram key={name} name={name} />)}
-            </div>
-          </div>
-        </AnimationContainer>
-      </MaxWidthWrapper>
-
-      {/* ── Features: bento ── */}
-      <MaxWidthWrapper className="py-20" >
-        <AnimationContainer delay={0.1}>
-          <div className="mx-auto flex max-w-xl flex-col items-center py-8 text-center">
-            <MagicBadge title="Features" />
-            <h2 id="features" className="mt-6 text-3xl font-medium leading-[1.1] sm:text-4xl scroll-mt-24">
-              Everything a returns page needs
-            </h2>
-            <p className="mt-4 max-w-lg text-lg text-muted-foreground">
-              None of the Shopify branding, all of the Shopify data.
-            </p>
-          </div>
-        </AnimationContainer>
-        <AnimationContainer delay={0.2}>
-          <BentoGrid className="py-8">
-            <BentoCard
-              name="Branded from domain to receipt"
-              description="Custom domain, logo, colours, and email templates, so the portal reads as part of your store."
-              Icon={Palette}
-              href="#pricing"
-              cta="See plans"
-              className="col-span-3 lg:col-span-1"
-              background={<BrandDomainWidget />}
-            />
-            <BentoCard
-              name="Search your orders"
-              description="Quickly find any order across every connected store."
-              Icon={Clock}
-              href="#admin"
-              cta="View the panel"
-              className="col-span-3 lg:col-span-2"
-              background={<OrderSearchWidget />}
-            />
-            <BentoCard
-              name="Native Shopify sync"
-              description="Orders, refunds, and inventory update the moment Shopify does."
-              Icon={Truck}
-              href="#admin"
-              cta="View the panel"
-              className="col-span-3 lg:col-span-2"
-              background={<ShopifySyncWidget />}
-            />
-            <BentoCard
-              name="Return windows"
-              description="Configurable expiry windows applied automatically per product."
-              Icon={Boxes}
-              href="#pricing"
-              cta="See plans"
-              className="col-span-3 lg:col-span-1"
-              background={<ReturnWindowWidget />}
-            />
-          </BentoGrid>
-        </AnimationContainer>
-      </MaxWidthWrapper>
-
-      {/* ── Process ── */}
-      <MaxWidthWrapper className="py-10">
-        <AnimationContainer delay={0.1}>
-          <div className="mx-auto flex max-w-xl flex-col items-center py-8 text-center">
-            <MagicBadge title="The process" />
-            <h2 className="mt-6 text-3xl font-medium leading-[1.1] sm:text-4xl">
-              Connect once. Never touch Shopify settings again.
-            </h2>
-            <p className="mt-4 max-w-lg text-lg text-muted-foreground">
-              Install, brand, and go live in one afternoon.
-            </p>
-          </div>
-        </AnimationContainer>
-        <div className="grid w-full grid-cols-1 gap-4 py-8 md:grid-cols-3 md:gap-8">
-          {PROCESS.map((step, i) => (
-            <AnimationContainer delay={0.15 * i} key={step.title}>
-              <MagicCard className="h-full md:py-8">
-                <step.icon strokeWidth={1.5} className="size-10 text-white" />
-                <div className="relative mt-6 flex flex-col items-start">
-                  <span className="absolute -top-6 right-0 flex size-12 items-center justify-center rounded-full border-2 border-white/15 pt-0.5 text-2xl font-medium text-white">
-                    {i + 1}
-                  </span>
-                  <h3 className="text-base font-medium text-white">{step.title}</h3>
-                  <p className="mt-2 text-sm text-muted-foreground">{step.description}</p>
-                </div>
-              </MagicCard>
-            </AnimationContainer>
-          ))}
-        </div>
-      </MaxWidthWrapper>
-
-      {/* ── Admin dashboard preview ── */}
-      <MaxWidthWrapper className="py-20">
-        <div id="admin" className="scroll-mt-24">
-          <AnimationContainer delay={0.1}>
-            <div className="flex items-center gap-2">
-              <LayoutDashboard className="size-5 text-violet-400" />
-              <h2 className="text-3xl font-medium leading-[1.1] sm:text-4xl">The same admin panel you already trust</h2>
-            </div>
-            <p className="mt-4 max-w-[60ch] text-lg text-muted-foreground">
-              No separate tool to learn. Every store&apos;s returns, statuses, and refunds sit in the one dashboard your team already uses.
-            </p>
-          </AnimationContainer>
-
-          <AnimationContainer delay={0.2}>
-            <div className="relative mt-10 rounded-2xl p-2 ring-1 ring-inset ring-white/10">
-              <BorderBeam size={300} duration={14} delay={4} />
-              <Card className="light overflow-hidden py-0 gap-0 bg-white shadow-2xl">
-                <div className="flex items-center justify-between border-b bg-muted/30 px-5 py-3.5">
-                  <div>
-                    <p className="text-sm font-semibold">Order #10482</p>
-                    <p className="text-xs text-muted-foreground">Northfield Goods · placed 12 June 2026</p>
-                  </div>
-                  <Badge className="bg-black text-white hover:bg-black">2 items ready to return</Badge>
-                </div>
-                <Table>
-                  <TableHeader className="bg-background">
-                    <TableRow className="hover:bg-transparent">
-                      <TableHead className="pl-5">Product</TableHead>
-                      <TableHead>Variant</TableHead>
-                      <TableHead className="text-center">Qty</TableHead>
-                      <TableHead className="text-right pr-5">Total</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <TableRow>
-                      <TableCell className="pl-5 py-3">
-                        <div className="flex items-center gap-3">
-                          <div className="size-10 rounded-md border bg-muted shrink-0" />
-                          <div>
-                            <p className="font-medium text-sm">Waxed Canvas Tote</p>
-                            <p className="text-[11px] text-muted-foreground">Faulty / not working</p>
-                          </div>
+                {/* Companies Section */}
+                <MaxWidthWrapper>
+                    <AnimationContainer delay={0.4}>
+                        <div className="py-14">
+                            <div className="mx-auto px-4 md:px-8">
+                                <h2 className="text-center text-sm font-medium font-heading text-neutral-400 uppercase">
+                                    Trusted by the best in the industry
+                                </h2>
+                                <div className="mt-8">
+                                    <ul className="flex flex-wrap items-center gap-x-6 gap-y-6 md:gap-x-16 justify-center">
+                                        {COMPANIES.map((company) => (
+                                            <li key={company.name}>
+                                                <Image
+                                                    src={company.logo}
+                                                    alt={company.name}
+                                                    width={80}
+                                                    height={80}
+                                                    quality={100}
+                                                    className="w-28 h-auto"
+                                                />
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            </div>
                         </div>
-                      </TableCell>
-                      <TableCell className="text-sm">Olive</TableCell>
-                      <TableCell className="text-center text-sm tabular-nums">1</TableCell>
-                      <TableCell className="text-right pr-5 py-3 font-semibold text-sm tabular-nums">£58.00</TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell className="pl-5 py-3">
-                        <div className="flex items-center gap-3">
-                          <div className="size-10 rounded-md border bg-muted shrink-0" />
-                          <div>
-                            <p className="font-medium text-sm">Field Notebook Set</p>
-                            <p className="text-[11px] text-muted-foreground">Changed my mind</p>
-                          </div>
+                    </AnimationContainer>
+                </MaxWidthWrapper>
+
+                {/* Features Section */}
+                <MaxWidthWrapper className="pt-10">
+                    <AnimationContainer delay={0.1}>
+                        <div id="features" className="flex flex-col w-full items-center lg:items-center justify-center py-8 scroll-mt-24">
+                            <MagicBadge title="Features" />
+                            <h2 className="text-center lg:text-center text-3xl md:text-5xl !leading-[1.1] font-medium font-heading text-foreground mt-6">
+                                Manage Returns Like a Pro
+                            </h2>
+                            <p className="mt-4 text-center lg:text-center text-lg text-muted-foreground max-w-lg">
+                                Reflow is a powerful returns management tool that helps you brand, track, and manage all your Shopify returns in one place.
+                            </p>
                         </div>
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">Default</TableCell>
-                      <TableCell className="text-center text-sm tabular-nums">2</TableCell>
-                      <TableCell className="text-right pr-5 py-3 font-semibold text-sm tabular-nums">£24.00</TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-                <div className="flex items-center justify-between border-t px-5 py-3.5">
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Estimated refund</p>
-                    <p className="text-lg font-bold">£82.00</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" className="text-xs">Decline</Button>
-                    <Button size="sm" className="bg-iblaze-red hover:bg-[#cc3935] text-white text-xs font-bold">
-                      <CheckCircle2 className="size-3.5" /> Approve refund
-                    </Button>
-                  </div>
-                </div>
-              </Card>
-            </div>
-          </AnimationContainer>
+                    </AnimationContainer>
+                    <AnimationContainer delay={0.2}>
+                        <BentoGrid className="py-8">
+                            {CARDS.map((feature, idx) => (
+                                <BentoCard key={idx} {...feature} />
+                            ))}
+                        </BentoGrid>
+                    </AnimationContainer>
+                </MaxWidthWrapper>
+
+                {/* Process Section */}
+                <MaxWidthWrapper className="py-10">
+                    <AnimationContainer delay={0.1}>
+                        <div className="flex flex-col items-center lg:items-center justify-center w-full py-8 max-w-xl mx-auto">
+                            <MagicBadge title="The Process" />
+                            <h2 className="text-center lg:text-center text-3xl md:text-5xl !leading-[1.1] font-medium font-heading text-foreground mt-6">
+                                Effortless returns management in 3 steps
+                            </h2>
+                            <p className="mt-4 text-center lg:text-center text-lg text-muted-foreground max-w-lg">
+                                Follow these simple steps to brand, manage, and track your returns with ease.
+                            </p>
+                        </div>
+                    </AnimationContainer>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 w-full py-8 gap-4 md:gap-8">
+                        {PROCESS.map((process, id) => (
+                            <AnimationContainer delay={0.2 * id} key={id}>
+                                <MagicCard className="group md:py-8">
+                                    <div className="flex flex-col items-start justify-center w-full">
+                                        <process.icon strokeWidth={1.5} className="w-10 h-10 text-foreground" />
+                                        <div className="flex flex-col relative items-start">
+                                            <span className="absolute -top-6 right-0 border-2 border-border text-foreground font-medium text-2xl rounded-full w-12 h-12 flex items-center justify-center pt-0.5">
+                                                {id + 1}
+                                            </span>
+                                            <h3 className="text-base mt-6 font-medium text-foreground">
+                                                {process.title}
+                                            </h3>
+                                            <p className="mt-2 text-sm text-muted-foreground">
+                                                {process.description}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </MagicCard>
+                            </AnimationContainer>
+                        ))}
+                    </div>
+                </MaxWidthWrapper>
+
+                {/* Pricing Section */}
+                <MaxWidthWrapper className="py-10">
+                    <AnimationContainer delay={0.1}>
+                        <div id="pricing" className="flex flex-col items-center lg:items-center justify-center w-full py-8 max-w-xl mx-auto scroll-mt-24">
+                            <MagicBadge title="Simple Pricing" />
+                            <h2 className="text-center lg:text-center text-3xl md:text-5xl !leading-[1.1] font-medium font-heading text-foreground mt-6">
+                                Choose a plan that works for you
+                            </h2>
+                            <p className="mt-4 text-center lg:text-center text-lg text-muted-foreground max-w-lg">
+                                Get started with Reflow today and enjoy more features with our pro plans.
+                            </p>
+                        </div>
+                    </AnimationContainer>
+                    <AnimationContainer delay={0.2}>
+                        <PricingCards />
+                    </AnimationContainer>
+                    <AnimationContainer delay={0.3}>
+                        <div className="flex flex-wrap items-start md:items-center justify-center lg:justify-evenly gap-6 mt-12 max-w-5xl mx-auto w-full">
+                            <div className="flex items-center gap-2">
+                                <CreditCardIcon className="w-5 h-5 text-foreground" />
+                                <span className="text-muted-foreground">
+                                    No credit card required
+                                </span>
+                            </div>
+                        </div>
+                    </AnimationContainer>
+                </MaxWidthWrapper>
+
+                {/* Reviews Section */}
+                <MaxWidthWrapper className="py-10">
+                    <AnimationContainer delay={0.1}>
+                        <div className="flex flex-col items-center lg:items-center justify-center w-full py-8 max-w-xl mx-auto">
+                            <MagicBadge title="Our Customers" />
+                            <h2 className="text-center lg:text-center text-3xl md:text-5xl !leading-[1.1] font-medium font-heading text-foreground mt-6">
+                                What our users are saying
+                            </h2>
+                            <p className="mt-4 text-center lg:text-center text-lg text-muted-foreground max-w-lg">
+                                Here&apos;s what some of our users have to say about Reflow.
+                            </p>
+                        </div>
+                    </AnimationContainer>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 place-items-start gap-4 md:gap-8 py-10">
+                        <div className="flex flex-col items-start h-min gap-6">
+                            {REVIEWS.slice(0, 3).map((review, index) => (
+                                <AnimationContainer delay={0.2 * index} key={index}>
+                                    <MagicCard key={index} className="md:p-0">
+                                        <Card className="flex flex-col w-full border-none h-min">
+                                            <CardHeader className="space-y-0">
+                                                <CardTitle className="text-lg font-medium text-muted-foreground">
+                                                    {review.name}
+                                                </CardTitle>
+                                                <CardDescription>
+                                                    {review.username}
+                                                </CardDescription>
+                                            </CardHeader>
+                                            <CardContent className="space-y-4 pb-4">
+                                                <p className="text-muted-foreground">
+                                                    {review.review}
+                                                </p>
+                                            </CardContent>
+                                            <CardFooter className="w-full space-x-1 mt-auto">
+                                                {Array.from({ length: review.rating }, (_, i) => (
+                                                    <StarIcon key={i} className="w-4 h-4 fill-yellow-500 text-yellow-500" />
+                                                ))}
+                                            </CardFooter>
+                                        </Card>
+                                    </MagicCard>
+                                </AnimationContainer>
+                            ))}
+                        </div>
+                        <div className="flex flex-col items-start h-min gap-6">
+                            {REVIEWS.slice(3, 6).map((review, index) => (
+                                <AnimationContainer delay={0.2 * index} key={index}>
+                                    <MagicCard key={index} className="md:p-0">
+                                        <Card className="flex flex-col w-full border-none h-min">
+                                            <CardHeader className="space-y-0">
+                                                <CardTitle className="text-lg font-medium text-muted-foreground">
+                                                    {review.name}
+                                                </CardTitle>
+                                                <CardDescription>
+                                                    {review.username}
+                                                </CardDescription>
+                                            </CardHeader>
+                                            <CardContent className="space-y-4 pb-4">
+                                                <p className="text-muted-foreground">
+                                                    {review.review}
+                                                </p>
+                                            </CardContent>
+                                            <CardFooter className="w-full space-x-1 mt-auto">
+                                                {Array.from({ length: review.rating }, (_, i) => (
+                                                    <StarIcon key={i} className="w-4 h-4 fill-yellow-500 text-yellow-500" />
+                                                ))}
+                                            </CardFooter>
+                                        </Card>
+                                    </MagicCard>
+                                </AnimationContainer>
+                            ))}
+                        </div>
+                        <div className="flex flex-col items-start h-min gap-6">
+                            {REVIEWS.slice(6, 9).map((review, index) => (
+                                <AnimationContainer delay={0.2 * index} key={index}>
+                                    <MagicCard key={index} className="md:p-0">
+                                        <Card className="flex flex-col w-full border-none h-min">
+                                            <CardHeader className="space-y-0">
+                                                <CardTitle className="text-lg font-medium text-muted-foreground">
+                                                    {review.name}
+                                                </CardTitle>
+                                                <CardDescription>
+                                                    {review.username}
+                                                </CardDescription>
+                                            </CardHeader>
+                                            <CardContent className="space-y-4 pb-4">
+                                                <p className="text-muted-foreground">
+                                                    {review.review}
+                                                </p>
+                                            </CardContent>
+                                            <CardFooter className="w-full space-x-1 mt-auto">
+                                                {Array.from({ length: review.rating }, (_, i) => (
+                                                    <StarIcon key={i} className="w-4 h-4 fill-yellow-500 text-yellow-500" />
+                                                ))}
+                                            </CardFooter>
+                                        </Card>
+                                    </MagicCard>
+                                </AnimationContainer>
+                            ))}
+                        </div>
+                    </div>
+                </MaxWidthWrapper>
+
+                {/* CTA Section */}
+                <MaxWidthWrapper className="mt-20 max-w-[100vw] overflow-x-hidden scrollbar-hide">
+                    <AnimationContainer delay={0.1}>
+                        <LampContainer>
+                            <div className="flex flex-col items-center justify-center relative w-full text-center">
+                                <h2 className="bg-gradient-to-b from-neutral-200 to-neutral-400 py-4 bg-clip-text text-center text-4xl md:text-7xl !leading-[1.15] font-medium font-heading tracking-tight text-transparent mt-8">
+                                    Step into the future of returns management
+                                </h2>
+                                <p className="text-muted-foreground mt-6 max-w-md mx-auto">
+                                    Experience the cutting-edge solution that transforms how you handle your returns. Elevate your online presence with our next-gen platform.
+                                </p>
+                                <div className="mt-6">
+                                    <Button asChild>
+                                        <Link href="/demo">
+                                            Get started for free
+                                            <ArrowRightIcon className="w-4 h-4 ml-2" />
+                                        </Link>
+                                    </Button>
+                                </div>
+                            </div>
+                        </LampContainer>
+                    </AnimationContainer>
+                </MaxWidthWrapper>
+
+            </main>
+            <Footer />
         </div>
-      </MaxWidthWrapper>
+    )
+};
 
-      {/* ── Pricing ── */}
-      <MaxWidthWrapper className="py-10">
-        <div id="pricing" className="scroll-mt-24">
-          <AnimationContainer delay={0.1}>
-            <div className="mx-auto flex max-w-xl flex-col items-center py-8 text-center">
-              <MagicBadge title="Simple pricing" />
-              <h2 className="mt-6 text-3xl font-medium leading-[1.1] sm:text-4xl">Choose a plan that works for you</h2>
-              <p className="mt-4 max-w-lg text-lg text-muted-foreground">14 day free trial. Billing secured by Stripe. Cancel anytime.</p>
-            </div>
-          </AnimationContainer>
-          <div className="grid grid-cols-1 gap-6 py-8 md:grid-cols-3">
-            {PLANS.map((plan, i) => (
-              <AnimationContainer delay={0.15 * i} key={plan.name}>
-                <MagicCard className={plan.highlighted ? "h-full !border-fuchsia-500/40" : "h-full"}>
-                  {plan.highlighted && <Badge className="bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white hover:opacity-90 mb-3">Most popular</Badge>}
-                  <p className="text-sm font-semibold text-white">{plan.name}</p>
-                  <p className="mt-2 text-3xl font-bold tabular-nums text-white">{plan.price}<span className="text-sm font-normal text-muted-foreground">{plan.period}</span></p>
-                  <p className="mt-2 text-sm text-muted-foreground">{plan.blurb}</p>
-                  <ul className="mt-5 space-y-2.5">
-                    {plan.features.map((f) => (
-                      <li key={f} className="flex items-center gap-2 text-sm text-zinc-300">
-                        <CheckCircle2 className="size-4 shrink-0 text-violet-400" /> {f}
-                      </li>
-                    ))}
-                  </ul>
-                  <Button
-                    asChild
-                    className={plan.highlighted ? "w-full mt-6 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:opacity-90 text-white" : "w-full mt-6 border-white/15 bg-transparent hover:bg-white/5"}
-                    variant={plan.highlighted ? "default" : "outline"}
-                  >
-                    <Link href={plan.cta === CTA_LABEL ? "/sign-up" : "/contact"}>{plan.cta}</Link>
-                  </Button>
-                </MagicCard>
-              </AnimationContainer>
-            ))}
-          </div>
-        </div>
-      </MaxWidthWrapper>
-
-      {/* ── Testimonials ── */}
-      <MaxWidthWrapper className="py-10">
-        <AnimationContainer delay={0.1}>
-          <div className="mx-auto flex max-w-xl flex-col items-center py-8 text-center">
-            <MagicBadge title="Our customers" />
-            <h2 className="mt-6 text-3xl font-medium leading-[1.1] sm:text-4xl">What our users are saying</h2>
-          </div>
-        </AnimationContainer>
-        <div className="grid grid-cols-1 gap-4 py-8 md:grid-cols-3 md:gap-8">
-          {TESTIMONIALS.map((t, i) => (
-            <AnimationContainer delay={0.1 * i} key={t.name}>
-              <MagicCard className="h-full">
-                <p className="text-sm leading-relaxed text-zinc-300">&quot;{t.quote}&quot;</p>
-                <div className="mt-5 flex items-center gap-3">
-                  <Avatar className="size-9 border border-white/10 bg-white/5">
-                    <AvatarFallback className="bg-transparent text-xs font-semibold text-zinc-300">
-                      {t.name.split(" ").map((n) => n[0]).join("")}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="text-sm font-medium text-white">{t.name}</p>
-                    <p className="text-xs text-muted-foreground">{t.role}, {t.company}</p>
-                  </div>
-                </div>
-                <div className="mt-4 flex gap-0.5">
-                  {Array.from({ length: 5 }, (_, s) => (
-                    <Star key={s} className="size-3.5 fill-yellow-500 text-yellow-500" />
-                  ))}
-                </div>
-              </MagicCard>
-            </AnimationContainer>
-          ))}
-        </div>
-      </MaxWidthWrapper>
-
-      {/* ── FAQ ── */}
-      <MaxWidthWrapper className="py-10">
-        <div id="faq" className="mx-auto max-w-3xl scroll-mt-24">
-          <AnimationContainer delay={0.1}>
-            <h2 className="text-center text-3xl font-medium leading-[1.1] sm:text-4xl">Frequently asked questions</h2>
-          </AnimationContainer>
-          <AnimationContainer delay={0.2}>
-            <Accordion type="single" collapsible className="mt-10">
-              {FAQS.map((item, i) => (
-                <AccordionItem key={item.q} value={`item-${i}`} className="border-white/10">
-                  <AccordionTrigger className="text-left text-base font-medium">{item.q}</AccordionTrigger>
-                  <AccordionContent className="text-muted-foreground">{item.a}</AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
-          </AnimationContainer>
-        </div>
-      </MaxWidthWrapper>
-
-      {/* ── Lamp CTA ── */}
-      <MaxWidthWrapper className="mt-10 max-w-[100vw] overflow-hidden">
-        <AnimationContainer delay={0.1}>
-          <LampContainer>
-            <div className="relative flex w-full flex-col items-center justify-center text-center">
-              <h2 className="mt-8 bg-gradient-to-b from-neutral-100 to-neutral-400 bg-clip-text py-4 text-4xl font-medium leading-[1.15] tracking-tight text-transparent md:text-6xl">
-                Give every customer a returns page they trust
-              </h2>
-              <p className="mx-auto mt-6 max-w-md text-muted-foreground">
-                Branded, automated, and synced with Shopify from day one.
-              </p>
-              <Button asChild size="lg" className="mt-6 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:opacity-90 text-white">
-                <Link href="/sign-up">{CTA_LABEL}<ArrowRight className="ml-1 size-4" /></Link>
-              </Button>
-            </div>
-          </LampContainer>
-        </AnimationContainer>
-      </MaxWidthWrapper>
-
-      <Footer />
-    </div>
-  )
-}
+export default MarketingPage

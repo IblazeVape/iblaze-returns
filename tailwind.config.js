@@ -41,18 +41,30 @@ module.exports = {
       backgroundImage: {
         "gradient-conic": "conic-gradient(var(--conic-position), var(--tw-gradient-stops))",
       },
+      fontFamily: {
+        heading: ["var(--font-aeonik)"],
+        default: ["var(--font-inter)"],
+      },
       keyframes: {
         "accordion-down": { from: { height: "0" }, to: { height: "var(--radix-accordion-content-height)" } },
         "accordion-up": { from: { height: "var(--radix-accordion-content-height)" }, to: { height: "0" } },
         "fade-in": { from: { opacity: "0", transform: "translateY(4px)" }, to: { opacity: "1", transform: "translateY(0)" } },
         "image-glow": {
-          "0%": { opacity: "0" },
-          "10%": { opacity: "0.5" },
+          "0%": { opacity: "0", "animation-timing-function": "cubic-bezier(.74, .25, .76, 1)" },
+          "10%": { opacity: "0.5", "animation-timing-function": "cubic-bezier(.12, .01, .08, .99)" },
           "100%": { opacity: "0.7" },
         },
         "border-beam": { "100%": { "offset-distance": "100%" } },
         "flip": { to: { transform: "rotate(360deg)" } },
-        "spin-slow": { to: { transform: "rotate(90deg)" } },
+        "rotate": { to: { transform: "rotate(90deg)" } },
+        "grid": {
+          "0%": { transform: "translateY(-50%)" },
+          "100%": { transform: "translateY(0)" },
+        },
+        "marquee": {
+          from: { transform: "translateX(0)" },
+          to: { transform: "translateX(calc(-100% - var(--gap)))" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -61,7 +73,9 @@ module.exports = {
         "image-glow": "image-glow 4s ease-out 0.6s forwards",
         "border-beam": "border-beam calc(var(--duration)*1s) infinite linear",
         "flip": "flip 6s infinite steps(2, end)",
-        "spin-slow": "spin-slow 3s linear infinite both",
+        "rotate": "rotate 3s linear infinite both",
+        "grid": "grid 15s linear infinite",
+        "marquee": "marquee var(--duration) linear infinite",
       },
     },
   },

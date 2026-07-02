@@ -23,6 +23,59 @@ body:has(#marketing-root) {
   background: conic-gradient(from 230.29deg at 51.63% 52.16%, rgb(36, 0, 255) 0deg, rgb(0, 135, 255) 67.5deg, rgb(108, 39, 157) 198.75deg, rgb(24, 38, 163) 251.25deg, rgb(54, 103, 196) 301.88deg, rgb(105, 30, 255) 360deg);
 }
 
+/* Marketing pages — Linkify's exact dark theme values (its :root block),
+   scoped to #marketing-root so the dashboard app keeps its light theme.
+   Portalled Radix content (Sheet, Tooltip, NavigationMenu viewport) needs
+   these redeclared inline where used, since portals escape this subtree. */
+#marketing-root {
+  --foreground: 0 0% 98%;
+  --background: 0 0% 3.9%;
+  --card: 0 0% 3.9%;
+  --card-foreground: 0 0% 98%;
+  --popover: 0 0% 3.9%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 0 0% 98%;
+  --primary-foreground: 0 0% 9%;
+  --secondary: 0 0% 14.9%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 0 0% 14.9%;
+  --muted-foreground: 0 0% 63.9%;
+  --accent: 0 0% 14.9%;
+  --accent-foreground: 0 0% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 0 0% 14.9%;
+  --input: 0 0% 14.9%;
+  --ring: 0 0% 83.1%;
+  --radius: 0.5rem;
+  /* Tailwind palette vars consumed by TextHoverEffect's SVG gradient */
+  --indigo-500: #6366f1;
+  --violet-500: #8b5cf6;
+  --purple-500: #a855f7;
+  --fuchsia-500: #d946ef;
+  --rose-500: #f43f5e;
+  font-family: var(--font-inter), "Inter", sans-serif;
+}
+
+#marketing-root ::selection {
+  background-color: rgba(168, 85, 247, 0.2);
+  color: hsl(var(--foreground));
+}
+
+/* Linkify's .gradient hero glow, scoped to avoid collisions */
+#marketing-root .gradient {
+  background: conic-gradient(from 230.29deg at 51.63% 52.16%, rgb(36, 0, 255) 0deg, rgb(0, 135, 255) 67.5deg, rgb(108, 39, 157) 198.75deg, rgb(24, 38, 163) 251.25deg, rgb(54, 103, 196) 301.88deg, rgb(105, 30, 255) 360deg);
+}
+
+/* tailwind-scrollbar-hide equivalent (avoids adding the plugin dependency) */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 /* Custom scrollbar — matches shadcn ScrollArea appearance */
 .styled-scroll::-webkit-scrollbar {
   width: 10px;

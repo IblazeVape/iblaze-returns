@@ -3286,6 +3286,14 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
       return Boolean(item && (item.inTransitQuantity ?? 0) > 0)
     })
     setSubmitting(true)
+    if (DEMO_MODE) {
+      // Simulate the success path without hitting Shopify or redirecting away
+      await new Promise(resolve => setTimeout(resolve, 800))
+      setSubmittedInTransit(hadInTransit)
+      setSubmitted(true)
+      setSubmitting(false)
+      return
+    }
     try {
       const res = await fetch("/api/submit-return", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ orderId: rawOrderId, items }) })
       const result = await res.json()
@@ -4414,7 +4422,14 @@ function DashboardHome({
   )
 }
 
-export default function DashboardClient() {
+// Demo mode: the public /demo page renders this exact component against
+// canned data (/api/demo-orders) with no auth, so the demo is pixel-identical
+// to the production portal. Module-level so nested components (OrderDetail's
+// submitReturn) can see it without threading a prop through every layer.
+let DEMO_MODE = false
+
+export default function DashboardClient({ demo = false }: { demo?: boolean } = {}) {
+  DEMO_MODE = demo
   return (
     <SidebarLayoutProvider>
       <Suspense>
@@ -4458,7 +4473,7 @@ function DashboardClientInner() {
   }, [endCursor])
 
   useEffect(() => {
-    fetch("/api/get-orders", { cache: "no-store" })
+    fetch(DEMO_MODE ? "/api/demo-orders" : "/api/get-orders", { cache: "no-store" })
       .then(r => r.json())
       .then(d => {
         if (d.error) { setError(d.error); return }
