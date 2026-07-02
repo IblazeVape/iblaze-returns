@@ -47,14 +47,16 @@ const MobileNavbar = () => {
         <div className="flex lg:hidden items-center justify-end">
             <Sheet open={isOpen} onOpenChange={setIsOpen}>
                 <SheetTrigger asChild>
+                    {/* "size-5" (not w-5 h-5): this app's button styles shrink any
+                        svg without a size- class down to size-4 */}
                     <Button size="icon" variant="ghost">
-                        <Menu className="w-5 h-5" />
+                        <Menu className="size-5" />
                     </Button>
                 </SheetTrigger>
                 <SheetContent className="w-screen" style={MARKETING_DARK_VARS}>
                     <SheetClose asChild className="absolute top-3 right-5 bg-background z-20 flex items-center justify-center">
                         <Button size="icon" variant="ghost" className="text-neutral-600">
-                            <X className="w-5 h-5" />
+                            <X className="size-5" />
                         </Button>
                     </SheetClose>
                     <div className="flex flex-col items-start w-full py-2 mt-10">
