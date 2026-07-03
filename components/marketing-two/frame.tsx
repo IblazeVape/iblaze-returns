@@ -49,23 +49,29 @@ export function SectionHeading({
   )
 }
 
-// Flow-style primary button: dark pill with layered ring shadow
+// Animated primary button: a ring wrapper clips an oversized, slowly rotating
+// conic-gradient layer behind the label, producing a continuously sweeping
+// sheen around/inside the dark button (the Flow-style "animated button").
 export function DarkButton({
   children,
   className,
   ...props
 }: React.ComponentProps<"button">) {
   return (
-    <button
-      className={cn(
-        "inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-zinc-900 px-5 text-sm font-medium text-white transition-all",
-        "shadow-[0_0_0_1px_rgba(0,0,0,0.9),0_0_0_3px_rgba(0,0,0,0.15),inset_0_1px_0_rgba(255,255,255,0.15)]",
-        "hover:bg-zinc-800 active:scale-[0.98]",
-        className,
-      )}
-      {...props}
-    >
-      {children}
-    </button>
+    <span className={cn("relative isolate inline-flex w-fit overflow-hidden rounded-[10px] ring-2 ring-zinc-900/60", className?.includes("w-full") && "w-full")}>
+      <span
+        aria-hidden
+        className="absolute -inset-[120px] -z-10 animate-[spin_4s_linear_infinite] bg-[conic-gradient(from_90deg,#18181b_0%,#18181b_50%,#3f3f46_60%,#71717a_65%,#3f3f46_70%,#18181b_80%)]"
+      />
+      <button
+        className={cn(
+          "inline-flex h-10 items-center justify-center gap-2 rounded-[10px] px-6 text-sm font-medium text-white transition-transform active:scale-[0.98]",
+          className,
+        )}
+        {...props}
+      >
+        {children}
+      </button>
+    </span>
   )
 }

@@ -2,7 +2,8 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { ArrowUpRight, Menu, Package2, X } from "lucide-react"
+import { ArrowUpRight, Menu, MoonStar, Package2, X } from "lucide-react"
+import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { DarkButton } from "./frame"
 
@@ -36,6 +37,14 @@ export function NavTwo() {
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
+          <button
+            type="button"
+            aria-label="Toggle theme"
+            onClick={() => toast("Dark mode is coming soon")}
+            className="flex size-10 items-center justify-center rounded-lg border bg-muted/40 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <MoonStar className="size-4" />
+          </button>
           <Link
             href="/auth/sign-in"
             className="inline-flex h-10 items-center rounded-lg border bg-muted/40 px-4 text-sm font-medium transition-colors hover:bg-muted"
