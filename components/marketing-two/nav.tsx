@@ -67,7 +67,8 @@ export function NavTwo() {
         </button>
       </div>
 
-      {/* Backdrop blurs the page content behind the dropdown */}
+      {/* Full-screen dim+blur behind everything below the header — page content
+          stays in place (not pushed down), just shows through blurred */}
       <AnimatePresence>
         {open && (
           <motion.div
@@ -77,19 +78,21 @@ export function NavTwo() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={() => setOpen(false)}
-            className="fixed inset-0 top-16 z-40 bg-background/60 backdrop-blur-sm md:hidden"
+            className="fixed inset-x-0 bottom-0 top-16 z-40 bg-background/30 backdrop-blur-md md:hidden"
           />
         )}
       </AnimatePresence>
 
+      {/* Dropdown panel — absolutely positioned over the page (doesn't shift
+          layout), itself translucent + blurred so content behind reads through */}
       <AnimatePresence>
         {open && (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.25, ease: "easeInOut" }}
-            className="relative z-50 overflow-hidden border-t bg-background md:hidden"
+            className="absolute inset-x-0 top-full z-50 max-h-[calc(100vh-4rem)] overflow-y-auto border-b bg-background/70 backdrop-blur-xl md:hidden"
           >
             <nav className="flex flex-col px-4 pt-2">
               {LINKS.map((l) => (

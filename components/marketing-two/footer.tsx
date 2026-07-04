@@ -22,8 +22,9 @@ const HELP = [
 export function FooterTwo() {
   return (
     <footer className="border-t">
-      <div className="grid grid-cols-1 gap-10 px-5 py-14 md:grid-cols-[1.2fr_1fr_1fr_1.3fr] lg:px-0">
-        <div>
+      {/* Table-style grid: columns share borders instead of gaps */}
+      <div className="grid grid-cols-1 divide-y border-x border-t md:grid-cols-[1.2fr_1fr_1fr_1.3fr] md:divide-x md:divide-y-0">
+        <div className="p-6 lg:p-8">
           <Link href="/marketing-two" className="flex items-center gap-2">
             <span className="flex size-8 items-center justify-center rounded-full bg-zinc-900 text-white">
               <Package2 className="size-4" />
@@ -42,7 +43,7 @@ export function FooterTwo() {
           </div>
         </div>
 
-        <div>
+        <div className="p-6 lg:p-8">
           <h3 className="font-semibold">Company</h3>
           <ul className="mt-4 space-y-2.5 text-sm text-muted-foreground">
             {COMPANY.map((l) => (
@@ -53,7 +54,7 @@ export function FooterTwo() {
           </ul>
         </div>
 
-        <div>
+        <div className="p-6 lg:p-8">
           <h3 className="font-semibold">Help</h3>
           <ul className="mt-4 space-y-2.5 text-sm text-muted-foreground">
             {HELP.map((l) => (
@@ -64,7 +65,7 @@ export function FooterTwo() {
           </ul>
         </div>
 
-        <div>
+        <div className="p-6 lg:p-8">
           <h3 className="font-semibold">Subscribe to newsletter</h3>
           <form
             onSubmit={(e) => {

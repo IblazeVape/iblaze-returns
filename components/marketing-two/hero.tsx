@@ -5,6 +5,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { AnimatePresence, motion, useScroll, useMotionValueEvent } from "framer-motion"
 import { ArrowUpRight, CheckCircle2, Loader2, Package2 } from "lucide-react"
+import { BorderBeam } from "@/components/marketing/border-beam"
 import { DarkButton } from "./frame"
 import { HoverGrid } from "./hover-grid"
 
@@ -131,14 +132,16 @@ export function HeroTwo() {
           </motion.div>
         </div>
 
-        {/* Portal screenshot — edge-to-edge, touches the frame border rails */}
+        {/* Portal screenshot — kept off the frame rails, same "snake border" ring +
+            BorderBeam treatment as the hero on /marketing */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.55, delay: 0.25 }}
-          className="pointer-events-auto relative z-10 mt-16 w-full pb-16"
+          className="pointer-events-auto relative z-10 mt-16 w-full max-w-5xl px-4 pb-16 sm:px-6"
         >
-          <div className="relative rounded-2xl border bg-muted/40 p-2 shadow-[0_24px_60px_-24px_rgba(0,0,0,0.25)]">
+          <div className="relative rounded-xl p-2 ring-1 ring-inset ring-foreground/20 lg:rounded-2xl">
+            <BorderBeam size={250} duration={12} delay={9} />
             <Image
               src="/assets/dashboard.png"
               alt="Reflow returns portal"
@@ -146,7 +149,7 @@ export function HeroTwo() {
               height={900}
               quality={100}
               priority
-              className="rounded-xl border bg-background"
+              className="rounded-md bg-background lg:rounded-xl"
             />
             <ScrollToast progress={progress} />
           </div>

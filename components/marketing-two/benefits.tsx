@@ -117,44 +117,47 @@ export function BenefitsTwo() {
         </a>
       </div>
 
-      <div className="mt-16 grid grid-cols-1 gap-10 px-5 lg:grid-cols-2 lg:px-0">
-        {/* Scroll-linked text blocks */}
-        <div>
-          {BLOCKS.map((b, i) => (
-            <div
-              key={b.title}
-              ref={(el) => { refs.current[i] = el }}
-              className={cn(
-                "flex min-h-[55vh] flex-col justify-center transition-opacity duration-500 lg:min-h-[70vh]",
-                active === i ? "opacity-100" : "opacity-25",
-              )}
-            >
-              <h3 className="flex items-center gap-3 text-2xl font-semibold md:text-3xl">
-                <b.icon className="size-6 shrink-0" />
-                {b.title}
-              </h3>
-              <p className="mt-4 max-w-md text-muted-foreground">{b.body}</p>
+      {/* Table-style grid: text column and panel column share one border, no gap */}
+      <div className="mt-16 border-y">
+        <div className="grid grid-cols-1 divide-y border-x lg:grid-cols-2 lg:divide-x lg:divide-y-0">
+          {/* Scroll-linked text blocks */}
+          <div className="px-5 lg:px-8">
+            {BLOCKS.map((b, i) => (
+              <div
+                key={b.title}
+                ref={(el) => { refs.current[i] = el }}
+                className={cn(
+                  "flex min-h-[55vh] flex-col justify-center transition-opacity duration-500 lg:min-h-[70vh]",
+                  active === i ? "opacity-100" : "opacity-25",
+                )}
+              >
+                <h3 className="flex items-center gap-3 text-2xl font-semibold md:text-3xl">
+                  <b.icon className="size-6 shrink-0" />
+                  {b.title}
+                </h3>
+                <p className="mt-4 max-w-md text-muted-foreground">{b.body}</p>
 
-              {/* Mobile: panel inline under each block */}
-              <div className="mt-8 flex justify-center lg:hidden">
-                <PanelFrame>{b.panel}</PanelFrame>
+                {/* Mobile: panel inline under each block */}
+                <div className="mt-8 flex justify-center lg:hidden">
+                  <PanelFrame>{b.panel}</PanelFrame>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
 
-        {/* Sticky swapping panel (desktop) */}
-        <div className="hidden lg:block">
-          <div className="sticky top-24 flex h-[70vh] items-center justify-center">
-            <motion.div
-              key={active}
-              initial={{ opacity: 0, y: 16, filter: "blur(6px)" }}
-              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-              transition={{ duration: 0.4 }}
-              className="flex w-full justify-center"
-            >
-              <PanelFrame>{BLOCKS[active].panel}</PanelFrame>
-            </motion.div>
+          {/* Sticky swapping panel (desktop) */}
+          <div className="hidden bg-muted/20 lg:block">
+            <div className="sticky top-24 flex h-[70vh] items-center justify-center">
+              <motion.div
+                key={active}
+                initial={{ opacity: 0, y: 16, filter: "blur(6px)" }}
+                animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                transition={{ duration: 0.4 }}
+                className="flex w-full justify-center"
+              >
+                <PanelFrame>{BLOCKS[active].panel}</PanelFrame>
+              </motion.div>
+            </div>
           </div>
         </div>
       </div>
@@ -165,7 +168,7 @@ export function BenefitsTwo() {
 // Panel wrapper with the diamond corner ticks from the reference layout
 function PanelFrame({ children }: { children: React.ReactNode }) {
   return (
-    <div className="relative flex w-full max-w-xl items-center justify-center rounded-2xl border bg-muted/30 px-8 py-14">
+    <div className="relative flex w-full max-w-xl items-center justify-center border bg-background px-8 py-14">
       {["left-4 top-4", "right-4 top-4", "left-4 bottom-4", "right-4 bottom-4"].map((pos) => (
         <span key={pos} aria-hidden className={cn("absolute size-1.5 rotate-45 bg-foreground/70", pos)} />
       ))}

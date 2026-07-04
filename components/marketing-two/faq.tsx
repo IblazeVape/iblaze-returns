@@ -42,24 +42,27 @@ export function FaqTwo() {
         subtitle="Here are some quick answers to help you understand how Reflow powers your returns."
       />
 
-      <div className="mt-14 grid grid-cols-1 items-center gap-10 px-5 lg:grid-cols-2 lg:px-0">
-        <Accordion type="single" collapsible defaultValue="item-0">
-          {FAQS.map((item, i) => (
-            <AccordionItem key={item.q} value={`item-${i}`}>
-              <AccordionTrigger className="text-left text-base font-semibold">{item.q}</AccordionTrigger>
-              <AccordionContent className="text-muted-foreground">{item.a}</AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
+      {/* Table-style grid: accordion and preview share one border, touching edge-to-edge */}
+      <div className="mt-14 border-y">
+        <div className="grid grid-cols-1 divide-y border-x lg:grid-cols-2 lg:divide-x lg:divide-y-0">
+          <div className="px-5 py-2 lg:px-8">
+            <Accordion type="single" collapsible defaultValue="item-0">
+              {FAQS.map((item, i) => (
+                <AccordionItem key={item.q} value={`item-${i}`}>
+                  <AccordionTrigger className="text-left text-base font-semibold">{item.q}</AccordionTrigger>
+                  <AccordionContent className="text-muted-foreground">{item.a}</AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </div>
 
-        <div className="hidden justify-center lg:flex">
-          <div className="rounded-2xl border bg-muted/40 p-2 shadow-sm">
+          <div className="hidden items-center justify-center bg-muted/20 p-8 lg:flex">
             <Image
               src="/assets/dashboard.png"
               alt="Reflow returns portal"
               width={1100}
               height={500}
-              className="rounded-xl border bg-background"
+              className="rounded-lg border bg-background"
             />
           </div>
         </div>
