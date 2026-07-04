@@ -45,7 +45,7 @@ export function PricingTwo() {
   const price = (m: number) => (period === "monthly" ? m : Math.round(m * 12 * 0.8 / 12))
 
   return (
-    <section id="pricing" className="scroll-mt-16 border-t py-20">
+    <section id="pricing" className="scroll-mt-16 border-t pt-20">
       <SectionHeading
         eyebrow="Pricing"
         title="Pricing Details"

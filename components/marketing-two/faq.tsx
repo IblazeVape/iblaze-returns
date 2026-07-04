@@ -35,7 +35,7 @@ const FAQS = [
 
 export function FaqTwo() {
   return (
-    <section id="faq" className="scroll-mt-16 border-t py-20">
+    <section id="faq" className="scroll-mt-16 border-t pt-20">
       <SectionHeading
         eyebrow="FAQ"
         title="Frequently asked questions"

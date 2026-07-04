@@ -26,7 +26,7 @@ function StatChip({ icon: Icon, value, label }: { icon: React.ElementType; value
 
 export function FeaturesTwo() {
   return (
-    <section id="features" className="scroll-mt-16 py-20">
+    <section id="features" className="scroll-mt-16 pt-20">
       <SectionHeading
         eyebrow="Features"
         title="Powerful Features, Simple to Use"

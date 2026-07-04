@@ -102,7 +102,7 @@ export function BenefitsTwo() {
   }, [])
 
   return (
-    <section id="benefits" className="scroll-mt-16 border-t py-20">
+    <section id="benefits" className="scroll-mt-16 border-t pt-20">
       <SectionHeading
         eyebrow="Benefits"
         title="How Reflow Helps You"
