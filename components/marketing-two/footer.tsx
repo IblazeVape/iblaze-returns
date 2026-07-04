@@ -22,7 +22,7 @@ const HELP = [
 export function FooterTwo() {
   return (
     <footer className="border-t">
-      <div className="mx-auto grid max-w-6xl grid-cols-1 gap-10 px-4 py-14 sm:px-6 md:grid-cols-[1.2fr_1fr_1fr_1.3fr]">
+      <div className="grid grid-cols-1 gap-10 px-5 py-14 md:grid-cols-[1.2fr_1fr_1fr_1.3fr] lg:px-0">
         <div>
           <Link href="/marketing-two" className="flex items-center gap-2">
             <span className="flex size-8 items-center justify-center rounded-full bg-zinc-900 text-white">

@@ -86,54 +86,57 @@ export function HeroTwo() {
       {/* Interactive cell grid backdrop (lights up under the cursor) */}
       <HoverGrid />
 
-      <div className="pointer-events-none relative z-10 flex flex-col items-center px-4 pt-24 text-center sm:px-6">
-        <motion.span
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="rounded-full border bg-background px-3.5 py-1 text-xs text-muted-foreground shadow-sm"
-        >
-          Trusted by 5,000+ growing Shopify stores
-        </motion.span>
+      <div className="pointer-events-none relative z-10 flex flex-col items-center pt-24 text-center">
+        {/* Intro text stays padded/centered — only the screenshot below goes edge-to-edge */}
+        <div className="flex flex-col items-center px-4 sm:px-6">
+          <motion.span
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="rounded-full border bg-background px-3.5 py-1 text-xs text-muted-foreground shadow-sm"
+          >
+            Trusted by 5,000+ growing Shopify stores
+          </motion.span>
 
-        <motion.h1
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, delay: 0.05 }}
-          className="z-10 mt-6 text-center text-3xl font-semibold md:text-4xl lg:text-5xl lg:leading-[1.29]"
-        >
-          Supercharge Your Store&apos;s <RotatingWord />
-        </motion.h1>
+          <motion.h1
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, delay: 0.05 }}
+            className="z-10 mt-6 text-center text-3xl font-semibold md:text-4xl lg:text-5xl lg:leading-[1.29]"
+          >
+            Supercharge Your Store&apos;s <RotatingWord />
+          </motion.h1>
 
-        <motion.p
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, delay: 0.12 }}
-          className="mt-5 max-w-xl text-base text-muted-foreground md:text-lg"
-        >
-          Handle every return in one clean branded portal - no code, no setup,
-          just a self-serve experience your customers actually enjoy.
-        </motion.p>
+          <motion.p
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, delay: 0.12 }}
+            className="mt-5 max-w-xl text-base text-muted-foreground md:text-lg"
+          >
+            Handle every return in one clean branded portal - no code, no setup,
+            just a self-serve experience your customers actually enjoy.
+          </motion.p>
 
-        <motion.div
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, delay: 0.18 }}
-          className="pointer-events-auto mt-8"
-        >
-          <Link href="/demo">
-            <DarkButton>
-              Start returning now <ArrowUpRight className="size-4" />
-            </DarkButton>
-          </Link>
-        </motion.div>
+          <motion.div
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, delay: 0.18 }}
+            className="pointer-events-auto mt-8"
+          >
+            <Link href="/demo">
+              <DarkButton>
+                Start returning now <ArrowUpRight className="size-4" />
+              </DarkButton>
+            </Link>
+          </motion.div>
+        </div>
 
-        {/* Portal screenshot in a framed card with a scroll-linked status toast */}
+        {/* Portal screenshot — edge-to-edge, touches the frame border rails */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.55, delay: 0.25 }}
-          className="pointer-events-auto relative z-10 mt-16 w-full max-w-5xl pb-16"
+          className="pointer-events-auto relative z-10 mt-16 w-full pb-16"
         >
           <div className="relative rounded-2xl border bg-muted/40 p-2 shadow-[0_24px_60px_-24px_rgba(0,0,0,0.25)]">
             <Image

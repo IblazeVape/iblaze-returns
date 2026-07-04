@@ -42,7 +42,7 @@ export function FaqTwo() {
         subtitle="Here are some quick answers to help you understand how Reflow powers your returns."
       />
 
-      <div className="mx-auto mt-14 grid max-w-6xl grid-cols-1 items-center gap-10 px-4 sm:px-6 lg:grid-cols-2">
+      <div className="mt-14 grid grid-cols-1 items-center gap-10 px-5 lg:grid-cols-2 lg:px-0">
         <Accordion type="single" collapsible defaultValue="item-0">
           {FAQS.map((item, i) => (
             <AccordionItem key={item.q} value={`item-${i}`}>

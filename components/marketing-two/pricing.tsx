@@ -64,7 +64,7 @@ export function PricingTwo() {
         </Tabs>
       </div>
 
-      <div className="mx-auto mt-12 grid max-w-6xl grid-cols-1 items-start gap-6 px-4 sm:px-6 md:grid-cols-3">
+      <div className="mt-12 grid grid-cols-1 items-start gap-6 px-5 md:grid-cols-3 md:px-0">
         {PLANS.map((plan) => (
           <div
             key={plan.name}

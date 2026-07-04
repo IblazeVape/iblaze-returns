@@ -117,7 +117,7 @@ export function BenefitsTwo() {
         </a>
       </div>
 
-      <div className="mx-auto mt-16 grid max-w-6xl grid-cols-1 gap-10 px-4 sm:px-6 lg:grid-cols-2">
+      <div className="mt-16 grid grid-cols-1 gap-10 px-5 lg:grid-cols-2 lg:px-0">
         {/* Scroll-linked text blocks */}
         <div>
           {BLOCKS.map((b, i) => (

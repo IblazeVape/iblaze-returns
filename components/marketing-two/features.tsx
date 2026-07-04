@@ -33,8 +33,8 @@ export function FeaturesTwo() {
         subtitle="Everything you need to manage returns, track refunds, and stay focused - without the clutter."
       />
 
-      {/* Widget row */}
-      <div className="mx-auto mt-14 grid max-w-6xl grid-cols-1 gap-5 px-4 sm:px-6 md:grid-cols-3">
+      {/* Widget row — edge-to-edge: no max-width/padding, cards touch the frame border */}
+      <div className="mt-14 grid grid-cols-1 gap-5 md:grid-cols-3">
         <motion.div {...fadeUp} className="rounded-2xl border bg-muted/30 p-6">
           <div className="rounded-xl border bg-background p-4 shadow-sm">
             <div className="flex items-center justify-between">
@@ -84,8 +84,8 @@ export function FeaturesTwo() {
         </motion.div>
       </div>
 
-      {/* Titled feature cards */}
-      <div className="mx-auto mt-5 grid max-w-6xl grid-cols-1 gap-5 px-4 sm:px-6 md:grid-cols-2">
+      {/* Titled feature cards — edge-to-edge */}
+      <div className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-2">
         <motion.div {...fadeUp} className="rounded-2xl border bg-muted/30 p-6">
           <div className="space-y-2">
             {[
