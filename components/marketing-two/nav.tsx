@@ -2,9 +2,9 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { ArrowUpRight, Menu, MoonStar, Package2, X } from "lucide-react"
+import { AnimatePresence, motion } from "framer-motion"
+import { ArrowUpRight, ChevronDown, MoonStar, Package2 } from "lucide-react"
 import { toast } from "sonner"
-import { cn } from "@/lib/utils"
 import { DarkButton } from "./frame"
 
 const LINKS = [
@@ -58,33 +58,64 @@ export function NavTwo() {
 
         <button
           type="button"
-          aria-label="Menu"
+          aria-label="Toggle Menu"
+          aria-expanded={open}
           onClick={() => setOpen((o) => !o)}
-          className="flex size-9 items-center justify-center rounded-md border md:hidden"
+          className="group flex size-9 items-center justify-center rounded-md border transition-colors hover:bg-muted md:hidden"
         >
-          {open ? <X className="size-5" /> : <Menu className="size-5" />}
+          <ChevronDown className="size-5 transition-transform duration-300 group-aria-expanded:rotate-180" />
         </button>
       </div>
 
-      <div className={cn("border-t bg-background px-4 pb-4 md:hidden", open ? "block" : "hidden")}>
-        <nav className="flex flex-col divide-y">
-          {LINKS.map((l) => (
-            <a key={l.title} href={l.href} onClick={() => setOpen(false)} className="py-3 text-sm text-muted-foreground">
-              {l.title}
-            </a>
-          ))}
-        </nav>
-        <div className="mt-3 flex items-center gap-2">
-          <Link href="/auth/sign-in" className="inline-flex h-10 flex-1 items-center justify-center rounded-lg border text-sm font-medium">
-            Login
-          </Link>
-          <Link href="/demo" className="flex-1">
-            <DarkButton className="w-full">
-              Try demo <ArrowUpRight className="size-4" />
-            </DarkButton>
-          </Link>
-        </div>
-      </div>
+      {/* Backdrop blurs the page content behind the dropdown */}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            aria-hidden
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={() => setOpen(false)}
+            className="fixed inset-0 top-16 z-40 bg-background/60 backdrop-blur-sm md:hidden"
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.25, ease: "easeInOut" }}
+            className="relative z-50 overflow-hidden border-t bg-background md:hidden"
+          >
+            <nav className="flex flex-col px-4 pt-2">
+              {LINKS.map((l) => (
+                <a
+                  key={l.title}
+                  href={l.href}
+                  onClick={() => setOpen(false)}
+                  className="py-3 text-base font-medium text-foreground transition-colors hover:text-muted-foreground"
+                >
+                  {l.title}
+                </a>
+              ))}
+            </nav>
+            <div className="flex items-center gap-2 px-4 pb-4 pt-2">
+              <Link href="/auth/sign-in" className="inline-flex h-10 flex-1 items-center justify-center rounded-lg border text-sm font-medium">
+                Login
+              </Link>
+              <Link href="/demo" className="flex-1">
+                <DarkButton className="w-full">
+                  Try demo <ArrowUpRight className="size-4" />
+                </DarkButton>
+              </Link>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </header>
   )
 }
