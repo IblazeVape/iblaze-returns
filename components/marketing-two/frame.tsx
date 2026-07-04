@@ -6,9 +6,13 @@ import { cn } from "@/lib/utils"
 
 export function PageFrame({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex flex-col bg-[repeating-linear-gradient(45deg,color-mix(in_oklab,hsl(var(--border))_40%,transparent)_0,color-mix(in_oklab,hsl(var(--border))_40%,transparent)_1px,transparent_0,transparent_50%)] bg-[size:12px_12px] bg-fixed">
+    // The margin outside the framed canvas needs its own tinted fill —
+    // otherwise the diagonal stripe pattern and the border-x rails blend
+    // into the same near-white background and the "edge to edge" framing
+    // reads as nothing at all.
+    <div className="flex flex-col bg-zinc-100 bg-[repeating-linear-gradient(45deg,hsl(var(--border))_0,hsl(var(--border))_1px,transparent_0,transparent_50%)] bg-[size:12px_12px] bg-fixed">
       <div className="mx-auto h-full w-full max-w-[84rem] px-4 sm:px-6 lg:px-8">
-        <div className="bg-background h-full w-full max-w-7xl border-x mx-auto">
+        <div className="bg-background h-full w-full max-w-7xl border-x border-zinc-300 mx-auto shadow-[0_0_60px_-15px_rgba(0,0,0,0.15)]">
           {children}
         </div>
       </div>
