@@ -3,9 +3,9 @@
 import { useState } from "react"
 import Link from "next/link"
 import { AnimatePresence, motion } from "framer-motion"
-import { ArrowUpRight, ChevronDown, MoonStar, Package2 } from "lucide-react"
-import { toast } from "sonner"
+import { ArrowUpRight, ChevronDown, MoonStar, Package2, SunMedium } from "lucide-react"
 import { DarkButton } from "./frame"
+import { useMarketingTwoTheme } from "./theme-provider"
 
 const LINKS = [
   { title: "Features", href: "#features" },
@@ -17,6 +17,7 @@ const LINKS = [
 
 export function NavTwo() {
   const [open, setOpen] = useState(false)
+  const { dark, toggle } = useMarketingTwoTheme()
 
   return (
     <header className="sticky top-0 z-50 border-b bg-background/90 backdrop-blur-md">
@@ -36,18 +37,21 @@ export function NavTwo() {
           ))}
         </nav>
 
+        {/* All three controls share the same ring-2 spacer (transparent on the
+            plain buttons) so they occupy an identical 44px box as DarkButton's
+            visible ring — otherwise DarkButton's ring made it look larger. */}
         <div className="hidden items-center gap-3 md:flex">
           <button
             type="button"
             aria-label="Toggle theme"
-            onClick={() => toast("Dark mode is coming soon")}
-            className="flex size-10 items-center justify-center rounded-lg border bg-muted/40 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            onClick={toggle}
+            className="flex size-10 items-center justify-center rounded-lg border bg-muted/40 text-muted-foreground ring-2 ring-transparent transition-colors hover:bg-muted hover:text-foreground"
           >
-            <MoonStar className="size-4" />
+            {dark ? <SunMedium className="size-4" /> : <MoonStar className="size-4" />}
           </button>
           <Link
             href="/auth/sign-in"
-            className="inline-flex h-10 items-center rounded-lg border bg-muted/40 px-4 text-sm font-medium transition-colors hover:bg-muted"
+            className="inline-flex h-10 items-center rounded-lg border bg-muted/40 px-4 text-sm font-medium ring-2 ring-transparent transition-colors hover:bg-muted"
           >
             Login
           </Link>
@@ -107,6 +111,14 @@ export function NavTwo() {
               ))}
             </nav>
             <div className="flex items-center gap-2 px-4 pb-4 pt-2">
+              <button
+                type="button"
+                aria-label="Toggle theme"
+                onClick={toggle}
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border text-muted-foreground ring-2 ring-transparent transition-colors hover:bg-muted hover:text-foreground"
+              >
+                {dark ? <SunMedium className="size-4" /> : <MoonStar className="size-4" />}
+              </button>
               <Link href="/auth/sign-in" className="inline-flex h-10 flex-1 items-center justify-center rounded-lg border text-sm font-medium">
                 Login
               </Link>

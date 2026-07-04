@@ -4452,7 +4452,7 @@ function DashboardClientInner() {
   const [view, setView]                   = useState<"grid" | "list">("grid")
   const [search, setSearch]               = useState("")
   const [statusFilter, setStatusFilter]   = useState<string[]>([])
-  const [activeSection, setActiveSection] = useState("#home")
+  const [activeSection, setActiveSection] = useState("#orders")
   const [statusSheetOpen, setStatusSheetOpen] = useState(false)
   const sentinelRef = React.useRef<HTMLDivElement | null>(null)
   const ordersScrollRef = React.useRef<HTMLDivElement | null>(null)

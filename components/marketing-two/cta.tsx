@@ -8,7 +8,7 @@ export function CtaTwo() {
   const [email, setEmail] = useState("")
 
   return (
-    <section id="cta" className="relative px-4 pb-24 pt-10 sm:px-6">
+    <section id="cta" className="relative px-4 pb-14 pt-10 sm:px-6">
       {/* dotted halo behind the panel */}
       <div
         aria-hidden

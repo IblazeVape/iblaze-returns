@@ -1,23 +1,14 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import Image from "next/image"
 import Link from "next/link"
-import { AnimatePresence, motion, useScroll, useMotionValueEvent } from "framer-motion"
-import { ArrowUpRight, CheckCircle2, Loader2, Package2 } from "lucide-react"
+import { AnimatePresence, motion } from "framer-motion"
+import { ArrowUpRight, MousePointerClick } from "lucide-react"
 import { BorderBeam } from "@/components/marketing/border-beam"
 import { DarkButton } from "./frame"
 import { HoverGrid } from "./hover-grid"
 
 const WORDS = ["Returns", "Refunds", "Exchanges"]
-
-// Toast sequence is scroll-linked (like the reference): the first toast shows
-// at the top of the page and later ones replace it as you scroll the hero.
-const TOASTS = [
-  { text: "Welcome to your portal", spinner: true },
-  { text: "Return approved", spinner: false },
-  { text: "Refund issued", spinner: false },
-]
 
 function RotatingWord() {
   const [i, setI] = useState(0)
@@ -44,51 +35,56 @@ function RotatingWord() {
   )
 }
 
-function ScrollToast({ progress }: { progress: number }) {
-  // <0.3 → first toast; 0.3–0.55 → second; >0.55 → third
-  const idx = progress < 0.3 ? 0 : progress < 0.55 ? 1 : 2
-  const toast = TOASTS[idx]
+// The hero embeds the actual live portal (running in demo mode) via iframe,
+// rather than a static screenshot. An iframe is used deliberately: the real
+// DashboardClient's sidebar layout assumes full-viewport height through
+// global [data-slot="sidebar-inset"] CSS, which would fight the page's own
+// layout if the component were rendered inline here. The iframe gives it a
+// fully isolated document/scroll context, and it's genuinely the same app —
+// clickable, with its own real load-in animation replaying each time the
+// hero scrolls into view and the frame (re)mounts.
+function LiveDemoFrame() {
+  const wrapRef = useRef<HTMLDivElement>(null)
+  const [loaded, setLoaded] = useState(false)
+
+  useEffect(() => {
+    const el = wrapRef.current
+    if (!el) return
+    const obs = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { setLoaded(true); obs.disconnect() } },
+      { rootMargin: "200px" },
+    )
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [])
 
   return (
-    <div className="pointer-events-none absolute inset-x-0 -bottom-5 z-20 flex justify-center">
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={toast.text}
-          initial={{ opacity: 0, y: 14, scale: 0.96 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -10, scale: 0.96 }}
-          transition={{ duration: 0.35, ease: "easeOut" }}
-          className="flex items-center gap-3 rounded-full bg-zinc-900 py-2.5 pl-3 pr-4 text-sm text-white shadow-xl"
-        >
-          <span className="flex size-6 items-center justify-center rounded-full bg-zinc-700">
-            <Package2 className="size-3.5" />
-          </span>
-          {toast.text}
-          {toast.spinner
-            ? <Loader2 className="size-4 animate-spin text-zinc-400" />
-            : <CheckCircle2 className="size-4 text-emerald-400" />}
-        </motion.div>
-      </AnimatePresence>
+    <div ref={wrapRef} className="relative h-[520px] overflow-hidden rounded-md bg-background sm:h-[600px] lg:h-[680px] lg:rounded-xl">
+      {loaded
+        ? (
+            <iframe
+              src="/demo"
+              title="Reflow returns portal — live demo"
+              loading="lazy"
+              className="size-full border-0"
+            />
+          )
+        : <div className="size-full animate-pulse bg-muted/40" />}
+      <div className="pointer-events-none absolute left-3 top-3 z-10 flex items-center gap-1.5 rounded-full bg-zinc-900/90 px-3 py-1.5 text-xs font-medium text-white shadow-lg backdrop-blur-sm">
+        <MousePointerClick className="size-3.5" /> Live demo - try it
+      </div>
     </div>
   )
 }
 
 export function HeroTwo() {
-  const sectionRef = useRef<HTMLElement>(null)
-  const [progress, setProgress] = useState(0)
-  const { scrollYProgress } = useScroll({
-    target: sectionRef,
-    offset: ["start start", "end start"],
-  })
-  useMotionValueEvent(scrollYProgress, "change", (v) => setProgress(v))
-
   return (
-    <section ref={sectionRef} id="home" className="relative">
+    <section id="home" className="relative">
       {/* Interactive cell grid backdrop (lights up under the cursor) */}
       <HoverGrid />
 
       <div className="pointer-events-none relative z-10 flex flex-col items-center pt-24 text-center">
-        {/* Intro text stays padded/centered — only the screenshot below goes edge-to-edge */}
+        {/* Intro text stays padded/centered — only the frame below goes edge-to-edge */}
         <div className="flex flex-col items-center px-4 sm:px-6">
           <motion.span
             initial={{ opacity: 0, y: 10 }}
@@ -132,7 +128,7 @@ export function HeroTwo() {
           </motion.div>
         </div>
 
-        {/* Portal screenshot — kept off the frame rails, same "snake border" ring +
+        {/* Live portal — kept off the frame rails, same "snake border" ring +
             BorderBeam treatment as the hero on /marketing */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -142,16 +138,7 @@ export function HeroTwo() {
         >
           <div className="relative rounded-xl p-2 ring-1 ring-inset ring-foreground/20 lg:rounded-2xl">
             <BorderBeam size={250} duration={12} delay={9} />
-            <Image
-              src="/assets/dashboard.png"
-              alt="Reflow returns portal"
-              width={2000}
-              height={900}
-              quality={100}
-              priority
-              className="rounded-md bg-background lg:rounded-xl"
-            />
-            <ScrollToast progress={progress} />
+            <LiveDemoFrame />
           </div>
         </motion.div>
       </div>

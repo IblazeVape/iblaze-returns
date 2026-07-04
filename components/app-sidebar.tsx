@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ShoppingBag, FileText, Newspaper, MessageCircle, ExternalLink, LayoutDashboard } from "lucide-react"
+import { ShoppingBag, FileText, Newspaper, MessageCircle, ExternalLink } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
@@ -13,7 +13,6 @@ import {
 } from "@/components/ui/sidebar"
 
 const navMain = [
-  { title: "Dashboard", url: "#home", icon: LayoutDashboard },
   { title: "My Orders", url: "#orders", icon: ShoppingBag },
 ]
 

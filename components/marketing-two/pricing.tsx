@@ -7,6 +7,9 @@ import { cn } from "@/lib/utils"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DarkButton, SectionHeading } from "./frame"
 
+// Approvals/declines always happen in Shopify — Reflow only replaces the
+// native customer-facing return flow, so plans are priced on customization
+// depth and store count, not on analytics or automation we don't offer.
 const PLANS = [
   {
     icon: Sprout,
@@ -15,7 +18,7 @@ const PLANS = [
     monthly: 29,
     cta: "Basic Access",
     trending: false,
-    features: ["1 store", "Real-time return analytics", "Up to 1K returns tracked", "Basic refund insights", "Email support"],
+    features: ["1 store", "Configurable return window", "Branded portal colors", "Email support"],
     extras: [] as string[],
   },
   {
@@ -25,8 +28,8 @@ const PLANS = [
     monthly: 49,
     cta: "Premium Access",
     trending: true,
-    features: ["Up to 5 stores", "Advanced returns & refund reports", "Up to 10K returns tracked", "Smart return insights"],
-    extras: ["API & integrations", "Team collaboration tools", "Secure data infrastructure"],
+    features: ["Up to 5 stores", "Custom returns domain", "Sidebar menu customization", "Editable returns policy checkbox"],
+    extras: ["Custom button colors", "Priority email support", "Multi-store switching"],
   },
   {
     icon: Leaf,
@@ -35,7 +38,7 @@ const PLANS = [
     monthly: 99,
     cta: "Elite Access",
     trending: false,
-    features: ["Unlimited stores", "Advanced automation workflows", "Up to 50K returns tracked", "Predictive return insights", "Priority email & chat support"],
+    features: ["Unlimited stores", "Everything in Advanced", "White-glove setup", "Priority email & chat support"],
     extras: [] as string[],
   },
 ]

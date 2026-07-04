@@ -3,86 +3,94 @@
 import { useRef, useState, useEffect } from "react"
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { ArrowUpRight, ChartLine, Layers, MailCheck, PieChart } from "lucide-react"
+import { CalendarClock, CheckCircle2, Palette, RefreshCcw, SlidersHorizontal, XCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { Slider } from "@/components/ui/slider"
+import { Switch } from "@/components/ui/switch"
 import { DarkButton, SectionHeading } from "./frame"
 
 const BLOCKS = [
   {
-    icon: PieChart,
-    title: "Unified Returns Overview",
-    body: "Monitor requests, approvals and refunds in real time so you stay on top of every order. The latest picture is always one glance away.",
+    icon: RefreshCcw,
+    title: "Replaces Shopify's native returns",
+    body: "Shopify still approves or declines every request behind the scenes - Reflow just gives your customers a branded, self-serve portal to start one, instead of Shopify's default flow.",
+    panel: (
+      <div className="w-full max-w-sm space-y-3">
+        <div className="rounded-lg border bg-background px-4 py-3 text-sm shadow-sm">
+          <p className="font-medium">Return #1042 requested</p>
+          <p className="mt-1 text-xs text-muted-foreground">Submitted by your customer in Reflow</p>
+        </div>
+        <div className="flex items-center gap-3 rounded-lg border bg-background px-4 py-3 text-sm shadow-sm">
+          <CheckCircle2 className="size-4 shrink-0 text-emerald-600" />
+          <span>Approved in Shopify admin</span>
+        </div>
+        <div className="flex items-center gap-3 rounded-lg border bg-background px-4 py-3 text-sm text-muted-foreground shadow-sm">
+          <XCircle className="size-4 shrink-0" />
+          <span>Or declined - your call, as always</span>
+        </div>
+      </div>
+    ),
+  },
+  {
+    icon: CalendarClock,
+    title: "Set your own return window",
+    body: "From 1 day to 90, you decide the exact return window - Reflow applies it automatically to every order in the portal.",
     panel: (
       <div className="w-full max-w-sm rounded-xl border bg-background p-5 shadow-sm">
-        <p className="text-sm font-semibold">Returns metrics</p>
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          {[["Open requests", "48"], ["Approved", "312"], ["Refunded", "£11,548"], ["Avg. turnaround", "1.8d"]].map(([k, v]) => (
-            <div key={k} className="rounded-lg border px-3 py-2">
-              <p className="text-[10px] text-muted-foreground">{k}</p>
-              <p className="text-sm font-bold tabular-nums">{v}</p>
-            </div>
+        <ReturnWindowDemo />
+      </div>
+    ),
+  },
+  {
+    icon: Palette,
+    title: "Fully on-brand",
+    body: "Your own domain, your own colours, and an avatar that matches your storefront - customers won't know it isn't built in-house.",
+    panel: (
+      <div className="w-full max-w-sm space-y-3">
+        <div className="rounded-lg border bg-background p-4 shadow-sm">
+          <p className="text-xs text-muted-foreground">Your domain</p>
+          <p className="mt-1 font-medium">returns.yourstore.com</p>
+        </div>
+        <div className="flex items-center gap-2 rounded-lg border bg-background p-4 shadow-sm">
+          {["#18181b", "#7c3aed", "#e11d48", "#059669", "#2563eb"].map((c) => (
+            <span key={c} className="size-7 rounded-full" style={{ backgroundColor: c }} />
           ))}
         </div>
-        <div className="mt-3 flex items-center justify-between rounded-lg border px-3 py-2">
-          <span className="text-xs text-muted-foreground">Plan completed</span>
-          <span className="text-sm font-bold tabular-nums">56%</span>
-        </div>
       </div>
     ),
   },
   {
-    icon: MailCheck,
-    title: "Automated Follow-Ups",
-    body: "Approval emails, shipping labels and refund confirmations send themselves, so your team can focus on customers instead of admin.",
+    icon: SlidersHorizontal,
+    title: "Total control over the details",
+    body: "Toggle sidebar menu items on or off, edit the returns policy checkbox text, and recolour the Submit, Accept and Review buttons.",
     panel: (
       <div className="w-full max-w-sm space-y-2">
-        {["Return approved — email sent", "Label generated — RM7742…", "Refund confirmation queued"].map((s, i) => (
-          <div key={s} className="flex items-center gap-3 rounded-lg border bg-background px-4 py-3 text-sm shadow-sm">
-            <span className="flex size-6 items-center justify-center rounded-full bg-zinc-900 text-[10px] text-white tabular-nums">{i + 1}</span>
-            {s}
-          </div>
-        ))}
-      </div>
-    ),
-  },
-  {
-    icon: Layers,
-    title: "Clean & Simple Workflow",
-    body: "Requests move through clear stages - requested, approved, in transit, refunded - so you always know exactly where things stand.",
-    panel: (
-      <div className="w-full max-w-sm rounded-xl border bg-background p-5 shadow-sm">
-        {["Requested", "Approved", "In transit", "Refunded"].map((stage, i) => (
-          <div key={stage} className="flex items-center gap-3 py-2">
-            <span className={cn("size-2.5 rounded-full", i < 2 ? "bg-zinc-900" : "bg-muted-foreground/30")} />
-            <span className={cn("text-sm", i < 2 ? "font-medium" : "text-muted-foreground")}>{stage}</span>
-            {i === 1 && <span className="ml-auto rounded-full bg-zinc-900 px-2 py-0.5 text-[10px] text-white">current</span>}
-          </div>
-        ))}
-      </div>
-    ),
-  },
-  {
-    icon: ChartLine,
-    title: "Instant Return Insights",
-    body: "Understand why items come back with clear reports on reasons, products and rates - and make confident decisions about your catalogue.",
-    panel: (
-      <div className="w-full max-w-sm rounded-xl border bg-background p-5 shadow-sm">
-        <p className="text-sm font-semibold">Top return reasons</p>
-        {[["Wrong size", 62], ["Changed mind", 38], ["Faulty", 21]].map(([k, v]) => (
-          <div key={k as string} className="mt-3">
-            <div className="flex justify-between text-xs">
-              <span>{k}</span>
-              <span className="text-muted-foreground tabular-nums">{v}%</span>
-            </div>
-            <div className="mt-1 h-1.5 rounded-full bg-muted">
-              <div className="h-full rounded-full bg-zinc-900" style={{ width: `${v}%` }} />
-            </div>
+        {["News & Updates", "Returns Policy", "Speak to Support"].map((label, i) => (
+          <div key={label} className="flex items-center justify-between rounded-lg border bg-background px-4 py-2.5 text-sm shadow-sm">
+            {label}
+            <Switch defaultChecked={i !== 2} />
           </div>
         ))}
       </div>
     ),
   },
 ]
+
+function ReturnWindowDemo() {
+  const [days, setDays] = useState(30)
+  return (
+    <>
+      <div className="flex items-center justify-between text-sm font-medium">
+        Return window
+        <span className="rounded-full bg-zinc-900 px-2 py-0.5 text-xs text-white tabular-nums">{days} days</span>
+      </div>
+      <Slider value={[days]} onValueChange={([v]) => setDays(v)} max={90} min={1} step={1} className="mt-4" />
+      <div className="mt-2 flex justify-between text-[10px] text-muted-foreground tabular-nums">
+        <span>1d</span><span>30d</span><span>60d</span><span>90d</span>
+      </div>
+    </>
+  )
+}
 
 export function BenefitsTwo() {
   const [active, setActive] = useState(0)
@@ -106,7 +114,7 @@ export function BenefitsTwo() {
       <SectionHeading
         eyebrow="Benefits"
         title="How Reflow Helps You"
-        subtitle="It's built to simplify your returns process and keep everything easy to manage."
+        subtitle="A branded, self-serve returns portal that's fully yours to configure - approvals stay right where they already are, in Shopify."
       />
       <div className="mt-8 flex items-center justify-center gap-3">
         <Link href="/demo">

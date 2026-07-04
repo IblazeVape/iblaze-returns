@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { PageFrame, SectionDivider } from "@/components/marketing-two/frame"
+import { MarketingTwoThemeProvider } from "@/components/marketing-two/theme-provider"
 import { NavTwo } from "@/components/marketing-two/nav"
 import { HeroTwo } from "@/components/marketing-two/hero"
 import { LogoMarqueeTwo } from "@/components/marketing-two/logo-marquee"
@@ -21,7 +22,7 @@ export const metadata: Metadata = {
 
 export default function MarketingTwoPage() {
   return (
-    <div id="marketing-two-root" className="min-h-[100dvh] scroll-smooth bg-background text-foreground antialiased">
+    <MarketingTwoThemeProvider>
       <PageFrame>
         <NavTwo />
         <HeroTwo />
@@ -36,6 +37,6 @@ export default function MarketingTwoPage() {
         <CtaTwo />
         <FooterTwo />
       </PageFrame>
-    </div>
+    </MarketingTwoThemeProvider>
   )
 }

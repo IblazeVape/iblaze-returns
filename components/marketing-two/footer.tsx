@@ -21,8 +21,9 @@ const HELP = [
 
 export function FooterTwo() {
   return (
-    <footer className="border-t">
-      {/* Table-style grid: columns share borders instead of gaps */}
+    <footer>
+      {/* Table-style grid: columns share borders instead of gaps.
+          Only one border-t here — the footer element itself doesn't add its own. */}
       <div className="grid grid-cols-1 divide-y border-x border-t md:grid-cols-[1.2fr_1fr_1fr_1.3fr] md:divide-x md:divide-y-0">
         <div className="p-6 lg:p-8">
           <Link href="/marketing-two" className="flex items-center gap-2">
