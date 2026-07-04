@@ -45,7 +45,7 @@ export function PricingTwo() {
   const price = (m: number) => (period === "monthly" ? m : Math.round(m * 12 * 0.8 / 12))
 
   return (
-    <section id="pricing" className="scroll-mt-16 border-t pt-20">
+    <section id="pricing" className="scroll-mt-16 border-t pt-14">
       <SectionHeading
         eyebrow="Pricing"
         title="Pricing Details"
@@ -65,7 +65,7 @@ export function PricingTwo() {
       </div>
 
       {/* Table-style grid: plans touch edge-to-edge, separated by shared borders */}
-      <div className="mt-12 border-y">
+      <div className="mt-10 border-t">
         <div className="grid grid-cols-1 items-stretch divide-y border-x md:grid-cols-3 md:divide-x md:divide-y-0">
           {PLANS.map((plan) => (
             <div

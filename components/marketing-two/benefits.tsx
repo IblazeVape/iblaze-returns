@@ -102,7 +102,7 @@ export function BenefitsTwo() {
   }, [])
 
   return (
-    <section id="benefits" className="scroll-mt-16 border-t pt-20">
+    <section id="benefits" className="scroll-mt-16 border-t pt-14">
       <SectionHeading
         eyebrow="Benefits"
         title="How Reflow Helps You"
@@ -118,7 +118,7 @@ export function BenefitsTwo() {
       </div>
 
       {/* Table-style grid: text column and panel column share one border, no gap */}
-      <div className="mt-16 border-y">
+      <div className="mt-10 border-t">
         <div className="grid grid-cols-1 divide-y border-x lg:grid-cols-2 lg:divide-x lg:divide-y-0">
           {/* Scroll-linked text blocks */}
           <div className="px-5 lg:px-8">

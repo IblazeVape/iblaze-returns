@@ -67,7 +67,7 @@ function QuoteCard({ q }: { q: (typeof QUOTES)[number] }) {
 
 export function TestimonialsTwo() {
   return (
-    <section id="testimonials" className="scroll-mt-16 border-t pt-20">
+    <section id="testimonials" className="scroll-mt-16 border-t pt-14 pb-14">
       <SectionHeading
         eyebrow="Testimonials"
         title="Trusted by Stores That Return Smarter"

@@ -35,22 +35,24 @@ const FAQS = [
 
 export function FaqTwo() {
   return (
-    <section id="faq" className="scroll-mt-16 border-t pt-20">
+    <section id="faq" className="scroll-mt-16 border-t pt-14">
       <SectionHeading
         eyebrow="FAQ"
         title="Frequently asked questions"
         subtitle="Here are some quick answers to help you understand how Reflow powers your returns."
       />
 
-      {/* Table-style grid: accordion and preview share one border, touching edge-to-edge */}
-      <div className="mt-14 border-y">
+      {/* Table-style grid: accordion and preview share one border, touching edge-to-edge.
+          Only a top border here — the next section's own border-t is the sole
+          divider, so we don't stack two borders at the boundary. */}
+      <div className="mt-10 border-t">
         <div className="grid grid-cols-1 divide-y border-x lg:grid-cols-2 lg:divide-x lg:divide-y-0">
-          <div className="px-5 py-2 lg:px-8">
+          <div>
             <Accordion type="single" collapsible defaultValue="item-0">
               {FAQS.map((item, i) => (
                 <AccordionItem key={item.q} value={`item-${i}`}>
-                  <AccordionTrigger className="text-left text-base font-semibold">{item.q}</AccordionTrigger>
-                  <AccordionContent className="text-muted-foreground">{item.a}</AccordionContent>
+                  <AccordionTrigger className="px-5 text-left text-base font-semibold lg:px-8">{item.q}</AccordionTrigger>
+                  <AccordionContent className="px-5 text-muted-foreground lg:px-8">{item.a}</AccordionContent>
                 </AccordionItem>
               ))}
             </Accordion>

@@ -26,7 +26,7 @@ function StatChip({ icon: Icon, value, label }: { icon: React.ElementType; value
 
 export function FeaturesTwo() {
   return (
-    <section id="features" className="scroll-mt-16 pt-20">
+    <section id="features" className="scroll-mt-16 pt-14">
       <SectionHeading
         eyebrow="Features"
         title="Powerful Features, Simple to Use"
@@ -35,7 +35,7 @@ export function FeaturesTwo() {
 
       {/* Table-style grid: cells touch edge-to-edge, separated only by shared
           borders (no gaps, no individually rounded cards) */}
-      <div className="mt-14 border-y">
+      <div className="mt-10 border-t">
         <div className="grid grid-cols-1 divide-y border-x md:grid-cols-3 md:divide-x md:divide-y-0">
           <motion.div {...fadeUp} className="bg-muted/30 p-6">
             <div className="rounded-lg border bg-background p-4 shadow-sm">
