@@ -19,7 +19,8 @@ const KEY_STORAGE = "pages-admin-key";
 
 // Store-owner page builder: create and manage landing pages assembled from
 // the marketing-site blocks, edited visually at /admin/pages/editor and
-// served publicly at /lp/<path>. Mirrors the /admin/docs key-gate pattern.
+// served publicly at clean root URLs (/<path>). Mirrors the /admin/docs
+// key-gate pattern.
 export default function PagesAdminPage() {
   const [adminKey, setAdminKey] = useState("");
   const [unlocked, setUnlocked] = useState(false);
@@ -70,14 +71,14 @@ export default function PagesAdminPage() {
       }
       setPages((p) => (p.includes(path) ? p : [...p, path].sort()));
       setNewPath("");
-      toast.success(`Created /lp/${path}`);
+      toast.success(`Created — your page will be at /${path}`);
     } finally {
       setBusy(false);
     }
   }
 
   async function removePage(path: string) {
-    if (!confirm(`Delete the page /lp/${path}? This cannot be undone.`)) return;
+    if (!confirm(`Delete the page /${path}? This cannot be undone.`)) return;
     const res = await fetch(`/api/pages/admin?path=${encodeURIComponent(path)}`, {
       method: "DELETE",
       headers: { "x-pages-admin-key": adminKey },
@@ -132,7 +133,7 @@ export default function PagesAdminPage() {
           <h1 className="text-xl font-semibold">Page builder</h1>
           <p className="text-sm text-muted-foreground">
             Drag-and-drop landing pages built from your marketing-site blocks. Pages are served
-            at <code className="rounded bg-muted px-1">/lp/&lt;name&gt;</code>.
+            at <code className="rounded bg-muted px-1">/&lt;name&gt;</code>.
           </p>
         </div>
       </div>
@@ -163,7 +164,7 @@ export default function PagesAdminPage() {
         {pages.map((path) => (
           <div key={path} className="flex items-center justify-between gap-3 p-4">
             <div className="min-w-0">
-              <p className="truncate font-medium">/lp/{path}</p>
+              <p className="truncate font-medium">/{path}</p>
             </div>
             <div className="flex shrink-0 items-center gap-2">
               <Button asChild size="sm">
@@ -172,7 +173,7 @@ export default function PagesAdminPage() {
                 </Link>
               </Button>
               <Button asChild size="sm" variant="outline">
-                <Link href={`/lp/${path}`} target="_blank">
+                <Link href={`/${path}`} target="_blank">
                   <ExternalLinkIcon className="mr-1 size-4" /> View
                 </Link>
               </Button>

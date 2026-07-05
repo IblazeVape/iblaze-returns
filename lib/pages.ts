@@ -20,8 +20,25 @@ export const MAX_PAGES = 100
 // Strict on purpose — the path becomes both a Redis key suffix and a URL.
 const PATH_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*(?:\/[a-z0-9]+(?:-[a-z0-9]+)*){0,2}$/
 
+// First segments that belong to the app itself — built pages serve from the
+// root catch-all, so these can never be page names.
+const RESERVED = new Set([
+  "admin",
+  "api",
+  "assets",
+  "dashboard",
+  "demo",
+  "docs",
+  "fonts",
+  "lp",
+  "marketing",
+  "marketing-two",
+  "marketing-three",
+])
+
 export function isValidPagePath(path: unknown): path is string {
-  return typeof path === "string" && path.length <= 80 && PATH_RE.test(path)
+  if (typeof path !== "string" || path.length > 80 || !PATH_RE.test(path)) return false
+  return !RESERVED.has(path.split("/")[0])
 }
 
 export async function listPagePaths(): Promise<string[]> {

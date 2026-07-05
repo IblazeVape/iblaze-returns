@@ -104,11 +104,23 @@ export interface SectionIntroProps {
     subtext?: string;
 }
 
+export interface BentoCardText {
+    name: string;
+    description: string;
+    cta: string;
+}
+
 export function FeaturesOne({
     badge = "Features",
     heading = "Manage Returns Like a Pro",
     subtext = "Reflow gives your Shopify store its own branded returns portal — your customers help themselves, and you stay in control from one simple admin dashboard.",
-}: SectionIntroProps) {
+    cards,
+}: SectionIntroProps & { cards?: BentoCardText[] }) {
+    // Card visuals (widgets/illustrations) are fixed and cycle; the text on
+    // each card is editable from the page builder.
+    const items = cards?.length
+        ? cards.map((c, idx) => ({ ...CARDS[idx % CARDS.length], ...c }))
+        : CARDS;
     return (
         <MaxWidthWrapper className="pt-10">
             <AnimationContainer delay={0.1}>
@@ -124,7 +136,7 @@ export function FeaturesOne({
             </AnimationContainer>
             <AnimationContainer delay={0.2}>
                 <BentoGrid className="py-8">
-                    {CARDS.map((feature, idx) => (
+                    {items.map((feature, idx) => (
                         <BentoCard key={idx} {...feature} />
                     ))}
                 </BentoGrid>
@@ -133,11 +145,20 @@ export function FeaturesOne({
     );
 }
 
+export interface ProcessStepText {
+    title: string;
+    description: string;
+}
+
 export function ProcessOne({
     badge = "The Process",
     heading = "Effortless returns management in 3 steps",
     subtext = "Follow these simple steps to brand, manage, and track your returns with ease.",
-}: SectionIntroProps) {
+    steps,
+}: SectionIntroProps & { steps?: ProcessStepText[] }) {
+    const items = steps?.length
+        ? steps.map((s, idx) => ({ ...PROCESS[idx % PROCESS.length], ...s }))
+        : PROCESS;
     return (
         <MaxWidthWrapper className="py-10">
             <AnimationContainer delay={0.1}>
@@ -152,7 +173,7 @@ export function ProcessOne({
                 </div>
             </AnimationContainer>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 w-full py-8 gap-4 md:gap-8">
-                {PROCESS.map((process, id) => (
+                {items.map((process, id) => (
                     <AnimationContainer delay={0.2 * id} key={id}>
                         <MagicCard className="group md:py-8">
                             <div className="flex flex-col items-start justify-center w-full">
@@ -211,7 +232,7 @@ export function PricingOne({
     );
 }
 
-interface Review {
+export interface Review {
     name: string;
     username: string;
     rating: number;
@@ -251,7 +272,10 @@ export function ReviewsOne({
     badge = "Our Customers",
     heading = "What our users are saying",
     subtext = "Here's what some of our users have to say about Reflow.",
-}: SectionIntroProps) {
+    reviews,
+}: SectionIntroProps & { reviews?: Review[] }) {
+    const items: readonly Review[] = reviews?.length ? reviews : REVIEWS;
+    const third = Math.ceil(items.length / 3);
     return (
         <MaxWidthWrapper className="py-10">
             <AnimationContainer delay={0.1}>
@@ -266,9 +290,9 @@ export function ReviewsOne({
                 </div>
             </AnimationContainer>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 place-items-start gap-4 md:gap-8 py-10">
-                <ReviewColumn reviews={REVIEWS.slice(0, 3)} />
-                <ReviewColumn reviews={REVIEWS.slice(3, 6)} />
-                <ReviewColumn reviews={REVIEWS.slice(6, 9)} />
+                <ReviewColumn reviews={items.slice(0, third)} />
+                <ReviewColumn reviews={items.slice(third, third * 2)} />
+                <ReviewColumn reviews={items.slice(third * 2)} />
             </div>
         </MaxWidthWrapper>
     );

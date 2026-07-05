@@ -4,7 +4,7 @@ import { Puck } from "@measured/puck";
 import "@measured/puck/puck.css";
 import { puckConfig, type PuckPageDoc } from "@/components/puck/config";
 import { Button } from "@/components/ui/button";
-import { ArrowLeftIcon } from "lucide-react";
+import { ArrowLeftIcon, ExternalLinkIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
@@ -64,7 +64,7 @@ function Editor() {
       toast.error(body.error || "Could not publish.");
       return;
     }
-    toast.success(`Published — live at /lp/${path}`);
+    toast.success(`Published — live at /${path}`);
   }
 
   if (error) {
@@ -94,8 +94,23 @@ function Editor() {
         config={puckConfig}
         data={data}
         onPublish={publish}
-        headerPath={`/lp/${path}`}
+        headerPath={`/${path}`}
         iframe={{ enabled: false }}
+        overrides={{
+          headerActions: ({ children }) => (
+            <>
+              <a
+                href={`/${path}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-sm font-medium hover:bg-muted"
+              >
+                <ExternalLinkIcon className="size-4" /> View page
+              </a>
+              {children}
+            </>
+          ),
+        }}
       />
     </div>
   );

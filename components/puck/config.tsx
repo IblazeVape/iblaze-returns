@@ -6,6 +6,7 @@ import { aeonik, inter } from "@/lib/marketing-fonts"
 import NavbarOne from "@/components/marketing/navbar"
 import FooterOne from "@/components/marketing/footer"
 import {
+  type BentoCardText,
   CtaOne,
   type CtaOneProps,
   FeaturesOne,
@@ -13,6 +14,8 @@ import {
   type HeroOneProps,
   PricingOne,
   ProcessOne,
+  type ProcessStepText,
+  type Review,
   ReviewsOne,
   type SectionIntroProps,
 } from "@/components/marketing/sections"
@@ -33,7 +36,12 @@ import { FooterTwo } from "@/components/marketing-two/footer"
 
 // Design Three (studio-style, white)
 import { geist, kalam } from "@/lib/marketing-three-fonts"
-import { AnnouncementBar, NavThree } from "@/components/marketing-three/nav"
+import {
+  AnnouncementBar,
+  type AnnouncementBarProps,
+  NavThree,
+  type NavThreeProps,
+} from "@/components/marketing-three/nav"
 import { HeroThree, type HeroThreeProps } from "@/components/marketing-three/hero"
 import { FeaturesThree } from "@/components/marketing-three/features"
 import { WorkflowThree, type WorkflowThreeProps } from "@/components/marketing-three/workflow"
@@ -100,10 +108,10 @@ type Fixed = Record<string, never>
 type BlockProps = {
   NavbarOne: Fixed
   HeroOne: HeroOneProps
-  FeaturesOne: SectionIntroProps
-  ProcessOne: SectionIntroProps
+  FeaturesOne: SectionIntroProps & { cards?: BentoCardText[] }
+  ProcessOne: SectionIntroProps & { steps?: ProcessStepText[] }
   PricingOne: SectionIntroProps & { note?: string }
-  ReviewsOne: SectionIntroProps
+  ReviewsOne: SectionIntroProps & { reviews?: Review[] }
   CtaOne: CtaOneProps
   FooterOne: Fixed
   NavTwo: Fixed
@@ -117,8 +125,8 @@ type BlockProps = {
   CtaTwo: Fixed
   FooterTwo: Fixed
   DividerTwo: Fixed
-  AnnouncementThree: Fixed
-  NavThree: Fixed
+  AnnouncementThree: AnnouncementBarProps
+  NavThree: NavThreeProps
   HeroThree: HeroThreeProps
   FeaturesThree: Fixed
   WorkflowThree: WorkflowThreeProps
@@ -198,12 +206,45 @@ export const puckConfig: Config<BlockProps> = {
         badge: { type: "text", label: "Badge" },
         heading: { type: "text", label: "Heading" },
         subtext: { type: "textarea", label: "Subtext" },
+        cards: {
+          type: "array",
+          label: "Bento cards",
+          arrayFields: {
+            name: { type: "text", label: "Title" },
+            description: { type: "textarea", label: "Description" },
+            cta: { type: "text", label: "Link label" },
+          },
+          defaultItemProps: { name: "New card", description: "Describe this feature.", cta: "Learn more" },
+          getItemSummary: (item: { name?: string }) => item.name || "Card",
+        },
       },
       defaultProps: {
         badge: "Features",
         heading: "Manage Returns Like a Pro",
         subtext:
           "Reflow gives your Shopify store its own branded returns portal — your customers help themselves, and you stay in control from one simple admin dashboard.",
+        cards: [
+          {
+            name: "Match your brand",
+            description: "Add your logo and colours from the admin dashboard — the portal looks like your store, not ours.",
+            cta: "Learn more",
+          },
+          {
+            name: "Customers find their order fast",
+            description: "Shoppers search their own orders right from the portal navigation and start a return in seconds.",
+            cta: "Learn more",
+          },
+          {
+            name: "Built for Shopify",
+            description: "Connect your Shopify store in one click — orders, customers, and refunds stay in sync.",
+            cta: "Learn more",
+          },
+          {
+            name: "Your rules, enforced",
+            description: "Set your own return window rules in the admin dashboard — the portal applies them automatically.",
+            cta: "Learn more",
+          },
+        ],
       },
       render: (props) => (
         <OneShell>
@@ -217,11 +258,26 @@ export const puckConfig: Config<BlockProps> = {
         badge: { type: "text", label: "Badge" },
         heading: { type: "text", label: "Heading" },
         subtext: { type: "textarea", label: "Subtext" },
+        steps: {
+          type: "array",
+          label: "Steps",
+          arrayFields: {
+            title: { type: "text", label: "Title" },
+            description: { type: "textarea", label: "Description" },
+          },
+          defaultItemProps: { title: "New step", description: "Describe the step." },
+          getItemSummary: (item: { title?: string }) => item.title || "Step",
+        },
       },
       defaultProps: {
         badge: "The Process",
         heading: "Effortless returns management in 3 steps",
         subtext: "Follow these simple steps to brand, manage, and track your returns with ease.",
+        steps: [
+          { title: "Connect Your Store", description: "Install from the Shopify App Store and sync your orders in one click." },
+          { title: "Brand and Customize", description: "Add your domain, logo, colours, and return rules from the admin panel." },
+          { title: "Analyze and Optimize", description: "Gain insights into return performance and optimize for happier customers." },
+        ],
       },
       render: (props) => (
         <OneShell>
@@ -255,6 +311,26 @@ export const puckConfig: Config<BlockProps> = {
         badge: { type: "text", label: "Badge" },
         heading: { type: "text", label: "Heading" },
         subtext: { type: "textarea", label: "Subtext" },
+        reviews: {
+          type: "array",
+          label: "Reviews",
+          arrayFields: {
+            name: { type: "text", label: "Name" },
+            username: { type: "text", label: "Handle" },
+            rating: {
+              type: "select",
+              label: "Stars",
+              options: [
+                { label: "5", value: 5 },
+                { label: "4", value: 4 },
+                { label: "3", value: 3 },
+              ],
+            },
+            review: { type: "textarea", label: "Review" },
+          },
+          defaultItemProps: { name: "Happy Customer", username: "@customer", rating: 5, review: "Write the review here." },
+          getItemSummary: (item: { name?: string }) => item.name || "Review",
+        },
       },
       defaultProps: {
         badge: "Our Customers",
@@ -402,19 +478,66 @@ export const puckConfig: Config<BlockProps> = {
     // ----------------------------------------------------------- Site 3 ---
     AnnouncementThree: {
       label: "Announcement bar (studio)",
-      fields: {},
-      render: () => (
+      fields: {
+        badge: { type: "text", label: "Badge" },
+        message: { type: "textarea", label: "Message" },
+        linkLabel: { type: "text", label: "Link label" },
+        linkHref: { type: "text", label: "Link URL" },
+      },
+      defaultProps: {
+        badge: "New",
+        message: "Instant store credit & one-click exchanges are now live for every plan.",
+        linkLabel: "See what's new →",
+        linkHref: "#features",
+      },
+      render: (props) => (
         <ThreeShell>
-          <AnnouncementBar />
+          <AnnouncementBar {...props} />
         </ThreeShell>
       ),
     },
     NavThree: {
       label: "Navbar (studio)",
-      fields: {},
-      render: () => (
+      fields: {
+        brand: { type: "text", label: "Brand name" },
+        brandHref: { type: "text", label: "Logo link" },
+        links: {
+          type: "array",
+          label: "Menu links",
+          arrayFields: {
+            title: { type: "text", label: "Label" },
+            href: { type: "text", label: "URL (e.g. /about or #pricing)" },
+          },
+          defaultItemProps: { title: "New link", href: "/" },
+          getItemSummary: (item: { title?: string }) => item.title || "Link",
+        },
+        showResources: show("Resources dropdown"),
+        showIcons: show("Icon buttons"),
+        signInLabel: { type: "text", label: "Sign-in label" },
+        signInHref: { type: "text", label: "Sign-in URL" },
+        ctaLabel: { type: "text", label: "CTA label" },
+        ctaHref: { type: "text", label: "CTA URL" },
+      },
+      defaultProps: {
+        brand: "Reflow",
+        brandHref: "/",
+        links: [
+          { title: "Features", href: "#features" },
+          { title: "How it works", href: "#workflow" },
+          { title: "Pricing", href: "#pricing" },
+          { title: "Reviews", href: "#reviews" },
+          { title: "FAQ", href: "#faq" },
+        ],
+        showResources: true,
+        showIcons: true,
+        signInLabel: "Sign in",
+        signInHref: "/portal",
+        ctaLabel: "Get started",
+        ctaHref: "#pricing",
+      },
+      render: (props) => (
         <ThreeShell>
-          <NavThree />
+          <NavThree {...props} />
         </ThreeShell>
       ),
     },
@@ -626,6 +749,59 @@ export const puckConfig: Config<BlockProps> = {
     },
   },
 }
+
+// ---------------------------------------------------------------------------
+// Global layout controls: every block gets "Space above / Space below /
+// Spacing colour" fields so section spacing can be tuned per page without
+// touching code. Applied programmatically so new blocks pick them up too.
+// ---------------------------------------------------------------------------
+
+const SPACE_OPTIONS = [
+  { label: "None", value: "none" },
+  { label: "Small (2rem)", value: "sm" },
+  { label: "Medium (4rem)", value: "md" },
+  { label: "Large (6rem)", value: "lg" },
+  { label: "Extra large (9rem)", value: "xl" },
+]
+const SPACE_REM: Record<string, string> = { none: "0", sm: "2rem", md: "4rem", lg: "6rem", xl: "9rem" }
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+for (const [name, def] of Object.entries(puckConfig.components) as [string, any][]) {
+  if (name === "Spacer") continue // has its own size controls
+  const innerRender = def.render
+  def.fields = {
+    ...def.fields,
+    spaceAbove: { type: "select", label: "Space above", options: SPACE_OPTIONS },
+    spaceBelow: { type: "select", label: "Space below", options: SPACE_OPTIONS },
+    spaceColor: {
+      type: "select",
+      label: "Spacing colour",
+      options: [
+        { label: "Transparent", value: "transparent" },
+        { label: "White", value: "#ffffff" },
+        { label: "Dark", value: "#0a0a0a" },
+      ],
+    },
+  }
+  def.defaultProps = {
+    spaceAbove: "none",
+    spaceBelow: "none",
+    spaceColor: "transparent",
+    ...(def.defaultProps || {}),
+  }
+  def.render = ({ spaceAbove, spaceBelow, spaceColor, ...props }: any) => (
+    <div
+      style={{
+        paddingTop: SPACE_REM[spaceAbove as string] || 0,
+        paddingBottom: SPACE_REM[spaceBelow as string] || 0,
+        background: spaceColor === "transparent" ? undefined : (spaceColor as string),
+      }}
+    >
+      {innerRender(props)}
+    </div>
+  )
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 // Component type names, used by the admin API to validate saved pages.
 export const puckComponentTypes = Object.keys(puckConfig.components)
