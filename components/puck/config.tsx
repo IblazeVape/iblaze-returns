@@ -50,6 +50,10 @@ import { TestimonialsThree } from "@/components/marketing-three/testimonials"
 import { PricingThree } from "@/components/marketing-three/pricing"
 import { FaqThree, type FaqThreeProps } from "@/components/marketing-three/faq"
 import { FeaturedThree, type FeaturedThreeProps } from "@/components/marketing-three/featured"
+
+// Custom standalone blocks (shadcn-style, light theme)
+import { SimpleNav, type SimpleNavProps } from "@/components/puck/simple-nav"
+import { SimpleFooter, type SimpleFooterProps } from "@/components/puck/simple-footer"
 import { FooterThree } from "@/components/marketing-three/footer"
 
 // ---------------------------------------------------------------------------
@@ -136,6 +140,8 @@ type BlockProps = {
   FaqThree: FaqThreeProps
   FeaturedThree: FeaturedThreeProps
   FooterThree: Fixed
+  SimpleNav: SimpleNavProps
+  SimpleFooter: SimpleFooterProps
   Spacer: { size: string; background: string }
 }
 
@@ -152,6 +158,10 @@ export const puckConfig: Config<BlockProps> = {
     studioSite: {
       title: "Site 3 — Studio (white)",
       components: ["AnnouncementThree", "NavThree", "HeroThree", "FeaturesThree", "WorkflowThree", "StatsThree", "TestimonialsThree", "PricingThree", "FaqThree", "FeaturedThree", "FooterThree"],
+    },
+    custom: {
+      title: "Clean blocks (shadcn)",
+      components: ["SimpleNav", "SimpleFooter"],
     },
     utility: {
       title: "Utilities",
@@ -719,6 +729,107 @@ export const puckConfig: Config<BlockProps> = {
           <FooterThree />
         </ThreeShell>
       ),
+    },
+
+    // ----------------------------------------------------- Clean blocks ---
+    SimpleNav: {
+      label: "Navbar (clean)",
+      fields: {
+        logoUrl: { type: "text", label: "Logo image URL (blank = built-in mark)" },
+        brand: { type: "text", label: "Brand name" },
+        brandHref: { type: "text", label: "Logo link" },
+        links: {
+          type: "array",
+          label: "Menu links",
+          arrayFields: {
+            title: { type: "text", label: "Label" },
+            href: { type: "text", label: "URL (e.g. /about or #pricing)" },
+          },
+          defaultItemProps: { title: "New link", href: "/" },
+          getItemSummary: (item: { title?: string }) => item.title || "Link",
+        },
+        signInLabel: { type: "text", label: "Sign-in label (blank hides)" },
+        signInHref: { type: "text", label: "Sign-in URL" },
+        signUpLabel: { type: "text", label: "Sign-up label (blank hides)" },
+        signUpHref: { type: "text", label: "Sign-up URL" },
+        showThemeButton: show("Theme button"),
+      },
+      defaultProps: {
+        logoUrl: "",
+        brand: "Reflow",
+        brandHref: "/",
+        links: [
+          { title: "Home", href: "/" },
+          { title: "Blog", href: "#" },
+          { title: "About", href: "#" },
+          { title: "Contact Us", href: "#" },
+        ],
+        signInLabel: "Sign In",
+        signInHref: "#",
+        signUpLabel: "Sign Up",
+        signUpHref: "#",
+        showThemeButton: true,
+      },
+      render: (props) => <SimpleNav {...props} />,
+    },
+    SimpleFooter: {
+      label: "Footer (clean)",
+      fields: {
+        logoUrl: { type: "text", label: "Logo image URL (blank = built-in mark)" },
+        brand: { type: "text", label: "Brand name" },
+        brandHref: { type: "text", label: "Logo link" },
+        links: {
+          type: "array",
+          label: "Footer links",
+          arrayFields: {
+            title: { type: "text", label: "Label" },
+            href: { type: "text", label: "URL" },
+          },
+          defaultItemProps: { title: "New link", href: "/" },
+          getItemSummary: (item: { title?: string }) => item.title || "Link",
+        },
+        socials: {
+          type: "array",
+          label: "Social icons",
+          arrayFields: {
+            platform: {
+              type: "select",
+              label: "Platform",
+              options: [
+                { label: "Twitter / X", value: "twitter" },
+                { label: "Instagram", value: "instagram" },
+                { label: "Facebook", value: "facebook" },
+                { label: "YouTube", value: "youtube" },
+                { label: "LinkedIn", value: "linkedin" },
+                { label: "GitHub", value: "github" },
+                { label: "Dribbble", value: "dribbble" },
+              ],
+            },
+            href: { type: "text", label: "URL" },
+          },
+          defaultItemProps: { platform: "twitter", href: "#" },
+          getItemSummary: (item: { platform?: string }) => item.platform || "Social",
+        },
+        copyright: { type: "text", label: "Copyright name (blank = brand)" },
+      },
+      defaultProps: {
+        logoUrl: "",
+        brand: "Reflow",
+        brandHref: "/",
+        links: [
+          { title: "About", href: "/#about" },
+          { title: "Contact", href: "/#contact" },
+          { title: "Terms of Service", href: "/#terms" },
+          { title: "Privacy Policy", href: "/#privacy" },
+        ],
+        socials: [
+          { platform: "twitter", href: "#" },
+          { platform: "instagram", href: "#" },
+          { platform: "facebook", href: "#" },
+        ],
+        copyright: "",
+      },
+      render: (props) => <SimpleFooter {...props} />,
     },
 
     // --------------------------------------------------------- Utilities ---
