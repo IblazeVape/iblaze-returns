@@ -15,7 +15,8 @@ html, body {
    both selectors target #marketing-root directly rather than the body.) */
 html:has(#marketing-root),
 html:has(#marketing-two-root),
-html:has(#marketing-three-root) {
+html:has(#marketing-three-root),
+html:has(#puck-lp-root) {
   height: auto;
   overflow: auto;
 }
@@ -24,7 +25,8 @@ html:has(#marketing-three-root) {
    (navbars, the benefits panel) since html is the actual scroller. */
 body:has(#marketing-root),
 body:has(#marketing-two-root),
-body:has(#marketing-three-root) {
+body:has(#marketing-three-root),
+body:has(#puck-lp-root) {
   height: auto;
   overflow: visible;
 }
@@ -36,8 +38,11 @@ body:has(#marketing-three-root) {
 /* Marketing pages — Linkify's exact dark theme values (its :root block),
    scoped to #marketing-root so the dashboard app keeps its light theme.
    Portalled Radix content (Sheet, Tooltip, NavigationMenu viewport) needs
-   these redeclared inline where used, since portals escape this subtree. */
-#marketing-root {
+   these redeclared inline where used, since portals escape this subtree.
+   .marketing-one-scope is the same theme as a class, so the Puck page
+   builder can wrap individual dark blocks on mixed pages. */
+#marketing-root,
+.marketing-one-scope {
   --foreground: 0 0% 98%;
   --background: 0 0% 3.9%;
   --card: 0 0% 3.9%;
@@ -67,13 +72,15 @@ body:has(#marketing-three-root) {
   font-family: var(--font-inter), "Inter", sans-serif;
 }
 
-#marketing-root ::selection {
+#marketing-root ::selection,
+.marketing-one-scope ::selection {
   background-color: rgba(168, 85, 247, 0.2);
   color: hsl(var(--foreground));
 }
 
 /* Linkify's .gradient hero glow, scoped to avoid collisions */
-#marketing-root .gradient {
+#marketing-root .gradient,
+.marketing-one-scope .gradient {
   background: conic-gradient(from 230.29deg at 51.63% 52.16%, rgb(36, 0, 255) 0deg, rgb(0, 135, 255) 67.5deg, rgb(108, 39, 157) 198.75deg, rgb(24, 38, 163) 251.25deg, rgb(54, 103, 196) 301.88deg, rgb(105, 30, 255) 360deg);
 }
 

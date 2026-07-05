@@ -30,6 +30,19 @@ export function MarketingTwoThemeProvider({ children }: { children: React.ReactN
   )
 }
 
+// Per-block wrapper for the Puck page builder: provides the same theme
+// context the sections expect, without the full-page min-height root div.
+export function MarketingTwoBlockShell({ children }: { children: React.ReactNode }) {
+  const [dark, setDark] = useState(false)
+  return (
+    <ThemeContext.Provider value={{ dark, toggle: () => setDark((d) => !d) }}>
+      <div className={cn("bg-background text-foreground antialiased", dark && "dark")}>
+        {children}
+      </div>
+    </ThemeContext.Provider>
+  )
+}
+
 export function useMarketingTwoTheme() {
   const ctx = useContext(ThemeContext)
   if (!ctx) throw new Error("useMarketingTwoTheme must be used within MarketingTwoThemeProvider")

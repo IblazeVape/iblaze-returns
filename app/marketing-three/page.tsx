@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { Geist, Kalam } from "next/font/google"
+import { geist, kalam } from "@/lib/marketing-three-fonts"
 import { cn } from "@/lib/utils"
 import { AnnouncementBar, NavThree } from "@/components/marketing-three/nav"
 import { HeroThree } from "@/components/marketing-three/hero"
@@ -16,9 +16,6 @@ import { FooterThree } from "@/components/marketing-three/footer"
 // landing aesthetic (Geist headings, Kalam handwritten eyebrows, underlined
 // accents, near-black rounded buttons on a white canvas), adapted to the Reflow
 // returns product. All copy is original to Reflow.
-
-const geist = Geist({ subsets: ["latin"], variable: "--font-geist-sans" })
-const kalam = Kalam({ weight: "400", subsets: ["latin"], variable: "--font-kalam" })
 
 export const metadata: Metadata = {
   title: "Reflow — Turn returns into repeat revenue",

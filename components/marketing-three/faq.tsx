@@ -4,7 +4,12 @@ import { useState } from "react"
 import { Minus, Plus } from "lucide-react"
 import { Accent, Container, SectionHeading } from "./frame"
 
-const FAQS = [
+export interface FaqEntry {
+  q: string
+  a: string
+}
+
+const DEFAULT_FAQS: FaqEntry[] = [
   {
     q: "Does Reflow work with my Shopify store?",
     a: "Yes. Reflow installs directly on your Shopify store and syncs orders automatically. Most merchants are live in under ten minutes with no developer needed.",
@@ -51,21 +56,33 @@ function Item({ q, a }: { q: string; a: string }) {
   )
 }
 
-export function FaqThree() {
+export interface FaqThreeProps {
+  eyebrow?: string
+  title?: string
+  accent?: string
+  faqs?: FaqEntry[]
+}
+
+export function FaqThree({
+  eyebrow = "Good to know",
+  title = "Any",
+  accent = "Questions?",
+  faqs = DEFAULT_FAQS,
+}: FaqThreeProps) {
   return (
     <section id="faq" className="border-t border-zinc-200 py-20 md:py-28">
       <Container>
         <SectionHeading
-          eyebrow="Good to know"
+          eyebrow={eyebrow}
           title={
             <>
-              Any <Accent>Questions?</Accent>
+              {title} {accent && <Accent>{accent}</Accent>}
             </>
           }
         />
         <div className="mx-auto mt-12 max-w-2xl">
-          {FAQS.map((f) => (
-            <Item key={f.q} {...f} />
+          {faqs.map((f, i) => (
+            <Item key={f.q + i} {...f} />
           ))}
         </div>
       </Container>

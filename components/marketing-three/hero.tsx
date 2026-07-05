@@ -3,9 +3,37 @@
 import { Accent, Button, Container } from "./frame"
 
 const AVATARS = ["#f4c7ab", "#c7d2fe", "#bbf7d0", "#fbcfe8", "#fde68a"]
-const LOGOS = ["Northline", "Vantage", "Grove & Co", "Paletto", "Merridian"]
+const DEFAULT_LOGOS = ["Northline", "Vantage", "Grove & Co", "Paletto", "Merridian"]
 
-export function HeroThree() {
+export interface HeroThreeProps {
+  headline?: string
+  accent?: string
+  headlineSuffix?: string
+  subtext?: string
+  trustedCount?: string
+  trustedLine?: string
+  primaryLabel?: string
+  primaryHref?: string
+  secondaryLabel?: string
+  secondaryHref?: string
+  showLogos?: boolean
+  showPreview?: boolean
+}
+
+export function HeroThree({
+  headline = "Turn Returns Into",
+  accent = "Repeat Revenue",
+  headlineSuffix = ", On Autopilot",
+  subtext = "Give your Shopify customers a branded, self-serve portal for returns, refunds, and exchanges — while Shopify keeps final say and your team tracks everything from one clean dashboard.",
+  trustedCount = "1,600+",
+  trustedLine = "Shopify Brands & Teams",
+  primaryLabel = "Start free trial",
+  primaryHref = "#pricing",
+  secondaryLabel = "See how it works",
+  secondaryHref = "#workflow",
+  showLogos = true,
+  showPreview = true,
+}: HeroThreeProps) {
   return (
     <section className="relative overflow-hidden">
       {/* soft top grid backdrop */}
@@ -26,46 +54,49 @@ export function HeroThree() {
             ))}
           </div>
           <div className="text-left text-sm leading-tight text-zinc-500">
-            Trusted by <span className="font-semibold text-zinc-900">1,600+</span>
+            Trusted by <span className="font-semibold text-zinc-900">{trustedCount}</span>
             <br />
-            Shopify Brands &amp; Teams
+            {trustedLine}
           </div>
         </div>
 
         <h1 className="mx-auto mt-10 max-w-4xl text-[2.5rem] font-bold leading-[1.1] tracking-tight text-zinc-950 sm:text-6xl md:text-[4rem] md:leading-[1.05]">
-          Turn Returns Into <Accent>Repeat Revenue</Accent>, On Autopilot
+          {headline} {accent && <Accent>{accent}</Accent>}
+          {headlineSuffix}
         </h1>
 
         <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-zinc-500 md:text-lg">
-          Give your Shopify customers a branded, self-serve portal for returns, refunds, and
-          exchanges — while Shopify keeps final say and your team tracks everything from one clean
-          dashboard.
+          {subtext}
         </p>
 
         {/* trusted-by logo row */}
-        <div className="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
-          <span className="text-sm text-zinc-400">Trusted by</span>
-          {LOGOS.map((l) => (
-            <span key={l} className="text-lg font-semibold tracking-tight text-zinc-300">
-              {l}
-            </span>
-          ))}
-        </div>
+        {showLogos && (
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
+            <span className="text-sm text-zinc-400">Trusted by</span>
+            {DEFAULT_LOGOS.map((l) => (
+              <span key={l} className="text-lg font-semibold tracking-tight text-zinc-300">
+                {l}
+              </span>
+            ))}
+          </div>
+        )}
 
         <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <Button href="#pricing" size="lg" icon>
-            Start free trial
+          <Button href={primaryHref} size="lg" icon>
+            {primaryLabel}
           </Button>
-          <Button href="#workflow" variant="outline" size="lg" icon>
-            See how it works
+          <Button href={secondaryHref} variant="outline" size="lg" icon>
+            {secondaryLabel}
           </Button>
         </div>
       </Container>
 
       {/* product preview */}
-      <Container className="relative pb-20">
-        <ProductPreview />
-      </Container>
+      {showPreview && (
+        <Container className="relative pb-20">
+          <ProductPreview />
+        </Container>
+      )}
     </section>
   )
 }
