@@ -900,7 +900,10 @@ for (const [name, def] of Object.entries(puckConfig.components) as [string, any]
     spaceColor: "transparent",
     ...(def.defaultProps || {}),
   }
-  def.render = ({ spaceAbove, spaceBelow, spaceColor, ...props }: any) => (
+  // `puck` / `editMode` / `id` are editor internals injected into every
+  // block's props; they contain functions, so they must never be spread
+  // into client components during server rendering.
+  def.render = ({ spaceAbove, spaceBelow, spaceColor, puck: _puck, editMode: _editMode, id: _id, ...props }: any) => (
     <div
       style={{
         paddingTop: SPACE_REM[spaceAbove as string] || 0,
