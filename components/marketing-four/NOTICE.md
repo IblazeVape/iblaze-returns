@@ -1,12 +1,24 @@
-Several files in this directory — `nav.tsx`, `main-nav.tsx`, `mode-switcher.tsx`,
-`site-settings.tsx`, `site-footer.tsx`, `command-menu.tsx`, `logo.tsx`, and
-`icons.tsx` (`ThemeIcon`) — are adapted or directly ported from
-[shadcn-labs/startercn](https://github.com/shadcn-labs/startercn), used under
-the MIT License below. Routes, copy, hooks, data sources, and dependencies
-specific to that project's own use case (component-registry publishing and
-browsing, its own GitHub repo and star count, its own author credit, its own
-donation/sponsor page) have been replaced with Reflow's own or dropped
-entirely where nothing in our product corresponds to them.
+Several files in this project are adapted or directly ported from
+[shadcn-labs/startercn](https://github.com/shadcn-labs/startercn), used
+under the MIT License below:
+
+- Within `components/marketing-four/`: `nav.tsx`, `main-nav.tsx`,
+  `mobile-nav.tsx`, `mode-switcher.tsx`, `site-settings.tsx`,
+  `site-footer.tsx`, `command-menu.tsx`, `logo.tsx`, `icons.tsx`
+  (`ThemeIcon`), `brand-context-menu.tsx`.
+- Elsewhere in the repo: `audio/core.ts`, `audio/index.ts` (the "Core"
+  sound pack, v3.1.0, by Raphael Salaja, distributed via `@web-kits/audio`),
+  `hooks/use-feedback.ts`, `hooks/use-meta-color.ts`,
+  `hooks/use-theme-toggle.ts`, `components/animated-icons/vibrate.tsx`,
+  `components/animated-icons/volume-2.tsx`,
+  `components/animated-icons/heart-handshake.tsx`.
+
+Routes, copy, hooks, data sources, and dependencies specific to that
+project's own use case (component-registry publishing and browsing, its
+own GitHub repo and star count, its own author credit, its own
+donation/sponsor page, its own View Transitions integration) have been
+replaced with this product's own or dropped entirely where nothing here
+corresponds to them.
 
 Note: `logo.tsx`'s `LogoMark` is their template's generic placeholder brand
 mark, provided specifically for forks to replace with their own logo — worth
