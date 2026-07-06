@@ -60,7 +60,7 @@ export default async function DocsPage({ params }: DocsPageProps) {
               <p className="mt-2 text-muted-foreground">{page.data.description}</p>
             )}
           </div>
-          <DocsCopyPage markdown={markdown} />
+          <DocsCopyPage markdown={markdown} url={page.url} />
         </div>
         <div className="mt-8">
           <MDX components={useMDXComponents({})} />
