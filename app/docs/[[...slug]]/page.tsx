@@ -2,6 +2,7 @@ import { notFound } from "next/navigation"
 import type { Metadata } from "next"
 import { source } from "@/lib/source"
 import { DocsSidebar, type DocsNavItem } from "@/components/docs-sidebar"
+import { DocsToc } from "@/components/docs-toc"
 import { useMDXComponents } from "@/mdx-components"
 
 interface DocsPageProps {
@@ -54,6 +55,13 @@ export default async function DocsPage({ params }: DocsPageProps) {
           <MDX components={useMDXComponents({})} />
         </div>
       </main>
+      {page.data.toc.length > 0 && (
+        <aside className="hidden w-48 shrink-0 xl:block">
+          <div className="sticky top-24">
+            <DocsToc toc={page.data.toc.map((t) => ({ title: t.title, url: `#${t.url.replace("#", "")}`, depth: t.depth }))} />
+          </div>
+        </aside>
+      )}
     </div>
   )
 }
