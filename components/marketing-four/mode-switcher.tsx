@@ -1,42 +1,32 @@
 "use client"
 
-import { useHotkeys } from "react-hotkeys-hook"
+import { useThemeToggle } from "@/hooks/use-theme-toggle"
+import { Button } from "@/components/ui/button"
 import { Kbd } from "@/components/ui/kbd"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { useMarketingTwoTheme } from "@/components/marketing-two/theme-provider"
 import { ThemeIcon } from "@/components/marketing-four/icons"
-import { playToggle } from "@/lib/sound"
-import { triggerHaptic } from "@/lib/haptics"
 
-// Ported from shadcn-labs/startercn's ModeSwitcher (MIT — see NOTICE.md):
-// same trigger + tooltip ("Toggle Mode" + Kbd "D") and same "D" hotkey, same
-// ThemeIcon glyph. Their useThemeToggle hook (next-themes + custom feedback)
-// is replaced with our own theme provider + sound/haptics helpers.
+// Ported from shadcn-labs/startercn's ModeSwitcher (MIT — see NOTICE.md).
+// Their useThemeToggle (next-themes-backed) is now our own scoped version
+// (see hooks/use-theme-toggle.ts) — same trigger, tooltip, hotkey, icon.
 export function ModeSwitcher() {
-  const { toggle } = useMarketingTwoTheme()
-
-  const toggleTheme = () => {
-    void playToggle(true)
-    triggerHaptic("selection")
-    toggle()
-  }
-
-  useHotkeys("d", toggleTheme, { preventDefault: true })
+  const { toggleTheme } = useThemeToggle()
 
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <button
-          type="button"
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-8"
           onClick={toggleTheme}
           title="Toggle theme"
-          className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         >
           <ThemeIcon className="size-4.5" strokeWidth={2} />
           <span className="sr-only">Toggle theme</span>
-        </button>
+        </Button>
       </TooltipTrigger>
-      <TooltipContent className="pl-3 pr-2">
+      <TooltipContent className="pr-2 pl-3">
         <div className="flex items-center gap-3">
           Toggle Mode
           <Kbd>D</Kbd>
