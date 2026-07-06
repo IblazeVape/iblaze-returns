@@ -2,6 +2,7 @@ import * as React from "react"
 import { Slot as SlotPrimitive } from "radix-ui"
 import { cva, type VariantProps } from "class-variance-authority"
 
+import { useFeedback, type FeedbackType } from "@/hooks/use-feedback"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
@@ -41,12 +42,23 @@ function Button({
   variant = "default",
   size = "default",
   asChild = false,
+  sound,
+  haptic,
+  onClick,
   ...props
 }: React.ComponentProps<"button"> &
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean
+    sound?: FeedbackType
+    haptic?: boolean
   }) {
+  const play = useFeedback({ sound, haptic })
   const Comp = asChild ? SlotPrimitive.Slot : "button"
+
+  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    play()
+    onClick?.(e)
+  }
 
   return (
     <Comp
@@ -54,6 +66,7 @@ function Button({
       data-variant={variant}
       data-size={size}
       className={cn(buttonVariants({ variant, size, className }))}
+      onClick={handleClick}
       {...props}
     />
   )
