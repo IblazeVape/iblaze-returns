@@ -1,28 +1,18 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useAtom } from "jotai"
+import { atomWithStorage } from "jotai/utils"
 
 const KEY = "marketing-four-sound-enabled"
 
-// Matches shadcn-labs/startercn's useSoundEnabled hook shape — a persisted
-// boolean tuple so SiteSettings and lib/sound.ts agree on whether sounds fire.
+const soundEnabledAtom = atomWithStorage(KEY, true)
+
+// Matches shadcn-labs/startercn's useSoundEnabled hook shape, but keeps
+// iblaze-returns' own storage key and default (true, not startercn's false)
+// so already-deployed users' saved preference and current live behavior
+// don't change.
 export function useSoundEnabled(): [boolean, (v: boolean | ((p: boolean) => boolean)) => void] {
-  const [enabled, setEnabled] = useState(true)
-
-  useEffect(() => {
-    const stored = localStorage.getItem(KEY)
-    if (stored !== null) setEnabled(stored === "true")
-  }, [])
-
-  const set = (v: boolean | ((p: boolean) => boolean)) => {
-    setEnabled((prev) => {
-      const next = typeof v === "function" ? v(prev) : v
-      localStorage.setItem(KEY, String(next))
-      return next
-    })
-  }
-
-  return [enabled, set]
+  return useAtom(soundEnabledAtom)
 }
 
 export function isSoundEnabled() {
