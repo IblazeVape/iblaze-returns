@@ -7,7 +7,7 @@ import Link from "next/link"
 export function SiteFooter() {
   return (
     <footer className="border-t">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-center px-4 sm:px-6">
+      <div className="mx-auto flex h-14 max-w-6xl items-center justify-center px-4 sm:px-6">
         <p className="w-full px-1 text-center text-xs leading-loose text-muted-foreground sm:text-sm">
           &copy;{new Date().getFullYear()} Reflow. Built for Shopify merchants.{" "}
           <Link href="/docs" className="font-medium underline underline-offset-4">

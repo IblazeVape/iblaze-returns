@@ -8,6 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CommandMenu } from "@/components/marketing-four/command-menu"
 import { ModeSwitcher } from "@/components/marketing-four/mode-switcher"
 import { SiteSettings } from "@/components/marketing-four/site-settings"
+import { LogoMark } from "@/components/marketing-four/logo"
 import { playClick } from "@/lib/sound"
 import { triggerHaptic } from "@/lib/haptics"
 
@@ -88,14 +89,9 @@ export function MarketingFourNav() {
           </PopoverContent>
         </Popover>
 
-        <Link href="/marketing-four" className="hidden items-center gap-2 lg:flex">
-          <span className="flex size-7 items-center justify-center rounded-full bg-zinc-900 text-white">
-            <svg viewBox="0 0 24 24" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M20.91 8.84 8.56 21.19a1.93 1.93 0 0 1-2.73 0L2.81 18.2a1.93 1.93 0 0 1 0-2.73L15.16 3.09a1.93 1.93 0 0 1 2.73 0l2.99 3a1.93 1.93 0 0 1 .03 2.75Z" />
-              <path d="M8.5 8.5l7 7" />
-            </svg>
-          </span>
-          <span className="text-base font-semibold tracking-tight">Reflow</span>
+        <Link href="/marketing-four" className="hidden size-8 items-center justify-center lg:flex">
+          <LogoMark className="size-5" />
+          <span className="sr-only">Reflow</span>
         </Link>
 
         <nav className="ml-4 hidden items-center gap-1 lg:flex">
@@ -114,8 +110,8 @@ export function MarketingFourNav() {
           ))}
         </nav>
 
-        <div className="ml-auto flex items-center gap-1">
-          <div className="hidden lg:flex">
+        <div className="ml-auto flex items-center gap-2 md:flex-1 md:justify-end">
+          <div className="hidden w-full flex-1 md:flex md:w-auto md:flex-none">
             <CommandMenu />
           </div>
           <ModeSwitcher />
