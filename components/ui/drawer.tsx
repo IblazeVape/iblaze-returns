@@ -2,74 +2,14 @@
 
 import * as React from "react"
 import { Drawer as DrawerPrimitive } from "vaul"
-import { useCallback, useEffect, useRef } from "react"
 
-import { drawerClose, drawerOpen } from "@/audio/core"
-import { useFeedback } from "@/hooks/use-feedback"
 import { cn } from "@/lib/utils"
 
 function Drawer({
   direction = "bottom",
-  onOpenChange,
-  sounds = false,
   ...props
-}: React.ComponentProps<typeof DrawerPrimitive.Root> & {
-  sounds?: boolean
-}) {
-  const playOpen = useFeedback({ soundDef: drawerOpen })
-  const playClose = useFeedback({ soundDef: drawerClose })
-  const isControlled = props.open !== undefined
-  const lastOpen = useRef(props.open ?? props.defaultOpen ?? false)
-
-  const playStateSound = useCallback(
-    (open: boolean) => {
-      if (!sounds || open === lastOpen.current) {
-        return
-      }
-      if (open) {
-        playOpen()
-      } else {
-        playClose()
-      }
-      lastOpen.current = open
-    },
-    [playClose, playOpen, sounds]
-  )
-
-  useEffect(() => {
-    if (!isControlled) {
-      return
-    }
-    playStateSound(props.open ?? false)
-  }, [isControlled, playStateSound, props.open])
-
-  const handleOpenChange = useCallback(
-    (open: boolean) => {
-      playStateSound(open)
-      onOpenChange?.(open)
-    },
-    [onOpenChange, playStateSound]
-  )
-
-  if (!sounds) {
-    return (
-      <DrawerPrimitive.Root
-        data-slot="drawer"
-        direction={direction}
-        onOpenChange={onOpenChange}
-        {...props}
-      />
-    )
-  }
-
-  return (
-    <DrawerPrimitive.Root
-      data-slot="drawer"
-      direction={direction}
-      onOpenChange={handleOpenChange}
-      {...props}
-    />
-  )
+}: React.ComponentProps<typeof DrawerPrimitive.Root>) {
+  return <DrawerPrimitive.Root data-slot="drawer" direction={direction} {...props} />
 }
 
 function DrawerTrigger({

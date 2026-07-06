@@ -3,71 +3,13 @@
 import * as React from "react"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { XIcon } from "lucide-react"
-import { useCallback, useEffect, useRef } from "react"
 
-import { modalClose, modalOpen } from "@/audio/core"
-import { useFeedback } from "@/hooks/use-feedback"
 import { cn } from "@/lib/utils"
 
 function Dialog({
-  onOpenChange,
-  sounds = false,
   ...props
-}: React.ComponentProps<typeof DialogPrimitive.Root> & {
-  sounds?: boolean
-}) {
-  const playOpen = useFeedback({ soundDef: modalOpen })
-  const playClose = useFeedback({ soundDef: modalClose })
-  const isControlled = props.open !== undefined
-  const lastOpen = useRef(props.open ?? props.defaultOpen ?? false)
-
-  const playStateSound = useCallback(
-    (open: boolean) => {
-      if (!sounds || open === lastOpen.current) {
-        return
-      }
-      if (open) {
-        playOpen()
-      } else {
-        playClose()
-      }
-      lastOpen.current = open
-    },
-    [playClose, playOpen, sounds]
-  )
-
-  useEffect(() => {
-    if (!isControlled) {
-      return
-    }
-    playStateSound(props.open ?? false)
-  }, [isControlled, playStateSound, props.open])
-
-  const handleOpenChange = useCallback(
-    (open: boolean) => {
-      playStateSound(open)
-      onOpenChange?.(open)
-    },
-    [onOpenChange, playStateSound]
-  )
-
-  if (!sounds) {
-    return (
-      <DialogPrimitive.Root
-        data-slot="dialog"
-        onOpenChange={onOpenChange}
-        {...props}
-      />
-    )
-  }
-
-  return (
-    <DialogPrimitive.Root
-      data-slot="dialog"
-      onOpenChange={handleOpenChange}
-      {...props}
-    />
-  )
+}: React.ComponentProps<typeof DialogPrimitive.Root>) {
+  return <DialogPrimitive.Root data-slot="dialog" {...props} />
 }
 
 function DialogTrigger({
