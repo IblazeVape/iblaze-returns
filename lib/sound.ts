@@ -1,4 +1,5 @@
 import { defineSound, ensureReady } from "@web-kits/audio"
+import { isSoundEnabled } from "@/hooks/use-sound-toggle"
 
 // Two short, synthesized UI sounds (no audio files involved — @web-kits/audio
 // generates the waveform on the fly) for /marketing-four's nav interactions.
@@ -15,11 +16,13 @@ const open = defineSound({
 })
 
 export async function playClick() {
+  if (!isSoundEnabled()) return
   await ensureReady()
   click()
 }
 
 export async function playOpen() {
+  if (!isSoundEnabled()) return
   await ensureReady()
   open()
 }

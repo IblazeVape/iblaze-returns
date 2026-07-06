@@ -3,7 +3,7 @@ import Link from "next/link"
 import { ArrowUpRight, BookOpen, CalendarClock, Palette, SlidersHorizontal } from "lucide-react"
 import { MarketingTwoThemeProvider } from "@/components/marketing-two/theme-provider"
 import { MarketingFourNav } from "@/components/marketing-four/nav"
-import { MarketingFourFooter } from "@/components/marketing-four/footer"
+import { SiteFooter } from "@/components/marketing-four/site-footer"
 
 export const metadata: Metadata = {
   title: "Reflow — A returns portal for Shopify stores",
@@ -89,7 +89,7 @@ export default function MarketingFourPage() {
         </Link>
       </section>
 
-      <MarketingFourFooter />
+      <SiteFooter />
     </MarketingTwoThemeProvider>
   )
 }
