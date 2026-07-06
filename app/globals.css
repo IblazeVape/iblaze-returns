@@ -144,7 +144,7 @@ body:has(#marketing-three-root) {
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
-    --surface: 0 0% 98%;
+    --surface: 0 0% 97.3%;
     --surface-foreground: 0 0% 9%;
   }
 
@@ -235,13 +235,59 @@ body:has(#marketing-three-root) {
   }
 }
 
-/* /marketing-four's background matches StarterCN's real value (pure
-   white, not this project's own #FAFAFA house background) -- scoped to
-   this one page via .marketing-four-root so /marketing-two (which
-   shares the same theme provider) is unaffected. :not(.dark) keeps this
-   from fighting the .dark class's own --background override. */
+/* /marketing-four (and /docs, which shares the same theme provider via its
+   own layout) gets StarterCN's REAL color tokens, scoped via
+   .marketing-four-root so the rest of the app (dashboard, /marketing-two)
+   keeps its own house palette. Every value below was read directly off
+   the live site (getComputedStyle → canvas pixel readback, not computed
+   from oklch by hand) and converted to this project's HSL format, for
+   both light and dark -- this replaces several earlier partial/approximate
+   overrides (background, accent/muted, input) with a complete, verified
+   set covering every token StarterCN's real components reference. */
 .marketing-four-root:not(.dark) {
   --background: 0 0% 100%;
+  --foreground: 0 0% 3.9%;
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 3.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 3.9%;
+  --primary: 0 0% 9%;
+  --primary-foreground: 0 0% 98%;
+  --secondary: 0 0% 96.1%;
+  --secondary-foreground: 0 0% 9%;
+  --muted: 0 0% 96.1%;
+  --muted-foreground: 0 0% 45.1%;
+  --accent: 0 0% 96.1%;
+  --accent-foreground: 0 0% 9%;
+  --destructive: 357 100% 45.3%;
+  --ring: 0 0% 63.1%;
+  --surface: 0 0% 97.3%;
+  --surface-foreground: 0 0% 3.9%;
+  --border: 0 0% 89.8%;
+  --input: 0 0% 89.8%;
+}
+
+.marketing-four-root.dark {
+  --background: 0 0% 3.9%;
+  --foreground: 0 0% 98%;
+  --card: 0 0% 9%;
+  --card-foreground: 0 0% 98%;
+  --popover: 0 0% 14.9%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 0 0% 89.8%;
+  --primary-foreground: 0 0% 9%;
+  --secondary: 0 0% 14.9%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 0 0% 14.9%;
+  --muted-foreground: 0 0% 63.1%;
+  --accent: 0 0% 25.1%;
+  --accent-foreground: 0 0% 98%;
+  --destructive: 359 100% 69.6%;
+  --border: 180 1.4% 13.5%;
+  --input: 0 0% 18.4%;
+  --ring: 0 0% 45.1%;
+  --surface: 0 0% 8.6%;
+  --surface-foreground: 0 0% 63.1%;
 }
 
 /* ── Dialog keyframes ─────────────────────────────────────────────────────────

@@ -23,6 +23,7 @@ import {
   DialogTrigger,
 } from "@/components/marketing-four/ui/dialog"
 import { Kbd } from "@/components/marketing-four/ui/kbd"
+import { useMarketingTwoTheme } from "@/components/marketing-two/theme-provider"
 import { useFeedback } from "@/hooks/use-feedback"
 import { useIsMac } from "@/hooks/use-is-mac"
 import { getDocsNavItems } from "@/lib/marketing-four-docs"
@@ -46,6 +47,7 @@ export function CommandMenu({
 }) {
   const router = useRouter()
   const isMac = useIsMac()
+  const { dark } = useMarketingTwoTheme()
   const [open, setOpen] = useState(false)
   const playClick = useFeedback({ sound: "click" })
 
@@ -98,7 +100,10 @@ export function CommandMenu({
       </DialogTrigger>
       <DialogContent
         showCloseButton={false}
-        className="rounded-xl border-none bg-clip-padding p-2 pb-11 shadow-2xl ring-4 ring-neutral-200/80 dark:bg-neutral-900 dark:ring-neutral-800 sm:max-w-lg"
+        className={cn(
+          "marketing-four-root rounded-xl border-none bg-clip-padding p-2 pb-11 shadow-2xl ring-4 ring-neutral-200/80 dark:bg-neutral-900 dark:ring-neutral-800 sm:max-w-lg",
+          dark && "dark"
+        )}
       >
         <DialogHeader className="sr-only">
           <DialogTitle>Search documentation...</DialogTitle>
@@ -115,6 +120,7 @@ export function CommandMenu({
                 <CommandItem
                   key={item.href}
                   value={`Navigation ${item.label}`}
+                  className="data-[selected=true]:border-input data-[selected=true]:bg-input/50 h-9 rounded-md border border-transparent px-3! font-medium"
                   onSelect={() => runCommand(() => router.push(item.href))}
                 >
                   <ArrowRightIcon />
@@ -127,6 +133,7 @@ export function CommandMenu({
                 <CommandItem
                   key={page.url}
                   value={`Docs ${page.name}`}
+                  className="data-[selected=true]:border-input data-[selected=true]:bg-input/50 h-9 rounded-md border border-transparent px-3! font-medium"
                   onSelect={() => runCommand(() => router.push(page.url))}
                 >
                   <ArrowRightIcon />

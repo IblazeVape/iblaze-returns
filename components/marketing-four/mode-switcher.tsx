@@ -5,12 +5,15 @@ import { Button } from "@/components/marketing-four/ui/button"
 import { Kbd } from "@/components/marketing-four/ui/kbd"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/marketing-four/ui/tooltip"
 import { ThemeIcon } from "@/components/marketing-four/icons"
+import { useMarketingTwoTheme } from "@/components/marketing-two/theme-provider"
+import { cn } from "@/lib/utils"
 
 // Ported from shadcn-labs/startercn's ModeSwitcher (MIT — see NOTICE.md).
 // Their useThemeToggle (next-themes-backed) is now our own scoped version
 // (see hooks/use-theme-toggle.ts) — same trigger, tooltip, hotkey, icon.
 export function ModeSwitcher() {
   const { toggleTheme } = useThemeToggle()
+  const { dark } = useMarketingTwoTheme()
 
   return (
     <Tooltip>
@@ -26,7 +29,7 @@ export function ModeSwitcher() {
           <span className="sr-only">Toggle theme</span>
         </Button>
       </TooltipTrigger>
-      <TooltipContent className="pr-2 pl-3">
+      <TooltipContent className={cn("marketing-four-root pr-2 pl-3", dark && "dark")}>
         <div className="flex items-center gap-3">
           Toggle Mode
           <Kbd>D</Kbd>

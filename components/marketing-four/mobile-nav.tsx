@@ -8,6 +8,7 @@ import { useCallback, useState } from "react"
 
 import { Button } from "@/components/marketing-four/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/marketing-four/ui/popover"
+import { useMarketingTwoTheme } from "@/components/marketing-two/theme-provider"
 import { ROUTES } from "@/constants/routes"
 import { useFeedback } from "@/hooks/use-feedback"
 import { getDocsNavItems } from "@/lib/marketing-four-docs"
@@ -80,6 +81,7 @@ export function MobileNav({
   className?: string
 }) {
   const [open, setOpen] = useState(false)
+  const { dark } = useMarketingTwoTheme()
   const docsPages = getDocsNavItems(tree)
 
   return (
@@ -113,7 +115,10 @@ export function MobileNav({
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className="h-[var(--radix-popper-available-height)] w-[var(--radix-popper-available-width)] overflow-y-auto rounded-none border-none bg-background/90 p-0 shadow-none backdrop-blur duration-100"
+        className={cn(
+          "marketing-four-root h-[var(--radix-popper-available-height)] w-[var(--radix-popper-available-width)] overflow-y-auto rounded-none border-none bg-background/90 p-0 shadow-none backdrop-blur duration-100",
+          dark && "dark"
+        )}
         align="start"
         side="bottom"
         alignOffset={-16}

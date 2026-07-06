@@ -22,10 +22,12 @@ import {
 import { Kbd } from "@/components/marketing-four/ui/kbd"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/marketing-four/ui/popover"
 import { Toggle } from "@/components/marketing-four/ui/toggle"
+import { useMarketingTwoTheme } from "@/components/marketing-two/theme-provider"
 import { useHapticsEnabled } from "@/hooks/use-haptic-toggle"
 import { useIsMac } from "@/hooks/use-is-mac"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { useSoundEnabled } from "@/hooks/use-sound-toggle"
+import { cn } from "@/lib/utils"
 
 // Ported from shadcn-labs/startercn's SiteSettings (MIT — see NOTICE.md):
 // same Drawer-on-mobile / Popover-on-desktop split, same animated icons,
@@ -34,6 +36,7 @@ export function SiteSettings() {
   const volumeIconRef = useRef<Volume2IconHandle>(null)
   const vibrateIconRef = useRef<VibrateIconHandle>(null)
   const [isOpen, setIsOpen] = useState(false)
+  const { dark } = useMarketingTwoTheme()
   const isMobile = useIsMobile()
   const isMac = useIsMac()
   const [soundEnabled, setSoundEnabled] = useSoundEnabled()
@@ -121,7 +124,7 @@ export function SiteSettings() {
       {isMobile ? (
         <Drawer open={isOpen} onOpenChange={setIsOpen} sounds>
           <DrawerTrigger asChild>{trigger}</DrawerTrigger>
-          <DrawerContent>
+          <DrawerContent className={cn("marketing-four-root", dark && "dark")}>
             <DrawerHeader>
               <DrawerTitle>Settings</DrawerTitle>
               <DrawerDescription>Manage site preferences</DrawerDescription>
@@ -137,7 +140,7 @@ export function SiteSettings() {
       ) : (
         <Popover open={isOpen} onOpenChange={setIsOpen} sounds>
           <PopoverTrigger asChild>{trigger}</PopoverTrigger>
-          <PopoverContent className="w-fit p-1">{content}</PopoverContent>
+          <PopoverContent className={cn("marketing-four-root w-fit p-1", dark && "dark")}>{content}</PopoverContent>
         </Popover>
       )}
     </>

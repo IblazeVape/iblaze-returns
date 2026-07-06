@@ -13,6 +13,7 @@ import {
   ContextMenuTrigger,
 } from "@/components/marketing-four/ui/context-menu"
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard"
+import { cn } from "@/lib/utils"
 
 // Ported from shadcn-labs/startercn's BrandContextMenu (MIT — see
 // NOTICE.md). Their version reads next-themes' resolvedTheme; this reads
@@ -46,7 +47,7 @@ export function BrandContextMenu({ children }: { children: React.ReactNode }) {
     <ContextMenu>
       <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
 
-      <ContextMenuContent>
+      <ContextMenuContent className={cn("marketing-four-root", dark && "dark")}>
         <ContextMenuItem onClick={handleCopy}>
           <LogoMark />
           Copy as SVG

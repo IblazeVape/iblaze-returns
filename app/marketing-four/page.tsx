@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { ArrowUpRight, BookOpen, CalendarClock, Palette, SlidersHorizontal } from "lucide-react"
 import { MarketingTwoThemeProvider } from "@/components/marketing-two/theme-provider"
+import { HomeCtas } from "@/components/marketing-four/home-ctas"
 import { MarketingFourNav } from "@/components/marketing-four/nav"
 import { SiteFooter } from "@/components/marketing-four/site-footer"
 
@@ -46,20 +47,7 @@ export default function MarketingFourPage() {
           A branded, self-serve returns portal for your Shopify store. Fork it
           for your own brand, configure it, and go live.
         </p>
-        <div className="mt-6 flex items-center gap-3">
-          <Link
-            href="/demo"
-            className="flex h-10 items-center gap-1.5 rounded-md bg-zinc-900 px-5 text-sm font-medium text-white transition-colors hover:bg-zinc-800"
-          >
-            Try the demo <ArrowUpRight className="size-4" />
-          </Link>
-          <Link
-            href="/docs"
-            className="flex h-10 items-center rounded-md border px-5 text-sm font-medium transition-colors hover:bg-muted"
-          >
-            Read the docs
-          </Link>
-        </div>
+        <HomeCtas className="mt-6" />
       </section>
 
       <section className="mx-auto max-w-5xl border-t px-4 py-16 sm:px-6">
