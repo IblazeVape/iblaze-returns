@@ -7,7 +7,13 @@ const ThemeContext = createContext<{ dark: boolean; toggle: () => void } | null>
 
 const STORAGE_KEY = "marketing-two-theme"
 
-export function MarketingTwoThemeProvider({ children }: { children: React.ReactNode }) {
+export function MarketingTwoThemeProvider({
+  children,
+  className,
+}: {
+  children: React.ReactNode
+  className?: string
+}) {
   const [dark, setDark] = useState(false)
 
   useEffect(() => {
@@ -22,7 +28,11 @@ export function MarketingTwoThemeProvider({ children }: { children: React.ReactN
     <ThemeContext.Provider value={{ dark, toggle: () => setDark((d) => !d) }}>
       <div
         id="marketing-two-root"
-        className={cn("min-h-[100dvh] scroll-smooth bg-background text-foreground antialiased", dark && "dark")}
+        className={cn(
+          "min-h-[100dvh] scroll-smooth bg-background text-foreground antialiased",
+          dark && "dark",
+          className
+        )}
       >
         {children}
       </div>

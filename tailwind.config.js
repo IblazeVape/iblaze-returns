@@ -10,6 +10,16 @@ module.exports = {
   theme: {
     container: { center: true, padding: "2rem", screens: { "2xl": "1400px" } },
     extend: {
+      // Tailwind v4 computes spacing/size utilities dynamically (any
+      // numeric value works via a CSS multiplier), so `size-4.5` "just
+      // works" there. Tailwind v3 (this project) uses a fixed spacing
+      // map with a gap between 4 and 5 -- `size-4.5` silently produced no
+      // CSS at all here, so icons using it (copied verbatim from a v4
+      // source) rendered unstyled at their raw SVG size instead of the
+      // intended 1.125rem/18px.
+      spacing: {
+        "4.5": "1.125rem",
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",

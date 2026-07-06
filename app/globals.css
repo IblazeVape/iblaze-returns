@@ -235,6 +235,15 @@ body:has(#marketing-three-root) {
   }
 }
 
+/* /marketing-four's background matches StarterCN's real value (pure
+   white, not this project's own #FAFAFA house background) -- scoped to
+   this one page via .marketing-four-root so /marketing-two (which
+   shares the same theme provider) is unaffected. :not(.dark) keeps this
+   from fighting the .dark class's own --background override. */
+.marketing-four-root:not(.dark) {
+  --background: 0 0% 100%;
+}
+
 /* ── Dialog keyframes ─────────────────────────────────────────────────────────
    dialog.tsx references [animation:dialog-show ...] / [animation:dialog-hide ...].
    These MUST be defined as real @keyframes, otherwise Radix never receives the

@@ -35,7 +35,7 @@ const FEATURES = [
 
 export default function MarketingFourPage() {
   return (
-    <MarketingTwoThemeProvider>
+    <MarketingTwoThemeProvider className="marketing-four-root">
       <MarketingFourNav />
 
       <section className="mx-auto flex max-w-4xl flex-col items-center px-4 py-20 text-center sm:px-6 md:py-28">
