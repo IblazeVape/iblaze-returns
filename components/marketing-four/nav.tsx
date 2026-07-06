@@ -1,5 +1,3 @@
-"use client"
-
 import Link from "next/link"
 
 import { BrandContextMenu } from "@/components/marketing-four/brand-context-menu"
@@ -17,6 +15,10 @@ import { source } from "@/lib/source"
 // exactly (the previous version of this file had both, which was drift
 // from a hand-adaptation rather than a real port). GitHub-stars and
 // Sponsor nav items are not ported (no equivalent in this product).
+// No "use client" here, matching StarterCN's real SiteHeader: this
+// component only composes other components (each already marked "use
+// client" where they need hooks) and reads `source.pageTree`, which uses
+// Node-only fumadocs APIs that must stay in a Server Component.
 const navItems = [{ href: ROUTES.DOCS, label: "Docs" }]
 
 export function MarketingFourNav() {
