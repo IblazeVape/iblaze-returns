@@ -1,9 +1,9 @@
 "use client"
 
 import { useThemeToggle } from "@/hooks/use-theme-toggle"
-import { Button } from "@/components/ui/button"
-import { Kbd } from "@/components/ui/kbd"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { Button } from "@/components/marketing-four/ui/button"
+import { Kbd } from "@/components/marketing-four/ui/kbd"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/marketing-four/ui/tooltip"
 import { ThemeIcon } from "@/components/marketing-four/icons"
 
 // Ported from shadcn-labs/startercn's ModeSwitcher (MIT — see NOTICE.md).
@@ -18,7 +18,7 @@ export function ModeSwitcher() {
         <Button
           variant="ghost"
           size="icon"
-          className="size-8"
+          className="group/toggle extend-touch-target size-8"
           onClick={toggleTheme}
           title="Toggle theme"
         >

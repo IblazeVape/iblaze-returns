@@ -5,7 +5,7 @@ import { ArrowRightIcon, CornerDownLeftIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useState } from "react"
 
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/marketing-four/ui/button"
 import {
   Command,
   CommandEmpty,
@@ -13,7 +13,7 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "@/components/ui/command"
+} from "@/components/marketing-four/ui/command"
 import {
   Dialog,
   DialogContent,
@@ -21,8 +21,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
-import { Kbd } from "@/components/ui/kbd"
+} from "@/components/marketing-four/ui/dialog"
+import { Kbd } from "@/components/marketing-four/ui/kbd"
 import { useFeedback } from "@/hooks/use-feedback"
 import { useIsMac } from "@/hooks/use-is-mac"
 import { getDocsNavItems } from "@/lib/marketing-four-docs"
@@ -85,7 +85,7 @@ export function CommandMenu({
           variant="secondary"
           onClick={() => setOpen(true)}
           className={cn(
-            "relative h-8 w-full justify-start bg-muted/40 pl-2.5 font-normal text-muted-foreground shadow-none focus-visible:border-input focus-visible:ring-0 sm:pr-12 md:w-40 lg:w-56 xl:w-64"
+            "bg-surface text-surface-foreground/60 dark:bg-card relative h-8 w-full justify-start pl-2.5 font-normal shadow-none sm:pr-12 md:w-40 lg:w-56 xl:w-64"
           )}
         >
           <span className="hidden lg:inline-flex">Search documentation...</span>
@@ -98,7 +98,7 @@ export function CommandMenu({
       </DialogTrigger>
       <DialogContent
         showCloseButton={false}
-        className="rounded-xl border-none bg-clip-padding p-2 pb-11 shadow-2xl ring-4 ring-neutral-200/80 dark:bg-neutral-900 dark:ring-neutral-800"
+        className="rounded-xl border-none bg-clip-padding p-2 pb-11 shadow-2xl ring-4 ring-neutral-200/80 dark:bg-neutral-900 dark:ring-neutral-800 sm:max-w-lg"
       >
         <DialogHeader className="sr-only">
           <DialogTitle>Search documentation...</DialogTitle>

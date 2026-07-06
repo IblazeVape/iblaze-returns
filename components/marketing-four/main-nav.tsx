@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/marketing-four/ui/button"
 import { cn } from "@/lib/utils"
 
 // Ported from shadcn-labs/startercn's MainNav (MIT — see NOTICE.md).

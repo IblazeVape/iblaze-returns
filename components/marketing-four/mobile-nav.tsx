@@ -6,8 +6,8 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCallback, useState } from "react"
 
-import { Button } from "@/components/ui/button"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Button } from "@/components/marketing-four/ui/button"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/marketing-four/ui/popover"
 import { ROUTES } from "@/constants/routes"
 import { useFeedback } from "@/hooks/use-feedback"
 import { getDocsNavItems } from "@/lib/marketing-four-docs"
@@ -88,7 +88,7 @@ export function MobileNav({
         <Button
           variant="ghost"
           className={cn(
-            "h-8 touch-manipulation items-center justify-start gap-2.5 !p-0 hover:bg-transparent focus-visible:bg-transparent focus-visible:ring-0 active:bg-transparent dark:hover:bg-transparent",
+            "extend-touch-target h-8 touch-manipulation items-center justify-start gap-2.5 !p-0 hover:bg-transparent focus-visible:bg-transparent focus-visible:ring-0 active:bg-transparent dark:hover:bg-transparent",
             className
           )}
         >

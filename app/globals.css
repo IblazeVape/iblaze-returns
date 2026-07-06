@@ -144,6 +144,8 @@ body:has(#marketing-three-root) {
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    --surface: 0 0% 98%;
+    --surface-foreground: 0 0% 9%;
   }
 
   /* Forces the light palette for light-themed "screenshot" previews
@@ -210,6 +212,28 @@ body:has(#marketing-three-root) {
 /* Tailwind v3 compatibility fixes */
 .min-h-svh { min-height: 100svh; }
 .h-svh { height: 100svh; }
+
+/* Tailwind v4 utility-name shims — this project runs Tailwind v3, but
+   components/marketing-four/ui/* are copied verbatim from
+   shadcn-labs/startercn (a Tailwind v4 project). These classes don't exist
+   in v3 by default and silently no-op without this shim (e.g. a missing
+   `outline-hidden` left the browser's native focus ring visible). Defining
+   them here lets StarterCN's real files be copied in unmodified. */
+.outline-hidden { outline: 2px solid transparent; outline-offset: 2px; }
+.shadow-xs { box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+.extend-touch-target {
+  @media (pointer: coarse) {
+    position: relative;
+    touch-action: manipulation;
+  }
+}
+.extend-touch-target::after {
+  @media (pointer: coarse) {
+    content: "";
+    position: absolute;
+    inset: -0.5rem;
+  }
+}
 
 /* ── Dialog keyframes ─────────────────────────────────────────────────────────
    dialog.tsx references [animation:dialog-show ...] / [animation:dialog-hide ...].

@@ -8,7 +8,7 @@ import type { VibrateIconHandle } from "@/components/animated-icons/vibrate"
 import { VibrateIcon } from "@/components/animated-icons/vibrate"
 import type { Volume2IconHandle } from "@/components/animated-icons/volume-2"
 import { Volume2Icon } from "@/components/animated-icons/volume-2"
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/marketing-four/ui/button"
 import {
   Drawer,
   DrawerClose,
@@ -18,10 +18,10 @@ import {
   DrawerHeader,
   DrawerTitle,
   DrawerTrigger,
-} from "@/components/ui/drawer"
-import { Kbd } from "@/components/ui/kbd"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Toggle } from "@/components/ui/toggle"
+} from "@/components/marketing-four/ui/drawer"
+import { Kbd } from "@/components/marketing-four/ui/kbd"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/marketing-four/ui/popover"
+import { Toggle } from "@/components/marketing-four/ui/toggle"
 import { useHapticsEnabled } from "@/hooks/use-haptic-toggle"
 import { useIsMac } from "@/hooks/use-is-mac"
 import { useIsMobile } from "@/hooks/use-mobile"
@@ -72,7 +72,7 @@ export function SiteSettings() {
   }
 
   const trigger = (
-    <Button variant="ghost" size="icon" className="size-8" aria-label="Settings">
+    <Button variant="ghost" size="icon" className="group/settings extend-touch-target size-8" aria-label="Settings">
       <SettingsIcon />
     </Button>
   )
