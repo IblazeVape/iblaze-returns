@@ -1,8 +1,9 @@
 "use client"
 
+import type { Root as PageTreeRoot } from "fumadocs-core/page-tree"
 import { ArrowRightIcon, CornerDownLeftIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -22,40 +23,42 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Kbd } from "@/components/ui/kbd"
+import { useFeedback } from "@/hooks/use-feedback"
 import { useIsMac } from "@/hooks/use-is-mac"
-import { playClick } from "@/lib/sound"
-import { triggerHaptic } from "@/lib/haptics"
+import { getDocsNavItems } from "@/lib/marketing-four-docs"
 import { cn } from "@/lib/utils"
 
-// Ported from shadcn-labs/startercn components/command-menu.tsx (MIT — see
-// NOTICE.md): same trigger button, Dialog/Command layout, Kbd positioning,
-// and bottom hint bar. Their page-tree-driven component/block/theme groups
-// are replaced with a flat "Pages" + "Docs" list, since we don't have a
-// component registry to browse. bg-surface (their custom token) isn't in
-// our design system, so it's substituted with bg-muted/40.
+// Ported from shadcn-labs/startercn's CommandMenu (MIT — see NOTICE.md).
+// Their page-tree-driven component/block/theme groups and shadcn-registry
+// "copy install command" feature (SITE.REGISTRY, usePackageManager,
+// trackEvent) are not ported — no component registry in this product.
+// The "Docs" group now reads the real docs tree via getDocsNavItems
+// instead of a hardcoded list.
 const GROUP_HEADING_CLS =
   "!p-0 [&_[cmdk-group-heading]]:scroll-mt-16 [&_[cmdk-group-heading]]:!p-3 [&_[cmdk-group-heading]]:!pb-1"
 
-const PAGES = [{ href: "/marketing-four", label: "Home" }]
-
-const DOCS = [
-  { href: "/docs", label: "Welcome" },
-  { href: "/docs/installation", label: "Installation" },
-  { href: "/docs/customization", label: "Customization" },
-  { href: "/docs/faq", label: "FAQ" },
-]
-
-export function CommandMenu() {
+export function CommandMenu({
+  navItems,
+  tree,
+}: {
+  navItems: { href: string; label: string }[]
+  tree: PageTreeRoot
+}) {
   const router = useRouter()
   const isMac = useIsMac()
   const [open, setOpen] = useState(false)
+  const playClick = useFeedback({ sound: "click" })
 
-  const runCommand = useCallback((command: () => unknown) => {
-    setOpen(false)
-    void playClick()
-    triggerHaptic("selection")
-    command()
-  }, [])
+  const docsPages = useMemo(() => getDocsNavItems(tree), [tree])
+
+  const runCommand = useCallback(
+    (command: () => unknown) => {
+      setOpen(false)
+      playClick()
+      command()
+    },
+    [playClick]
+  )
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -76,13 +79,13 @@ export function CommandMenu() {
   }, [])
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={setOpen} sounds>
       <DialogTrigger asChild>
         <Button
           variant="secondary"
           onClick={() => setOpen(true)}
           className={cn(
-            "relative h-8 w-full justify-start bg-muted/40 pl-2.5 font-normal text-muted-foreground shadow-none focus-visible:border-input focus-visible:ring-0 sm:pr-12 md:w-40 lg:w-56 xl:w-64",
+            "relative h-8 w-full justify-start bg-muted/40 pl-2.5 font-normal text-muted-foreground shadow-none focus-visible:border-input focus-visible:ring-0 sm:pr-12 md:w-40 lg:w-56 xl:w-64"
           )}
         >
           <span className="hidden lg:inline-flex">Search documentation...</span>
@@ -108,7 +111,7 @@ export function CommandMenu() {
               No results found.
             </CommandEmpty>
             <CommandGroup heading="Pages" className={GROUP_HEADING_CLS}>
-              {PAGES.map((item) => (
+              {navItems.map((item) => (
                 <CommandItem
                   key={item.href}
                   value={`Navigation ${item.label}`}
@@ -120,14 +123,14 @@ export function CommandMenu() {
               ))}
             </CommandGroup>
             <CommandGroup heading="Docs" className={GROUP_HEADING_CLS}>
-              {DOCS.map((item) => (
+              {docsPages.map((page) => (
                 <CommandItem
-                  key={item.href}
-                  value={`Docs ${item.label}`}
-                  onSelect={() => runCommand(() => router.push(item.href))}
+                  key={page.url}
+                  value={`Docs ${page.name}`}
+                  onSelect={() => runCommand(() => router.push(page.url))}
                 >
                   <ArrowRightIcon />
-                  {item.label}
+                  {page.name}
                 </CommandItem>
               ))}
             </CommandGroup>
