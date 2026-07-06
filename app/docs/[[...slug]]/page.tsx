@@ -3,6 +3,8 @@ import type { Metadata } from "next"
 import { source } from "@/lib/source"
 import { DocsSidebar, type DocsNavItem } from "@/components/docs-sidebar"
 import { DocsToc } from "@/components/docs-toc"
+import { DocsCopyPage } from "@/components/docs-copy-page"
+import { DocsPager } from "@/components/docs-pager"
 import { useMDXComponents } from "@/mdx-components"
 
 interface DocsPageProps {
@@ -38,6 +40,10 @@ export default async function DocsPage({ params }: DocsPageProps) {
   // even though it's fine at runtime.
   const MDX = page.data.body as unknown as (props: { components: Record<string, React.ComponentType<any>> }) => React.ReactElement
   const navItems = getNavItems()
+  const currentIndex = navItems.findIndex((item) => item.url === page.url)
+  const prev = currentIndex > 0 ? navItems[currentIndex - 1] : null
+  const next = currentIndex >= 0 && currentIndex < navItems.length - 1 ? navItems[currentIndex + 1] : null
+  const markdown = await page.data.getText("raw")
 
   return (
     <div className="mx-auto flex w-full max-w-6xl gap-10 px-4 py-10 sm:px-6">
@@ -47,13 +53,19 @@ export default async function DocsPage({ params }: DocsPageProps) {
         </div>
       </aside>
       <main className="min-w-0 flex-1 pb-20">
-        <h1 className="text-3xl font-bold tracking-tight">{page.data.title}</h1>
-        {page.data.description && (
-          <p className="mt-2 text-muted-foreground">{page.data.description}</p>
-        )}
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">{page.data.title}</h1>
+            {page.data.description && (
+              <p className="mt-2 text-muted-foreground">{page.data.description}</p>
+            )}
+          </div>
+          <DocsCopyPage markdown={markdown} />
+        </div>
         <div className="mt-8">
           <MDX components={useMDXComponents({})} />
         </div>
+        <DocsPager prev={prev} next={next} />
       </main>
       {page.data.toc.length > 0 && (
         <aside className="hidden w-48 shrink-0 xl:block">

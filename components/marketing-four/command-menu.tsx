@@ -82,7 +82,7 @@ export function CommandMenu() {
           variant="secondary"
           onClick={() => setOpen(true)}
           className={cn(
-            "relative h-8 w-full justify-start bg-muted/40 pl-2.5 font-normal text-muted-foreground shadow-none sm:pr-12 md:w-40 lg:w-56 xl:w-64",
+            "relative h-8 w-full justify-start bg-muted/40 pl-2.5 font-normal text-muted-foreground shadow-none focus-visible:border-input focus-visible:ring-0 sm:pr-12 md:w-40 lg:w-56 xl:w-64",
           )}
         >
           <span className="hidden lg:inline-flex">Search documentation...</span>
