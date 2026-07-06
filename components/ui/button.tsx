@@ -2,7 +2,6 @@ import * as React from "react"
 import { Slot as SlotPrimitive } from "radix-ui"
 import { cva, type VariantProps } from "class-variance-authority"
 
-import { useFeedback, type FeedbackType } from "@/hooks/use-feedback"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
@@ -14,7 +13,7 @@ const buttonVariants = cva(
         destructive:
           "bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
         outline:
-          "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50",
+          "border bg-background shadow-sm hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50",
         secondary:
           "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost:
@@ -42,23 +41,12 @@ function Button({
   variant = "default",
   size = "default",
   asChild = false,
-  sound,
-  haptic,
-  onClick,
   ...props
 }: React.ComponentProps<"button"> &
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean
-    sound?: FeedbackType
-    haptic?: boolean
   }) {
-  const play = useFeedback({ sound, haptic })
   const Comp = asChild ? SlotPrimitive.Slot : "button"
-
-  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-    play()
-    onClick?.(e)
-  }
 
   return (
     <Comp
@@ -66,7 +54,6 @@ function Button({
       data-variant={variant}
       data-size={size}
       className={cn(buttonVariants({ variant, size, className }))}
-      onClick={handleClick}
       {...props}
     />
   )
