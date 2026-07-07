@@ -24,32 +24,32 @@ const MarketingPage = () => {
         <div
             id="marketing-root"
             className={cn(
-                "min-h-[100dvh] bg-background text-foreground font-default overflow-x-hidden scrollbar-hide",
+                "min-h-dvh bg-background text-foreground font-default overflow-x-hidden scrollbar-hide",
                 aeonik.variable,
                 inter.variable,
             )}
         >
-            <div id="home" className="absolute inset-0 bg-[linear-gradient(to_right,#161616_1px,transparent_1px),linear-gradient(to_bottom,#161616_1px,transparent_1px)] bg-[size:3rem_3rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)] h-full" />
+            <div id="home" className="absolute inset-0 bg-[linear-gradient(to_right,#161616_1px,transparent_1px),linear-gradient(to_bottom,#161616_1px,transparent_1px)] bg-size-[3rem_3rem] mask-[radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)] h-full" />
             <Navbar />
             <main className="mt-20 mx-auto w-full z-0 relative">
 
                 {/* Hero Section */}
                 <MaxWidthWrapper>
-                    <div className="flex flex-col items-center justify-center w-full text-center bg-gradient-to-t from-background">
+                    <div className="flex flex-col items-center justify-center w-full text-center bg-linear-to-t from-background">
                         <AnimationContainer className="flex flex-col items-center justify-center w-full text-center">
                             <button className="group relative grid overflow-hidden rounded-full px-4 py-1 shadow-[0_1000px_0_0_hsl(0_0%_20%)_inset] transition-colors duration-200">
                                 <span>
-                                    <span className="spark mask-gradient absolute inset-0 h-[100%] w-[100%] animate-flip overflow-hidden rounded-full [mask:linear-gradient(white,_transparent_50%)] before:absolute before:aspect-square before:w-[200%] before:rotate-[-90deg] before:animate-rotate before:bg-[conic-gradient(from_0deg,transparent_0_340deg,white_360deg)] before:content-[''] before:[inset:0_auto_auto_50%] before:[translate:-50%_-15%]" />
+                                    <span className="spark mask-gradient absolute inset-0 h-full w-full animate-flip overflow-hidden rounded-full [mask:linear-gradient(white,transparent_50%)] before:absolute before:aspect-square before:w-[200%] before:-rotate-90 before:animate-rotate before:bg-[conic-gradient(from_0deg,transparent_0_340deg,white_360deg)] before:content-[''] before:inset-[0_auto_auto_50%] before:[translate:-50%_-15%]" />
                                 </span>
-                                <span className="backdrop absolute inset-[1px] rounded-full bg-neutral-950 transition-colors duration-200 group-hover:bg-neutral-900" />
-                                <span className="h-full w-full blur-md absolute bottom-0 inset-x-0 bg-gradient-to-tr from-primary/20"></span>
+                                <span className="backdrop absolute inset-px rounded-full bg-neutral-950 transition-colors duration-200 group-hover:bg-neutral-900" />
+                                <span className="h-full w-full blur-md absolute bottom-0 inset-x-0 bg-linear-to-tr from-primary/20"></span>
                                 <span className="z-10 py-0.5 text-sm text-neutral-100 flex items-center justify-center gap-1">
                                     ✨ Manage returns smarter
                                     <ArrowRightIcon className="ml-1 size-3 transition-transform duration-300 ease-in-out group-hover:translate-x-0.5" />
                                 </span>
                             </button>
-                            <h1 className="text-foreground text-center py-6 text-5xl font-medium tracking-normal text-balance sm:text-6xl md:text-7xl lg:text-8xl !leading-[1.15] w-full font-heading">
-                                Smart Returns with <span className="text-transparent bg-gradient-to-r from-violet-500 to-fuchsia-500 bg-clip-text inline-bloc">
+                            <h1 className="text-foreground text-center py-6 text-5xl font-medium tracking-normal text-balance sm:text-6xl md:text-7xl lg:text-8xl leading-[1.15]! w-full font-heading">
+                                Smart Returns with <span className="text-transparent bg-linear-to-r from-violet-500 to-fuchsia-500 bg-clip-text inline-bloc">
                                     Precision
                                 </span>
                             </h1>
@@ -86,8 +86,8 @@ const MarketingPage = () => {
                                     quality={100}
                                     className="rounded-md lg:rounded-xl bg-foreground/10 ring-1 ring-border"
                                 />
-                                <div className="absolute -bottom-4 inset-x-0 w-full h-1/2 bg-gradient-to-t from-background z-40"></div>
-                                <div className="absolute bottom-0 md:-bottom-8 inset-x-0 w-full h-1/4 bg-gradient-to-t from-background z-50"></div>
+                                <div className="absolute -bottom-4 inset-x-0 w-full h-1/2 bg-linear-to-t from-background z-40"></div>
+                                <div className="absolute bottom-0 md:-bottom-8 inset-x-0 w-full h-1/4 bg-linear-to-t from-background z-50"></div>
                             </div>
                         </AnimationContainer>
                     </div>
@@ -98,7 +98,7 @@ const MarketingPage = () => {
                     <AnimationContainer delay={0.1}>
                         <div id="features" className="flex flex-col w-full items-center lg:items-center justify-center py-8 scroll-mt-24">
                             <MagicBadge title="Features" />
-                            <h2 className="text-center lg:text-center text-3xl md:text-5xl !leading-[1.1] font-medium font-heading text-foreground mt-6">
+                            <h2 className="text-center lg:text-center text-3xl md:text-5xl leading-[1.1]! font-medium font-heading text-foreground mt-6">
                                 Manage Returns Like a Pro
                             </h2>
                             <p className="mt-4 text-center lg:text-center text-lg text-muted-foreground max-w-lg">
@@ -120,7 +120,7 @@ const MarketingPage = () => {
                     <AnimationContainer delay={0.1}>
                         <div className="flex flex-col items-center lg:items-center justify-center w-full py-8 max-w-xl mx-auto">
                             <MagicBadge title="The Process" />
-                            <h2 className="text-center lg:text-center text-3xl md:text-5xl !leading-[1.1] font-medium font-heading text-foreground mt-6">
+                            <h2 className="text-center lg:text-center text-3xl md:text-5xl leading-[1.1]! font-medium font-heading text-foreground mt-6">
                                 Effortless returns management in 3 steps
                             </h2>
                             <p className="mt-4 text-center lg:text-center text-lg text-muted-foreground max-w-lg">
@@ -157,7 +157,7 @@ const MarketingPage = () => {
                     <AnimationContainer delay={0.1}>
                         <div id="pricing" className="flex flex-col items-center lg:items-center justify-center w-full py-8 max-w-xl mx-auto scroll-mt-24">
                             <MagicBadge title="Simple Pricing" />
-                            <h2 className="text-center lg:text-center text-3xl md:text-5xl !leading-[1.1] font-medium font-heading text-foreground mt-6">
+                            <h2 className="text-center lg:text-center text-3xl md:text-5xl leading-[1.1]! font-medium font-heading text-foreground mt-6">
                                 Choose a plan that works for you
                             </h2>
                             <p className="mt-4 text-center lg:text-center text-lg text-muted-foreground max-w-lg">
@@ -185,7 +185,7 @@ const MarketingPage = () => {
                     <AnimationContainer delay={0.1}>
                         <div className="flex flex-col items-center lg:items-center justify-center w-full py-8 max-w-xl mx-auto">
                             <MagicBadge title="Our Customers" />
-                            <h2 className="text-center lg:text-center text-3xl md:text-5xl !leading-[1.1] font-medium font-heading text-foreground mt-6">
+                            <h2 className="text-center lg:text-center text-3xl md:text-5xl leading-[1.1]! font-medium font-heading text-foreground mt-6">
                                 What our users are saying
                             </h2>
                             <p className="mt-4 text-center lg:text-center text-lg text-muted-foreground max-w-lg">
@@ -286,7 +286,7 @@ const MarketingPage = () => {
                     <AnimationContainer delay={0.1}>
                         <LampContainer>
                             <div className="flex flex-col items-center justify-center relative w-full text-center">
-                                <h2 className="bg-gradient-to-b from-neutral-200 to-neutral-400 py-4 bg-clip-text text-center text-4xl md:text-7xl !leading-[1.15] font-medium font-heading tracking-tight text-transparent mt-8">
+                                <h2 className="bg-linear-to-b from-neutral-200 to-neutral-400 py-4 bg-clip-text text-center text-4xl md:text-7xl leading-[1.15]! font-medium font-heading tracking-tight text-transparent mt-8">
                                     Step into the future of returns management
                                 </h2>
                                 <p className="text-muted-foreground mt-6 max-w-md mx-auto">

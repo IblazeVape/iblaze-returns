@@ -29,7 +29,7 @@ export function MarketingTwoThemeProvider({
       <div
         id="marketing-two-root"
         className={cn(
-          "min-h-[100dvh] scroll-smooth bg-background text-foreground antialiased",
+          "min-h-dvh scroll-smooth bg-background text-foreground antialiased",
           dark && "dark",
           className
         )}

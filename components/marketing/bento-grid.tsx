@@ -21,7 +21,7 @@ export const CARDS = [
     cta: "Learn more",
     className: "col-span-3 lg:col-span-1",
     background: (
-      <Card className="absolute top-8 left-8 origin-top rounded-none rounded-tl-md transition-all duration-300 ease-out [mask-image:linear-gradient(to_top,transparent_40%,#000_85%)] group-hover:scale-105 border border-border border-r-0">
+      <Card className="absolute top-8 left-8 origin-top rounded-none rounded-tl-md transition-all duration-300 ease-out mask-[linear-gradient(to_top,transparent_40%,#000_85%)] group-hover:scale-105 border border-border border-r-0">
         <CardHeader>
           <CardTitle>
             Portal designer
@@ -65,7 +65,7 @@ export const CARDS = [
     cta: "Learn more",
     className: "col-span-3 lg:col-span-2",
     background: (
-      <div className="absolute right-6 top-8 w-[80%] origin-top translate-x-0 rounded-lg border border-border bg-background transition-all duration-300 ease-out [mask-image:linear-gradient(to_top,transparent_40%,#000_75%)] group-hover:-translate-x-10 p-2 sm:right-10 sm:w-[70%]">
+      <div className="absolute right-6 top-8 w-[80%] origin-top translate-x-0 rounded-lg border border-border bg-background transition-all duration-300 ease-out mask-[linear-gradient(to_top,transparent_40%,#000_75%)] group-hover:-translate-x-10 p-2 sm:right-10 sm:w-[70%]">
         <Input placeholder="Search your orders..." />
         <div className="mt-1 cursor-pointer text-sm">
           <div className="flex items-center justify-between px-4 py-2 hover:bg-muted rounded-md">
@@ -99,7 +99,7 @@ export const CARDS = [
     // hidden below lg instead of trying to scale a ref-measured AnimatedBeam
     // layout down proportionally.
     background: (
-      <ShopifyConnect className="absolute right-2 top-4 hidden h-[300px] w-[600px] border-none transition-all duration-300 ease-out [mask-image:linear-gradient(to_top,transparent_40%,#000_75%)] group-hover:scale-105 lg:block" />
+      <ShopifyConnect className="absolute right-2 top-4 hidden h-[300px] w-[600px] border-none transition-all duration-300 ease-out mask-[linear-gradient(to_top,transparent_40%,#000_75%)] group-hover:scale-105 lg:block" />
     ),
   },
   {
@@ -113,7 +113,7 @@ export const CARDS = [
       <Calendar
         mode="single"
         selected={new Date(2026, 5, 26, 0, 0, 0)}
-        className="absolute right-0 top-8 origin-top scale-90 rounded-md border border-border transition-all duration-300 ease-out [mask-image:linear-gradient(to_top,transparent_40%,#000_85%)] group-hover:scale-100 sm:scale-100"
+        className="absolute right-0 top-8 origin-top scale-90 rounded-md border border-border transition-all duration-300 ease-out mask-[linear-gradient(to_top,transparent_40%,#000_85%)] group-hover:scale-100 sm:scale-100"
       />
     ),
   },
@@ -129,7 +129,7 @@ const BentoGrid = ({
   return (
     <div
       className={cn(
-        "grid w-full auto-rows-[26rem] grid-cols-3 gap-5 sm:gap-6",
+        "grid w-full auto-rows-104 grid-cols-3 gap-5 sm:gap-6",
         className,
       )}
     >
@@ -167,7 +167,7 @@ const BentoCard = ({
     {/* Scrim so the title/description stay legible regardless of how far the
         decorative background mockup extends — was overlapping the text
         directly before, especially on mobile where there's less room. */}
-    <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[5] h-3/4 bg-gradient-to-t from-black via-black/85 to-transparent" />
+    <div className="pointer-events-none absolute inset-x-0 bottom-0 z-5 h-3/4 bg-linear-to-t from-black via-black/85 to-transparent" />
     <div className="pointer-events-none relative z-10 flex flex-col gap-1.5 p-7 transition-all duration-300 group-hover:-translate-y-10">
       <Icon className="h-12 w-12 origin-left text-neutral-700 transition-all duration-300 ease-in-out group-hover:scale-75" />
       <h3 className="text-xl font-semibold text-neutral-300">
@@ -186,7 +186,7 @@ const BentoCard = ({
         <ArrowRightIcon className="ml-2 h-4 w-4" />
       </Link>
     </div>
-    <div className="pointer-events-none absolute inset-0 transition-all duration-300 group-hover:bg-black/[.03] group-hover:dark:bg-neutral-800/10" />
+    <div className="pointer-events-none absolute inset-0 transition-all duration-300 group-hover:bg-black/3 dark:group-hover:bg-neutral-800/10" />
   </div>
 );
 

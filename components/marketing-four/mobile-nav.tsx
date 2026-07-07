@@ -90,7 +90,7 @@ export function MobileNav({
         <Button
           variant="ghost"
           className={cn(
-            "extend-touch-target h-8 touch-manipulation items-center justify-start gap-2.5 !p-0 hover:bg-transparent focus-visible:bg-transparent focus-visible:ring-0 active:bg-transparent dark:hover:bg-transparent",
+            "extend-touch-target h-8 touch-manipulation items-center justify-start gap-2.5 p-0! hover:bg-transparent focus-visible:bg-transparent focus-visible:ring-0 active:bg-transparent dark:hover:bg-transparent",
             className
           )}
         >
@@ -116,7 +116,7 @@ export function MobileNav({
       </PopoverTrigger>
       <PopoverContent
         className={cn(
-          "marketing-four-root h-[var(--radix-popper-available-height)] w-[var(--radix-popper-available-width)] overflow-y-auto rounded-none border-none bg-background/90 p-0 shadow-none backdrop-blur duration-100",
+          "marketing-four-root h-(--radix-popper-available-height) w-(--radix-popper-available-width) overflow-y-auto rounded-none border-none bg-background/90 p-0 shadow-none backdrop-blur-sm duration-100",
           dark && "dark"
         )}
         align="start"

@@ -72,7 +72,7 @@ const RETURN_REASONS = [
   { value: "OTHER",            label: "Other" },
 ]
 const STATUS_FILTERS = ["Delivered", "Partially delivered", "On its way", "Partially dispatched"]
-const C = "shadow-sm py-0 gap-0"
+const C = "shadow-xs py-0 gap-0"
 function pUrl(h?: string | null) { return h ? `https://iblazevape.co.uk/products/${h}` : "https://iblazevape.co.uk" }
 
 // Status border colour for selected order — returns CSS colour value for inline style
@@ -214,8 +214,8 @@ function ProductThumb({ item, size = "sm" }: { item: LineItem; size?: "sm" | "md
 function LoadingOverlay({ portalContent }: { portalContent: React.ReactNode }) {
   return (
     <div className="relative overflow-hidden" style={{ height: "100dvh", width: "100vw" }}>
-      <div className="pointer-events-none select-none blur-sm brightness-95 h-full w-full">{portalContent}</div>
-      <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/40 backdrop-blur-sm">
+      <div className="pointer-events-none select-none blur-xs brightness-95 h-full w-full">{portalContent}</div>
+      <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/40 backdrop-blur-xs">
         <Card className="w-full max-w-xs mx-4 shadow-xl">
           <div className="flex flex-col items-center justify-center gap-3 py-8 px-6">
             <div className="size-10 rounded-full bg-[#E5403B]/10 flex items-center justify-center">
@@ -374,7 +374,7 @@ function OrdersListPanel({
 }) {
   return (
     <div className="flex flex-col h-full border-r border-border bg-white min-w-0 overflow-hidden">
-      <div className="px-3 pt-3 pb-2 border-b border-border flex-shrink-0 flex flex-col gap-2">
+      <div className="px-3 pt-3 pb-2 border-b border-border shrink-0 flex flex-col gap-2">
         {/* 1. Search */}
         <div className="relative">
           <Search className="absolute left-2.5 top-2 size-3.5 text-muted-foreground"/>
@@ -466,7 +466,7 @@ function OrderListRow({ order, selected, onClick }: { order: Order; selected: bo
     >
       <div className="flex shrink-0 mt-0.5">
         {(isCancelled ? [] : images).map((url, i) => (
-          <div key={i} className="size-9 rounded-lg border-2 border-white bg-muted overflow-hidden shadow-sm shrink-0" style={{ marginLeft: i > 0 ? "-8px" : "0" }}>
+          <div key={i} className="size-9 rounded-lg border-2 border-white bg-muted overflow-hidden shadow-xs shrink-0" style={{ marginLeft: i > 0 ? "-8px" : "0" }}>
             <img src={url} alt="" className="w-full h-full object-cover"/>
           </div>
         ))}
@@ -504,7 +504,7 @@ function OrderGridCard({ order, onClick }: { order: Order; onClick: () => void }
     ? `Delivered ${new Date(order.latestDelivery).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`
     : `Ordered ${new Date(order.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`
   return (
-    <button onClick={onClick} className="w-full text-left bg-white border border-border rounded-xl p-4 hover:border-zinc-300 transition-all duration-150 focus:outline-none flex flex-col gap-3">
+    <button onClick={onClick} className="w-full text-left bg-white border border-border rounded-xl p-4 hover:border-zinc-300 transition-all duration-150 focus:outline-hidden flex flex-col gap-3">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="font-medium text-sm mb-1">{order.name}</p>
@@ -1001,7 +1001,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
 
       {/* Sticky footer — from original code, connected to table */}
       {hasEligible && !order.cancelledAt && (
-        <div className="sticky bottom-4 z-[48] border border-border rounded-xl bg-background shadow-[0_2px_12px_rgba(0,0,0,0.08)]" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+        <div className="sticky bottom-4 z-48 border border-border rounded-xl bg-background shadow-[0_2px_12px_rgba(0,0,0,0.08)]" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
           <div className="px-3 sm:px-4 py-2 sm:py-2.5 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 sm:gap-3 min-w-0">
               <div className="shrink-0">
@@ -1124,7 +1124,7 @@ function DashboardClientInner() {
 
           {/* Left list panel — 340px on desktop */}
           <div className={cn(
-            "flex-shrink-0 overflow-hidden h-full",
+            "shrink-0 overflow-hidden h-full",
             isDesktop ? "w-[340px]" : mobileShowDetail ? "hidden" : "w-full"
           )}>
             {isDesktop ? (
@@ -1165,8 +1165,8 @@ function DashboardClientInner() {
                             </PopoverContent>
                           </Popover>
                           <div className="flex items-center gap-0.5 h-8 bg-white border border-border rounded-lg px-0.5">
-                            <Button variant="ghost" size="icon" className={cn("size-7", view === "list" && "bg-muted shadow-sm")} onClick={() => setView("list")}><List className="size-4"/></Button>
-                            <Button variant="ghost" size="icon" className={cn("size-7", view === "grid" && "bg-muted shadow-sm")} onClick={() => setView("grid")}><LayoutGrid className="size-4"/></Button>
+                            <Button variant="ghost" size="icon" className={cn("size-7", view === "list" && "bg-muted shadow-xs")} onClick={() => setView("list")}><List className="size-4"/></Button>
+                            <Button variant="ghost" size="icon" className={cn("size-7", view === "grid" && "bg-muted shadow-xs")} onClick={() => setView("grid")}><LayoutGrid className="size-4"/></Button>
                           </div>
                         </div>
                       </div>

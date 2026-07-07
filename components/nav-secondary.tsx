@@ -27,7 +27,7 @@ export function NavSecondary({
                   href={item.url}
                   target={item.url.startsWith("http") ? "_blank" : undefined}
                   rel={item.url.startsWith("http") ? "noopener noreferrer" : undefined}
-                  className="group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!w-8 group-data-[collapsible=icon]:!justify-center group-data-[collapsible=icon]:!gap-0 group-data-[collapsible=icon]:!p-0 group-data-[collapsible=icon]:mx-auto"
+                  className="group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:w-8! group-data-[collapsible=icon]:justify-center! group-data-[collapsible=icon]:gap-0! group-data-[collapsible=icon]:p-0! group-data-[collapsible=icon]:mx-auto"
                 >
                   <item.icon className="size-4 shrink-0" />
                   <span className="group-data-[collapsible=icon]:hidden">{item.title}</span>

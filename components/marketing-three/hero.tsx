@@ -11,7 +11,7 @@ export function HeroThree() {
       {/* soft top grid backdrop */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,#f4f4f5_1px,transparent_1px),linear-gradient(to_bottom,#f4f4f5_1px,transparent_1px)] bg-[size:56px_56px] [mask-image:radial-gradient(ellipse_70%_55%_at_50%_0%,#000_60%,transparent_100%)]"
+        className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,#f4f4f5_1px,transparent_1px),linear-gradient(to_bottom,#f4f4f5_1px,transparent_1px)] bg-size-[56px_56px] mask-[radial-gradient(ellipse_70%_55%_at_50%_0%,#000_60%,transparent_100%)]"
       />
       <Container className="relative pb-16 pt-16 text-center md:pt-24">
         {/* trusted-by avatars */}
@@ -20,7 +20,7 @@ export function HeroThree() {
             {AVATARS.map((c, i) => (
               <span
                 key={i}
-                className="size-8 rounded-full border-2 border-white shadow-sm"
+                className="size-8 rounded-full border-2 border-white shadow-xs"
                 style={{ background: c }}
               />
             ))}

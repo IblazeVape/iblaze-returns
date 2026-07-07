@@ -77,7 +77,7 @@ export function PricingTwo() {
             >
               <div className="p-6">
                 <div className="flex items-start justify-between">
-                  <span className="flex size-11 items-center justify-center rounded-xl border bg-background shadow-sm">
+                  <span className="flex size-11 items-center justify-center rounded-xl border bg-background shadow-xs">
                     <plan.icon className="size-5" />
                   </span>
                   {plan.trending && (

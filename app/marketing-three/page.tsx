@@ -31,7 +31,7 @@ export default function MarketingThreePage() {
     <div
       id="marketing-three-root"
       className={cn(
-        "min-h-[100dvh] scroll-smooth bg-white text-zinc-950 antialiased",
+        "min-h-dvh scroll-smooth bg-white text-zinc-950 antialiased",
         geist.variable,
         kalam.variable,
       )}

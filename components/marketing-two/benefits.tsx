@@ -16,15 +16,15 @@ const BLOCKS = [
     body: "Shopify still approves or declines every request behind the scenes - Reflow just gives your customers a branded, self-serve portal to start one, instead of Shopify's default flow.",
     panel: (
       <div className="w-full max-w-sm space-y-3">
-        <div className="rounded-lg border bg-background px-4 py-3 text-sm shadow-sm">
+        <div className="rounded-lg border bg-background px-4 py-3 text-sm shadow-xs">
           <p className="font-medium">Return #1042 requested</p>
           <p className="mt-1 text-xs text-muted-foreground">Submitted by your customer in Reflow</p>
         </div>
-        <div className="flex items-center gap-3 rounded-lg border bg-background px-4 py-3 text-sm shadow-sm">
+        <div className="flex items-center gap-3 rounded-lg border bg-background px-4 py-3 text-sm shadow-xs">
           <CheckCircle2 className="size-4 shrink-0 text-emerald-600" />
           <span>Approved in Shopify admin</span>
         </div>
-        <div className="flex items-center gap-3 rounded-lg border bg-background px-4 py-3 text-sm text-muted-foreground shadow-sm">
+        <div className="flex items-center gap-3 rounded-lg border bg-background px-4 py-3 text-sm text-muted-foreground shadow-xs">
           <XCircle className="size-4 shrink-0" />
           <span>Or declined - your call, as always</span>
         </div>
@@ -36,7 +36,7 @@ const BLOCKS = [
     title: "Set your own return window",
     body: "From 1 day to 90, you decide the exact return window - Reflow applies it automatically to every order in the portal.",
     panel: (
-      <div className="w-full max-w-sm rounded-xl border bg-background p-5 shadow-sm">
+      <div className="w-full max-w-sm rounded-xl border bg-background p-5 shadow-xs">
         <ReturnWindowDemo />
       </div>
     ),
@@ -47,11 +47,11 @@ const BLOCKS = [
     body: "Your own domain, your own colours, and an avatar that matches your storefront - customers won't know it isn't built in-house.",
     panel: (
       <div className="w-full max-w-sm space-y-3">
-        <div className="rounded-lg border bg-background p-4 shadow-sm">
+        <div className="rounded-lg border bg-background p-4 shadow-xs">
           <p className="text-xs text-muted-foreground">Your domain</p>
           <p className="mt-1 font-medium">returns.yourstore.com</p>
         </div>
-        <div className="flex items-center gap-2 rounded-lg border bg-background p-4 shadow-sm">
+        <div className="flex items-center gap-2 rounded-lg border bg-background p-4 shadow-xs">
           {["#18181b", "#7c3aed", "#e11d48", "#059669", "#2563eb"].map((c) => (
             <span key={c} className="size-7 rounded-full" style={{ backgroundColor: c }} />
           ))}
@@ -66,7 +66,7 @@ const BLOCKS = [
     panel: (
       <div className="w-full max-w-sm space-y-2">
         {["News & Updates", "Returns Policy", "Speak to Support"].map((label, i) => (
-          <div key={label} className="flex items-center justify-between rounded-lg border bg-background px-4 py-2.5 text-sm shadow-sm">
+          <div key={label} className="flex items-center justify-between rounded-lg border bg-background px-4 py-2.5 text-sm shadow-xs">
             {label}
             <Switch defaultChecked={i !== 2} />
           </div>

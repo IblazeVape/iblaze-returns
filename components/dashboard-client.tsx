@@ -115,7 +115,7 @@ const RETURN_REASONS = [
 
 const STATUS_FILTERS = ["Delivered", "Partially delivered", "On its way", "Partially dispatched"]
 
-const C = "shadow-sm py-0 gap-0"
+const C = "shadow-xs py-0 gap-0"
 
 function pUrl(handle?: string | null) {
   return handle ? `https://iblazevape.co.uk/products/${handle}` : "https://iblazevape.co.uk"
@@ -859,7 +859,7 @@ function SnakeBorderAlert({ paragraph }: { paragraph: string }) {
 
   return (
     <div
-      className="relative rounded-lg overflow-hidden p-[1px]"
+      className="relative rounded-lg overflow-hidden p-px"
       style={{ background: "hsl(var(--border))" }}
     >
       {/* Spinning bright light sweeps over the static border */}
@@ -977,7 +977,7 @@ function StickyOrderSummaryStrip({ order }: { order: Order }) {
           what caused the lag on mobile. */}
       <div
         className={cn(
-          "grid overflow-hidden transition-[grid-template-rows] duration-[250ms] ease-[cubic-bezier(0.4,0,0.2,1)]",
+          "grid overflow-hidden transition-[grid-template-rows] duration-250 ease-in-out",
           summaryOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
         )}
       >
@@ -1657,7 +1657,7 @@ function OrderPageSummaryStrip({ order }: { order: Order }) {
             tabIndex={scrollHints.overflow ? 0 : undefined}
             className={cn(
               "overflow-x-auto scrollbar-none [-webkit-overflow-scrolling:touch]",
-              scrollHints.overflow && "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-1 rounded-sm",
+              scrollHints.overflow && "focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-1 rounded-sm",
             )}
           >
             <p className={cn(
@@ -1670,7 +1670,7 @@ function OrderPageSummaryStrip({ order }: { order: Order }) {
           </div>
           {scrollHints.left && (
             <div
-              className="pointer-events-none absolute inset-y-0 left-0 flex w-10 items-center bg-gradient-to-r from-white/95 via-white/60 to-transparent dark:from-background/95 dark:via-background/60 pl-0.5"
+              className="pointer-events-none absolute inset-y-0 left-0 flex w-10 items-center bg-linear-to-r from-white/95 via-white/60 to-transparent dark:from-background/95 dark:via-background/60 pl-0.5"
               aria-hidden
             >
               <ChevronRight className="size-3 rotate-180 text-foreground/55" strokeWidth={2} />
@@ -1678,7 +1678,7 @@ function OrderPageSummaryStrip({ order }: { order: Order }) {
           )}
           {scrollHints.right && (
             <div
-              className="pointer-events-none absolute inset-y-0 right-0 flex w-10 items-center justify-end bg-gradient-to-l from-white/95 via-white/60 to-transparent dark:from-background/95 dark:via-background/60 pr-0.5"
+              className="pointer-events-none absolute inset-y-0 right-0 flex w-10 items-center justify-end bg-linear-to-l from-white/95 via-white/60 to-transparent dark:from-background/95 dark:via-background/60 pr-0.5"
               aria-hidden
             >
               <ChevronRight className="size-3 text-foreground/55" strokeWidth={2} />
@@ -1814,14 +1814,14 @@ function HeaderDesign01({
               type="button"
               onClick={() => onTabChange("eligible")}
               className={cn(
-                "relative z-10 px-3 py-1.5 text-xs font-medium rounded-md transition-colors min-w-[7rem] text-center",
+                "relative z-10 px-3 py-1.5 text-xs font-medium rounded-md transition-colors min-w-28 text-center",
                 activeTab === "eligible" ? "text-foreground" : "text-muted-foreground hover:text-foreground",
               )}
             >
               {activeTab === "eligible" && (
                 <motion.span
                   layoutId="header-seg-thumb"
-                  className="absolute inset-0 bg-card rounded-md shadow-sm -z-10"
+                  className="absolute inset-0 bg-card rounded-md shadow-xs -z-10"
                   transition={{ type: "spring", stiffness: 400, damping: 30 }}
                 />
               )}
@@ -1832,14 +1832,14 @@ function HeaderDesign01({
               type="button"
               onClick={() => onTabChange("ineligible")}
               className={cn(
-                "relative z-10 px-3 py-1.5 text-xs font-medium rounded-md transition-colors min-w-[7rem] text-center",
+                "relative z-10 px-3 py-1.5 text-xs font-medium rounded-md transition-colors min-w-28 text-center",
                 activeTab === "ineligible" ? "text-foreground" : "text-muted-foreground hover:text-foreground",
               )}
             >
               {activeTab === "ineligible" && (
                 <motion.span
                   layoutId="header-seg-thumb"
-                  className="absolute inset-0 bg-card rounded-md shadow-sm -z-10"
+                  className="absolute inset-0 bg-card rounded-md shadow-xs -z-10"
                   transition={{ type: "spring", stiffness: 400, damping: 30 }}
                 />
               )}
@@ -1884,7 +1884,7 @@ function HeaderDesign02({
 
   return (
     <HeaderStrip>
-      <div className="flex flex-col justify-center divide-y divide-border min-w-[9.5rem]">
+      <div className="flex flex-col justify-center divide-y divide-border min-w-38">
         {hasBothTabs && (
           <>
             <button
@@ -2164,7 +2164,7 @@ function HeaderHeroCell({
   onClick?: () => void
 }) {
   const cls = cn(
-    "inline-flex flex-col items-center justify-center gap-0 px-3 sm:px-4 min-w-[3.25rem] shrink-0 h-full bg-card transition-colors",
+    "inline-flex flex-col items-center justify-center gap-0 px-3 sm:px-4 min-w-13 shrink-0 h-full bg-card transition-colors",
     onClick && "cursor-pointer hover:bg-muted/80",
     active ? "bg-muted" : onClick && "opacity-55",
   )
@@ -2513,7 +2513,7 @@ function formatDeclinedReasonText(entries: { quantity: number; message: string }
 
 function ItemReasonText({ item, align = "start" }: { item: LineItem; align?: "start" | "end" }) {
   const textCls = cn(
-    "text-[11px] text-muted-foreground leading-snug break-words",
+    "text-[11px] text-muted-foreground leading-snug wrap-break-word",
     align === "start" && "mt-1 pr-1",
     align === "end" && "text-right"
   )
@@ -2529,7 +2529,7 @@ function ItemReasonText({ item, align = "start" }: { item: LineItem; align?: "st
         {grouped.map(({ message, quantity }, i) => (
           <li key={i} className={cn(textCls, "flex gap-1.5 min-w-0", align === "end" && "justify-end")}>
             <span className="shrink-0 tabular-nums font-medium">{quantity}×</span>
-            <span className="break-words min-w-0">{message}</span>
+            <span className="wrap-break-word min-w-0">{message}</span>
           </li>
         ))}
       </ul>
@@ -2717,7 +2717,7 @@ function IneligibleGroupSummary({ item, order, groupItems, count }: { item: Line
       {/* Desktop: full message inline + count on the right. Padding lives here
           (parent cell is p-0) so the mobile content panel can go edge-to-edge. */}
       <div className="hidden min-[1025px]:flex items-center justify-between gap-x-4 py-3 pl-5 pr-4">
-        <p className="my-0 min-w-0 flex-1 text-[11px] leading-snug text-muted-foreground break-words">
+        <p className="my-0 min-w-0 flex-1 text-[11px] leading-snug text-muted-foreground wrap-break-word">
           <Icon className={cn("mr-1 inline size-3 shrink-0 align-[-0.15em]", color)} aria-hidden />
           {message}
         </p>
@@ -2740,12 +2740,12 @@ function IneligibleGroupSummary({ item, order, groupItems, count }: { item: Line
         </button>
         <div
           className={cn(
-            "grid overflow-hidden transition-[grid-template-rows] duration-[250ms] ease-[cubic-bezier(0.4,0,0.2,1)]",
+            "grid overflow-hidden transition-[grid-template-rows] duration-250 ease-in-out",
             open ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
           )}
         >
           <div className="min-h-0">
-            <p className="border-t border-border bg-card px-5 py-2.5 text-[11px] leading-snug text-muted-foreground break-words">
+            <p className="border-t border-border bg-card px-5 py-2.5 text-[11px] leading-snug text-muted-foreground wrap-break-word">
               {message}
             </p>
           </div>
@@ -2973,7 +2973,7 @@ function orderGlowClass(order: Order): string {
     case "On its way":
     case "Partially dispatched": return "hover:border-blue-300 hover:shadow-[0_0_0_3px_rgba(59,130,246,0.1),0_2px_10px_rgba(59,130,246,0.08)]"
     case "Confirmed":            return "hover:border-zinc-400 hover:shadow-[0_0_0_3px_rgba(161,161,170,0.15),0_2px_10px_rgba(161,161,170,0.1)]"
-    default:                     return "hover:border-zinc-300 hover:shadow-sm"
+    default:                     return "hover:border-zinc-300 hover:shadow-xs"
   }
 }
 
@@ -3064,7 +3064,7 @@ function OrderCard({ order, onClick, index = 0 }: { order: Order; onClick: () =>
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.28, delay: Math.min(index * 0.055, 0.4), ease: [0.25, 0.1, 0.25, 1] }}
       className={cn(
-        "group w-full h-full text-left bg-card border rounded-xl transition-[border-color,box-shadow] duration-150 focus:outline-none focus-visible:ring-0 flex flex-col overflow-hidden",
+        "group w-full h-full text-left bg-card border rounded-xl transition-[border-color,box-shadow] duration-150 focus:outline-hidden focus-visible:ring-0 flex flex-col overflow-hidden",
         cancelled ? "border-border cursor-not-allowed" : cn("border-border", orderGlowClass(order))
       )}
     >
@@ -3081,11 +3081,11 @@ function OrderCard({ order, onClick, index = 0 }: { order: Order; onClick: () =>
         <div className="flex items-center flex-1 min-w-0">
           <div className="flex -space-x-2">
             {uniqueImages.length > 0 ? uniqueImages.map((url, i) => (
-              <div key={i} className="w-8 h-8 rounded-md border-2 border-muted dark:border-border bg-card overflow-hidden shadow-sm shrink-0">
+              <div key={i} className="w-8 h-8 rounded-md border-2 border-muted dark:border-border bg-card overflow-hidden shadow-xs shrink-0">
                 <img src={url} alt="" className="w-full h-full object-cover" />
               </div>
             )) : (
-              <div className="w-8 h-8 rounded-md border-2 border-muted dark:border-border bg-card overflow-hidden shadow-sm shrink-0">
+              <div className="w-8 h-8 rounded-md border-2 border-muted dark:border-border bg-card overflow-hidden shadow-xs shrink-0">
                 <ProductImagePlaceholder iconClassName="size-3" />
               </div>
             )}
@@ -3111,17 +3111,17 @@ function OrderRow({ order, onClick }: { order: Order; onClick: () => void }) {
     <button
       onClick={cancelled ? undefined : onClick}
       className={cn(
-        "w-full px-5 py-3.5 flex items-center gap-4 transition-colors text-left group border-b border-border last:border-0 focus:outline-none focus-visible:ring-0",
+        "w-full px-5 py-3.5 flex items-center gap-4 transition-colors text-left group border-b border-border last:border-0 focus:outline-hidden focus-visible:ring-0",
         cancelled ? "opacity-60 cursor-not-allowed" : "hover:bg-muted/50"
       )}
     >
       <div className="flex -space-x-2 w-[92px] shrink-0">
         {images.length > 0 ? images.map((url, i) => (
-          <div key={i} className="size-9 rounded-md border-2 border-card dark:border-border bg-card overflow-hidden shadow-sm shrink-0">
+          <div key={i} className="size-9 rounded-md border-2 border-card dark:border-border bg-card overflow-hidden shadow-xs shrink-0">
             <img src={url} alt="" className="w-full h-full object-cover" />
           </div>
         )) : (
-          <div className="size-9 rounded-md border-2 border-card dark:border-border bg-card overflow-hidden shadow-sm shrink-0">
+          <div className="size-9 rounded-md border-2 border-card dark:border-border bg-card overflow-hidden shadow-xs shrink-0">
             <ProductImagePlaceholder iconClassName="size-3.5" />
           </div>
         )}
@@ -3363,7 +3363,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                   const fmt = (d: string) => new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
                   const deliveredDate = shipment.deliveredAt ? fmt(shipment.deliveredAt) : null
                   const shippedDate   = shipment.shippedAt   ? fmt(shipment.shippedAt)   : null
-                  const cardCls = cn("snap-start border rounded-lg p-4 bg-card shadow-sm flex flex-col gap-3", order.shipments.length === 1 ? "w-full" : "w-[85vw] shrink-0 sm:shrink sm:flex-1 sm:w-auto sm:min-w-[260px]")
+                  const cardCls = cn("snap-start border rounded-lg p-4 bg-card shadow-xs flex flex-col gap-3", order.shipments.length === 1 ? "w-full" : "w-[85vw] shrink-0 sm:shrink sm:flex-1 sm:w-auto sm:min-w-[260px]")
                   return (
                     <div key={shipment.id} className={cardCls}>
                       <div className="flex items-center justify-between gap-2">
@@ -3927,7 +3927,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
       <AnimatePresence>
       {hasEligible && !order.cancelledAt && activeTab === "eligible" && (
         <motion.div
-          className="sticky bottom-4 z-[48] mx-4 border border-border rounded-xl bg-background shadow-[0_2px_12px_rgba(0,0,0,0.08)]"
+          className="sticky bottom-4 z-48 mx-4 border border-border rounded-xl bg-background shadow-[0_2px_12px_rgba(0,0,0,0.08)]"
           style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -4068,7 +4068,7 @@ function SpendingChart({ orders }: { orders: Order[] }) {
   const hasData = chartData.some(m => m.spend > 0)
 
   return (
-    <Card className="shadow-sm py-0 gap-0 overflow-hidden rounded-xl h-full">
+    <Card className="shadow-xs py-0 gap-0 overflow-hidden rounded-xl h-full">
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-border">
         <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Monthly Spend</p>
         <p className="text-[10px] text-muted-foreground">Last 6 months</p>
@@ -4137,8 +4137,8 @@ function BentoTile({
       onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick() } } : undefined}
       aria-label={ariaLabel}
       className={cn(
-        "rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col",
-        onClick && "cursor-pointer transition-shadow hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+        "rounded-xl border border-border bg-card shadow-xs overflow-hidden flex flex-col",
+        onClick && "cursor-pointer transition-shadow hover:shadow-md focus:outline-hidden focus-visible:ring-2 focus-visible:ring-ring/50",
         className,
       )}
     >
@@ -4161,7 +4161,7 @@ function ThumbStack({ urls, max = 4 }: { urls: string[]; max?: number }) {
     <div className="flex items-center">
       <div className="flex -space-x-3">
         {shown.map((url, i) => (
-          <div key={i} className="size-10 rounded-lg border-2 border-card dark:border-border bg-card overflow-hidden shadow-sm shrink-0">
+          <div key={i} className="size-10 rounded-lg border-2 border-card dark:border-border bg-card overflow-hidden shadow-xs shrink-0">
             <img src={url} alt="" className="w-full h-full object-cover" />
           </div>
         ))}
@@ -4244,7 +4244,7 @@ function DashboardHome({
           ariaLabel="Ready to return"
           className={cn("col-span-2 relative", isUrgent && "ring-1 ring-red-200")}
         >
-          {isUrgent && <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-red-50/70 to-transparent dark:from-red-950/30" />}
+          {isUrgent && <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-red-50/70 to-transparent dark:from-red-950/30" />}
           <div className="relative flex flex-1 flex-col p-4 sm:p-5">
             <div className="flex items-center gap-1.5 mb-3">
               <BadgeCheck className="size-4 text-green-600" />
@@ -4385,12 +4385,12 @@ function DashboardHome({
                 : { icon: Clock,        color: "text-zinc-400" }
               return (
                 <button key={o.id} onClick={isCancelled ? undefined : () => onViewOrder(o)}
-                  className={cn("w-full grid items-center gap-x-3 px-4 py-3 text-left group focus:outline-none transition-colors",
+                  className={cn("w-full grid items-center gap-x-3 px-4 py-3 text-left group focus:outline-hidden transition-colors",
                     isCancelled ? "opacity-50 cursor-not-allowed" : "hover:bg-muted/50")}
                   style={{ gridTemplateColumns: "88px 1fr 64px 80px" }}>
                   <div className="flex -space-x-4 shrink-0">
                     {images.slice(0, 3).map((url, i) => (
-                      <div key={i} className="size-10 rounded-md border-2 border-card dark:border-border bg-card overflow-hidden shadow-sm shrink-0">
+                      <div key={i} className="size-10 rounded-md border-2 border-card dark:border-border bg-card overflow-hidden shadow-xs shrink-0">
                         <img src={url} alt="" className="w-full h-full object-cover" />
                       </div>
                     ))}
@@ -4638,7 +4638,7 @@ function DashboardClientInner() {
                 { icon: FileText,      label: "Help & Docs",     href: "/docs" },
                 { icon: HelpCircle,    label: "Order Statuses",  onClick: () => setStatusSheetOpen(true) },
               ] as const).map(({ icon: Icon, label, onClick, href }: { icon: React.ElementType, label: string, onClick?: () => void, href?: string }) => {
-                const cls = "flex flex-col items-center justify-center gap-1 py-2.5 px-4 text-center hover:bg-muted/50 transition-colors flex-1 min-w-[80px] border-r border-border last:border-r-0 focus:outline-none"
+                const cls = "flex flex-col items-center justify-center gap-1 py-2.5 px-4 text-center hover:bg-muted/50 transition-colors flex-1 min-w-[80px] border-r border-border last:border-r-0 focus:outline-hidden"
                 const content = <><Icon className="size-4 text-zinc-500 dark:text-white" /><span className="text-xs font-medium text-foreground leading-tight">{label}</span></>
                 return href
                   ? <a key={label} href={href} {...(href.startsWith("/") ? {} : { target: "_blank", rel: "noopener noreferrer" })} className={cls}>{content}</a>
@@ -4761,8 +4761,8 @@ function DashboardClientInner() {
                   </PopoverContent>
                 </Popover>
                 <div className="flex items-center gap-0.5 h-8 bg-white border border-border rounded-lg px-0.5">
-                  <Button variant="ghost" size="icon" className={cn("size-7", view === "grid" && "bg-muted shadow-sm")} onClick={() => setView("grid")}><LayoutGrid className="size-4" /></Button>
-                  <Button variant="ghost" size="icon" className={cn("size-7", view === "list" && "bg-muted shadow-sm")} onClick={() => setView("list")}><List className="size-4" /></Button>
+                  <Button variant="ghost" size="icon" className={cn("size-7", view === "grid" && "bg-muted shadow-xs")} onClick={() => setView("grid")}><LayoutGrid className="size-4" /></Button>
+                  <Button variant="ghost" size="icon" className={cn("size-7", view === "list" && "bg-muted shadow-xs")} onClick={() => setView("list")}><List className="size-4" /></Button>
                 </div>
               </div>
               )}
@@ -4840,8 +4840,8 @@ function DashboardClientInner() {
   if (loading) {
     return (
       <div className="relative overflow-hidden" style={{ height: "100dvh", width: "100vw" }}>
-        <div className="pointer-events-none select-none blur-sm brightness-95 h-full w-full">{portalContent}</div>
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/40 backdrop-blur-sm">
+        <div className="pointer-events-none select-none blur-xs brightness-95 h-full w-full">{portalContent}</div>
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/40 backdrop-blur-xs">
             <Card className="w-full max-w-xs mx-4 shadow-xl">
               <div className="flex flex-col items-center justify-center gap-3 py-8 px-6">
                 <div className="size-10 rounded-full bg-[#E5403B]/10 flex items-center justify-center"><Spinner className="size-5 text-[#E5403B]" /></div>

@@ -73,7 +73,7 @@ export function TestimonialsThree() {
           subtitle="Real words from Shopify brands that swapped email threads and spreadsheets for Reflow."
         />
 
-        <div className="mt-14 columns-1 gap-4 sm:columns-2 lg:columns-3 [&>*]:mb-4">
+        <div className="mt-14 columns-1 gap-4 sm:columns-2 lg:columns-3 *:mb-4">
           {REVIEWS.map((r) => (
             <figure
               key={r.handle}

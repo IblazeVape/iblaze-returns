@@ -49,7 +49,7 @@ function Stars({ n }: { n: number }) {
 
 function QuoteCard({ q }: { q: (typeof QUOTES)[number] }) {
   return (
-    <div className="flex w-[360px] shrink-0 flex-col justify-between rounded-xl border bg-background p-6 shadow-sm">
+    <div className="flex w-[360px] shrink-0 flex-col justify-between rounded-xl border bg-background p-6 shadow-xs">
       <p className="text-sm leading-relaxed text-muted-foreground">{q.body}</p>
       <div className="mt-5 flex items-center gap-3">
         <span className="flex size-10 items-center justify-center rounded-full bg-muted text-xs font-semibold">
@@ -74,9 +74,9 @@ export function TestimonialsTwo() {
         subtitle="Real stories from merchants who simplified their returns process and kept more customers with Reflow."
       />
 
-      <div className="relative mt-14 overflow-hidden [mask-image:linear-gradient(to_right,transparent,#000_8%,#000_92%,transparent)]">
+      <div className="relative mt-14 overflow-hidden mask-[linear-gradient(to_right,transparent,#000_8%,#000_92%,transparent)]">
         <div
-          className="flex w-max animate-marquee gap-5 pr-5 hover:[animation-play-state:paused]"
+          className="flex w-max animate-marquee gap-5 pr-5 hover:paused"
           style={{ "--duration": "48s", "--gap": "1.25rem" } as React.CSSProperties}
         >
           {[...QUOTES, ...QUOTES].map((q, i) => <QuoteCard key={i} q={q} />)}

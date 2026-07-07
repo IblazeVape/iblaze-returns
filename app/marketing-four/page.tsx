@@ -40,7 +40,7 @@ export default function MarketingFourPage() {
       <MarketingFourNav />
 
       <section className="mx-auto flex max-w-4xl flex-col items-center px-4 py-20 text-center sm:px-6 md:py-28">
-        <h1 className="bg-gradient-to-b from-foreground to-foreground/60 bg-clip-text text-4xl font-bold tracking-tight text-transparent sm:text-5xl md:text-6xl">
+        <h1 className="bg-linear-to-b from-foreground to-foreground/60 bg-clip-text text-4xl font-bold tracking-tight text-transparent sm:text-5xl md:text-6xl">
           Reflow
         </h1>
         <p className="mt-4 max-w-xl text-lg text-muted-foreground sm:text-xl">

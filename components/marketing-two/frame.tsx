@@ -10,8 +10,8 @@ export function PageFrame({ children }: { children: React.ReactNode }) {
     // otherwise the diagonal stripe pattern and the border-x rails blend
     // into the same near-white background and the "edge to edge" framing
     // reads as nothing at all.
-    <div className="flex flex-col bg-zinc-100 bg-[repeating-linear-gradient(45deg,hsl(var(--border))_0,hsl(var(--border))_1px,transparent_0,transparent_50%)] bg-[size:12px_12px] bg-fixed">
-      <div className="mx-auto h-full w-full max-w-[84rem] px-4 sm:px-6 lg:px-8">
+    <div className="flex flex-col bg-zinc-100 bg-[repeating-linear-gradient(45deg,hsl(var(--border))_0,hsl(var(--border))_1px,transparent_0,transparent_50%)] bg-size-[12px_12px] bg-fixed">
+      <div className="mx-auto h-full w-full max-w-336 px-4 sm:px-6 lg:px-8">
         <div className="bg-background h-full w-full max-w-7xl border-x border-zinc-300 mx-auto shadow-[0_0_60px_-15px_rgba(0,0,0,0.15)]">
           {children}
         </div>
@@ -65,7 +65,7 @@ export function DarkButton({
     <span className={cn("relative isolate inline-flex w-fit overflow-hidden rounded-[10px] ring-2 ring-zinc-900/60", className?.includes("w-full") && "w-full")}>
       <span
         aria-hidden
-        className="absolute -inset-[120px] -z-10 animate-[spin_4s_linear_infinite] bg-[conic-gradient(from_90deg,#18181b_0%,#18181b_50%,#3f3f46_60%,#71717a_65%,#3f3f46_70%,#18181b_80%)]"
+        className="absolute inset-[-120px] -z-10 animate-[spin_4s_linear_infinite] bg-[conic-gradient(from_90deg,#18181b_0%,#18181b_50%,#3f3f46_60%,#71717a_65%,#3f3f46_70%,#18181b_80%)]"
       />
       <button
         className={cn(

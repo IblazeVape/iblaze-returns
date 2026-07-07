@@ -41,14 +41,14 @@ const Navbar = () => {
 
     return (
         <header className={cn(
-            "sticky top-0 inset-x-0 h-14 w-full border-b border-transparent z-[99999] select-none",
+            "sticky top-0 inset-x-0 h-14 w-full border-b border-transparent z-99999 select-none",
             scroll && "border-background/80 bg-background/40 backdrop-blur-md"
         )}>
             <AnimationContainer reverse delay={0.1} className="size-full">
                 <MaxWidthWrapper className="flex items-center justify-between">
                     <div className="flex items-center space-x-12">
                         <Link href="/marketing#home">
-                            <span className="text-lg font-bold font-heading !leading-none">
+                            <span className="text-lg font-bold font-heading leading-none!">
                                 Reflow
                             </span>
                         </Link>
@@ -67,11 +67,11 @@ const Navbar = () => {
                                                     )}>
                                                         {link.title === "Features" && (
                                                             <li className="row-span-4 pr-2 relative rounded-lg overflow-hidden">
-                                                                <div className="absolute inset-0 !z-10 h-full w-[calc(100%-10px)] bg-[linear-gradient(to_right,rgb(38,38,38,0.5)_1px,transparent_1px),linear-gradient(to_bottom,rgb(38,38,38,0.5)_1px,transparent_1px)] bg-[size:1rem_1rem]"></div>
+                                                                <div className="absolute inset-0 z-10! h-full w-[calc(100%-10px)] bg-[linear-gradient(to_right,rgb(38,38,38,0.5)_1px,transparent_1px),linear-gradient(to_bottom,rgb(38,38,38,0.5)_1px,transparent_1px)] bg-size-[1rem_1rem]"></div>
                                                                 <NavigationMenuLink asChild className="z-20 relative">
                                                                     <Link
                                                                         href="/marketing"
-                                                                        className="flex h-full w-full select-none flex-col justify-end rounded-lg bg-gradient-to-b from-muted/50 to-muted p-4 no-underline outline-none focus:shadow-md"
+                                                                        className="flex h-full w-full select-none flex-col justify-end rounded-lg bg-linear-to-b from-muted/50 to-muted p-4 no-underline outline-hidden focus:shadow-md"
                                                                     >
                                                                         <h6 className="mb-2 mt-4 text-lg font-medium">
                                                                             All Features
@@ -141,14 +141,14 @@ const ListItem = React.forwardRef<
                     href={href!}
                     ref={ref}
                     className={cn(
-                        "block select-none space-y-1 rounded-lg p-3 leading-none no-underline outline-none transition-all duration-100 ease-out hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
+                        "block select-none space-y-1 rounded-lg p-3 leading-none no-underline outline-hidden transition-all duration-100 ease-out hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
                         className
                     )}
                     {...props}
                 >
                     <div className="flex items-center space-x-2 text-neutral-300">
                         <Icon className="h-4 w-4" />
-                        <h6 className="text-sm font-medium !leading-none">
+                        <h6 className="text-sm font-medium leading-none!">
                             {title}
                         </h6>
                     </div>

@@ -24,7 +24,7 @@ const SIDEBAR_ITEMS = [
 function ReturnWindowWidget() {
   const [days, setDays] = useState(30)
   return (
-    <div className="rounded-lg border bg-background p-4 shadow-sm">
+    <div className="rounded-lg border bg-background p-4 shadow-xs">
       <div className="flex items-center justify-between text-sm font-medium">
         Return window
         <span className="rounded-full bg-zinc-900 px-2 py-0.5 text-xs text-white tabular-nums">{days} days</span>
@@ -42,7 +42,7 @@ function SidebarToggleWidget() {
   return (
     <div className="space-y-1.5">
       {items.map((item, i) => (
-        <div key={item.label} className="flex items-center justify-between rounded-lg border bg-background px-3 py-2 text-sm shadow-sm">
+        <div key={item.label} className="flex items-center justify-between rounded-lg border bg-background px-3 py-2 text-sm shadow-xs">
           <span className={item.on ? "" : "text-muted-foreground line-through"}>{item.label}</span>
           <Switch
             checked={item.on}
@@ -58,7 +58,7 @@ function BrandWidget() {
   const colors = ["#18181b", "#7c3aed", "#e11d48", "#059669", "#2563eb"]
   const [active, setActive] = useState(0)
   return (
-    <div className="rounded-lg border bg-background p-4 shadow-sm">
+    <div className="rounded-lg border bg-background p-4 shadow-xs">
       <div className="flex items-center gap-3">
         <span
           className="flex size-9 items-center justify-center rounded-full text-xs font-semibold text-white"
@@ -91,18 +91,18 @@ function PolicyToggleWidget() {
   const [text, setText] = useState("I accept the returns policy")
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between rounded-lg border bg-background px-4 py-3 text-sm shadow-sm">
+      <div className="flex items-center justify-between rounded-lg border bg-background px-4 py-3 text-sm shadow-xs">
         <span>Require policy checkbox</span>
         <Switch checked={enabled} onCheckedChange={setEnabled} />
       </div>
-      <div className={enabled ? "rounded-lg border bg-background px-4 py-3 text-sm shadow-sm" : "rounded-lg border bg-background px-4 py-3 text-sm text-muted-foreground opacity-50 shadow-sm"}>
+      <div className={enabled ? "rounded-lg border bg-background px-4 py-3 text-sm shadow-xs" : "rounded-lg border bg-background px-4 py-3 text-sm text-muted-foreground opacity-50 shadow-xs"}>
         <label className="flex items-center gap-2">
           <input type="checkbox" defaultChecked disabled={!enabled} className="size-4 rounded border-muted-foreground/40" />
           <input
             value={text}
             onChange={(e) => setText(e.target.value)}
             disabled={!enabled}
-            className="w-full bg-transparent outline-none disabled:cursor-not-allowed"
+            className="w-full bg-transparent outline-hidden disabled:cursor-not-allowed"
           />
         </label>
       </div>
@@ -115,11 +115,11 @@ function ButtonColorWidget() {
   const [active, setActive] = useState(0)
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-background p-4 shadow-sm">
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-background p-4 shadow-xs">
         {["Submit", "Accept", "Review"].map((label) => (
           <span
             key={label}
-            className="rounded-lg px-4 py-2 text-sm font-medium text-white shadow-sm"
+            className="rounded-lg px-4 py-2 text-sm font-medium text-white shadow-xs"
             style={{ backgroundColor: colors[active] }}
           >
             {label}

@@ -34,7 +34,7 @@ const PricingCards = () => {
                                 type: "spring",
                                 bounce: 0.5,
                             }}
-                            className="absolute top-0 left-0 w-full h-full bg-background shadow-sm rounded-md z-10"
+                            className="absolute top-0 left-0 w-full h-full bg-background shadow-xs rounded-md z-10"
                         />
                     )}
                     <span className="z-20">
@@ -53,7 +53,7 @@ const PricingCards = () => {
                                 type: "spring",
                                 bounce: 0.5,
                             }}
-                            className="absolute top-0 left-0 w-full h-full bg-background shadow-sm rounded-md z-10"
+                            className="absolute top-0 left-0 w-full h-full bg-background shadow-xs rounded-md z-10"
                         />
                     )}
                     <span className="z-20">
@@ -73,7 +73,7 @@ const PricingCards = () => {
                     >
                         <CardHeader className={cn(
                             "border-b border-border",
-                            plan.name === "Pro" ? "bg-purple-500/[0.07]" : "bg-foreground/[0.03]"
+                            plan.name === "Pro" ? "bg-purple-500/[0.07]" : "bg-foreground/3"
                         )}>
                             <CardTitle className={cn(plan.name !== "Pro" && "text-muted-foreground", "text-lg font-medium")}>
                                 {plan.name}
@@ -95,7 +95,7 @@ const PricingCards = () => {
                                     <TooltipProvider>
                                         <Tooltip delayDuration={0}>
                                             <TooltipTrigger asChild>
-                                                <p className={cn(feature.tooltip && "border-b !border-dashed border-border cursor-pointer")}>
+                                                <p className={cn(feature.tooltip && "border-b border-dashed! border-border cursor-pointer")}>
                                                     {feature.text}
                                                 </p>
                                             </TooltipTrigger>
@@ -132,7 +132,7 @@ const PricingCards = () => {
                     >
                         <CardHeader className={cn(
                             "border-b border-border",
-                            plan.name === "Pro" ? "bg-purple-500/[0.07]" : "bg-foreground/[0.03]"
+                            plan.name === "Pro" ? "bg-purple-500/[0.07]" : "bg-foreground/3"
                         )}>
                             <CardTitle className={cn(plan.name !== "Pro" && "text-muted-foreground", "text-lg font-medium")}>
                                 {plan.name}
@@ -165,7 +165,7 @@ const PricingCards = () => {
                                     <TooltipProvider>
                                         <Tooltip delayDuration={0}>
                                             <TooltipTrigger asChild>
-                                                <p className={cn(feature.tooltip && "border-b !border-dashed border-border cursor-pointer")}>
+                                                <p className={cn(feature.tooltip && "border-b border-dashed! border-border cursor-pointer")}>
                                                     {feature.text}
                                                 </p>
                                             </TooltipTrigger>

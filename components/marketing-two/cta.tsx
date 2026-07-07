@@ -12,13 +12,13 @@ export function CtaTwo() {
       {/* dotted halo behind the panel */}
       <div
         aria-hidden
-        className="absolute inset-x-8 top-0 h-48 bg-[radial-gradient(circle,hsl(var(--muted-foreground))_1px,transparent_1px)] bg-[size:14px_14px] opacity-30 [mask-image:radial-gradient(ellipse_60%_100%_at_50%_0%,#000,transparent)]"
+        className="absolute inset-x-8 top-0 h-48 bg-[radial-gradient(circle,hsl(var(--muted-foreground))_1px,transparent_1px)] bg-size-[14px_14px] opacity-30 mask-[radial-gradient(ellipse_60%_100%_at_50%_0%,#000,transparent)]"
       />
 
       <div className="relative mx-auto max-w-6xl overflow-hidden rounded-3xl bg-zinc-900 px-6 py-16 text-center text-white">
         {/* oversized leaf-mark decorations */}
-        <Package2 aria-hidden className="absolute -left-16 bottom-[-4rem] size-64 rotate-12 text-white/10" strokeWidth={1} />
-        <Package2 aria-hidden className="absolute -right-16 top-[-4rem] size-64 -rotate-12 text-white/10" strokeWidth={1} />
+        <Package2 aria-hidden className="absolute -left-16 -bottom-16 size-64 rotate-12 text-white/10" strokeWidth={1} />
+        <Package2 aria-hidden className="absolute -right-16 -top-16 size-64 -rotate-12 text-white/10" strokeWidth={1} />
 
         <h2 className="text-3xl font-bold md:text-4xl">Take Control of Your Returns Pipeline</h2>
         <p className="mx-auto mt-4 max-w-lg text-zinc-300">
@@ -40,7 +40,7 @@ export function CtaTwo() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Your email address"
-            className="h-10 w-full rounded-lg bg-transparent px-3 text-sm text-zinc-900 outline-none placeholder:text-zinc-400"
+            className="h-10 w-full rounded-lg bg-transparent px-3 text-sm text-zinc-900 outline-hidden placeholder:text-zinc-400"
           />
           <button
             type="submit"

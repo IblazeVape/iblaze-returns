@@ -14,7 +14,7 @@ const Footer = () => {
                 <AnimationContainer delay={0.1}>
                     <div className="flex flex-col items-start justify-start md:max-w-[200px]">
                         <div className="flex items-start">
-                            <span className="text-lg font-bold font-heading !leading-none">
+                            <span className="text-lg font-bold font-heading leading-none!">
                                 Reflow
                             </span>
                         </div>
@@ -147,7 +147,7 @@ const Footer = () => {
                 </AnimationContainer>
             </div>
 
-            <div className="h-[20rem] lg:h-[20rem] hidden md:flex items-center justify-center">
+            <div className="h-80 lg:h-80 hidden md:flex items-center justify-center">
                 <TextHoverEffect text="REFLOW" />
             </div>
         </footer>

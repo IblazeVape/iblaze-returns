@@ -38,7 +38,7 @@ export function HoverGrid() {
       ref={containerRef}
       aria-hidden
       onPointerOver={light}
-      className="absolute inset-x-0 top-0 z-0 overflow-hidden [mask-image:radial-gradient(ellipse_75%_90%_at_50%_0%,#000_55%,transparent_100%)]"
+      className="absolute inset-x-0 top-0 z-0 overflow-hidden mask-[radial-gradient(ellipse_75%_90%_at_50%_0%,#000_55%,transparent_100%)]"
       style={{ height: ROWS * CELL }}
     >
       <div

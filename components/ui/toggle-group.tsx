@@ -36,7 +36,7 @@ function ToggleGroup({
       data-spacing={spacing}
       style={{ gap: spacing ? `${spacing * 0.25}rem` : 0 }}
       className={cn(
-        "group/toggle-group flex w-fit items-center rounded-md data-[spacing=default]:data-[variant=outline]:shadow-xs",
+        "group/toggle-group flex w-fit items-center rounded-md data-[spacing=default]:data-[variant=outline]:shadow-2xs",
         className
       )}
       {...props}

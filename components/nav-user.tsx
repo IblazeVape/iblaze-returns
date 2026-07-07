@@ -39,7 +39,7 @@ export function NavUser({ user }: { user: { name: string; email: string } }) {
           <CollapsibleTrigger asChild>
             <SidebarMenuButton
               size="lg"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!p-0 group-data-[collapsible=icon]:mx-auto"
+              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-0! group-data-[collapsible=icon]:mx-auto"
             >
               <Avatar className="h-8 w-8 rounded-lg shrink-0 group-data-[collapsible=icon]:h-7 group-data-[collapsible=icon]:w-7">
                 <AvatarFallback className="rounded-lg bg-[#E5403B] text-white text-sm font-semibold">
@@ -53,7 +53,7 @@ export function NavUser({ user }: { user: { name: string; email: string } }) {
               <ChevronsUpDown className="ml-auto size-4 group-data-[collapsible=icon]:hidden" />
             </SidebarMenuButton>
           </CollapsibleTrigger>
-          <CollapsibleContent className="absolute bottom-full left-0 z-20 w-full pb-3 outline-none data-[state=closed]:hidden">
+          <CollapsibleContent className="absolute bottom-full left-0 z-20 w-full pb-3 outline-hidden data-[state=closed]:hidden">
             <UserAccountMenuPanel user={user} />
           </CollapsibleContent>
         </SidebarMenuItem>

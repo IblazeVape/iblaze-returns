@@ -17,7 +17,7 @@ export function LogoMarqueeTwo() {
       <p className="text-center text-muted-foreground">
         Trusted by startups, enterprises, and industry giants alike.
       </p>
-      <div className="relative mt-9 overflow-hidden [mask-image:linear-gradient(to_right,transparent,#000_12%,#000_88%,transparent)]">
+      <div className="relative mt-9 overflow-hidden mask-[linear-gradient(to_right,transparent,#000_12%,#000_88%,transparent)]">
         <div
           className="flex w-max animate-marquee items-center gap-16 pr-16 grayscale opacity-70"
           style={{ "--duration": "34s", "--gap": "4rem" } as React.CSSProperties}

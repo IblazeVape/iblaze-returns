@@ -53,7 +53,7 @@ export function ShopifyConnect({
                 </div>
                 <div className="flex flex-col items-center gap-2">
                     <Circle ref={reflowRef} className="h-16 w-16 border-violet-500/60">
-                        <span className="font-heading text-xl font-bold text-black !leading-none">
+                        <span className="font-heading text-xl font-bold text-black leading-none!">
                             R
                         </span>
                     </Circle>

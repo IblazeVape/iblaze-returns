@@ -161,7 +161,7 @@ export function NavTwo() {
 
       {/* Full-screen slide-in mobile panel, closed with an explicit X (matches
           a dedicated mobile nav pattern rather than a below-header dropdown).
-          Portalled to document.body — the header's backdrop-blur (backdrop-filter)
+          Portalled to document.body — the header's backdrop-blur-sm (backdrop-filter)
           makes Chromium treat header as the containing block for any
           position:fixed descendant, which collapsed this panel down to the
           header's own 64px height instead of the full viewport. Portalling

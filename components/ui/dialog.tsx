@@ -38,7 +38,7 @@ function DialogOverlay({
     <DialogPrimitive.Overlay
       data-slot="dialog-overlay"
       className={cn(
-        "fixed inset-0 z-50 bg-black/40 backdrop-blur-sm",
+        "fixed inset-0 z-50 bg-black/40 backdrop-blur-xs",
         "data-[state=open]:animate-in data-[state=open]:fade-in-0",
         "data-[state=closed]:animate-out data-[state=closed]:fade-out-0",
         className
@@ -68,10 +68,10 @@ function DialogContent({
           "gap-4 rounded-xl bg-popover p-4",
           "text-sm text-popover-foreground",
           "ring-1 ring-foreground/10",
-          "outline-none",
+          "outline-hidden",
           // Pure opacity-only fade — no transform animation so centering stays intact
-          "data-[state=open]:[animation:dialog-show_200ms_ease-out]",
-          "data-[state=closed]:[animation:dialog-hide_200ms_ease-out]",
+          "data-[state=open]:animate-[dialog-show_200ms_ease-out]",
+          "data-[state=closed]:animate-[dialog-hide_200ms_ease-out]",
           className
         )}
         {...props}
@@ -86,7 +86,7 @@ function DialogContent({
               "inline-flex size-7 items-center justify-center rounded-md",
               "text-muted-foreground hover:text-foreground",
               "hover:bg-muted transition-colors",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring",
               "disabled:pointer-events-none"
             )}
           >

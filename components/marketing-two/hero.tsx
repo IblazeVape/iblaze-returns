@@ -70,7 +70,7 @@ function LiveDemoFrame() {
             />
           )
         : <div className="size-full animate-pulse bg-muted/40" />}
-      <div className="pointer-events-none absolute left-3 top-3 z-10 flex items-center gap-1.5 rounded-full bg-zinc-900/90 px-3 py-1.5 text-xs font-medium text-white shadow-lg backdrop-blur-sm">
+      <div className="pointer-events-none absolute left-3 top-3 z-10 flex items-center gap-1.5 rounded-full bg-zinc-900/90 px-3 py-1.5 text-xs font-medium text-white shadow-lg backdrop-blur-xs">
         <MousePointerClick className="size-3.5" /> Live demo - try it
       </div>
     </div>
@@ -90,7 +90,7 @@ export function HeroTwo() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
-            className="rounded-full border bg-background px-3.5 py-1 text-xs text-muted-foreground shadow-sm"
+            className="rounded-full border bg-background px-3.5 py-1 text-xs text-muted-foreground shadow-xs"
           >
             Trusted by 5,000+ growing Shopify stores
           </motion.span>

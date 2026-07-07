@@ -46,7 +46,7 @@ function SidebarBrandHeader() {
         <SidebarMenuItem>
           <SidebarMenuButton
             asChild
-            className="data-[slot=sidebar-menu-button]:!p-1.5 group-data-[collapsible=icon]:!size-9 group-data-[collapsible=icon]:!p-1 group-data-[collapsible=icon]:mx-auto"
+            className="data-[slot=sidebar-menu-button]:p-1.5! group-data-[collapsible=icon]:size-9! group-data-[collapsible=icon]:p-1! group-data-[collapsible=icon]:mx-auto"
           >
             <a
               href="https://iblazevape.co.uk"

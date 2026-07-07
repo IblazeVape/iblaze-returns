@@ -36,7 +36,7 @@ import { cn } from "@/lib/utils"
 // The "Docs" group now reads the real docs tree via getDocsNavItems
 // instead of a hardcoded list.
 const GROUP_HEADING_CLS =
-  "!p-0 [&_[cmdk-group-heading]]:scroll-mt-16 [&_[cmdk-group-heading]]:!p-3 [&_[cmdk-group-heading]]:!pb-1"
+  "p-0! **:[[cmdk-group-heading]]:scroll-mt-16 **:[[cmdk-group-heading]]:p-3! **:[[cmdk-group-heading]]:pb-1!"
 
 export function CommandMenu({
   navItems,

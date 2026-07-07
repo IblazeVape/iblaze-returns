@@ -148,7 +148,7 @@ export function DocsCopyPage({ markdown, url }: { markdown: string; url: string 
 
   return (
     <Popover>
-      <div className="group/buttons relative flex rounded-lg bg-secondary *:data-[slot=button]:focus-visible:relative *:data-[slot=button]:focus-visible:z-10">
+      <div className="group/buttons relative flex rounded-lg bg-secondary focus-visible:data-[slot=button]:*:relative focus-visible:data-[slot=button]:*:z-10">
         <PopoverAnchor />
         <Button
           data-slot="button"
@@ -179,14 +179,14 @@ export function DocsCopyPage({ markdown, url }: { markdown: string; url: string 
         <PopoverTrigger asChild className="flex sm:hidden">
           {trigger}
         </PopoverTrigger>
-        <PopoverContent className="w-52 origin-center! rounded-lg bg-background/70 p-1 shadow-none backdrop-blur-sm dark:bg-background/60" align="start">
+        <PopoverContent className="w-52 origin-center! rounded-lg bg-background/70 p-1 shadow-none backdrop-blur-xs dark:bg-background/60" align="start">
           {MENU_ITEMS.map(([key, render]) => (
             <Button
               variant="ghost"
               size="lg"
               asChild
               key={key}
-              className="w-full justify-start text-base font-normal *:[svg]:text-muted-foreground"
+              className="w-full justify-start text-base font-normal [svg]:*:text-muted-foreground"
             >
               {render(absoluteUrl)}
             </Button>

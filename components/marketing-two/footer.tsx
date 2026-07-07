@@ -79,7 +79,7 @@ export function FooterTwo() {
               type="email"
               required
               placeholder="Your email..."
-              className="h-10 w-full rounded-lg border bg-background px-3 text-sm outline-none placeholder:text-muted-foreground focus:border-foreground/40"
+              className="h-10 w-full rounded-lg border bg-background px-3 text-sm outline-hidden placeholder:text-muted-foreground focus:border-foreground/40"
             />
             <button
               type="submit"

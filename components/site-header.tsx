@@ -120,7 +120,7 @@ export function SiteHeader({
                   <Menu className="size-4" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="min-w-[10rem]">
+              <DropdownMenuContent align="end" className="min-w-40">
                 <DropdownMenuItem asChild>
                   <a href="https://iblazevape.co.uk" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
                     <Home className="size-4" />

@@ -69,7 +69,7 @@ const MobileNavbar = () => {
                             </Link>
                         </div>
                         <ul className="flex flex-col items-start w-full mt-6">
-                            <Accordion type="single" collapsible className="!w-full">
+                            <Accordion type="single" collapsible className="w-full!">
                                 {NAV_LINKS.map((link) => (
                                     <AccordionItem key={link.title} value={link.title} className="last:border-none">
                                         {link.menu ? (
@@ -122,14 +122,14 @@ const ListItem = React.forwardRef<
                 href={href!}
                 ref={ref}
                 className={cn(
-                    "block select-none space-y-1 rounded-lg p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
+                    "block select-none space-y-1 rounded-lg p-3 leading-none no-underline outline-hidden transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
                     className
                 )}
                 {...props}
             >
                 <div className="flex items-center space-x-2 text-foreground">
                     <Icon className="h-4 w-4" />
-                    <h6 className="text-sm !leading-none">
+                    <h6 className="text-sm leading-none!">
                         {title}
                     </h6>
                 </div>
