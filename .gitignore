@@ -28,3 +28,8 @@ Thumbs.db
 .superpowers/
 /docs/
 .source
+
+# marketing-site (separate Next.js app)
+/marketing-site/node_modules
+/marketing-site/.next
+/marketing-site/.source
