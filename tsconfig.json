@@ -17,5 +17,5 @@
     "paths": { "@/*": ["./*"] }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", "extensions", "linkify", "components/dashboard-client.tabs-backup.tsx"]
+  "exclude": ["node_modules", "extensions", "linkify", "marketing-site", "components/dashboard-client.tabs-backup.tsx"]
 }
