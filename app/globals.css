@@ -169,6 +169,22 @@
   }
 }
 
+/*
+  Inset sidebar layout: the shadcn `peer-data-[variant=inset]:m-2 / :shadow-xs`
+  utilities on SidebarInset do not reliably emit under Tailwind v4's class
+  extraction (rounded-xl survives, but the margin/shadow are dropped), so the
+  floating panel ended up flush against the top. Restore the v3 look explicitly
+  so it can't be purged. (Left margin stays 0 to sit flush against the sidebar.)
+*/
+@media (min-width: 1025px) {
+  [data-slot="sidebar"][data-variant="inset"] ~ [data-slot="sidebar-inset"] {
+    margin: 0.5rem;
+    margin-left: 0;
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  }
+}
+
 @layer utilities {
   html,
   body {

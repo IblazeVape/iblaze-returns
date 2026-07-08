@@ -3603,7 +3603,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                 )}
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="h-8 gap-1.5 text-sm shrink-0 px-3 bg-transparent">
+                    <Button variant="outline" className="h-8 gap-1.5 text-sm shrink-0 px-3 bg-transparent hover:bg-transparent hover:text-foreground">
                       <Columns2 className="size-3" />
                       Columns
                       {Object.values(colsVisible).filter(v => !v).length > 0 && (
