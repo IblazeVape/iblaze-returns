@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
-import { setShopifyToken } from "@/lib/redis";
+import { setTenant } from "@/lib/tenant";
 
 function verifyHmac(params: URLSearchParams, secret: string): boolean {
   const hmac = params.get("hmac");
@@ -29,13 +29,15 @@ export async function GET(request: NextRequest) {
   const clientId = process.env.SHOPIFY_CLIENT_ID!;
   const clientSecret = process.env.SHOPIFY_CLIENT_SECRET!;
   const appUrl = process.env.NEXT_PUBLIC_APP_URL!;
-  const storeUrl = process.env.SHOPIFY_STORE_URL!;
 
   // Step 1: No code yet — redirect to Shopify OAuth
   if (!code || !shop) {
+    if (!shop) {
+      return NextResponse.json({ error: "Missing shop" }, { status: 400 });
+    }
     const redirectUri = `${appUrl}/api/shopify-callback`;
     const scopes = "read_orders,write_returns,read_customers,read_fulfillments";
-    const installUrl = `https://${storeUrl}/admin/oauth/authorize?client_id=${clientId}&scope=${scopes}&redirect_uri=${encodeURIComponent(redirectUri)}`;
+    const installUrl = `https://${shop}/admin/oauth/authorize?client_id=${clientId}&scope=${scopes}&redirect_uri=${encodeURIComponent(redirectUri)}`;
     return NextResponse.redirect(installUrl);
   }
 
@@ -57,8 +59,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Failed to get token", detail: tokenData }, { status: 500 });
   }
 
-  // Step 4: Save token to Redis
-  await setShopifyToken(tokenData.access_token);
+  // Step 4: Save per-shop tenant record
+  await setTenant(shop, {
+    accessToken: tokenData.access_token,
+    scopes: tokenData.scope ?? "",
+    installedAt: new Date().toISOString(),
+  });
 
   return NextResponse.json({
     success: true,
