@@ -40,7 +40,7 @@
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.469.0",
     "motion": "^12.38.0",
-    "next": "15.5.18",
+    "next": "16.2.10",
     "next-themes": "^0.3.0",
     "node-mailjet": "^6.0.5",
     "radix-ui": "latest",
@@ -67,13 +67,12 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "eslint": "^9.17.0",
-    "eslint-config-next": "15.5.18",
+    "eslint-config-next": "16.2.10",
     "postcss": "^8.4.49",
     "tailwindcss": "^4.3.2",
     "typescript": "^5.7.3"
   },
   "overrides": {
-    "next": "15.5.18",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   }
