@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "vitest"
   },
   "dependencies": {
     "@mdx-js/mdx": "^3.1.1",
@@ -70,7 +71,8 @@
     "eslint-config-next": "15.5.18",
     "postcss": "^8.4.49",
     "tailwindcss": "^4.3.2",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "vitest": "^4.1.10"
   },
   "overrides": {
     "next": "15.5.18",
