@@ -9,6 +9,10 @@ const { ROUTES } = await jiti.import("./constants/routes");
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   devIndicators: false,
+  // Served as a child zone under /home of the returns portal (via a rewrite
+  // in the portal's next.config). basePath makes all routes + static assets
+  // resolve under /home so links and _next assets work behind the rewrite.
+  basePath: "/home",
   // This app lives in a subfolder of the iblaze-returns repo (which has its
   // own package-lock.json for the returns portal). Pin the workspace root to
   // this folder so Turbopack resolves modules from marketing-site's own
