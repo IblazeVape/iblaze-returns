@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { validateSession } from "@/lib/auth";
-import { getShopifyToken } from "@/lib/redis";
+import { getRequestShop } from "@/lib/request-shop";
+import { getTenantToken } from "@/lib/tenant";
 import { sendEmail } from "@/lib/mailjet";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { getReturnRequestTemplate } = require("@/lib/templates");
@@ -101,8 +102,11 @@ export async function POST(request: NextRequest) {
     const session = validateSession(cookieHeader);
     if (!session.valid) return NextResponse.json({ error: session.error }, { status: 401 });
 
+    const ctx = await getRequestShop(request);
+    if (!ctx) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
     const { email: sessionEmail, accessToken } = session;
-    const shop = process.env.SHOPIFY_STORE_URL!;
+    const { shop } = ctx;
     const fullOrderId = `gid://shopify/Order/${orderId}`;
 
     // ── Idempotency check ────────────────────────────────────────────────────
@@ -124,7 +128,7 @@ export async function POST(request: NextRequest) {
 
     void accessToken; // Customer Account token present in session — not used for Admin mutations
 
-    const shopifyAccessToken = await getShopifyToken();
+    const shopifyAccessToken = await getTenantToken(shop);
     if (!shopifyAccessToken) {
       console.error("No Shopify Admin token in Redis. Visit /api/shopify-callback to install.");
       return NextResponse.json(

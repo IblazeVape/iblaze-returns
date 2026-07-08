@@ -3,6 +3,7 @@ import crypto from "crypto";
 import { shopifyAdmin } from "@/lib/shopify";
 import { getAdminReturnableInfo } from "@/lib/returnEligibility";
 import { redis } from "@/lib/redis";
+import { getRequestShop } from "@/lib/request-shop";
 
 export const dynamic = "force-dynamic";
 
@@ -69,6 +70,10 @@ async function setCached(orderGid: string, eligible: boolean): Promise<void> {
 
 export async function GET(req: NextRequest) {
   try {
+    const ctx = await getRequestShop(req);
+    if (!ctx) return NextResponse.json({ eligible: true, reason: "no-shop" }, { headers: CORS_HEADERS });
+    const { shop } = ctx;
+
     const orderParam = req.nextUrl.searchParams.get("order") || "";
     if (!orderParam) return NextResponse.json({ eligible: true, reason: "no-order" }, { headers: CORS_HEADERS });
 
@@ -86,6 +91,7 @@ export async function GET(req: NextRequest) {
     }
 
     const data = await shopifyAdmin(
+      shop,
       `query OrderEligibility($id: ID!) {
         order(id: $id) {
           id
@@ -125,7 +131,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const { returnableItems } = await getAdminReturnableInfo(orderGid);
+    const { returnableItems } = await getAdminReturnableInfo(shop, orderGid);
     const now = Date.now();
     let eligible = false;
     for (const [lid, qty] of Object.entries(returnableItems)) {

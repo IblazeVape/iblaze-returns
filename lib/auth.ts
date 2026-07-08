@@ -68,9 +68,9 @@ export function buildSessionCookie(email: string, accessToken: string): string {
   return `${sessionData}|${sig}`;
 }
 
-export async function verifyShopifyToken(accessToken: string): Promise<boolean> {
+export async function verifyShopifyToken(shop: string, accessToken: string): Promise<boolean> {
   try {
-    const endpoint = await getCustomerAccountEndpoint();
+    const endpoint = await getCustomerAccountEndpoint(shop);
     const authHeaders = [accessToken, `Bearer ${accessToken}`];
 
     for (const authorization of authHeaders) {

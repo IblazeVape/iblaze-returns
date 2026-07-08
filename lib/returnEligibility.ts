@@ -4,12 +4,13 @@ import type { ReturnInfo } from "@/lib/customerAccount";
 const PAGE = 50;
 
 /** Admin API fallback — same source submit-return uses when Customer Account API is unavailable. */
-export async function getAdminReturnableInfo(orderId: string): Promise<ReturnInfo> {
+export async function getAdminReturnableInfo(shop: string, orderId: string): Promise<ReturnInfo> {
   const returnableItems: Record<string, number> = {};
   let fulfillmentAfter: string | null = null;
 
   do {
     const data = await shopifyAdmin(
+      shop,
       `
       query AdminReturnable($orderId: ID!, $first: Int!, $after: String) {
         returnableFulfillments(orderId: $orderId, first: $first, after: $after) {
@@ -51,13 +52,14 @@ export async function getAdminReturnableInfo(orderId: string): Promise<ReturnInf
 
 /** Fetch any line items beyond the first page — separate low-cost queries. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function fetchRemainingLineItems(orderId: string, after: string): Promise<any[]> {
+export async function fetchRemainingLineItems(shop: string, orderId: string, after: string): Promise<any[]> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const extra: any[] = [];
   let cursor: string | null = after;
 
   while (cursor) {
     const data = await shopifyAdmin(
+      shop,
       `
       query OrderLineItems($id: ID!, $first: Int!, $after: String) {
         order(id: $id) {
@@ -89,13 +91,14 @@ export async function fetchRemainingLineItems(orderId: string, after: string): P
 
 /** Fetch fulfillment line items beyond the first page — fulfillments with >30 variants need this. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function fetchRemainingFulfillmentLineItems(fulfillmentId: string, after: string): Promise<any[]> {
+export async function fetchRemainingFulfillmentLineItems(shop: string, fulfillmentId: string, after: string): Promise<any[]> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const extra: any[] = [];
   let cursor: string | null = after;
 
   while (cursor) {
     const data = await shopifyAdmin(
+      shop,
       `
       query FulfillmentLineItems($id: ID!, $first: Int!, $after: String) {
         fulfillment(id: $id) {
@@ -119,13 +122,14 @@ export async function fetchRemainingFulfillmentLineItems(fulfillmentId: string, 
 
 /** Fetch return records beyond the first page — orders with many returns (e.g. #1033) need this. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function fetchRemainingReturns(orderId: string, after: string): Promise<any[]> {
+export async function fetchRemainingReturns(shop: string, orderId: string, after: string): Promise<any[]> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const extra: any[] = [];
   let cursor: string | null = after;
 
   while (cursor) {
     const data = await shopifyAdmin(
+      shop,
       `
       query OrderReturns($id: ID!, $first: Int!, $after: String) {
         order(id: $id) {

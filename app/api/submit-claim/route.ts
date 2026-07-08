@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { validateSession, verifyShopifyToken } from "@/lib/auth";
+import { getRequestShop } from "@/lib/request-shop";
+import { getTenantToken } from "@/lib/tenant";
 
 const GLEAP_TOKEN = process.env.GLEAP_TOKEN || "";
 const GLEAP_PROJECT = process.env.GLEAP_PROJECT || "";
@@ -12,9 +14,15 @@ export async function POST(request: NextRequest) {
     const session = validateSession(cookieHeader);
     if (!session.valid) return NextResponse.json({ error: session.error }, { status: 401 });
 
+    const ctx = await getRequestShop(request);
+    if (!ctx) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
     const { email: sessionEmail, accessToken } = session;
-    const shop = process.env.SHOPIFY_STORE_URL!;
-    const shopifyAccessToken = process.env.SHOPIFY_ACCESS_TOKEN!;
+    const { shop } = ctx;
+    const shopifyAccessToken = await getTenantToken(shop);
+    if (!shopifyAccessToken) {
+      return NextResponse.json({ error: "Store configuration error." }, { status: 500 });
+    }
 
     const shopRes = await fetch(`https://${shop}/admin/api/2024-04/graphql.json`, {
       method: "POST",
@@ -24,7 +32,7 @@ export async function POST(request: NextRequest) {
     const shopData = await shopRes.json();
     const shopId = shopData.data.shop.id.split("/").pop();
 
-    const isValid = await verifyShopifyToken(accessToken!);
+    const isValid = await verifyShopifyToken(shop, accessToken!);
     if (!isValid) return NextResponse.json({ error: "Session revoked." }, { status: 401 });
 
     const sessionRes = await fetch("https://api.gleap.io/v3/sessions", {

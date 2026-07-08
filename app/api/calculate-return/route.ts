@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { validateSession } from "@/lib/auth";
-import { getShopifyToken } from "@/lib/redis";
+import { getRequestShop } from "@/lib/request-shop";
+import { getTenantToken } from "@/lib/tenant";
 
 // ── returnCalculate ──────────────────────────────────────────────────────────
 // Calls Shopify's returnCalculate mutation (dry-run — no state changes).
@@ -56,11 +57,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: session.error }, { status: 401 });
     }
 
+    const ctx = await getRequestShop(request);
+    if (!ctx) {
+      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    }
+
     const { email: sessionEmail } = session;
-    const shop = process.env.SHOPIFY_STORE_URL!;
+    const { shop } = ctx;
     const fullOrderId = `gid://shopify/Order/${orderId}`;
 
-    const shopifyAccessToken = await getShopifyToken();
+    const shopifyAccessToken = await getTenantToken(shop);
     if (!shopifyAccessToken) {
       return NextResponse.json({ error: "Store configuration error." }, { status: 500 });
     }

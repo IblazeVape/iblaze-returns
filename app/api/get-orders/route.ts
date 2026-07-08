@@ -3,6 +3,7 @@ import { validateSession } from "@/lib/auth";
 import { shopifyAdmin, shopifyAdminRest } from "@/lib/shopify";
 import { getOrderReturnInfo, ReturnInfo } from "@/lib/customerAccount";
 import { getAdminReturnableInfo, fetchRemainingLineItems, fetchRemainingReturns, fetchRemainingFulfillmentLineItems } from "@/lib/returnEligibility";
+import { getRequestShop } from "@/lib/request-shop";
 
 // Eligibility is time-sensitive (return window expires by date) and user-specific.
 // Never cache at the Next.js data layer — always recompute per request.
@@ -14,6 +15,7 @@ const NO_STORE = { "Cache-Control": "no-store, no-cache, must-revalidate, max-ag
 type EligibilitySource = "shopify" | "shopify-admin" | "fallback";
 
 async function resolveReturnInfo(
+  shop: string,
   orderId: string,
   orderName: string,
   cancelledAt: string | null | undefined,
@@ -23,12 +25,12 @@ async function resolveReturnInfo(
   if (!accessToken) return { returnInfo: null, eligibilitySource: "fallback" };
 
   try {
-    const returnInfo = await getOrderReturnInfo(orderId, accessToken);
+    const returnInfo = await getOrderReturnInfo(shop, orderId, accessToken);
     return { returnInfo, eligibilitySource: "shopify" };
   } catch (err) {
     console.error(`getOrderReturnInfo failed for ${orderName}:`, (err as Error).message);
     try {
-      const returnInfo = await getAdminReturnableInfo(orderId);
+      const returnInfo = await getAdminReturnableInfo(shop, orderId);
       return { returnInfo, eligibilitySource: "shopify-admin" };
     } catch (adminErr) {
       console.error(`getAdminReturnableInfo failed for ${orderName}:`, (adminErr as Error).message);
@@ -39,6 +41,12 @@ async function resolveReturnInfo(
 
 export async function GET(request: NextRequest) {
   try {
+    const ctx = await getRequestShop(request);
+    if (!ctx) {
+      return NextResponse.json({ error: "unauthorized" }, { status: 401, headers: NO_STORE });
+    }
+    const { shop } = ctx;
+
     const cookieHeader = request.headers.get("cookie");
     const session = validateSession(cookieHeader);
     if (!session.valid) {
@@ -108,7 +116,7 @@ export async function GET(request: NextRequest) {
     `;
 
     // Step 1: get customer ID + firstName
-    const customerData = await shopifyAdmin(`
+    const customerData = await shopifyAdmin(shop, `
       query GetCustomer($query: String!) {
         customers(first: 1, query: $query) {
           edges { node { id firstName } }
@@ -127,7 +135,7 @@ export async function GET(request: NextRequest) {
       let pages = 0;
       do {
         pages++;
-        const data = await shopifyAdmin(`
+        const data = await shopifyAdmin(shop, `
           query GetCustomerOrders($id: ID!, $after: String) {
             customer(id: $id) {
               firstName
@@ -164,7 +172,7 @@ export async function GET(request: NextRequest) {
       let pages = 0;
       do {
         pages++;
-        const data = await shopifyAdmin(`
+        const data = await shopifyAdmin(shop, `
           query GetOrdersByEmail($query: String!, $after: String) {
             orders(first: 20, after: $after, query: $query, sortKey: CREATED_AT, reverse: true) {
               pageInfo { hasNextPage endCursor }
@@ -200,7 +208,7 @@ export async function GET(request: NextRequest) {
         const numericId = customerId.replace("gid://shopify/Customer/", "");
 
         // Diagnostic: try fetching one known-missing order directly
-        const directTest = await shopifyAdmin(`
+        const directTest = await shopifyAdmin(shop, `
           query TestMissingOrder($id: ID!) {
             order(id: $id) { id name }
           }
@@ -213,7 +221,7 @@ export async function GET(request: NextRequest) {
         let newFromCustomerIdQuery = 0;
         do {
           pages++;
-          const data = await shopifyAdmin(`
+          const data = await shopifyAdmin(shop, `
             query OrdersByCustomerId($query: String!, $after: String) {
               orders(first: 20, after: $after, query: $query, sortKey: CREATED_AT, reverse: true) {
                 pageInfo { hasNextPage endCursor }
@@ -261,13 +269,13 @@ export async function GET(request: NextRequest) {
       rawOrders.map(async (order: any) => {
         const linePageInfo = order.lineItems?.pageInfo;
         if (linePageInfo?.hasNextPage && linePageInfo.endCursor) {
-          const extraLines = await fetchRemainingLineItems(order.id, linePageInfo.endCursor);
+          const extraLines = await fetchRemainingLineItems(shop, order.id, linePageInfo.endCursor);
           order.lineItems.edges.push(...extraLines);
         }
 
         const returnsPageInfo = order.returns?.pageInfo;
         if (returnsPageInfo?.hasNextPage && returnsPageInfo.endCursor) {
-          const extraReturns = await fetchRemainingReturns(order.id, returnsPageInfo.endCursor);
+          const extraReturns = await fetchRemainingReturns(shop, order.id, returnsPageInfo.endCursor);
           order.returns.edges.push(...extraReturns.map((node: unknown) => ({ node })));
         }
 
@@ -276,7 +284,7 @@ export async function GET(request: NextRequest) {
         for (const f of (order.fulfillments || []) as any[]) {
           const fliPageInfo = f.fulfillmentLineItems?.pageInfo;
           if (fliPageInfo?.hasNextPage && fliPageInfo.endCursor) {
-            const extraFLIs = await fetchRemainingFulfillmentLineItems(f.id, fliPageInfo.endCursor);
+            const extraFLIs = await fetchRemainingFulfillmentLineItems(shop, f.id, fliPageInfo.endCursor);
             f.fulfillmentLineItems.edges.push(...extraFLIs);
           }
         }
@@ -289,7 +297,7 @@ export async function GET(request: NextRequest) {
     const returnInfoResults = await Promise.all(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       rawOrders.map((order: any) =>
-        resolveReturnInfo(order.id, order.name, order.cancelledAt, accessToken)
+        resolveReturnInfo(shop, order.id, order.name, order.cancelledAt, accessToken)
       )
     );
 
