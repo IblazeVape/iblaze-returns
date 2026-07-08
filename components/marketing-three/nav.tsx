@@ -4,7 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import {
   ChevronDown,
-  Github,
+  Code,
   Menu,
   Package2,
   Search,
@@ -85,7 +85,7 @@ export function NavThree() {
               <Sun className="size-4" />
             </IconButton>
             <IconButton label="GitHub">
-              <Github className="size-4" />
+              <Code className="size-4" />
             </IconButton>
             <span className="mx-2 h-5 w-px bg-zinc-200" />
           </div>

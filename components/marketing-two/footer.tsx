@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { ArrowRight, Github, Instagram, Package2, Twitter, Youtube } from "lucide-react"
+import { ArrowRight, Code, Camera, Package2, MessageCircle, Video } from "lucide-react"
 import { toast } from "sonner"
 
 const COMPANY = [
@@ -37,10 +37,10 @@ export function FooterTwo() {
             all in one simple, real-time portal built for growing stores.
           </p>
           <div className="mt-6 flex items-center gap-4 border-t pt-5 text-muted-foreground">
-            <Github className="size-4 transition-colors hover:text-foreground" />
-            <Instagram className="size-4 transition-colors hover:text-foreground" />
-            <Twitter className="size-4 transition-colors hover:text-foreground" />
-            <Youtube className="size-4 transition-colors hover:text-foreground" />
+            <Code className="size-4 transition-colors hover:text-foreground" />
+            <Camera className="size-4 transition-colors hover:text-foreground" />
+            <MessageCircle className="size-4 transition-colors hover:text-foreground" />
+            <Video className="size-4 transition-colors hover:text-foreground" />
           </div>
         </div>
 

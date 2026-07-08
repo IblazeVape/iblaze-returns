@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Github, Package2, Twitter } from "lucide-react"
+import { Code, Package2, MessageCircle } from "lucide-react"
 import { Accent, Button, Container } from "./frame"
 
 const COLUMNS = [
@@ -98,10 +98,10 @@ export function FooterThree() {
             </p>
             <div className="mt-5 flex gap-2">
               <SocialIcon label="Twitter">
-                <Twitter className="size-4" />
+                <MessageCircle className="size-4" />
               </SocialIcon>
               <SocialIcon label="GitHub">
-                <Github className="size-4" />
+                <Code className="size-4" />
               </SocialIcon>
             </div>
           </div>
