@@ -46,17 +46,17 @@ function SidebarBrandHeader() {
         <SidebarMenuItem>
           <SidebarMenuButton
             asChild
-            className="data-[slot=sidebar-menu-button]:p-1.5! group-data-[collapsible=icon]:size-9! group-data-[collapsible=icon]:p-1! group-data-[collapsible=icon]:mx-auto"
+            className="data-[slot=sidebar-menu-button]:p-1.5! group-data-[collapsible=icon]:size-11! group-data-[collapsible=icon]:p-0.5! group-data-[collapsible=icon]:mx-auto"
           >
             <a
               href="https://iblazevape.co.uk"
               target="_blank"
-              className="flex items-center group-data-[collapsible=icon]:size-9 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:overflow-hidden"
+              className="flex items-center group-data-[collapsible=icon]:size-11 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:overflow-hidden"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="https://cdn.shopify.com/s/files/1/0941/5383/4761/files/IblazeLogo.png?v=14858"
-                className="size-8 shrink-0 object-contain object-center group-data-[collapsible=icon]:size-8"
+                className="size-8 shrink-0 object-contain object-center group-data-[collapsible=icon]:size-10"
                 alt="iBlaze Vape"
               />
               <span className="text-base font-semibold group-data-[collapsible=icon]:hidden">iBlaze Returns</span>
