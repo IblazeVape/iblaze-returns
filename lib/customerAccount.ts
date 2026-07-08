@@ -1,16 +1,16 @@
 // Customer Account API — discovery + return eligibility
 
-let cachedEndpoint: string | null = null;
+const cache = new Map<string, string>();
 
-export async function getCustomerAccountEndpoint(): Promise<string> {
-  if (cachedEndpoint) return cachedEndpoint;
-  const shopDomain = process.env.SHOPIFY_STORE_URL!;
-  const res = await fetch(`https://${shopDomain}/.well-known/customer-account-api`);
+export async function getCustomerAccountEndpoint(shop: string): Promise<string> {
+  const cached = cache.get(shop);
+  if (cached) return cached;
+  const res = await fetch(`https://${shop}/.well-known/customer-account-api`);
   if (!res.ok) throw new Error(`Discovery failed: ${res.status}`);
   const data = await res.json();
   if (!data.graphql_api) throw new Error("No graphql_api in discovery response");
-  cachedEndpoint = data.graphql_api;
-  return cachedEndpoint!;
+  cache.set(shop, data.graphql_api);
+  return data.graphql_api;
 }
 
 export type NonReturnableDetail = {
@@ -30,11 +30,12 @@ export type ReturnInfo = {
 const RETURN_INFO_PAGE = 50;
 
 async function customerAccountQuery<T>(
+  shop: string,
   accessToken: string,
   query: string,
   variables: Record<string, unknown>
 ): Promise<T> {
-  const endpoint = await getCustomerAccountEndpoint();
+  const endpoint = await getCustomerAccountEndpoint(shop);
   const res = await fetch(endpoint, {
     method: "POST",
     headers: {
@@ -51,6 +52,7 @@ async function customerAccountQuery<T>(
 }
 
 export async function getOrderReturnInfo(
+  shop: string,
   orderId: string,
   accessToken: string
 ): Promise<ReturnInfo> {
@@ -74,7 +76,7 @@ export async function getOrderReturnInfo(
       };
     };
 
-    const data: ReturnablePage = await customerAccountQuery<ReturnablePage>(accessToken, `
+    const data: ReturnablePage = await customerAccountQuery<ReturnablePage>(shop, accessToken, `
       query OrderReturnable($id: ID!, $first: Int!, $after: String) {
         order(id: $id) {
           returnInformation {
@@ -122,7 +124,7 @@ export async function getOrderReturnInfo(
       };
     };
 
-    const data: NonReturnablePage = await customerAccountQuery<NonReturnablePage>(accessToken, `
+    const data: NonReturnablePage = await customerAccountQuery<NonReturnablePage>(shop, accessToken, `
       query OrderNonReturnable($id: ID!, $first: Int!, $after: String) {
         order(id: $id) {
           returnInformation {

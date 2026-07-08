@@ -1,4 +1,4 @@
-import { getShopifyToken } from "@/lib/redis";
+import { getTenantToken } from "@/lib/tenant";
 
 const SHOPIFY_API_VERSION = "2025-04";
 
@@ -39,12 +39,12 @@ function logQueryCost(operationName: string, cost: GraphQLCost) {
 }
 
 export async function shopifyAdminRest(
+  shop: string,
   path: string,
   params: Record<string, string> = {}
 ) {
-  const shop = process.env.SHOPIFY_STORE_URL!;
-  const token = await getShopifyToken();
-  if (!token) throw new Error("No Shopify access token found.");
+  const token = await getTenantToken(shop);
+  if (!token) throw new Error(`No Shopify token for ${shop}`);
 
   const url = new URL(`https://${shop}/admin/api/${SHOPIFY_API_VERSION}/${path}`);
   Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
@@ -57,15 +57,15 @@ export async function shopifyAdminRest(
 }
 
 export async function shopifyAdmin(
+  shop: string,
   query: string,
   variables: Record<string, unknown> = {},
   operationName?: string
 ) {
-  const shop = process.env.SHOPIFY_STORE_URL!;
-  const token = await getShopifyToken() || process.env.SHOPIFY_ACCESS_TOKEN || null;
+  const token = await getTenantToken(shop);
 
   if (!token) {
-    throw new Error("No Shopify access token found. Please reinstall the app.");
+    throw new Error(`No Shopify token for ${shop}`);
   }
 
   const isDev = process.env.NODE_ENV === "development";
