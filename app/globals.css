@@ -198,6 +198,29 @@
   }
 }
 
+/*
+  Collapsed sidebar brand logo: shadcn's SidebarMenuButton pins the width to
+  w-8 (!important), which crushed the wide iBlaze wordmark down to a thin sliver
+  in the icon rail. In the collapsed state, let the brand button fill the column
+  and scale the wordmark up (preserving aspect) so it reads clearly.
+*/
+@media (min-width: 1025px) {
+  [data-state="collapsed"] .brand-logo-button {
+    width: 2.5rem !important;   /* 40px container inside the 60px icon rail */
+    height: 2.5rem !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    overflow: visible !important; /* stop the wordmark from being clipped */
+  }
+  [data-state="collapsed"] .brand-logo-img {
+    width: 2rem !important;    /* 32px — matches the expanded logo size */
+    height: auto !important;
+    max-width: none !important;
+  }
+}
+
 @layer utilities {
   html,
   body {
