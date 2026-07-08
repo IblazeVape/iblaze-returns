@@ -17,7 +17,10 @@
 import { Redis } from "@upstash/redis";
 
 async function main() {
-  const redis = Redis.fromEnv();
+  const redis = new Redis({
+    url: process.env.KV_REST_API_URL ?? process.env.UPSTASH_REDIS_REST_URL ?? "",
+    token: process.env.KV_REST_API_TOKEN ?? process.env.UPSTASH_REDIS_REST_TOKEN ?? "",
+  });
 
   const shop = process.env.SHOPIFY_STORE_URL;
   if (!shop) throw new Error("SHOPIFY_STORE_URL is not set");
