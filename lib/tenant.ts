@@ -60,7 +60,18 @@ export async function setTenant(
 
 export async function getTenantToken(shop: string): Promise<string | null> {
   const t = await getTenant(shop);
-  return t?.accessToken || null;
+  if (t?.accessToken) return t.accessToken;
+  // Tenant #1 (iBlaze) transition fallback: until the tenant record is formally
+  // seeded, use the legacy global token / env token for the original store, so
+  // merging the multi-tenant refactor can never break the live `/` portal.
+  if (shop && shop === process.env.SHOPIFY_STORE_URL) {
+    return (
+      (await redis.get<string>("shopify_access_token")) ||
+      process.env.SHOPIFY_ACCESS_TOKEN ||
+      null
+    );
+  }
+  return null;
 }
 
 export async function tenantExists(shop: string): Promise<boolean> {
