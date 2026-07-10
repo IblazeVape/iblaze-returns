@@ -77,3 +77,7 @@ export async function getTenantToken(shop: string): Promise<string | null> {
 export async function tenantExists(shop: string): Promise<boolean> {
   return (await getTenant(shop)) !== null;
 }
+
+export async function deleteTenant(shop: string): Promise<void> {
+  await redis.del(key(shop));
+}

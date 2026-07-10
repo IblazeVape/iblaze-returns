@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { setTenant } from "@/lib/tenant";
+import { buildMerchantSession } from "@/lib/merchant-session";
 
 function verifyHmac(params: URLSearchParams, secret: string): boolean {
   const hmac = params.get("hmac");
@@ -66,9 +67,17 @@ export async function GET(request: NextRequest) {
     installedAt: new Date().toISOString(),
   });
 
-  return NextResponse.json({
-    success: true,
-    message: "App installed successfully. Token saved. You can close this tab.",
-    scopes: tokenData.scope,
+  // Step 5: Set a signed merchant session and land on the merchant app entry,
+  // so install completes automatically into the app (no manual "close this tab").
+  const landingBase = process.env.NEXT_PUBLIC_APP_URL || `https://${request.headers.get("host")}`;
+  const cookie = buildMerchantSession(shop);
+  const response = NextResponse.redirect(new URL("/app", landingBase));
+  response.cookies.set(cookie.name, cookie.value, {
+    httpOnly: true,
+    secure: true,
+    sameSite: "lax",
+    path: "/",
+    maxAge: cookie.maxAge,
   });
+  return response;
 }

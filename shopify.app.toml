@@ -1,6 +1,6 @@
 name = "iBlaze Returns"
 client_id = "699e9ffee4fd5d72b8126884d37584be"
-application_url = "https://iblaze-returns.vercel.app"
+application_url = "https://iblaze-returns.vercel.app/app"
 embedded = false
 
 [access_scopes]
@@ -11,6 +11,10 @@ redirect_urls = ["https://iblaze-returns.vercel.app/api/callback", "https://ibla
 
 [webhooks]
 api_version = "2025-07"
+
+  [[webhooks.subscriptions]]
+  topics = [ "app/uninstalled" ]
+  uri = "https://iblaze-returns.vercel.app/api/webhooks/app-uninstalled"
 
 [pos]
 embedded = false
