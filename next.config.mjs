@@ -8,6 +8,14 @@ const nextConfig = {
   turbopack: {
     root: import.meta.dirname,
   },
+  // Next.js normally 308-redirects trailing-slash mismatches (framework-level,
+  // independent of route matching — a catch-all route alone doesn't disable
+  // it). Shopify's App Proxy treats ANY redirect from the app as an instruction
+  // to redirect the customer's storefront browser back through proxy signing,
+  // which re-triggers this redirect forever — an infinite loop at Shopify's
+  // edge. Disabling it here (app/apps/returns is a catch-all, so both slash
+  // forms already render the same page) removes the trigger entirely.
+  skipTrailingSlashRedirect: true,
   // Marketing site (StarterCN) runs as its own Vercel deployment and is served
   // under /home via these rewrites — one domain, separate build ("two houses,
   // one front door"). MARKETING_SITE_URL is the marketing deployment's base URL
