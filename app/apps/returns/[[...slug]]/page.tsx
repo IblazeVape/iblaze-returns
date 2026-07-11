@@ -1,7 +1,7 @@
-import { redirect } from "next/navigation";
 import { verifyAppProxySignature, parseProxyRequest } from "@/lib/app-proxy";
 import { getTenant } from "@/lib/tenant";
 import { shopifyAdmin } from "@/lib/shopify";
+import { GuestLookupForm } from "@/components/apps-returns/guest-lookup-form";
 
 export const dynamic = "force-dynamic";
 
@@ -63,12 +63,32 @@ export default async function AppProxyReturnsPage({
   }
 
   if (!loggedInCustomerId) {
-    // Real redirect (not a message) to the store's customer login, with a
-    // return_url back to this page. Shopify's App Proxy forwards any redirect
-    // response from the app to the customer's storefront browser — the
-    // documented mechanism for exactly this "not logged in" case — so this
-    // sends them to login and back to /apps/returns afterward.
-    redirect(`/account/login?return_url=${encodeURIComponent("/apps/returns")}`);
+    // Not logged in — but NOT everyone has a Shopify account: guest checkout
+    // means there's no account to log into at all. Forcing a login redirect
+    // here would block guest-checkout customers from ever returning an item.
+    // Offer both: log in (for account holders) or a guest order lookup
+    // (order number + email + postcode) for everyone else.
+    const loginUrl = `/account/login?return_url=${encodeURIComponent("/apps/returns")}`;
+    return (
+      <main
+        style={{
+          minHeight: "70vh",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "2rem",
+          gap: "1.5rem",
+          fontFamily: "system-ui, sans-serif",
+        }}
+      >
+        <GuestLookupForm />
+        <div style={{ color: "#888", fontSize: "0.85rem" }}>— or —</div>
+        <a href={loginUrl} style={{ color: "#111", fontSize: "0.95rem", fontWeight: 600 }}>
+          Log in to see all your orders
+        </a>
+      </main>
+    );
   }
 
   // Resolve the customer (email + name) via the merchant's admin token — proves
