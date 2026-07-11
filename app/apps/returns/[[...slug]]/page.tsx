@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { verifyAppProxySignature, parseProxyRequest } from "@/lib/app-proxy";
 import { getTenant } from "@/lib/tenant";
 import { shopifyAdmin } from "@/lib/shopify";
@@ -62,12 +63,12 @@ export default async function AppProxyReturnsPage({
   }
 
   if (!loggedInCustomerId) {
-    return (
-      <Notice
-        title="Please log in to your account"
-        body="Log into your store account and open your order to start a return."
-      />
-    );
+    // Real redirect (not a message) to the store's customer login, with a
+    // return_url back to this page. Shopify's App Proxy forwards any redirect
+    // response from the app to the customer's storefront browser — the
+    // documented mechanism for exactly this "not logged in" case — so this
+    // sends them to login and back to /apps/returns afterward.
+    redirect(`/account/login?return_url=${encodeURIComponent("/apps/returns")}`);
   }
 
   // Resolve the customer (email + name) via the merchant's admin token — proves
