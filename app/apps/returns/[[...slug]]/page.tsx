@@ -13,10 +13,21 @@ export const dynamic = "force-dynamic";
  * portal UI gets built on next (server-rendering the customer's orders +
  * routing client mutations under /apps/returns, both of which must be developed
  * against the live proxy).
+ *
+ * CATCH-ALL ROUTE (`[[...slug]]`) is required here, not a plain page: a plain
+ * Next.js route 308-redirects `/apps/returns/` -> `/apps/returns` (trailing
+ * slash normalization). Shopify's App Proxy treats ANY redirect response from
+ * the app as an instruction to redirect the customer's storefront browser to
+ * that path — which re-enters proxy signing and calls this route again,
+ * causing an infinite redirect loop entirely at Shopify's edge (confirmed:
+ * `/apps/returns/apps/returns/...` never reaches our server past the first
+ * hit). A catch-all matches every path/trailing-slash variant with zero
+ * redirects, which is what this route must never do.
  */
 export default async function AppProxyReturnsPage({
   searchParams,
 }: {
+  params: Promise<{ slug?: string[] }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const sp = await searchParams;
