@@ -24,20 +24,28 @@ async function resolveReturnInfo(
   accessToken: string | undefined
 ): Promise<{ returnInfo: ReturnInfo | null; eligibilitySource: EligibilitySource }> {
   if (cancelledAt) return { returnInfo: null, eligibilitySource: "fallback" };
-  if (!accessToken) return { returnInfo: null, eligibilitySource: "fallback" };
+
+  // Customer Account API path — only possible with a customer OAuth token
+  // (the legacy iBlaze session). App Proxy sessions never have one (Shopify
+  // itself vouches for the customer instead), so this step is skipped
+  // entirely for them — NOT treated as a failure, since the admin-based
+  // path below doesn't need a customer token at all and gives real
+  // eligibility, not the crude shipping-status-only fallback.
+  if (accessToken) {
+    try {
+      const returnInfo = await getOrderReturnInfo(shop, orderId, accessToken);
+      return { returnInfo, eligibilitySource: "shopify" };
+    } catch (err) {
+      console.error(`getOrderReturnInfo failed for ${orderName}:`, (err as Error).message);
+    }
+  }
 
   try {
-    const returnInfo = await getOrderReturnInfo(shop, orderId, accessToken);
-    return { returnInfo, eligibilitySource: "shopify" };
-  } catch (err) {
-    console.error(`getOrderReturnInfo failed for ${orderName}:`, (err as Error).message);
-    try {
-      const returnInfo = await getAdminReturnableInfo(shop, orderId);
-      return { returnInfo, eligibilitySource: "shopify-admin" };
-    } catch (adminErr) {
-      console.error(`getAdminReturnableInfo failed for ${orderName}:`, (adminErr as Error).message);
-      return { returnInfo: null, eligibilitySource: "fallback" };
-    }
+    const returnInfo = await getAdminReturnableInfo(shop, orderId);
+    return { returnInfo, eligibilitySource: "shopify-admin" };
+  } catch (adminErr) {
+    console.error(`getAdminReturnableInfo failed for ${orderName}:`, (adminErr as Error).message);
+    return { returnInfo: null, eligibilitySource: "fallback" };
   }
 }
 
