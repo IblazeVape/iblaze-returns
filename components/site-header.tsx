@@ -20,20 +20,24 @@ interface SiteHeaderProps {
   firstName?: string
   email?: string
   orderStatusUrl?: string
-  /** Hide the sidebar toggle button — used when the sidebar is locked
-   * collapsed and must never be opened (e.g. the guest lookup screen,
-   * which has no identity/nav to show in it). */
-  showSidebarToggle?: boolean
+  /** Controls the sidebar toggle button. `false` hides it everywhere.
+   * `"mobile-only"` hides it on desktop but keeps it on mobile — used when
+   * the sidebar is locked collapsed on desktop (e.g. the guest lookup
+   * screen, where the always-visible icon rail already shows the logo/nav)
+   * but on mobile the sidebar is an off-canvas Sheet with no persistent
+   * rail at all, so without this the logo and nav-secondary links
+   * (News/Support/Store) would never be reachable there. */
+  showSidebarToggle?: boolean | "mobile-only"
   /** Hide the account avatar/dropdown — there's no identity to represent
    * before a guest has verified an order. */
   showAccountMenu?: boolean
 }
 
-function SidebarToggleControls() {
+function SidebarToggleControls({ mobileOnly = false }: { mobileOnly?: boolean }) {
   const { isMobile, toggleSidebar, setOpenMobile } = useSidebar()
 
   return (
-    <>
+    <div className={cn("flex items-center", mobileOnly && "min-[1025px]:hidden")}>
       <button
         type="button"
         className="size-7 flex items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground transition-colors -ml-1"
@@ -43,7 +47,7 @@ function SidebarToggleControls() {
         <span className="sr-only">Toggle Sidebar</span>
       </button>
       <Separator orientation="vertical" className="mx-2 data-[orientation=vertical]:h-4" />
-    </>
+    </div>
   )
 }
 
@@ -71,7 +75,9 @@ export function SiteHeader({
           paddingRight: "max(1rem, env(safe-area-inset-right))",
         }}
       >
-        {showSidebarToggle && <SidebarToggleControls />}
+        {showSidebarToggle && (
+          <SidebarToggleControls mobileOnly={showSidebarToggle === "mobile-only"} />
+        )}
         <h1 className="text-base font-medium flex items-center gap-1.5 min-w-0">
           {titleIcon && (
             <titleIcon.icon className={cn("size-4 shrink-0 text-foreground", titleIcon.className)} aria-hidden />

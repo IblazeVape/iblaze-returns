@@ -24,8 +24,12 @@ export function PortalShell({
   user?: { name: string; email: string }
   onNavigate?: (section: string) => void
   activeSection?: string
-  /** Locks the sidebar collapsed and removes any way to open it — used for
-   * the guest lookup screen, which has no nav/identity to show in it. */
+  /** Locks the sidebar collapsed with no way to open it on desktop (the
+   * icon rail there is always visible anyway) — used for the guest lookup
+   * screen, which has no nav/identity to show in it. On mobile the sidebar
+   * is an off-canvas Sheet with no persistent rail, so the toggle stays
+   * available there — otherwise the logo and nav-secondary links
+   * (News/Support/Store) would be completely unreachable on mobile. */
   locked?: boolean
   headerProps: React.ComponentProps<typeof SiteHeader>
   children?: React.ReactNode
@@ -45,7 +49,7 @@ export function PortalShell({
     >
       <AppSidebar variant={layout} user={user} onNavigate={onNavigate} activeSection={activeSection} />
       <SidebarInset className="min-w-0">
-        <SiteHeader {...(locked ? { showSidebarToggle: false, showAccountMenu: false } : {})} {...headerProps} />
+        <SiteHeader {...(locked ? { showSidebarToggle: "mobile-only" as const, showAccountMenu: false } : {})} {...headerProps} />
         {children}
       </SidebarInset>
     </SidebarProvider>
