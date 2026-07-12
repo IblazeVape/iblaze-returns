@@ -1,12 +1,12 @@
 "use client"
 
 import * as React from "react"
-import { ShoppingBag, FileText, Newspaper, MessageCircle, ExternalLink } from "lucide-react"
+import { ShoppingBag, Search, FileText, Newspaper, MessageCircle, ExternalLink } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
-import { isGuestOrderContext } from "@/lib/apps-returns-portal-mode"
+import { isGuestOrderContext, lookupAnotherOrder } from "@/lib/apps-returns-portal-mode"
 import {
   Sidebar, SidebarContent, SidebarFooter,
   SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
@@ -65,17 +65,28 @@ function SidebarBrandHeader() {
   )
 }
 
+const LOOKUP_ANOTHER_ORDER_URL = "#lookup-another-order"
+
 export function AppSidebar({ user, onNavigate, activeSection, ...props }: AppSidebarProps) {
   // Guests verified exactly one order — there's no list to browse back to,
-  // so the nav item that would take them there is hidden. They use "Look up
-  // another order" on the order page instead.
-  const navMain = isGuestOrderContext() ? [] : [{ title: "My Orders", url: "#orders", icon: ShoppingBag }]
+  // so "My Orders" is replaced with an action that takes them back to the
+  // lookup form instead.
+  const navMain = isGuestOrderContext()
+    ? [{ title: "Look up another order", url: LOOKUP_ANOTHER_ORDER_URL, icon: Search }]
+    : [{ title: "My Orders", url: "#orders", icon: ShoppingBag }]
+  const handleNavigate = (url: string) => {
+    if (url === LOOKUP_ANOTHER_ORDER_URL) {
+      lookupAnotherOrder()
+      return
+    }
+    onNavigate?.(url)
+  }
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarBrandHeader />
       <SidebarContent>
         <div className="flex min-h-0 flex-1 w-full flex-col group-data-[collapsible=icon]:items-center">
-          {navMain.length > 0 && <NavMain items={navMain} onNavigate={onNavigate} activeSection={activeSection} />}
+          <NavMain items={navMain} onNavigate={handleNavigate} activeSection={activeSection} />
           <NavSecondary items={navSecondary} className="mt-auto" />
         </div>
       </SidebarContent>

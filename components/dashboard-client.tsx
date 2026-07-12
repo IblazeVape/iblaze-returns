@@ -4851,7 +4851,12 @@ function DashboardClientInner() {
     </SidebarProvider>
   )
 
-  if (loading) {
+  // Guest verified one order but the auto-select effect hasn't matched it
+  // into `selectedOrder` yet (fires on the render right after `data` loads,
+  // not the same render) — without this, there's a visible flash of the
+  // (empty, nav-less) "My Orders" list before it flips to the order detail.
+  // Keep the same loading overlay up until the order is actually selected.
+  if (loading || (isGuestOrderContext() && !selectedOrder)) {
     return (
       <div className="relative overflow-hidden" style={{ height: "100dvh", width: "100vw" }}>
         <div className="pointer-events-none select-none blur-xs brightness-95 h-full w-full">{portalContent}</div>
