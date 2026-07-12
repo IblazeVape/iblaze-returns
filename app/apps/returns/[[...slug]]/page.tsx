@@ -1,29 +1,33 @@
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { verifyAppProxySignature, parseProxyRequest } from "@/lib/app-proxy";
 import { getTenant } from "@/lib/tenant";
-import { shopifyAdmin } from "@/lib/shopify";
+import { validateAppsReturnsSession, APPS_RETURNS_COOKIE_NAME } from "@/lib/apps-returns-session";
 import { GuestLookupForm } from "@/components/apps-returns/guest-lookup-form";
+import DashboardClient from "@/components/dashboard-client";
 
 export const dynamic = "force-dynamic";
 
 /**
  * Shopify App Proxy entry: theirstore.com/apps/returns
  *
- * FOUNDATION LAYER (this file): verify Shopify's signed proxy request, resolve
- * the tenant (shop) and the logged-in customer, and confirm the whole chain
- * works against a REAL signed request. This is the verifiable ground the full
- * portal UI gets built on next (server-rendering the customer's orders +
- * routing client mutations under /apps/returns, both of which must be developed
- * against the live proxy).
+ * Renders the SAME DashboardClient used by the legacy iBlaze portal (`/`),
+ * for ANY tenant. Identity comes from one of two places:
+ *  - Logged-in customer: signed proxy request -> redirect to /apps/returns/
+ *    session (mints apps_returns_session) -> re-render here, cookie present.
+ *  - Guest: order-lookup form -> guest-lookup route mints a session scoped to
+ *    the one verified order -> reload here, cookie present.
+ * Once apps_returns_session exists, DashboardClient's own fetches (get-orders
+ * etc.) resolve the shop from it via lib/request-shop.ts — no proxy signature
+ * needed on those, only on this initial page load.
  *
  * CATCH-ALL ROUTE (`[[...slug]]`) is required here, not a plain page: a plain
  * Next.js route 308-redirects `/apps/returns/` -> `/apps/returns` (trailing
  * slash normalization). Shopify's App Proxy treats ANY redirect response from
  * the app as an instruction to redirect the customer's storefront browser to
  * that path — which re-enters proxy signing and calls this route again,
- * causing an infinite redirect loop entirely at Shopify's edge (confirmed:
- * `/apps/returns/apps/returns/...` never reaches our server past the first
- * hit). A catch-all matches every path/trailing-slash variant with zero
- * redirects, which is what this route must never do.
+ * causing an infinite redirect loop entirely at Shopify's edge. A catch-all
+ * matches every path/trailing-slash variant with zero redirects.
  */
 export default async function AppProxyReturnsPage({
   searchParams,
@@ -31,6 +35,14 @@ export default async function AppProxyReturnsPage({
   params: Promise<{ slug?: string[] }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  // Fast path: an existing session (logged-in or guest-scoped) renders the
+  // real portal directly — no need to re-verify a proxy signature here.
+  const cookieStore = await cookies();
+  const session = validateAppsReturnsSession(cookieStore.get(APPS_RETURNS_COOKIE_NAME)?.value);
+  if (session.valid) {
+    return <DashboardClient />;
+  }
+
   const sp = await searchParams;
   const query = new URLSearchParams();
   for (const [k, v] of Object.entries(sp)) {
@@ -62,63 +74,37 @@ export default async function AppProxyReturnsPage({
     );
   }
 
-  if (!loggedInCustomerId) {
-    // Not logged in — but NOT everyone has a Shopify account: guest checkout
-    // means there's no account to log into at all. Forcing a login redirect
-    // here would block guest-checkout customers from ever returning an item.
-    // Offer both: log in (for account holders) or a guest order lookup
-    // (order number + email + postcode) for everyone else.
-    const loginUrl = `/account/login?return_url=${encodeURIComponent("/apps/returns")}`;
-    return (
-      <main
-        style={{
-          minHeight: "70vh",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: "2rem",
-          gap: "1.5rem",
-          fontFamily: "system-ui, sans-serif",
-        }}
-      >
-        <GuestLookupForm />
-        <div style={{ color: "#888", fontSize: "0.85rem" }}>— or —</div>
-        <a href={loginUrl} style={{ color: "#111", fontSize: "0.95rem", fontWeight: 600 }}>
-          Log in to see all your orders
-        </a>
-      </main>
-    );
+  if (loggedInCustomerId) {
+    // Signed + logged in, but no session cookie yet — mint it, then land back
+    // here with the cookie present (fast path above).
+    redirect(`/apps/returns/session?${query.toString()}`);
   }
 
-  // Resolve the customer (email + name) via the merchant's admin token — proves
-  // the proxy → tenant → customer chain works with real per-tenant credentials.
-  let email = "";
-  let firstName = "";
-  try {
-    const gid = `gid://shopify/Customer/${loggedInCustomerId}`;
-    const data = await shopifyAdmin(
-      shop,
-      `query GetCustomer($id: ID!) { customer(id: $id) { email firstName } }`,
-      { id: gid },
-      "AppProxyCustomerLookup"
-    );
-    email = data?.customer?.email ?? "";
-    firstName = data?.customer?.firstName ?? "";
-  } catch (e) {
-    return (
-      <Notice
-        title="Couldn't load your account"
-        body={`Tenant resolved (${shop}) but the customer lookup failed: ${(e as Error).message}`}
-      />
-    );
-  }
-
+  // Not logged in — but NOT everyone has a Shopify account: guest checkout
+  // means there's no account to log into at all. Forcing a login redirect
+  // here would block guest-checkout customers from ever returning an item.
+  // Offer both: log in (for account holders) or a guest order lookup
+  // (order number + email + postcode) for everyone else.
+  const loginUrl = `/account/login?return_url=${encodeURIComponent("/apps/returns")}`;
   return (
-    <Notice
-      title={`✅ Multi-tenant proxy working${firstName ? `, ${firstName}` : ""}`}
-      body={`Shop: ${shop} · Customer: ${email || loggedInCustomerId}. The full branded portal renders here next (server-rendered orders + proxy-routed actions).`}
-    />
+    <main
+      style={{
+        minHeight: "70vh",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "2rem",
+        gap: "1.5rem",
+        fontFamily: "system-ui, sans-serif",
+      }}
+    >
+      <GuestLookupForm />
+      <div style={{ color: "#888", fontSize: "0.85rem" }}>— or —</div>
+      <a href={loginUrl} style={{ color: "#111", fontSize: "0.95rem", fontWeight: 600 }}>
+        Log in to see all your orders
+      </a>
+    </main>
   );
 }
 

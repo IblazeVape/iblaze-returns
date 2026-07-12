@@ -2,26 +2,22 @@
 
 import { useState } from "react";
 
-type OrderResult = {
-  name: string;
-  createdAt: string;
-  fulfillmentStatus: string;
-  financialStatus: string;
-};
-
 /**
  * Guest order lookup form for the App Proxy portal. Shown when the customer
  * has no Shopify account session (guest checkout). Verifies order number +
  * email + postcode against the tenant's Shopify data — see
- * app/api/apps/returns/guest-lookup/route.ts for the server-side check.
+ * app/apps/returns/guest-lookup/route.ts for the server-side check.
+ *
+ * On success the server sets a session cookie (scoped to just the verified
+ * order) and this reloads into /apps/returns, which then renders the real
+ * DashboardClient portal for that order.
  */
 export function GuestLookupForm() {
   const [orderNumber, setOrderNumber] = useState("");
   const [email, setEmail] = useState("");
   const [postcode, setPostcode] = useState("");
-  const [status, setStatus] = useState<"idle" | "loading" | "error" | "found">("idle");
+  const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
   const [error, setError] = useState("");
-  const [order, setOrder] = useState<OrderResult | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -43,26 +39,12 @@ export function GuestLookupForm() {
         setError(data.error || "Something went wrong. Please try again.");
         return;
       }
-      setOrder(data.order);
-      setStatus("found");
+      // Session cookie is set — reload into the real portal for this order.
+      window.location.href = "/apps/returns";
     } catch {
       setStatus("error");
       setError("Something went wrong. Please try again.");
     }
-  }
-
-  if (status === "found" && order) {
-    return (
-      <div style={{ maxWidth: 420, textAlign: "center" }}>
-        <h2 style={{ fontSize: "1.15rem", fontWeight: 600, marginBottom: "0.5rem" }}>
-          Order {order.name} found
-        </h2>
-        <p style={{ color: "#555", lineHeight: 1.5 }}>
-          {order.fulfillmentStatus} · {order.financialStatus}. The full return flow for this order
-          renders here next.
-        </p>
-      </div>
-    );
   }
 
   return (

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { validateSession } from "@/lib/auth";
+import { validateSession, parseCookies } from "@/lib/auth";
+import { validateAppsReturnsSession, APPS_RETURNS_COOKIE_NAME } from "@/lib/apps-returns-session";
 import { shopifyAdmin, shopifyAdminRest } from "@/lib/shopify";
 import { getOrderReturnInfo, ReturnInfo } from "@/lib/customerAccount";
 import { getAdminReturnableInfo, fetchRemainingLineItems, fetchRemainingReturns, fetchRemainingFulfillmentLineItems } from "@/lib/returnEligibility";
@@ -49,10 +50,30 @@ export async function GET(request: NextRequest) {
 
     const cookieHeader = request.headers.get("cookie");
     const session = validateSession(cookieHeader);
-    if (!session.valid) {
+
+    let sessionEmail: string | undefined;
+    let accessToken: string | undefined;
+    let orderScope: string | undefined;
+
+    if (session.valid) {
+      // Legacy iBlaze customer OAuth session (account.iblazevape.co.uk).
+      sessionEmail = session.email;
+      accessToken = session.accessToken;
+    } else {
+      // App Proxy portal session (any tenant) — no customer OAuth token; the
+      // eligibility fallback below (getAdminReturnableInfo) already handles
+      // an absent accessToken. orderScope, if set, restricts a guest lookup
+      // to the single order they verified (not their whole order history).
+      const appsSession = validateAppsReturnsSession(parseCookies(cookieHeader)[APPS_RETURNS_COOKIE_NAME]);
+      if (appsSession.valid && appsSession.email) {
+        sessionEmail = appsSession.email;
+        orderScope = appsSession.orderScope;
+      }
+    }
+
+    if (!sessionEmail) {
       return NextResponse.json({ error: "Session missing. Please log in." }, { status: 401, headers: NO_STORE });
     }
-    const { email: sessionEmail, accessToken } = session;
 
     // Fetch ALL orders by paginating until hasNextPage is false.
     // Each page fetches 50 orders; most customers will need only 1 page.
@@ -255,6 +276,16 @@ export async function GET(request: NextRequest) {
     // Sort merged list newest first
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (allRawOrders as any[]).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    // Guest session scoped to a single verified order — restrict here, before
+    // the expensive per-order eligibility processing below, and before any
+    // other order for this email is ever touched.
+    if (orderScope) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const scoped = (allRawOrders as any[]).filter((o: any) => o.id === orderScope);
+      allRawOrders.length = 0;
+      allRawOrders.push(...scoped);
+    }
 
     if (allRawOrders.length === 0) {
       return NextResponse.json({ firstName: "", email: sessionEmail, orders: [] }, { headers: NO_STORE });

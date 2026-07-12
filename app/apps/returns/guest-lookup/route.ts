@@ -4,6 +4,7 @@ import { getTenant } from "@/lib/tenant";
 import { shopifyAdmin } from "@/lib/shopify";
 import { redis } from "@/lib/redis";
 import { guestOrderMatches } from "@/lib/guest-order-match";
+import { buildAppsReturnsSession } from "@/lib/apps-returns-session";
 
 export const dynamic = "force-dynamic";
 
@@ -94,7 +95,12 @@ export async function POST(request: NextRequest) {
     // Successful match — reset the rate-limit counter for this shop+IP.
     await redis.del(rateLimitKey);
 
-    return NextResponse.json({
+    // Scope the session to ONLY this order (not the full history under this
+    // email) — verifying one order isn't proof of ownership of every order
+    // ever placed with that email.
+    const cookie = buildAppsReturnsSession(shop, email, order.id);
+
+    const response = NextResponse.json({
       ok: true,
       order: {
         id: order.id,
@@ -104,6 +110,14 @@ export async function POST(request: NextRequest) {
         financialStatus: order.displayFinancialStatus,
       },
     });
+    response.cookies.set(cookie.name, cookie.value, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "lax",
+      path: "/",
+      maxAge: cookie.maxAge,
+    });
+    return response;
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }
