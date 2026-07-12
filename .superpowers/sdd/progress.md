@@ -107,3 +107,21 @@ Remaining work (separate sub-projects, not blockers):
    was deferred while chasing the proxy bug.
 3. Remove /api/admin/tenant-status diagnostic route after go-live.
 4. Second real merchant/store to prove cross-tenant isolation (currently only iBlaze tested).
+
+## GUEST CHECKOUT SUPPORT (2026-07-11, commit 6666b67):
+User correctly flagged: forcing a login redirect for non-logged-in customers breaks GUEST CHECKOUT
+customers entirely (no Shopify account exists to log into). Fixed:
+- Not-logged-in state now shows BOTH options: "Log in" link (real /account/login redirect, kept from
+  the previous fix) AND a guest order-lookup form.
+- Guest lookup requires THREE factors: order number + email + POSTCODE (user explicitly requested
+  postcode as a second factor beyond email, after raising "couldn't someone who knows order+email
+  impersonate a customer" — valid concern; postcode hardens it meaningfully while refunds still
+  resolve to original payment method regardless).
+- Route lives at app/apps/returns/guest-lookup/route.ts (NOT /api/*) — critical: the browser is on
+  the STOREFRONT domain via the proxied page, so a client fetch to a relative path re-enters
+  Shopify's App Proxy and gets freshly signed there. The route verifies that signature and takes
+  `shop` from it (never trusts a client-submitted shop field). Rate-limited 8 attempts/15min per
+  shop+IP via Redis (redis.incr + expire).
+- Verified locally: route precedence correct (specific route.ts wins over the [[...slug]] catch-all
+  page for its exact path), main page still 200, guest-lookup 401 unsigned as expected. tsc clean,
+  8 tests pass.

@@ -3,15 +3,12 @@ import { verifyAppProxySignature, parseProxyRequest } from "@/lib/app-proxy";
 import { getTenant } from "@/lib/tenant";
 import { shopifyAdmin } from "@/lib/shopify";
 import { redis } from "@/lib/redis";
+import { guestOrderMatches } from "@/lib/guest-order-match";
 
 export const dynamic = "force-dynamic";
 
 const RATE_LIMIT_MAX_ATTEMPTS = 8;
 const RATE_LIMIT_WINDOW_SECONDS = 15 * 60;
-
-function normalizePostcode(v: string): string {
-  return v.trim().toUpperCase().replace(/\s+/g, "");
-}
 
 /**
  * Guest order lookup — served under the App Proxy path (theirstore.com/apps/
@@ -67,7 +64,6 @@ export async function POST(request: NextRequest) {
   }
 
   const normalizedOrderNumber = orderNumber.replace(/^#/, "");
-  const normalizedPostcode = normalizePostcode(postcode);
 
   try {
     const data = await shopifyAdmin(
@@ -87,11 +83,8 @@ export async function POST(request: NextRequest) {
     );
 
     const order = data?.orders?.edges?.[0]?.node;
-    const emailMatches = order?.email && order.email.toLowerCase() === email;
-    const postcodeMatches =
-      order?.shippingAddress?.zip && normalizePostcode(order.shippingAddress.zip) === normalizedPostcode;
 
-    if (!emailMatches || !postcodeMatches) {
+    if (!guestOrderMatches(order, email, postcode)) {
       return NextResponse.json(
         { error: "No order found matching that order number, email and postcode." },
         { status: 404 }
