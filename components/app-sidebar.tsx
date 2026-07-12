@@ -1,11 +1,14 @@
 "use client"
 
 import * as React from "react"
-import { ShoppingBag, Search, FileText, Newspaper, MessageCircle, ExternalLink } from "lucide-react"
+import { ShoppingBag, Search, PanelLeft, FileText, Newspaper, MessageCircle, ExternalLink } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
+import { SidebarLayoutSwitcher } from "@/components/sidebar-layout-switcher"
+import { userAccountMenuPanelClass } from "@/components/user-account-menu"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { isGuestOrderContext, lookupAnotherOrder, getAppsReturnsIdentityKind } from "@/lib/apps-returns-portal-mode"
 import {
   Sidebar, SidebarContent, SidebarFooter,
@@ -95,13 +98,35 @@ export function AppSidebar({ user, onNavigate, activeSection, ...props }: AppSid
           <NavSecondary items={navSecondary} className="mt-auto" />
         </div>
       </SidebarContent>
-      {!isGuestPending && (
-        <SidebarFooter className="overflow-visible group-data-[collapsible=icon]:pb-3">
+      <SidebarFooter className="overflow-visible group-data-[collapsible=icon]:pb-3">
+        {isGuestPending ? (
+          // No identity to show yet — but the sidebar-layout preference
+          // (Inset/Sidebar) should still be reachable even though the
+          // sidebar itself is locked collapsed here, so it's a plain icon
+          // button (not an avatar) opening just that one setting.
+          <SidebarMenu>
+            <SidebarMenuItem className="flex justify-center">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <SidebarMenuButton
+                    tooltip="Sidebar layout"
+                    className="group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-0! group-data-[collapsible=icon]:mx-auto"
+                  >
+                    <PanelLeft className="size-4" />
+                  </SidebarMenuButton>
+                </PopoverTrigger>
+                <PopoverContent side="right" align="end" className={cn(userAccountMenuPanelClass, "w-52 p-1")}>
+                  <SidebarLayoutSwitcher inline />
+                </PopoverContent>
+              </Popover>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        ) : (
           <div className="w-full group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
             <NavUser user={user || { name: "Customer", email: "" }} />
           </div>
-        </SidebarFooter>
-      )}
+        )}
+      </SidebarFooter>
     </Sidebar>
   )
 }
