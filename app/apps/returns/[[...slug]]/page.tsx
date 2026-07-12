@@ -1,9 +1,9 @@
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
 import { verifyAppProxySignature, parseProxyRequest } from "@/lib/app-proxy";
 import { getTenant } from "@/lib/tenant";
 import { validateAppsReturnsSession, APPS_RETURNS_COOKIE_NAME } from "@/lib/apps-returns-session";
 import { GuestLookupForm } from "@/components/apps-returns/guest-lookup-form";
+import { MintSession } from "@/components/apps-returns/mint-session";
 import DashboardClient from "@/components/dashboard-client";
 
 export const dynamic = "force-dynamic";
@@ -13,13 +13,22 @@ export const dynamic = "force-dynamic";
  *
  * Renders the SAME DashboardClient used by the legacy iBlaze portal (`/`),
  * for ANY tenant. Identity comes from one of two places:
- *  - Logged-in customer: signed proxy request -> redirect to /apps/returns/
- *    session (mints apps_returns_session) -> re-render here, cookie present.
+ *  - Logged-in customer: signed proxy request -> <MintSession/> client-side
+ *    fetches /apps/returns/session (mints apps_returns_session) -> reloads
+ *    into this page, cookie present.
  *  - Guest: order-lookup form -> guest-lookup route mints a session scoped to
- *    the one verified order -> reload here, cookie present.
+ *    the one verified order -> reloads into this page, cookie present.
  * Once apps_returns_session exists, DashboardClient's own fetches (get-orders
  * etc.) resolve the shop from it via lib/request-shop.ts — no proxy signature
- * needed on those, only on this initial page load.
+ * needed on those, only on the initial signed page load.
+ *
+ * NO SERVER-SIDE REDIRECTS anywhere in this identity flow: any redirect
+ * Location our Next.js server emits gets normalized to an absolute URL on our
+ * OWN Vercel origin (confirmed live, even with a manually-constructed literal
+ * relative Location header), which Shopify then sends the browser straight
+ * to — breaking out of the App Proxy entirely. Every transition here is a
+ * CLIENT-SIDE fetch/reload instead, which correctly stays on the storefront
+ * domain and re-enters Shopify's signing.
  *
  * CATCH-ALL ROUTE (`[[...slug]]`) is required here, not a plain page: a plain
  * Next.js route 308-redirects `/apps/returns/` -> `/apps/returns` (trailing
@@ -75,15 +84,14 @@ export default async function AppProxyReturnsPage({
   }
 
   if (loggedInCustomerId) {
-    // Signed + logged in, but no session cookie yet — mint it, then land back
-    // here with the cookie present (fast path above).
-    //
-    // Bare path, NO query string: Shopify freshly re-signs every request
-    // through the proxy path regardless of what's already in the URL, so
-    // carrying the original signed params forward produces a duplicated/
-    // malformed query string that Shopify's own edge fails to route (404) --
-    // the same class of bug already fixed once in the guest-lookup form.
-    redirect("/apps/returns/session");
+    // Signed + logged in, but no session cookie yet — mint it, then reload
+    // into the fast path above. CLIENT-SIDE fetch (MintSession), never a
+    // server redirect(): any redirect Location our server emits gets
+    // normalized to an absolute URL on our own Vercel origin (confirmed
+    // live), which breaks straight out of Shopify's proxy. A browser-issued
+    // fetch to a relative path stays on the storefront domain correctly —
+    // same proven mechanism as the guest-lookup form.
+    return <MintSession />;
   }
 
   // Not logged in — but NOT everyone has a Shopify account: guest checkout

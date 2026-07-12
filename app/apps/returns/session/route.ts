@@ -7,39 +7,33 @@ import { buildAppsReturnsSession } from "@/lib/apps-returns-session";
 export const dynamic = "force-dynamic";
 
 /**
- * Mints the apps_returns_session cookie for a logged-in customer, then
- * redirects back to /apps/returns. Reached via a redirect FROM that page
- * (which Shopify re-signs fresh, same mechanism as every other request
- * through the proxied path). Once the cookie is set, /apps/returns renders
- * DashboardClient directly and its own fetches (get-orders etc.) resolve the
- * shop from this session — no proxy signature needed on those.
- *
- * IMPORTANT: redirects here MUST use a bare relative Location header, not an
- * absolute URL. `request.url` on our server is always our own Vercel origin
- * (Shopify fetches us server-side) — NextResponse.redirect(new URL(path,
- * request.url)) silently builds an absolute URL pointing at OUR domain, and
- * once Shopify sees an absolute Location for a different host it just sends
- * the browser straight there, breaking out of the proxy entirely (confirmed
- * live: this exact bug sent customers to iblaze-returns.vercel.app/apps/
- * returns, which then correctly rejects the now-unsigned direct hit). A
- * manually-constructed relative Location keeps the browser on the storefront
- * domain, same as the proven-working Server Component redirect() elsewhere
- * in this flow.
+ * Mints the apps_returns_session cookie for a logged-in customer. Called via
+ * a CLIENT-SIDE fetch from the browser (see components/apps-returns/mint-
+ * session.tsx), never a server-side redirect: ANY redirect Location header
+ * our server emits gets normalized to an absolute URL on OUR OWN Vercel
+ * origin — confirmed live, even when manually constructing the Response with
+ * a literal relative Location string. Once Shopify sees that absolute
+ * foreign-host Location it sends the browser straight there, breaking out of
+ * the proxy entirely. A browser-issued fetch to a relative path, by contrast,
+ * naturally stays on the storefront domain and re-enters Shopify's App Proxy,
+ * which signs it fresh — the same mechanism already proven working for the
+ * guest-lookup route. Returns JSON, not a redirect; the client reloads on
+ * success.
  */
-function relativeRedirect(): NextResponse {
-  return new NextResponse(null, { status: 307, headers: { Location: "/apps/returns" } });
-}
-
 export async function GET(request: NextRequest) {
   const secret = process.env.SHOPIFY_CLIENT_SECRET;
   const signedOk = !!secret && verifyAppProxySignature(request.nextUrl.searchParams, secret);
-  if (!signedOk) return relativeRedirect();
+  if (!signedOk) return NextResponse.json({ error: "invalid proxy request" }, { status: 401 });
 
   const { shop, loggedInCustomerId } = parseProxyRequest(request.nextUrl.searchParams);
-  if (!shop || !loggedInCustomerId) return relativeRedirect();
+  if (!shop || !loggedInCustomerId) {
+    return NextResponse.json({ error: "not logged in" }, { status: 400 });
+  }
 
   const tenant = await getTenant(shop);
-  if (!tenant?.accessToken) return relativeRedirect();
+  if (!tenant?.accessToken) {
+    return NextResponse.json({ error: "store not set up" }, { status: 404 });
+  }
 
   let email = "";
   try {
@@ -51,13 +45,13 @@ export async function GET(request: NextRequest) {
       "AppProxySessionCustomerLookup"
     );
     email = data?.customer?.email ?? "";
-  } catch {
-    return relativeRedirect();
+  } catch (e) {
+    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }
-  if (!email) return relativeRedirect();
+  if (!email) return NextResponse.json({ error: "no email on file for this account" }, { status: 404 });
 
   const cookie = buildAppsReturnsSession(shop, email); // orderScope "" = full order history
-  const response = relativeRedirect();
+  const response = NextResponse.json({ ok: true });
   response.cookies.set(cookie.name, cookie.value, {
     httpOnly: true,
     secure: true,
