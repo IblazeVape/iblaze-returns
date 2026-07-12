@@ -125,17 +125,9 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
     case "guest-or-login": {
       const loginUrl = `/account/login?return_url=${encodeURIComponent("/apps/returns")}`;
       return (
-        <main
-          style={{
-            minHeight: "70vh",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "2rem",
-            gap: "1.5rem",
-            fontFamily: "system-ui, sans-serif",
-          }}
+        <div
+          className="flex flex-col items-center justify-center gap-4 bg-background/40 px-4"
+          style={{ minHeight: "100dvh", width: "100vw" }}
         >
           <GuestLookupForm
             onVerified={(token, order) => {
@@ -145,11 +137,11 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
               setReady(true);
             }}
           />
-          <div style={{ color: "#888", fontSize: "0.85rem" }}>— or —</div>
-          <a href={loginUrl} style={{ color: "#111", fontSize: "0.95rem", fontWeight: 600 }}>
+          <div className="text-xs text-muted-foreground">— or —</div>
+          <a href={loginUrl} className="text-sm font-semibold hover:underline underline-offset-2">
             Log in to see all your orders
           </a>
-        </main>
+        </div>
       );
     }
   }
@@ -157,20 +149,14 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
 
 function Notice({ title, body }: { title: string; body: string }) {
   return (
-    <main
-      style={{
-        minHeight: "60vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "2rem",
-        fontFamily: "system-ui, sans-serif",
-      }}
+    <div
+      className="flex items-center justify-center bg-background/40 px-4"
+      style={{ minHeight: "100dvh", width: "100vw" }}
     >
-      <div style={{ maxWidth: 480, textAlign: "center" }}>
-        {title && <h1 style={{ fontSize: "1.25rem", fontWeight: 600, marginBottom: "0.5rem" }}>{title}</h1>}
-        <p style={{ color: "#555", lineHeight: 1.5 }}>{body}</p>
+      <div className="max-w-md text-center">
+        {title && <h1 className="text-lg font-semibold mb-2">{title}</h1>}
+        <p className="text-sm text-muted-foreground leading-relaxed">{body}</p>
       </div>
-    </main>
+    </div>
   );
 }

@@ -1,12 +1,21 @@
 "use client";
 
 import { useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 
 /**
  * Guest order lookup form for the App Proxy portal. Shown when the customer
  * has no Shopify account session (guest checkout). Verifies order number +
  * email + postcode against the tenant's Shopify data — see
  * app/apps/returns/guest-lookup/route.ts for the server-side check.
+ *
+ * Styled with the same Card/Input/Button/Spinner primitives as the rest of
+ * DashboardClient (see AuthenticatingCard) so this doesn't look like a
+ * separate, unstyled page bolted onto the real portal.
  *
  * On success the server returns a session token in the JSON body (NOT via
  * Set-Cookie — Shopify's App Proxy strips that on the way back to the
@@ -62,83 +71,66 @@ export function GuestLookupForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{ maxWidth: 360, width: "100%" }}>
-      <h2 style={{ fontSize: "1.1rem", fontWeight: 600, marginBottom: "0.25rem", textAlign: "center" }}>
-        Look up your order
-      </h2>
-      <p style={{ color: "#666", fontSize: "0.9rem", textAlign: "center", marginBottom: "1.25rem" }}>
-        Enter your order number, the email used at checkout, and your delivery postcode.
-      </p>
+    <Card className="w-full max-w-sm mx-4 shadow-xl">
+      <CardHeader>
+        <CardTitle className="text-lg text-center">Look up your order</CardTitle>
+        <CardDescription className="text-center">
+          Enter your order number, the email used at checkout, and your delivery postcode.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="guest-order-number">Order number</Label>
+            <Input
+              id="guest-order-number"
+              value={orderNumber}
+              onChange={(e) => setOrderNumber(e.target.value)}
+              placeholder="#1234"
+              required
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="guest-email">Email</Label>
+            <Input
+              id="guest-email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              required
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="guest-postcode">Postcode</Label>
+            <Input
+              id="guest-postcode"
+              value={postcode}
+              onChange={(e) => setPostcode(e.target.value)}
+              placeholder="SW1A 1AA"
+              required
+            />
+          </div>
 
-      <label style={fieldLabelStyle}>
-        Order number
-        <input
-          value={orderNumber}
-          onChange={(e) => setOrderNumber(e.target.value)}
-          placeholder="#1234"
-          required
-          style={inputStyle}
-        />
-      </label>
-      <label style={fieldLabelStyle}>
-        Email
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="you@example.com"
-          required
-          style={inputStyle}
-        />
-      </label>
-      <label style={fieldLabelStyle}>
-        Postcode
-        <input
-          value={postcode}
-          onChange={(e) => setPostcode(e.target.value)}
-          placeholder="SW1A 1AA"
-          required
-          style={inputStyle}
-        />
-      </label>
+          {status === "error" && (
+            <p className="text-sm text-destructive">{error}</p>
+          )}
 
-      {status === "error" && (
-        <p style={{ color: "#c0392b", fontSize: "0.85rem", marginBottom: "0.75rem" }}>{error}</p>
-      )}
-
-      <button type="submit" disabled={status === "loading"} style={buttonStyle}>
-        {status === "loading" ? "Looking up…" : "Find my order"}
-      </button>
-    </form>
+          <Button
+            type="submit"
+            disabled={status === "loading"}
+            className="w-full bg-[#E5403B] hover:bg-[#E5403B]/90 text-white"
+          >
+            {status === "loading" ? (
+              <>
+                <Spinner className="size-4" /> Looking up…
+              </>
+            ) : (
+              "Find my order"
+            )}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
   );
 }
-
-const fieldLabelStyle: React.CSSProperties = {
-  display: "block",
-  fontSize: "0.85rem",
-  fontWeight: 500,
-  color: "#333",
-  marginBottom: "0.9rem",
-};
-
-const inputStyle: React.CSSProperties = {
-  display: "block",
-  width: "100%",
-  marginTop: "0.3rem",
-  padding: "0.55rem 0.7rem",
-  border: "1px solid #ccc",
-  borderRadius: "6px",
-  fontSize: "0.95rem",
-};
-
-const buttonStyle: React.CSSProperties = {
-  width: "100%",
-  padding: "0.65rem",
-  background: "#111",
-  color: "#fff",
-  border: "none",
-  borderRadius: "6px",
-  fontSize: "0.95rem",
-  fontWeight: 600,
-  cursor: "pointer",
-};
