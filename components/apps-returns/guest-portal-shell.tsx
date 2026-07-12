@@ -10,10 +10,11 @@ import { PortalShell } from "@/components/portal-shell";
  * unmistakably the same portal, not a separate page that happens to precede
  * it.
  *
- * `locked`: the guest hasn't verified an order yet, so there's no nav/
- * identity to show — the sidebar is forced collapsed with no way to open
- * it, and the header's toggle + account avatar are hidden entirely (see
- * PortalShell's `locked` prop).
+ * The guest hasn't verified an order yet, so there's no identity to show
+ * in the header (`hideIdentity`) — but the sidebar itself opens/collapses
+ * normally, same as everywhere else in the portal: merchants will be able
+ * to add their own menu items there via a future settings page, so it
+ * shouldn't be locked shut here.
  */
 export function GuestPortalShell({
   title = "Look up your order",
@@ -24,7 +25,7 @@ export function GuestPortalShell({
 }) {
   return (
     <SidebarLayoutProvider>
-      <PortalShell locked headerProps={{ title, showSearch: false }}>
+      <PortalShell hideIdentity headerProps={{ title, showSearch: false }}>
         <div className="flex flex-1 flex-col items-center justify-center gap-4 px-4 py-10">
           {children}
         </div>

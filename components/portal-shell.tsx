@@ -17,20 +17,19 @@ export function PortalShell({
   user,
   onNavigate,
   activeSection,
-  locked = false,
+  hideIdentity = false,
   headerProps,
   children,
 }: {
   user?: { name: string; email: string }
   onNavigate?: (section: string) => void
   activeSection?: string
-  /** Locks the sidebar collapsed with no way to open it on desktop (the
-   * icon rail there is always visible anyway) — used for the guest lookup
-   * screen, which has no nav/identity to show in it. On mobile the sidebar
-   * is an off-canvas Sheet with no persistent rail, so the toggle stays
-   * available there — otherwise the logo and nav-secondary links
-   * (News/Support/Store) would be completely unreachable on mobile. */
-  locked?: boolean
+  /** No account avatar — used for the guest lookup screen, which has no
+   * identity to represent before an order is verified. The sidebar itself
+   * still opens/collapses normally (merchants will be able to add their
+   * own menu items there via a future settings page, so it shouldn't be
+   * locked shut). */
+  hideIdentity?: boolean
   headerProps: React.ComponentProps<typeof SiteHeader>
   children?: React.ReactNode
 }) {
@@ -38,7 +37,7 @@ export function PortalShell({
 
   return (
     <SidebarProvider
-      {...(locked ? { open: false, onOpenChange: () => {} } : { defaultOpen: true })}
+      defaultOpen={true}
       style={
         {
           "--sidebar-width": "18rem",
@@ -49,7 +48,7 @@ export function PortalShell({
     >
       <AppSidebar variant={layout} user={user} onNavigate={onNavigate} activeSection={activeSection} />
       <SidebarInset className="min-w-0">
-        <SiteHeader {...(locked ? { showSidebarToggle: "mobile-only" as const, showAccountMenu: false } : {})} {...headerProps} />
+        <SiteHeader {...(hideIdentity ? { showAccountMenu: false } : {})} {...headerProps} />
         {children}
       </SidebarInset>
     </SidebarProvider>

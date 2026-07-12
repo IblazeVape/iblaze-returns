@@ -95,15 +95,17 @@ export function AppSidebar({ user, onNavigate, activeSection, ...props }: AppSid
       <SidebarContent>
         <div className="flex min-h-0 flex-1 w-full flex-col group-data-[collapsible=icon]:items-center">
           {navMain.length > 0 && <NavMain items={navMain} onNavigate={handleNavigate} activeSection={activeSection} />}
-          <NavSecondary items={navSecondary} className="mt-auto" />
+          {/* Pinned to the bottom only when there's a main nav above it to
+              separate from — otherwise (guest lookup, before an order is
+              verified) it sits right under the header instead of leaving a
+              blank gap at the top of the sidebar. */}
+          <NavSecondary items={navSecondary} className={navMain.length > 0 ? "mt-auto" : undefined} />
         </div>
       </SidebarContent>
       <SidebarFooter className="overflow-visible group-data-[collapsible=icon]:pb-3">
         {isGuestPending ? (
-          // No identity to show yet — but the sidebar-layout preference
-          // (Inset/Sidebar) should still be reachable even though the
-          // sidebar itself is locked collapsed here, so it's a plain icon
-          // button (not an avatar) opening just that one setting.
+          // No identity to show yet — a plain icon button (not an avatar)
+          // opening just the sidebar-layout (Inset/Sidebar) setting.
           <SidebarMenu>
             <SidebarMenuItem className="flex justify-center">
               <Popover>
