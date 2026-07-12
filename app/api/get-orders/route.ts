@@ -5,6 +5,7 @@ import { shopifyAdmin, shopifyAdminRest } from "@/lib/shopify";
 import { getOrderReturnInfo, ReturnInfo } from "@/lib/customerAccount";
 import { getAdminReturnableInfo, fetchRemainingLineItems, fetchRemainingReturns, fetchRemainingFulfillmentLineItems } from "@/lib/returnEligibility";
 import { getRequestShop } from "@/lib/request-shop";
+import { withCors, corsPreflight } from "@/lib/cors";
 
 // Eligibility is time-sensitive (return window expires by date) and user-specific.
 // Never cache at the Next.js data layer — always recompute per request.
@@ -40,7 +41,15 @@ async function resolveReturnInfo(
   }
 }
 
+export async function OPTIONS() {
+  return corsPreflight();
+}
+
 export async function GET(request: NextRequest) {
+  return withCors(await handleGet(request));
+}
+
+async function handleGet(request: NextRequest): Promise<NextResponse> {
   try {
     const ctx = await getRequestShop(request);
     if (!ctx) {

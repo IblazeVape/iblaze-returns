@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { validateSession } from "@/lib/auth";
+import { validateSession, parseCookies } from "@/lib/auth";
+import { validateAppsReturnsSession, APPS_RETURNS_COOKIE_NAME } from "@/lib/apps-returns-session";
 import { getRequestShop } from "@/lib/request-shop";
 import { getTenantToken } from "@/lib/tenant";
 import { sendEmail } from "@/lib/mailjet";
+import { withCors, corsPreflight } from "@/lib/cors";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { getReturnRequestTemplate } = require("@/lib/templates");
 
@@ -94,19 +96,49 @@ function classifyUserErrors(
 
 const SHOPIFY_API_VERSION = "2025-04";
 
+export async function OPTIONS() {
+  return corsPreflight();
+}
+
 export async function POST(request: NextRequest) {
+  return withCors(await handlePost(request));
+}
+
+async function handlePost(request: NextRequest): Promise<NextResponse> {
   try {
     const { orderId, items } = await request.json();
 
-    const cookieHeader = request.headers.get("cookie");
-    const session = validateSession(cookieHeader);
-    if (!session.valid) return NextResponse.json({ error: session.error }, { status: 401 });
-
     const ctx = await getRequestShop(request);
     if (!ctx) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-
-    const { email: sessionEmail, accessToken } = session;
     const { shop } = ctx;
+
+    const cookieHeader = request.headers.get("cookie");
+    const session = validateSession(cookieHeader);
+
+    let sessionEmail: string | undefined;
+    let accessToken: string | undefined;
+
+    if (session.valid) {
+      // Legacy iBlaze customer OAuth session (account.iblazevape.co.uk).
+      sessionEmail = session.email;
+      accessToken = session.accessToken;
+    } else {
+      // App Proxy portal session (any tenant) — identity travels via the
+      // x-apps-returns-session header (Shopify's App Proxy strips Set-Cookie,
+      // confirmed live), with the cookie kept as a fallback. No customer
+      // OAuth token on this path.
+      const headerSession = validateAppsReturnsSession(request.headers.get("x-apps-returns-session"));
+      const appsSession = headerSession.valid
+        ? headerSession
+        : validateAppsReturnsSession(parseCookies(cookieHeader)[APPS_RETURNS_COOKIE_NAME]);
+      if (appsSession.valid && appsSession.email) {
+        sessionEmail = appsSession.email;
+      }
+    }
+
+    if (!sessionEmail) {
+      return NextResponse.json({ error: "Session missing. Please log in." }, { status: 401 });
+    }
     const fullOrderId = `gid://shopify/Order/${orderId}`;
 
     // ── Idempotency check ────────────────────────────────────────────────────

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import DashboardClient from "@/components/dashboard-client";
 import { GuestLookupForm } from "@/components/apps-returns/guest-lookup-form";
+import { AuthenticatingCard } from "@/components/apps-returns/authenticating-card";
 import {
   storeAppsReturnsSession,
   getStoredAppsReturnsSession,
@@ -66,7 +67,7 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
   }
 
   if (signingIn) {
-    return <Notice title="" body="Signing you in…" plain />;
+    return <AuthenticatingCard />;
   }
 
   switch (initial.kind) {
@@ -87,7 +88,7 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
     case "logged-in":
       // useEffect above is about to fire the session fetch; signingIn covers
       // the visible state a beat later. Avoid a flash of guest UI here.
-      return <Notice title="" body="Signing you in…" plain />;
+      return <AuthenticatingCard />;
     case "guest-or-login": {
       const loginUrl = `/account/login?return_url=${encodeURIComponent("/apps/returns")}`;
       return (
@@ -119,7 +120,7 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
   }
 }
 
-function Notice({ title, body, plain = false }: { title: string; body: string; plain?: boolean }) {
+function Notice({ title, body }: { title: string; body: string }) {
   return (
     <main
       style={{
@@ -132,9 +133,7 @@ function Notice({ title, body, plain = false }: { title: string; body: string; p
       }}
     >
       <div style={{ maxWidth: 480, textAlign: "center" }}>
-        {!plain && title && (
-          <h1 style={{ fontSize: "1.25rem", fontWeight: 600, marginBottom: "0.5rem" }}>{title}</h1>
-        )}
+        {title && <h1 style={{ fontSize: "1.25rem", fontWeight: 600, marginBottom: "0.5rem" }}>{title}</h1>}
         <p style={{ color: "#555", lineHeight: 1.5 }}>{body}</p>
       </div>
     </main>
