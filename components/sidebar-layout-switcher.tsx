@@ -1,7 +1,7 @@
 "use client"
 
 import { Check, PanelLeft, Square } from "lucide-react"
-import { DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
+import { DropdownMenuItem, DropdownMenuLabel } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 import { useSidebarLayout } from "@/components/sidebar-layout-provider"
 import type { SidebarLayout } from "@/lib/sidebar-layout"
@@ -89,7 +89,6 @@ export function SidebarLayoutSwitcher({ inline = false }: { inline?: boolean }) 
         description="Edge-to-edge sidebar rail"
         icon={PanelLeft}
       />
-      <DropdownMenuSeparator />
     </>
   )
 }

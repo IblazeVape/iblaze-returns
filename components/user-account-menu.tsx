@@ -132,7 +132,7 @@ export function UserAccountMenuItems({ inline = false }: { inline?: boolean }) {
         </MenuLink>
         <MenuSeparator />
         <SidebarLayoutSwitcher inline />
-        <MenuSeparator />
+        {(THEME_TOGGLE_ENABLED || !hideLegacySignOut) && <MenuSeparator />}
         {THEME_TOGGLE_ENABLED && (
           <>
             <ThemeToggleMenuItem inline />
@@ -157,6 +157,7 @@ export function UserAccountMenuItems({ inline = false }: { inline?: boolean }) {
       </DropdownMenuGroup>
       <DropdownMenuSeparator />
       <SidebarLayoutSwitcher />
+      {(THEME_TOGGLE_ENABLED || !hideLegacySignOut) && <DropdownMenuSeparator />}
       {THEME_TOGGLE_ENABLED && (
         <>
           <ThemeToggleMenuItem />
