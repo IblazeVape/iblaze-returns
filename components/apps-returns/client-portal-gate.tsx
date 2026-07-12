@@ -61,7 +61,7 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
 
     if (initial.kind === "logged-in") {
       setSigningIn(true);
-      fetch("/apps/returns/session")
+      fetch("/apps/returns/session", { method: "POST" })
         .then(async (res) => {
           const data = await res.json().catch(() => ({}));
           if (!res.ok || !data.session) {

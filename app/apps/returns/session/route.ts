@@ -16,8 +16,16 @@ export const dynamic = "force-dynamic";
  * (Shopify strips it — App Proxy is a content-forwarding mechanism, not a
  * session-cookie one). The client stores the returned token in localStorage
  * and attaches it to DashboardClient's own API fetches itself.
+ *
+ * POST, not GET: this mints a live session token into the JSON body, and a
+ * GET endpoint is trivially visitable by pasting the URL into a browser
+ * (Shopify signs the App Proxy request regardless of how it's reached) —
+ * that rendered the token in plain, screenshottable JSON. POST doesn't stop
+ * a curious customer from finding it in their own DevTools Network tab
+ * (unavoidable — it's their own request), but it does stop the plain
+ * "visit this link" exposure.
  */
-export async function GET(request: NextRequest) {
+export async function POST(request: NextRequest) {
   const secret = process.env.SHOPIFY_CLIENT_SECRET;
   const signedOk = !!secret && verifyAppProxySignature(request.nextUrl.searchParams, secret);
   if (!signedOk) return NextResponse.json({ error: "invalid proxy request" }, { status: 401 });

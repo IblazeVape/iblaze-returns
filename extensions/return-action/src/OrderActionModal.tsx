@@ -10,7 +10,7 @@ import "@shopify/ui-extensions/preact"
 
 declare const shopify: {
   order: { value: { id: string } | undefined }
-  shop: { storefrontUrl?: string }
+  sessionToken: { get: () => Promise<string> }
   close: () => void
 }
 
@@ -18,14 +18,31 @@ const APP_ORIGIN = "https://iblaze-returns.vercel.app"
 
 export default async () => {
   const orderId = shopify.order?.value?.id?.split("/").pop() ?? ""
-  const storefrontUrl = (shopify.shop?.storefrontUrl ?? "").replace(/\/$/, "")
-  render(<OrderActionModal orderId={orderId} storefrontUrl={storefrontUrl} />, document.body)
+  // The Shop API (shopify.shop) isn't available at this target — reuse the
+  // order-eligible endpoint's verified session-token shop lookup instead
+  // (its `eligible` field is ignored here; this modal is only ever shown
+  // once the caller already decided to offer a return).
+  const shop = await lookupShop(orderId)
+  render(<OrderActionModal orderId={orderId} shop={shop} />, document.body)
 }
 
-function OrderActionModal({ orderId, storefrontUrl }: { orderId: string; storefrontUrl: string }) {
+async function lookupShop(orderId: string): Promise<string | null> {
+  try {
+    const token = await shopify.sessionToken.get()
+    const url = `${APP_ORIGIN}/api/order-eligible?order=${orderId}&t=${Date.now()}`
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+    if (!res.ok) return null
+    const json = await res.json()
+    return json?.shop ?? null
+  } catch {
+    return null
+  }
+}
+
+function OrderActionModal({ orderId, shop }: { orderId: string; shop: string | null }) {
   // Customer-facing link must go through THIS shop's own storefront (App
   // Proxy) so the multi-tenant portal resolves the right tenant.
-  const base = storefrontUrl ? `${storefrontUrl}/apps/returns` : APP_ORIGIN
+  const base = shop ? `https://${shop}/apps/returns` : APP_ORIGIN
   const portalUrl = orderId ? `${base}?order=${orderId}` : base
 
   const handleOpen = () => {

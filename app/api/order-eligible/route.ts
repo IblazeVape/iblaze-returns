@@ -70,25 +70,35 @@ async function setCached(orderGid: string, eligible: boolean): Promise<void> {
 
 export async function GET(req: NextRequest) {
   try {
-    const ctx = await getRequestShop(req);
-    if (!ctx) return NextResponse.json({ eligible: true, reason: "no-shop" }, { headers: CORS_HEADERS });
-    const { shop } = ctx;
-
-    const orderParam = req.nextUrl.searchParams.get("order") || "";
-    if (!orderParam) return NextResponse.json({ eligible: true, reason: "no-order" }, { headers: CORS_HEADERS });
-
-    const orderGid = orderParam.includes("gid://") ? orderParam : `gid://shopify/Order/${orderParam}`;
-
-    const cached = await getCached(orderGid);
-    if (cached !== null) return NextResponse.json({ eligible: cached, source: "cache" }, { headers: CORS_HEADERS });
-
     const auth = req.headers.get("authorization") || "";
     const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
     const claims = token ? verifySessionToken(token) : null;
     // Fail open if no valid token — compute but don't cache (can't verify ownership)
     if (!claims) {
-      console.log(`[order-eligible] unverified token for order ${orderParam}`);
+      console.log(`[order-eligible] unverified token`);
     }
+
+    // This endpoint is called directly from the customer-account UI
+    // extension (a fetch with only an Authorization header — no App Proxy
+    // signed params, no apps-returns-session cookie/header), so
+    // getRequestShop() can never resolve the real tenant here; it was
+    // silently falling back to iBlaze's own legacy env var for EVERY
+    // tenant, which queried the wrong shop's admin API for any other
+    // installed store and made "Start a Return" never appear for them.
+    // The session token's own `dest` claim (verified above) is this
+    // request's actual, trustworthy shop identity — use that instead.
+    const destShop = claims?.dest?.match(/([a-z0-9-]+\.myshopify\.com)/i)?.[1] ?? null;
+    const ctx = destShop ? { shop: destShop } : await getRequestShop(req);
+    if (!ctx) return NextResponse.json({ eligible: true, reason: "no-shop" }, { headers: CORS_HEADERS });
+    const { shop } = ctx;
+
+    const orderParam = req.nextUrl.searchParams.get("order") || "";
+    if (!orderParam) return NextResponse.json({ eligible: true, reason: "no-order", shop }, { headers: CORS_HEADERS });
+
+    const orderGid = orderParam.includes("gid://") ? orderParam : `gid://shopify/Order/${orderParam}`;
+
+    const cached = await getCached(orderGid);
+    if (cached !== null) return NextResponse.json({ eligible: cached, source: "cache", shop }, { headers: CORS_HEADERS });
 
     const data = await shopifyAdmin(
       shop,
@@ -108,13 +118,13 @@ export async function GET(req: NextRequest) {
     );
 
     const order = data?.order;
-    if (!order) return NextResponse.json({ eligible: false, reason: "order-not-found" }, { headers: CORS_HEADERS });
+    if (!order) return NextResponse.json({ eligible: false, reason: "order-not-found", shop }, { headers: CORS_HEADERS });
 
     if (claims) {
       const sub = numericFromGid(claims.sub);
       const owner = numericFromGid(order.customer?.id);
       if (sub && owner && sub !== owner) {
-        return NextResponse.json({ eligible: false, reason: "not-owner" }, { headers: CORS_HEADERS });
+        return NextResponse.json({ eligible: false, reason: "not-owner", shop }, { headers: CORS_HEADERS });
       }
     }
 
@@ -145,8 +155,8 @@ export async function GET(req: NextRequest) {
     }
 
     if (claims) await setCached(orderGid, eligible);
-    console.log(`[order-eligible] order=${orderParam} eligible=${eligible} verified=${!!claims}`);
-    return NextResponse.json({ eligible }, { headers: CORS_HEADERS });
+    console.log(`[order-eligible] shop=${shop} order=${orderParam} eligible=${eligible} verified=${!!claims}`);
+    return NextResponse.json({ eligible, shop }, { headers: CORS_HEADERS });
   } catch (err) {
     console.error("order-eligible error:", err instanceof Error ? err.message : String(err));
     return NextResponse.json({ eligible: true, reason: "error" }, { headers: CORS_HEADERS });
