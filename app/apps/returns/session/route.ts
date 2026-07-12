@@ -23,7 +23,17 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   const secret = process.env.SHOPIFY_CLIENT_SECRET;
   const signedOk = !!secret && verifyAppProxySignature(request.nextUrl.searchParams, secret);
-  if (!signedOk) return NextResponse.json({ error: "invalid proxy request" }, { status: 401 });
+  if (!signedOk) {
+    // TEMP diagnostic — remove once the client-fetch signing question is settled.
+    console.log("[apps/returns/session] rejected", {
+      hasSecret: !!secret,
+      params: Object.fromEntries(request.nextUrl.searchParams.entries()),
+      referer: request.headers.get("referer"),
+      host: request.headers.get("host"),
+      cookie: !!request.headers.get("cookie"),
+    });
+    return NextResponse.json({ error: "invalid proxy request" }, { status: 401 });
+  }
 
   const { shop, loggedInCustomerId } = parseProxyRequest(request.nextUrl.searchParams);
   if (!shop || !loggedInCustomerId) {
