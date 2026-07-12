@@ -4,9 +4,10 @@ import { useEffect, useState } from "react";
 import DashboardClient from "@/components/dashboard-client";
 import { GuestLookupForm } from "@/components/apps-returns/guest-lookup-form";
 import { AuthenticatingCard } from "@/components/apps-returns/authenticating-card";
+import { setHideLegacySignOut } from "@/components/user-account-menu";
 import {
   storeAppsReturnsSession,
-  getStoredAppsReturnsSession,
+  clearStoredAppsReturnsSession,
   installAppsReturnsFetchPatch,
 } from "@/lib/apps-returns-client-session";
 
@@ -28,6 +29,18 @@ export type GateInitial =
  * the session token comes back in a JSON body, gets stored in localStorage,
  * and a window.fetch patch (installed before DashboardClient mounts)
  * attaches it as a header to DashboardClient's own unmodified API calls.
+ *
+ * Identity always tracks the CURRENT signed proxy request, never a stored
+ * token from a previous visit:
+ *  - "logged-in" (Shopify says this browser IS logged into the store right
+ *    now) always mints a FRESH session, ignoring any pre-existing stored
+ *    token — a shared/public device could have a different customer's token
+ *    left over, and only a fresh mint is guaranteed to match who's actually
+ *    logged in this instant.
+ *  - "guest-or-login" (NOT currently logged into the store) never resumes a
+ *    stored session either — the full order-history portal must never be
+ *    reachable without being logged into the store; only the guest lookup
+ *    form (which re-verifies order+email+postcode) or an explicit login.
  */
 export function ClientPortalGate({ initial }: { initial: GateInitial }) {
   const [ready, setReady] = useState(false);
@@ -36,28 +49,32 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
 
   useEffect(() => {
     installAppsReturnsFetchPatch();
+    // Sign-out here would point at the legacy iBlaze headless account
+    // system, which App Proxy customers were never logged into — they log
+    // out of their store account instead. Doesn't affect the legacy `/`
+    // portal (never sets this).
+    setHideLegacySignOut(true);
 
-    // Returning within this browser session — already have a token.
-    if (getStoredAppsReturnsSession()) {
-      setReady(true);
+    if (initial.kind === "logged-in") {
+      setSigningIn(true);
+      fetch("/apps/returns/session")
+        .then(async (res) => {
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok || !data.session) {
+            setError(data.error || "Couldn't verify your session.");
+            return;
+          }
+          storeAppsReturnsSession(data.session);
+          setReady(true);
+        })
+        .catch(() => setError("Something went wrong. Please try again."))
+        .finally(() => setSigningIn(false));
       return;
     }
 
-    if (initial.kind !== "logged-in") return;
-
-    setSigningIn(true);
-    fetch("/apps/returns/session")
-      .then(async (res) => {
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok || !data.session) {
-          setError(data.error || "Couldn't verify your session.");
-          return;
-        }
-        storeAppsReturnsSession(data.session);
-        setReady(true);
-      })
-      .catch(() => setError("Something went wrong. Please try again."))
-      .finally(() => setSigningIn(false));
+    if (initial.kind === "guest-or-login") {
+      clearStoredAppsReturnsSession();
+    }
   }, [initial]);
 
   if (ready) return <DashboardClient />;

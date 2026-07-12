@@ -9,6 +9,19 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 
+// App Proxy portal customers are logged into their store, not the legacy
+// iBlaze headless account system — "Sign out" here points at
+// account.iblazevape.co.uk/logout, which is meaningless/broken for them
+// (they log out of the store itself). Module-level flag, same pattern as
+// DashboardClient's own DEMO_MODE, so this doesn't require threading a prop
+// through SiteHeader/DashboardClient (kept verbatim). Set once by
+// ClientPortalGate; the legacy `/` portal never sets it, so its behavior is
+// unchanged.
+let hideLegacySignOut = false
+export function setHideLegacySignOut(hide: boolean) {
+  hideLegacySignOut = hide
+}
+
 /** Shared menu card styling — white in light mode; shadow only on header popover via DropdownMenuContent */
 export const userAccountMenuPanelClass =
   "z-10 min-w-56 overflow-hidden rounded-lg border bg-white p-1 text-popover-foreground shadow-xs dark:bg-popover"
@@ -126,9 +139,11 @@ export function UserAccountMenuItems({ inline = false }: { inline?: boolean }) {
             <MenuSeparator />
           </>
         )}
-        <MenuLink href="https://account.iblazevape.co.uk/logout" icon={LogOut} inline>
-          Sign out
-        </MenuLink>
+        {!hideLegacySignOut && (
+          <MenuLink href="https://account.iblazevape.co.uk/logout" icon={LogOut} inline>
+            Sign out
+          </MenuLink>
+        )}
       </>
     )
   }
@@ -148,9 +163,11 @@ export function UserAccountMenuItems({ inline = false }: { inline?: boolean }) {
           <DropdownMenuSeparator />
         </>
       )}
-      <MenuLink href="https://account.iblazevape.co.uk/logout" icon={LogOut}>
-        Sign out
-      </MenuLink>
+      {!hideLegacySignOut && (
+        <MenuLink href="https://account.iblazevape.co.uk/logout" icon={LogOut}>
+          Sign out
+        </MenuLink>
+      )}
     </>
   )
 }
