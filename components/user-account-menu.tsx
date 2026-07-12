@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { LogOut, Moon, Sun, UserCircle, type LucideIcon } from "lucide-react"
+import { LogOut, Moon, Sun, User, UserCircle, type LucideIcon } from "lucide-react"
 import { useTheme } from "next-themes"
 import { THEME_TOGGLE_ENABLED } from "@/components/theme-provider"
 import { SidebarLayoutSwitcher } from "@/components/sidebar-layout-switcher"
@@ -103,7 +103,15 @@ function MenuLink({
   )
 }
 
-function SidebarMenuLabel({ user }: { user: { name: string; email: string } }) {
+function SidebarMenuLabel({
+  user,
+  avatarIcon = false,
+}: {
+  user: { name: string; email: string }
+  /** Show a generic person icon instead of an initial letter — there's no
+   * real identity yet (guest hasn't verified an order or logged in). */
+  avatarIcon?: boolean
+}) {
   const initial = user.name?.[0]?.toUpperCase() || "?"
 
   return (
@@ -111,12 +119,12 @@ function SidebarMenuLabel({ user }: { user: { name: string; email: string } }) {
       <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm font-normal">
         <Avatar className="h-8 w-8 rounded-lg">
           <AvatarFallback className="rounded-lg bg-[#E5403B] text-white text-sm font-semibold">
-            {initial}
+            {avatarIcon ? <User className="size-4" /> : initial}
           </AvatarFallback>
         </Avatar>
         <div className="grid flex-1 text-left text-sm leading-tight">
           <span className="truncate font-medium">{user.name || "Customer"}</span>
-          <span className="text-muted-foreground truncate text-xs">{user.email}</span>
+          {user.email && <span className="text-muted-foreground truncate text-xs">{user.email}</span>}
         </div>
       </div>
     </div>
@@ -193,10 +201,16 @@ export function UserAccountMenuLabel({
 }
 
 /** Original dropdown look — white card, overlays above the sidebar trigger */
-export function UserAccountMenuPanel({ user }: { user: { name: string; email: string } }) {
+export function UserAccountMenuPanel({
+  user,
+  avatarIcon = false,
+}: {
+  user: { name: string; email: string }
+  avatarIcon?: boolean
+}) {
   return (
     <div className={cn(userAccountMenuPanelClass, "w-full")}>
-      <SidebarMenuLabel user={user} />
+      <SidebarMenuLabel user={user} avatarIcon={avatarIcon} />
       <MenuSeparator />
       <UserAccountMenuItems inline />
     </div>

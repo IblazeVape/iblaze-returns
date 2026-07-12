@@ -1,12 +1,20 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { ChevronsUpDown } from "lucide-react"
+import { ChevronsUpDown, User as UserIcon } from "lucide-react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar"
 import { UserAccountMenuPanel } from "@/components/user-account-menu"
 
-export function NavUser({ user }: { user: { name: string; email: string } }) {
+export function NavUser({
+  user,
+  avatarIcon = false,
+}: {
+  user: { name: string; email: string }
+  /** Show a generic person icon instead of an initial letter — there's no
+   * real identity yet (guest hasn't verified an order or logged in). */
+  avatarIcon?: boolean
+}) {
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLLIElement>(null)
   const initial = user.name?.[0]?.toUpperCase() || "?"
@@ -48,18 +56,18 @@ export function NavUser({ user }: { user: { name: string; email: string } }) {
         >
           <Avatar className="h-8 w-8 rounded-lg shrink-0 group-data-[collapsible=icon]:h-7 group-data-[collapsible=icon]:w-7">
             <AvatarFallback className="rounded-lg bg-[#E5403B] text-white text-sm font-semibold">
-              {initial}
+              {avatarIcon ? <UserIcon className="size-4" /> : initial}
             </AvatarFallback>
           </Avatar>
           <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
             <span className="truncate font-medium">{user.name || "Customer"}</span>
-            <span className="text-muted-foreground truncate text-xs">{user.email}</span>
+            {user.email && <span className="text-muted-foreground truncate text-xs">{user.email}</span>}
           </div>
           <ChevronsUpDown className="ml-auto size-4 group-data-[collapsible=icon]:hidden" />
         </SidebarMenuButton>
         {open && (
           <div className="absolute bottom-full left-0 z-20 w-full pb-3 outline-hidden">
-            <UserAccountMenuPanel user={user} />
+            <UserAccountMenuPanel user={user} avatarIcon={avatarIcon} />
           </div>
         )}
       </SidebarMenuItem>

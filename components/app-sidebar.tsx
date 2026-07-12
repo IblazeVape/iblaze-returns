@@ -1,15 +1,11 @@
 "use client"
 
 import * as React from "react"
-import { ShoppingBag, Search, FileText, Newspaper, MessageCircle, ExternalLink } from "lucide-react"
+import { ShoppingBag, Search, ExternalLink } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
-import { SidebarLayoutSwitcher } from "@/components/sidebar-layout-switcher"
-import { userAccountMenuPanelClass } from "@/components/user-account-menu"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { isGuestOrderContext, lookupAnotherOrder, getAppsReturnsIdentityKind } from "@/lib/apps-returns-portal-mode"
 import {
   Sidebar, SidebarContent, SidebarFooter,
@@ -18,15 +14,6 @@ import {
 } from "@/components/ui/sidebar"
 
 const navSecondary = [
-  { title: "News & Updates", url: "https://iblazevape.co.uk/blogs/news", icon: Newspaper },
-  { title: "Returns Policy", url: "https://iblazevape.co.uk/policies/refund-policy", icon: FileText },
-  { title: "Speak to Support", url: "mailto:info@iblazevape.co.uk", icon: MessageCircle },
-  { title: "Back to Store", url: "https://iblazevape.co.uk", icon: ExternalLink },
-]
-
-// Guest hasn't verified an order yet — no return/support links relevant to
-// an order they haven't found, just a way back to the store.
-const navSecondaryGuestPending = [
   { title: "Back to Store", url: "https://iblazevape.co.uk", icon: ExternalLink },
 ]
 
@@ -77,9 +64,15 @@ function SidebarBrandHeader() {
 
 const LOOKUP_ANOTHER_ORDER_URL = "#lookup-another-order"
 
+/** Placeholder identity shown in the account menu before a guest has
+ * verified an order or logged in — same menu (NavUser, unmodified) as a
+ * real customer sees, just no name/email yet, and a generic person icon
+ * instead of an initial letter. */
+const GUEST_PENDING_USER = { name: "Login to see all orders", email: "" }
+
 export function AppSidebar({ user, onNavigate, activeSection, ...props }: AppSidebarProps) {
   // Guest hasn't verified an order yet (still on the lookup form) — nothing
-  // to navigate to or sign out of, and no identity to show in the footer.
+  // to navigate to yet.
   const isGuestPending = getAppsReturnsIdentityKind() === "guest-or-login" && !isGuestOrderContext()
   // Guests verified exactly one order — there's no list to browse back to,
   // so "My Orders" is replaced with an action that takes them back to the
@@ -106,43 +99,16 @@ export function AppSidebar({ user, onNavigate, activeSection, ...props }: AppSid
               separate from — otherwise (guest lookup, before an order is
               verified) it sits right under the header instead of leaving a
               blank gap at the top of the sidebar. */}
-          <NavSecondary
-            items={isGuestPending ? navSecondaryGuestPending : navSecondary}
-            className={navMain.length > 0 ? "mt-auto" : undefined}
-          />
+          <NavSecondary items={navSecondary} className={navMain.length > 0 ? "mt-auto" : undefined} />
         </div>
       </SidebarContent>
       <SidebarFooter className="overflow-visible group-data-[collapsible=icon]:pb-3">
-        {isGuestPending ? (
-          // No identity to show yet, so no name/email/profile/sign-out —
-          // just the sidebar-layout (Inset/Sidebar) setting, behind the
-          // same avatar-styled trigger the real account menu uses.
-          <SidebarMenu>
-            <SidebarMenuItem className="flex justify-center">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <SidebarMenuButton
-                    tooltip="Sidebar layout"
-                    className="group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-0! group-data-[collapsible=icon]:mx-auto"
-                  >
-                    <Avatar className="h-8 w-8 rounded-lg shrink-0 group-data-[collapsible=icon]:h-7 group-data-[collapsible=icon]:w-7">
-                      <AvatarFallback className="rounded-lg bg-[#E5403B] text-white text-sm font-semibold">
-                        ?
-                      </AvatarFallback>
-                    </Avatar>
-                  </SidebarMenuButton>
-                </PopoverTrigger>
-                <PopoverContent side="right" align="end" className={cn(userAccountMenuPanelClass, "w-52 p-1")}>
-                  <SidebarLayoutSwitcher inline />
-                </PopoverContent>
-              </Popover>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        ) : (
-          <div className="w-full group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
-            <NavUser user={user || { name: "Customer", email: "" }} />
-          </div>
-        )}
+        <div className="w-full group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
+          <NavUser
+            user={isGuestPending ? GUEST_PENDING_USER : user || { name: "Customer", email: "" }}
+            avatarIcon={isGuestPending}
+          />
+        </div>
       </SidebarFooter>
     </Sidebar>
   )
