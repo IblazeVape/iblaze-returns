@@ -19,6 +19,20 @@ export function isAppsReturnsPortal() {
   return appsReturnsPortal;
 }
 
+// Which identity flow the current App Proxy request is in. Distinct from
+// isGuestOrderContext(): a guest is "guest-or-login" here from the moment
+// they land on the lookup form, before they've verified any order — used to
+// keep the sidebar from showing a "My Orders" nav item that has nowhere
+// useful to go yet.
+export type AppsReturnsIdentityKind = "logged-in" | "guest-or-login" | null;
+let identityKind: AppsReturnsIdentityKind = null;
+export function setAppsReturnsIdentityKind(kind: AppsReturnsIdentityKind) {
+  identityKind = kind;
+}
+export function getAppsReturnsIdentityKind() {
+  return identityKind;
+}
+
 let guestOrderId: string | null = null;
 let onLookupAnotherOrder: (() => void) | null = null;
 

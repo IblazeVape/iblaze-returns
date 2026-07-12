@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils"
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
-import { isGuestOrderContext, lookupAnotherOrder } from "@/lib/apps-returns-portal-mode"
+import { isGuestOrderContext, lookupAnotherOrder, getAppsReturnsIdentityKind } from "@/lib/apps-returns-portal-mode"
 import {
   Sidebar, SidebarContent, SidebarFooter,
   SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
@@ -68,12 +68,17 @@ function SidebarBrandHeader() {
 const LOOKUP_ANOTHER_ORDER_URL = "#lookup-another-order"
 
 export function AppSidebar({ user, onNavigate, activeSection, ...props }: AppSidebarProps) {
+  // Guest hasn't verified an order yet (still on the lookup form) — nothing
+  // to navigate to or sign out of, and no identity to show in the footer.
+  const isGuestPending = getAppsReturnsIdentityKind() === "guest-or-login" && !isGuestOrderContext()
   // Guests verified exactly one order — there's no list to browse back to,
   // so "My Orders" is replaced with an action that takes them back to the
   // lookup form instead.
-  const navMain = isGuestOrderContext()
-    ? [{ title: "Look up another order", url: LOOKUP_ANOTHER_ORDER_URL, icon: Search }]
-    : [{ title: "My Orders", url: "#orders", icon: ShoppingBag }]
+  const navMain = isGuestPending
+    ? []
+    : isGuestOrderContext()
+      ? [{ title: "Look up another order", url: LOOKUP_ANOTHER_ORDER_URL, icon: Search }]
+      : [{ title: "My Orders", url: "#orders", icon: ShoppingBag }]
   const handleNavigate = (url: string) => {
     if (url === LOOKUP_ANOTHER_ORDER_URL) {
       lookupAnotherOrder()
@@ -86,15 +91,17 @@ export function AppSidebar({ user, onNavigate, activeSection, ...props }: AppSid
       <SidebarBrandHeader />
       <SidebarContent>
         <div className="flex min-h-0 flex-1 w-full flex-col group-data-[collapsible=icon]:items-center">
-          <NavMain items={navMain} onNavigate={handleNavigate} activeSection={activeSection} />
+          {navMain.length > 0 && <NavMain items={navMain} onNavigate={handleNavigate} activeSection={activeSection} />}
           <NavSecondary items={navSecondary} className="mt-auto" />
         </div>
       </SidebarContent>
-      <SidebarFooter className="overflow-visible group-data-[collapsible=icon]:pb-3">
-        <div className="w-full group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
-          <NavUser user={user || { name: "Customer", email: "" }} />
-        </div>
-      </SidebarFooter>
+      {!isGuestPending && (
+        <SidebarFooter className="overflow-visible group-data-[collapsible=icon]:pb-3">
+          <div className="w-full group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
+            <NavUser user={user || { name: "Customer", email: "" }} />
+          </div>
+        </SidebarFooter>
+      )}
     </Sidebar>
   )
 }

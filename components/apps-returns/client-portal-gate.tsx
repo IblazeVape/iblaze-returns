@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import DashboardClient from "@/components/dashboard-client";
 import { GuestLookupForm } from "@/components/apps-returns/guest-lookup-form";
+import { GuestPortalShell } from "@/components/apps-returns/guest-portal-shell";
 import { AuthenticatingCard } from "@/components/apps-returns/authenticating-card";
 import { setHideLegacySignOut } from "@/components/user-account-menu";
 import {
@@ -10,7 +11,7 @@ import {
   clearStoredAppsReturnsSession,
   installAppsReturnsFetchPatch,
 } from "@/lib/apps-returns-client-session";
-import { setAppsReturnsPortal, setGuestOrderContext } from "@/lib/apps-returns-portal-mode";
+import { setAppsReturnsPortal, setAppsReturnsIdentityKind, setGuestOrderContext } from "@/lib/apps-returns-portal-mode";
 
 export type GateInitial =
   | { kind: "unsigned" }
@@ -48,16 +49,19 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
   const [signingIn, setSigningIn] = useState(false);
   const [error, setError] = useState("");
 
+  // Set synchronously during render, not in the effect below: GuestPortalShell
+  // (via AppSidebar) can render on this very first pass — for "guest-or-login"
+  // — and an effect only runs after that render has already committed, which
+  // left AppSidebar reading the stale default ("no identity") on first paint
+  // with nothing to trigger a re-render afterward. These are plain module
+  // flags (not React state), so setting them during render is safe and
+  // idempotent — same pattern as DEMO_MODE elsewhere in this codebase.
+  setHideLegacySignOut(true);
+  setAppsReturnsPortal(true);
+  setAppsReturnsIdentityKind(initial.kind === "logged-in" || initial.kind === "guest-or-login" ? initial.kind : null);
+
   useEffect(() => {
     installAppsReturnsFetchPatch();
-    // Sign-out here would point at the legacy iBlaze headless account
-    // system, which App Proxy customers were never logged into — they log
-    // out of their store account instead. Doesn't affect the legacy `/`
-    // portal (never sets this). Same for account.iblazevape.co.uk order
-    // status links — DashboardClient falls back to Shopify's own
-    // statusPageUrl instead.
-    setHideLegacySignOut(true);
-    setAppsReturnsPortal(true);
 
     if (initial.kind === "logged-in") {
       setSigningIn(true);
@@ -125,10 +129,7 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
     case "guest-or-login": {
       const loginUrl = `/account/login?return_url=${encodeURIComponent("/apps/returns")}`;
       return (
-        <div
-          className="flex flex-col items-center justify-center gap-4 bg-background/40 px-4"
-          style={{ minHeight: "100dvh", width: "100vw" }}
-        >
+        <GuestPortalShell>
           <GuestLookupForm
             onVerified={(token, order) => {
               storeAppsReturnsSession(token);
@@ -141,7 +142,7 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
           <a href={loginUrl} className="text-sm font-semibold hover:underline underline-offset-2">
             Log in to see all your orders
           </a>
-        </div>
+        </GuestPortalShell>
       );
     }
   }
