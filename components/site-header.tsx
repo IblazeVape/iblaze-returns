@@ -21,12 +21,10 @@ interface SiteHeaderProps {
   email?: string
   orderStatusUrl?: string
   /** Controls the sidebar toggle button. `false` hides it everywhere.
-   * `"mobile-only"` hides it on desktop but keeps it on mobile — used when
-   * the sidebar is locked collapsed on desktop (e.g. the guest lookup
-   * screen, where the always-visible icon rail already shows the logo/nav)
-   * but on mobile the sidebar is an off-canvas Sheet with no persistent
-   * rail at all, so without this the logo and nav-secondary links
-   * (News/Support/Store) would never be reachable there. */
+   * `"mobile-only"` hides it on desktop but keeps it on mobile — for any
+   * future screen where the sidebar should stay locked collapsed on
+   * desktop (where the icon rail is always visible regardless) but still
+   * needs to be reachable on mobile, which has no persistent rail at all. */
   showSidebarToggle?: boolean | "mobile-only"
   /** Hide the account avatar/dropdown — there's no identity to represent
    * before a guest has verified an order. */

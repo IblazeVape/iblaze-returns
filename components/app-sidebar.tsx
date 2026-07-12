@@ -1,10 +1,9 @@
 "use client"
 
 import * as React from "react"
-import { ShoppingBag, Search, ExternalLink } from "lucide-react"
+import { ShoppingBag, Search } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { NavMain } from "@/components/nav-main"
-import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
 import { isGuestOrderContext, lookupAnotherOrder, getAppsReturnsIdentityKind } from "@/lib/apps-returns-portal-mode"
 import {
@@ -12,10 +11,6 @@ import {
   SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-
-const navSecondary = [
-  { title: "Back to Store", url: "https://iblazevape.co.uk", icon: ExternalLink },
-]
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   user?: { name: string; email: string }
@@ -95,11 +90,10 @@ export function AppSidebar({ user, onNavigate, activeSection, ...props }: AppSid
       <SidebarContent>
         <div className="flex min-h-0 flex-1 w-full flex-col group-data-[collapsible=icon]:items-center">
           {navMain.length > 0 && <NavMain items={navMain} onNavigate={handleNavigate} activeSection={activeSection} />}
-          {/* Pinned to the bottom only when there's a main nav above it to
-              separate from — otherwise (guest lookup, before an order is
-              verified) it sits right under the header instead of leaving a
-              blank gap at the top of the sidebar. */}
-          <NavSecondary items={navSecondary} className={navMain.length > 0 ? "mt-auto" : undefined} />
+          {/* Nothing else here for now — the header's own "Store" link
+              already covers going back to the storefront on every screen,
+              so a duplicate sidebar entry was redundant. Empty until a
+              merchant adds their own items via a future settings page. */}
         </div>
       </SidebarContent>
       <SidebarFooter className="overflow-visible group-data-[collapsible=icon]:pb-3">
