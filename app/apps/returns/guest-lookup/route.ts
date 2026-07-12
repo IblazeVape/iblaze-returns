@@ -100,8 +100,12 @@ export async function POST(request: NextRequest) {
     // ever placed with that email.
     const cookie = buildAppsReturnsSession(shop, email, order.id);
 
-    const response = NextResponse.json({
+    // Session token returned in the JSON body, not (only) via Set-Cookie:
+    // confirmed live that Shopify's App Proxy strips Set-Cookie on the way
+    // back to the browser. The client stores this in localStorage instead.
+    return NextResponse.json({
       ok: true,
+      session: cookie.value,
       order: {
         id: order.id,
         name: order.name,
@@ -110,23 +114,6 @@ export async function POST(request: NextRequest) {
         financialStatus: order.displayFinancialStatus,
       },
     });
-    response.cookies.set(cookie.name, cookie.value, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "lax",
-      path: "/",
-      maxAge: cookie.maxAge,
-    });
-    // Non-httpOnly marker, same as the logged-in session route, so the client
-    // can confirm Set-Cookie actually reached the browser before reloading.
-    response.cookies.set("apps_returns_marker", "1", {
-      httpOnly: false,
-      secure: true,
-      sameSite: "lax",
-      path: "/",
-      maxAge: cookie.maxAge,
-    });
-    return response;
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }

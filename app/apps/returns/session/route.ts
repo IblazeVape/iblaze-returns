@@ -7,18 +7,15 @@ import { buildAppsReturnsSession } from "@/lib/apps-returns-session";
 export const dynamic = "force-dynamic";
 
 /**
- * Mints the apps_returns_session cookie for a logged-in customer. Called via
- * a CLIENT-SIDE fetch from the browser (see components/apps-returns/mint-
- * session.tsx), never a server-side redirect: ANY redirect Location header
- * our server emits gets normalized to an absolute URL on OUR OWN Vercel
- * origin — confirmed live, even when manually constructing the Response with
- * a literal relative Location string. Once Shopify sees that absolute
- * foreign-host Location it sends the browser straight there, breaking out of
- * the proxy entirely. A browser-issued fetch to a relative path, by contrast,
- * naturally stays on the storefront domain and re-enters Shopify's App Proxy,
- * which signs it fresh — the same mechanism already proven working for the
- * guest-lookup route. Returns JSON, not a redirect; the client reloads on
- * success.
+ * Mints a session for a logged-in customer. Called via a CLIENT-SIDE fetch
+ * from the browser (see components/apps-returns/client-portal-gate.tsx),
+ * never a server-side redirect — see the historical note in that file for
+ * why. Returns the signed session token in the JSON body, NOT (only) via
+ * Set-Cookie: confirmed live via a non-httpOnly marker cookie that
+ * Set-Cookie does not survive the round trip through Shopify's App Proxy
+ * (Shopify strips it — App Proxy is a content-forwarding mechanism, not a
+ * session-cookie one). The client stores the returned token in localStorage
+ * and attaches it to DashboardClient's own API fetches itself.
  */
 export async function GET(request: NextRequest) {
   const secret = process.env.SHOPIFY_CLIENT_SECRET;
@@ -51,24 +48,5 @@ export async function GET(request: NextRequest) {
   if (!email) return NextResponse.json({ error: "no email on file for this account" }, { status: 404 });
 
   const cookie = buildAppsReturnsSession(shop, email); // orderScope "" = full order history
-  const response = NextResponse.json({ ok: true });
-  response.cookies.set(cookie.name, cookie.value, {
-    httpOnly: true,
-    secure: true,
-    sameSite: "lax",
-    path: "/",
-    maxAge: cookie.maxAge,
-  });
-  // Non-httpOnly marker, same attributes otherwise, set alongside the real
-  // session cookie so client-side JS can verify Set-Cookie actually survived
-  // the trip through Shopify's App Proxy (httpOnly cookies are invisible to
-  // document.cookie, so this is the only way to confirm from the client).
-  response.cookies.set("apps_returns_marker", "1", {
-    httpOnly: false,
-    secure: true,
-    sameSite: "lax",
-    path: "/",
-    maxAge: cookie.maxAge,
-  });
-  return response;
+  return NextResponse.json({ ok: true, session: cookie.value });
 }

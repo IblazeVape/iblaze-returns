@@ -8,11 +8,13 @@ import { useState } from "react";
  * email + postcode against the tenant's Shopify data — see
  * app/apps/returns/guest-lookup/route.ts for the server-side check.
  *
- * On success the server sets a session cookie (scoped to just the verified
- * order) and this reloads into /apps/returns, which then renders the real
- * DashboardClient portal for that order.
+ * On success the server returns a session token in the JSON body (NOT via
+ * Set-Cookie — Shopify's App Proxy strips that on the way back to the
+ * browser, confirmed live). `onVerified` hands the token to the parent
+ * (ClientPortalGate), which stores it and renders the real DashboardClient
+ * portal inline — no page reload.
  */
-export function GuestLookupForm() {
+export function GuestLookupForm({ onVerified }: { onVerified: (token: string) => void }) {
   const [orderNumber, setOrderNumber] = useState("");
   const [email, setEmail] = useState("");
   const [postcode, setPostcode] = useState("");
@@ -34,23 +36,12 @@ export function GuestLookupForm() {
         body: JSON.stringify({ orderNumber, email, postcode }),
       });
       const data = await res.json();
-      if (!res.ok) {
+      if (!res.ok || !data.session) {
         setStatus("error");
         setError(data.error || "Something went wrong. Please try again.");
         return;
       }
-      // Confirm Set-Cookie actually reached the browser (via the non-httpOnly
-      // marker cookie) before reloading — same safeguard as the logged-in
-      // flow (MintSession), since this uses the same session mechanism.
-      const hasMarker = document.cookie.split("; ").some((c) => c === "apps_returns_marker=1");
-      if (!hasMarker) {
-        setStatus("error");
-        setError(
-          "Order verified, but the browser didn't keep the sign-in cookie. This usually means it was stripped in transit."
-        );
-        return;
-      }
-      window.location.href = "/apps/returns";
+      onVerified(data.session);
     } catch {
       setStatus("error");
       setError("Something went wrong. Please try again.");

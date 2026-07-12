@@ -64,7 +64,17 @@ export async function GET(request: NextRequest) {
       // eligibility fallback below (getAdminReturnableInfo) already handles
       // an absent accessToken. orderScope, if set, restricts a guest lookup
       // to the single order they verified (not their whole order history).
-      const appsSession = validateAppsReturnsSession(parseCookies(cookieHeader)[APPS_RETURNS_COOKIE_NAME]);
+      //
+      // Identity travels as a HEADER (x-apps-returns-session), not a cookie:
+      // Shopify's App Proxy strips Set-Cookie on the way back to the browser
+      // (confirmed live), so the client stores the session token in
+      // localStorage and attaches it via this header on every API call
+      // (lib/apps-returns-client-session.ts). The cookie is still checked as
+      // a fallback in case Set-Cookie ever does survive.
+      const headerSession = validateAppsReturnsSession(request.headers.get("x-apps-returns-session"));
+      const appsSession = headerSession.valid
+        ? headerSession
+        : validateAppsReturnsSession(parseCookies(cookieHeader)[APPS_RETURNS_COOKIE_NAME]);
       if (appsSession.valid && appsSession.email) {
         sessionEmail = appsSession.email;
         orderScope = appsSession.orderScope;
