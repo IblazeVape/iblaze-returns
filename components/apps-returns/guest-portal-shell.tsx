@@ -1,16 +1,19 @@
 "use client";
 
-import { SidebarLayoutProvider, useSidebarLayout } from "@/components/sidebar-layout-provider";
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/app-sidebar";
-import { SiteHeader } from "@/components/site-header";
+import { SidebarLayoutProvider } from "@/components/sidebar-layout-provider";
+import { PortalShell } from "@/components/portal-shell";
 
 /**
  * Wraps the guest lookup form (and the unsigned/not-set-up Notice screens)
- * in the same sidebar + header shell DashboardClient itself uses — mirrors
- * DashboardClientInner's own `portalContent` structure (dashboard-client.tsx)
- * — so the guest lookup screen reads as the same portal, not a separate
- * bare page that happens to precede it.
+ * in the SAME shell component DashboardClient itself renders through
+ * (PortalShell) — not a lookalike copy — so the guest lookup screen is
+ * unmistakably the same portal, not a separate page that happens to precede
+ * it.
+ *
+ * `locked`: the guest hasn't verified an order yet, so there's no nav/
+ * identity to show — the sidebar is forced collapsed with no way to open
+ * it, and the header's toggle + account avatar are hidden entirely (see
+ * PortalShell's `locked` prop).
  */
 export function GuestPortalShell({
   title = "Look up your order",
@@ -21,35 +24,11 @@ export function GuestPortalShell({
 }) {
   return (
     <SidebarLayoutProvider>
-      <GuestPortalShellInner title={title}>{children}</GuestPortalShellInner>
-    </SidebarLayoutProvider>
-  );
-}
-
-function GuestPortalShellInner({ title, children }: { title: string; children: React.ReactNode }) {
-  const { layout } = useSidebarLayout();
-
-  return (
-    <SidebarProvider
-      defaultOpen={true}
-      style={
-        {
-          "--sidebar-width": "18rem",
-          "--sidebar-width-icon": "3.75rem",
-          "--header-height": "3rem",
-        } as React.CSSProperties
-      }
-    >
-      {/* No onNavigate/activeSection: nothing to navigate to before an order
-          is verified — AppSidebar already hides "My Orders" in this state
-          (see isGuestOrderContext / identity-kind checks in app-sidebar.tsx). */}
-      <AppSidebar variant={layout} />
-      <SidebarInset className="min-w-0">
-        <SiteHeader title={title} showSearch={false} />
+      <PortalShell locked headerProps={{ title, showSearch: false }}>
         <div className="flex flex-1 flex-col items-center justify-center gap-4 px-4 py-10">
           {children}
         </div>
-      </SidebarInset>
-    </SidebarProvider>
+      </PortalShell>
+    </SidebarLayoutProvider>
   );
 }

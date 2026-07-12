@@ -20,6 +20,13 @@ interface SiteHeaderProps {
   firstName?: string
   email?: string
   orderStatusUrl?: string
+  /** Hide the sidebar toggle button — used when the sidebar is locked
+   * collapsed and must never be opened (e.g. the guest lookup screen,
+   * which has no identity/nav to show in it). */
+  showSidebarToggle?: boolean
+  /** Hide the account avatar/dropdown — there's no identity to represent
+   * before a guest has verified an order. */
+  showAccountMenu?: boolean
 }
 
 function SidebarToggleControls() {
@@ -49,6 +56,8 @@ export function SiteHeader({
   firstName,
   email,
   orderStatusUrl,
+  showSidebarToggle = true,
+  showAccountMenu = true,
 }: SiteHeaderProps) {
   const initial = firstName?.[0]?.toUpperCase() || "?"
   const user = { name: firstName || "Customer", email: email || "" }
@@ -62,7 +71,7 @@ export function SiteHeader({
           paddingRight: "max(1rem, env(safe-area-inset-right))",
         }}
       >
-        <SidebarToggleControls />
+        {showSidebarToggle && <SidebarToggleControls />}
         <h1 className="text-base font-medium flex items-center gap-1.5 min-w-0">
           {titleIcon && (
             <titleIcon.icon className={cn("size-4 shrink-0 text-foreground", titleIcon.className)} aria-hidden />
@@ -148,21 +157,25 @@ export function SiteHeader({
               <span className="text-xs font-medium">Store</span>
             </a>
           )}
-          <Separator orientation="vertical" className="data-[orientation=vertical]:h-4" />
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Avatar className="h-8 w-8 cursor-pointer hover:ring-2 hover:ring-[#E5403B]/40 hover:ring-offset-1 transition-all">
-                <AvatarFallback className="bg-[#E5403B] text-white text-sm font-semibold">
-                  {initial}
-                </AvatarFallback>
-              </Avatar>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className={cn(userAccountMenuPanelClass, "w-52")}>
-              <UserAccountMenuLabel user={user} variant="header" />
-              <DropdownMenuSeparator />
-              <UserAccountMenuItems />
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {showAccountMenu && (
+            <>
+              <Separator orientation="vertical" className="data-[orientation=vertical]:h-4" />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Avatar className="h-8 w-8 cursor-pointer hover:ring-2 hover:ring-[#E5403B]/40 hover:ring-offset-1 transition-all">
+                    <AvatarFallback className="bg-[#E5403B] text-white text-sm font-semibold">
+                      {initial}
+                    </AvatarFallback>
+                  </Avatar>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className={cn(userAccountMenuPanelClass, "w-52")}>
+                  <UserAccountMenuLabel user={user} variant="header" />
+                  <DropdownMenuSeparator />
+                  <UserAccountMenuItems />
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
+          )}
         </div>
       </div>
     </header>

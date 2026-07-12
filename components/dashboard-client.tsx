@@ -8,10 +8,8 @@ import { toast } from "sonner"
 import { ChevronRight, ChevronDown, LayoutGrid, List, ArrowLeft, RotateCcw, CheckCircle2, ShoppingBag, ShieldCheck, ExternalLink, Lock, Truck, Package, Search, MapPin, SlidersHorizontal, CreditCard, XCircle, CircleX, Columns2, LayoutDashboard, MessageCircle, FileText, Clock, BadgeCheck, HelpCircle, Eye, Archive, Info, type LucideIcon } from "lucide-react"
 
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { AppSidebar } from "@/components/app-sidebar"
-import { SiteHeader } from "@/components/site-header"
-import { SidebarInset, SidebarProvider, useSidebar } from "@/components/ui/sidebar"
-import { SidebarLayoutProvider, useSidebarLayout } from "@/components/sidebar-layout-provider"
+import { PortalShell } from "@/components/portal-shell"
+import { SidebarLayoutProvider } from "@/components/sidebar-layout-provider"
 import { isAppsReturnsPortal, isGuestOrderContext, getGuestOrderId, lookupAnotherOrder } from "@/lib/apps-returns-portal-mode"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -4452,7 +4450,6 @@ export default function DashboardClient({ demo = false }: { demo?: boolean } = {
 }
 
 function DashboardClientInner() {
-  const { layout } = useSidebarLayout()
   const searchParams = useSearchParams()
   const [data, setData]                   = useState<OrdersData | null>(null)
   const [loading, setLoading]             = useState(true)
@@ -4609,26 +4606,21 @@ function DashboardClientInner() {
   const orderHeaderStatus = selectedOrder ? getOrderHeaderStatusIcon(selectedOrder) : null
 
   const portalContent = (
-    <SidebarProvider
-      defaultOpen={true}
-      style={{
-        "--sidebar-width": "18rem",
-        "--sidebar-width-icon": "3.75rem",
-        "--header-height": "3rem",
-      } as React.CSSProperties}
+    <PortalShell
+      user={user}
+      onNavigate={s => { setActiveSection(s); setSelectedOrder(null) }}
+      activeSection={activeSection}
+      headerProps={{
+        title: selectedOrder ? getOrderPageHeaderTitle(selectedOrder) : activeSection === "#home" ? "Dashboard" : "My Orders",
+        titleIcon: orderHeaderStatus ? { icon: orderHeaderStatus.icon } : undefined,
+        search,
+        onSearch: setSearch,
+        showSearch: !selectedOrder && activeSection !== "#home",
+        firstName: data?.firstName,
+        email: data?.email,
+        orderStatusUrl: selectedOrder ? (isAppsReturnsPortal() && selectedOrder.statusPageUrl ? selectedOrder.statusPageUrl : `https://account.iblazevape.co.uk/orders/${selectedOrder.id.split("/").pop()}`) : undefined,
+      }}
     >
-      <AppSidebar variant={layout} user={user} onNavigate={s => { setActiveSection(s); setSelectedOrder(null) }} activeSection={activeSection} />
-      <SidebarInset className="min-w-0">
-        <SiteHeader
-          title={selectedOrder ? getOrderPageHeaderTitle(selectedOrder) : activeSection === "#home" ? "Dashboard" : "My Orders"}
-          titleIcon={orderHeaderStatus ? { icon: orderHeaderStatus.icon } : undefined}
-          search={search}
-          onSearch={setSearch}
-          showSearch={!selectedOrder && activeSection !== "#home"}
-          firstName={data?.firstName}
-          email={data?.email}
-          orderStatusUrl={selectedOrder ? (isAppsReturnsPortal() && selectedOrder.statusPageUrl ? selectedOrder.statusPageUrl : `https://account.iblazevape.co.uk/orders/${selectedOrder.id.split("/").pop()}`) : undefined}
-        />
         {selectedOrder && <StickyOrderSummaryStrip key={selectedOrder.id} order={selectedOrder} />}
         {activeSection === "#home" && !selectedOrder && (
           <>
@@ -4847,8 +4839,7 @@ function DashboardClientInner() {
         )}
         </AnimatePresence>
         </div>
-      </SidebarInset>
-    </SidebarProvider>
+    </PortalShell>
   )
 
   // Guest verified one order but the auto-select effect hasn't matched it
