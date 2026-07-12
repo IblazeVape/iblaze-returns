@@ -10,6 +10,7 @@ import {
   clearStoredAppsReturnsSession,
   installAppsReturnsFetchPatch,
 } from "@/lib/apps-returns-client-session";
+import { setAppsReturnsPortal, setGuestOrderContext } from "@/lib/apps-returns-portal-mode";
 
 export type GateInitial =
   | { kind: "unsigned" }
@@ -52,8 +53,11 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
     // Sign-out here would point at the legacy iBlaze headless account
     // system, which App Proxy customers were never logged into — they log
     // out of their store account instead. Doesn't affect the legacy `/`
-    // portal (never sets this).
+    // portal (never sets this). Same for account.iblazevape.co.uk order
+    // status links — DashboardClient falls back to Shopify's own
+    // statusPageUrl instead.
     setHideLegacySignOut(true);
+    setAppsReturnsPortal(true);
 
     if (initial.kind === "logged-in") {
       setSigningIn(true);
@@ -74,8 +78,20 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
 
     if (initial.kind === "guest-or-login") {
       clearStoredAppsReturnsSession();
+      setGuestOrderContext(null, null);
     }
   }, [initial]);
+
+  // Guest verified one order and wants to look up a different one — clear
+  // everything and drop back to the fresh lookup form (no page reload: a
+  // reload would re-run the signed proxy request, which — correctly, per
+  // the "not logged in -> guest lookup only" rule above — never resumes a
+  // session on its own).
+  function handleLookupAnother() {
+    clearStoredAppsReturnsSession();
+    setGuestOrderContext(null, null);
+    setReady(false);
+  }
 
   if (ready) return <DashboardClient />;
 
@@ -122,8 +138,10 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
           }}
         >
           <GuestLookupForm
-            onVerified={(token) => {
+            onVerified={(token, order) => {
               storeAppsReturnsSession(token);
+              const numericOrderId = order.id.split("/").pop() ?? null;
+              setGuestOrderContext(numericOrderId, handleLookupAnother);
               setReady(true);
             }}
           />

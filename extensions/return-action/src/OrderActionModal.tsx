@@ -10,20 +10,23 @@ import "@shopify/ui-extensions/preact"
 
 declare const shopify: {
   order: { value: { id: string } | undefined }
+  shop: { storefrontUrl?: string }
   close: () => void
 }
 
-const PORTAL_BASE_URL = "https://iblaze-returns.vercel.app"
+const APP_ORIGIN = "https://iblaze-returns.vercel.app"
 
 export default async () => {
   const orderId = shopify.order?.value?.id?.split("/").pop() ?? ""
-  render(<OrderActionModal orderId={orderId} />, document.body)
+  const storefrontUrl = (shopify.shop?.storefrontUrl ?? "").replace(/\/$/, "")
+  render(<OrderActionModal orderId={orderId} storefrontUrl={storefrontUrl} />, document.body)
 }
 
-function OrderActionModal({ orderId }: { orderId: string }) {
-  const portalUrl = orderId
-    ? `${PORTAL_BASE_URL}/?order=${orderId}`
-    : PORTAL_BASE_URL
+function OrderActionModal({ orderId, storefrontUrl }: { orderId: string; storefrontUrl: string }) {
+  // Customer-facing link must go through THIS shop's own storefront (App
+  // Proxy) so the multi-tenant portal resolves the right tenant.
+  const base = storefrontUrl ? `${storefrontUrl}/apps/returns` : APP_ORIGIN
+  const portalUrl = orderId ? `${base}?order=${orderId}` : base
 
   const handleOpen = () => {
     window.open(portalUrl, "_blank")

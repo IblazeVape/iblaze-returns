@@ -74,6 +74,7 @@ export async function POST(request: NextRequest) {
           edges {
             node {
               id name email createdAt displayFulfillmentStatus displayFinancialStatus
+              statusPageUrl
               shippingAddress { zip }
             }
           }
@@ -112,6 +113,7 @@ export async function POST(request: NextRequest) {
         createdAt: order.createdAt,
         fulfillmentStatus: order.displayFulfillmentStatus,
         financialStatus: order.displayFinancialStatus,
+        statusPageUrl: order.statusPageUrl ?? null,
       },
     });
   } catch (e) {

@@ -115,6 +115,7 @@ async function handleGet(request: NextRequest): Promise<NextResponse> {
     // Pagination handlers below fetch additional pages when hasNextPage is true.
     const ORDER_FIELDS = `
       id name createdAt cancelledAt displayFulfillmentStatus displayFinancialStatus
+      statusPageUrl
       customer { firstName }
       totalPriceSet { shopMoney { amount currencyCode } }
       totalRefundedSet { shopMoney { amount } }

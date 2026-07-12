@@ -14,7 +14,20 @@ import { useState } from "react";
  * (ClientPortalGate), which stores it and renders the real DashboardClient
  * portal inline — no page reload.
  */
-export function GuestLookupForm({ onVerified }: { onVerified: (token: string) => void }) {
+type GuestOrder = {
+  id: string;
+  name: string;
+  createdAt: string;
+  fulfillmentStatus: string;
+  financialStatus: string;
+  statusPageUrl: string | null;
+};
+
+export function GuestLookupForm({
+  onVerified,
+}: {
+  onVerified: (token: string, order: GuestOrder) => void;
+}) {
   const [orderNumber, setOrderNumber] = useState("");
   const [email, setEmail] = useState("");
   const [postcode, setPostcode] = useState("");
@@ -36,12 +49,12 @@ export function GuestLookupForm({ onVerified }: { onVerified: (token: string) =>
         body: JSON.stringify({ orderNumber, email, postcode }),
       });
       const data = await res.json();
-      if (!res.ok || !data.session) {
+      if (!res.ok || !data.session || !data.order) {
         setStatus("error");
         setError(data.error || "Something went wrong. Please try again.");
         return;
       }
-      onVerified(data.session);
+      onVerified(data.session, data.order);
     } catch {
       setStatus("error");
       setError("Something went wrong. Please try again.");

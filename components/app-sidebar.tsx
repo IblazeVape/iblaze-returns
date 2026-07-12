@@ -6,15 +6,12 @@ import { cn } from "@/lib/utils"
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
+import { isGuestOrderContext } from "@/lib/apps-returns-portal-mode"
 import {
   Sidebar, SidebarContent, SidebarFooter,
   SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-
-const navMain = [
-  { title: "My Orders", url: "#orders", icon: ShoppingBag },
-]
 
 const navSecondary = [
   { title: "News & Updates", url: "https://iblazevape.co.uk/blogs/news", icon: Newspaper },
@@ -69,12 +66,16 @@ function SidebarBrandHeader() {
 }
 
 export function AppSidebar({ user, onNavigate, activeSection, ...props }: AppSidebarProps) {
+  // Guests verified exactly one order — there's no list to browse back to,
+  // so the nav item that would take them there is hidden. They use "Look up
+  // another order" on the order page instead.
+  const navMain = isGuestOrderContext() ? [] : [{ title: "My Orders", url: "#orders", icon: ShoppingBag }]
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarBrandHeader />
       <SidebarContent>
         <div className="flex min-h-0 flex-1 w-full flex-col group-data-[collapsible=icon]:items-center">
-          <NavMain items={navMain} onNavigate={onNavigate} activeSection={activeSection} />
+          {navMain.length > 0 && <NavMain items={navMain} onNavigate={onNavigate} activeSection={activeSection} />}
           <NavSecondary items={navSecondary} className="mt-auto" />
         </div>
       </SidebarContent>

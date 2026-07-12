@@ -12,6 +12,7 @@ import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
 import { SidebarInset, SidebarProvider, useSidebar } from "@/components/ui/sidebar"
 import { SidebarLayoutProvider, useSidebarLayout } from "@/components/sidebar-layout-provider"
+import { isAppsReturnsPortal, isGuestOrderContext, getGuestOrderId, lookupAnotherOrder } from "@/lib/apps-returns-portal-mode"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Spinner } from "@/components/ui/spinner"
@@ -100,6 +101,7 @@ interface Order {
   earliestDelivery?: string | null
   latestDelivery?: string | null
   eligibilitySource?: "shopify" | "shopify-admin" | "fallback"
+  statusPageUrl?: string | null
 }
 
 interface OrdersData { firstName: string; email: string; orders: Order[] }
@@ -3158,7 +3160,12 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
   const [colsVisible, setColsVisible] = useState({ variant: true, qty: true, total: true })
 
   const rawOrderId     = order.id.split("/").pop()
-  const orderStatusUrl = `https://account.iblazevape.co.uk/orders/${rawOrderId}`
+  // account.iblazevape.co.uk is iBlaze's own single-tenant customer login —
+  // meaningless for App Proxy customers (guest or logged into their store,
+  // not that system). Shopify's own order.statusPageUrl works for anyone.
+  const orderStatusUrl = isAppsReturnsPortal() && order.statusPageUrl
+    ? order.statusPageUrl
+    : `https://account.iblazevape.co.uk/orders/${rawOrderId}`
   const total          = parseFloat(order.totalPriceSet.shopMoney.amount)
   const orderAvgPrice  = order.totalUnits > 0 ? total / order.totalUnits : 0
   const refundedAmount = order.totalRefundedSet?.shopMoney?.amount ? parseFloat(order.totalRefundedSet.shopMoney.amount) : 0
@@ -3303,7 +3310,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
         setTimeout(() => { window.location.href = orderStatusUrl }, 3000)
       } else if (res.status === 401) {
         toast.error("Session expired", { description: "Please log in again to submit your return." })
-        setTimeout(() => { window.location.href = "/" }, 1500)
+        setTimeout(() => { window.location.href = isAppsReturnsPortal() ? "/apps/returns" : "/" }, 1500)
       } else if (result.code === "ELIGIBILITY_CHANGED") {
         toast.error("Eligibility changed", { description: "Some items are no longer eligible. Refreshing your order..." })
         setTimeout(() => window.location.reload(), 2000)
@@ -3343,8 +3350,13 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
            footer IS shown (hasEligible), pb-9 creates the visible gap between the
            table card and the sticky footer on both mobile and desktop. */}
       <div className={cn("flex flex-col gap-4 px-4 pt-4", !hasEligible ? "pb-4" : "pb-9")}>
-        <Button variant="ghost" size="sm" onClick={onBack} className="-ml-2 text-muted-foreground hover:text-foreground w-fit">
-          <ArrowLeft className="size-4" /> Back to Orders
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={isGuestOrderContext() ? lookupAnotherOrder : onBack}
+          className="-ml-2 text-muted-foreground hover:text-foreground w-fit"
+        >
+          <ArrowLeft className="size-4" /> {isGuestOrderContext() ? "Look up another order" : "Back to Orders"}
         </Button>
 
         {order.eligibilitySource === "fallback" && !order.cancelledAt && (
@@ -4485,8 +4497,10 @@ function DashboardClientInner() {
       .finally(() => setLoading(false))
   }, [])
 
-  // Auto-select an order when ?order=<numericId> is in the URL (e.g. from Shopify extension)
-  const autoOrderId = searchParams.get("order")
+  // Auto-select an order when ?order=<numericId> is in the URL (e.g. from Shopify
+  // extension), or when a guest just verified exactly one order via the App
+  // Proxy guest lookup form (they only ever have the one order to see).
+  const autoOrderId = searchParams.get("order") ?? getGuestOrderId()
   useEffect(() => {
     if (!data || !autoOrderId) return
     const match = data.orders.find(o =>
@@ -4613,7 +4627,7 @@ function DashboardClientInner() {
           showSearch={!selectedOrder && activeSection !== "#home"}
           firstName={data?.firstName}
           email={data?.email}
-          orderStatusUrl={selectedOrder ? `https://account.iblazevape.co.uk/orders/${selectedOrder.id.split("/").pop()}` : undefined}
+          orderStatusUrl={selectedOrder ? (isAppsReturnsPortal() && selectedOrder.statusPageUrl ? selectedOrder.statusPageUrl : `https://account.iblazevape.co.uk/orders/${selectedOrder.id.split("/").pop()}`) : undefined}
         />
         {selectedOrder && <StickyOrderSummaryStrip key={selectedOrder.id} order={selectedOrder} />}
         {activeSection === "#home" && !selectedOrder && (
