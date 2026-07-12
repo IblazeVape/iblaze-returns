@@ -77,7 +77,13 @@ export default async function AppProxyReturnsPage({
   if (loggedInCustomerId) {
     // Signed + logged in, but no session cookie yet — mint it, then land back
     // here with the cookie present (fast path above).
-    redirect(`/apps/returns/session?${query.toString()}`);
+    //
+    // Bare path, NO query string: Shopify freshly re-signs every request
+    // through the proxy path regardless of what's already in the URL, so
+    // carrying the original signed params forward produces a duplicated/
+    // malformed query string that Shopify's own edge fails to route (404) --
+    // the same class of bug already fixed once in the guest-lookup form.
+    redirect("/apps/returns/session");
   }
 
   // Not logged in — but NOT everyone has a Shopify account: guest checkout
