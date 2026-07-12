@@ -1,13 +1,14 @@
 "use client"
 
 import * as React from "react"
-import { ShoppingBag, Search, PanelLeft, FileText, Newspaper, MessageCircle, ExternalLink } from "lucide-react"
+import { ShoppingBag, Search, FileText, Newspaper, MessageCircle, ExternalLink } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
 import { SidebarLayoutSwitcher } from "@/components/sidebar-layout-switcher"
 import { userAccountMenuPanelClass } from "@/components/user-account-menu"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { isGuestOrderContext, lookupAnotherOrder, getAppsReturnsIdentityKind } from "@/lib/apps-returns-portal-mode"
 import {
@@ -20,6 +21,12 @@ const navSecondary = [
   { title: "News & Updates", url: "https://iblazevape.co.uk/blogs/news", icon: Newspaper },
   { title: "Returns Policy", url: "https://iblazevape.co.uk/policies/refund-policy", icon: FileText },
   { title: "Speak to Support", url: "mailto:info@iblazevape.co.uk", icon: MessageCircle },
+  { title: "Back to Store", url: "https://iblazevape.co.uk", icon: ExternalLink },
+]
+
+// Guest hasn't verified an order yet — no return/support links relevant to
+// an order they haven't found, just a way back to the store.
+const navSecondaryGuestPending = [
   { title: "Back to Store", url: "https://iblazevape.co.uk", icon: ExternalLink },
 ]
 
@@ -99,13 +106,17 @@ export function AppSidebar({ user, onNavigate, activeSection, ...props }: AppSid
               separate from — otherwise (guest lookup, before an order is
               verified) it sits right under the header instead of leaving a
               blank gap at the top of the sidebar. */}
-          <NavSecondary items={navSecondary} className={navMain.length > 0 ? "mt-auto" : undefined} />
+          <NavSecondary
+            items={isGuestPending ? navSecondaryGuestPending : navSecondary}
+            className={navMain.length > 0 ? "mt-auto" : undefined}
+          />
         </div>
       </SidebarContent>
       <SidebarFooter className="overflow-visible group-data-[collapsible=icon]:pb-3">
         {isGuestPending ? (
-          // No identity to show yet — a plain icon button (not an avatar)
-          // opening just the sidebar-layout (Inset/Sidebar) setting.
+          // No identity to show yet, so no name/email/profile/sign-out —
+          // just the sidebar-layout (Inset/Sidebar) setting, behind the
+          // same avatar-styled trigger the real account menu uses.
           <SidebarMenu>
             <SidebarMenuItem className="flex justify-center">
               <Popover>
@@ -114,7 +125,11 @@ export function AppSidebar({ user, onNavigate, activeSection, ...props }: AppSid
                     tooltip="Sidebar layout"
                     className="group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-0! group-data-[collapsible=icon]:mx-auto"
                   >
-                    <PanelLeft className="size-4" />
+                    <Avatar className="h-8 w-8 rounded-lg shrink-0 group-data-[collapsible=icon]:h-7 group-data-[collapsible=icon]:w-7">
+                      <AvatarFallback className="rounded-lg bg-[#E5403B] text-white text-sm font-semibold">
+                        ?
+                      </AvatarFallback>
+                    </Avatar>
                   </SidebarMenuButton>
                 </PopoverTrigger>
                 <PopoverContent side="right" align="end" className={cn(userAccountMenuPanelClass, "w-52 p-1")}>
