@@ -73,7 +73,7 @@ export function GuestLookupForm({
   return (
     <Card className="w-full max-w-sm mx-4 shadow-xl">
       <CardHeader>
-        <CardTitle className="text-lg text-center">Look up your order</CardTitle>
+        <CardTitle className="text-lg text-center">Find your order</CardTitle>
         <CardDescription className="text-center">
           Enter your order number, the email used at checkout, and your delivery postcode.
         </CardDescription>

@@ -17,7 +17,7 @@ import { PortalShell } from "@/components/portal-shell";
  * shouldn't be locked shut here.
  */
 export function GuestPortalShell({
-  title = "Look up your order",
+  title = "Find your order",
   children,
 }: {
   title?: string;

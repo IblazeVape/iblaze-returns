@@ -80,7 +80,7 @@ export function AppSidebar({ user, onNavigate, activeSection, ...props }: AppSid
   const navMain = isGuestPending
     ? []
     : isGuestOrderContext()
-      ? [{ title: "Look up another order", url: LOOKUP_ANOTHER_ORDER_URL, icon: Search }]
+      ? [{ title: "Return another order", url: LOOKUP_ANOTHER_ORDER_URL, icon: Search }]
       : [{ title: "My Orders", url: "#orders", icon: ShoppingBag }]
   const handleNavigate = (url: string) => {
     if (url === LOOKUP_ANOTHER_ORDER_URL) {

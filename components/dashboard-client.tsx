@@ -3354,7 +3354,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
           onClick={isGuestOrderContext() ? lookupAnotherOrder : onBack}
           className="-ml-2 text-muted-foreground hover:text-foreground w-fit"
         >
-          <ArrowLeft className="size-4" /> {isGuestOrderContext() ? "Look up another order" : "Back to Orders"}
+          <ArrowLeft className="size-4" /> {isGuestOrderContext() ? "Return another order" : "Back to Orders"}
         </Button>
 
         {order.eligibilitySource === "fallback" && !order.cancelledAt && (
