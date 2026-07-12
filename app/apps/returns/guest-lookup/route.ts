@@ -117,6 +117,15 @@ export async function POST(request: NextRequest) {
       path: "/",
       maxAge: cookie.maxAge,
     });
+    // Non-httpOnly marker, same as the logged-in session route, so the client
+    // can confirm Set-Cookie actually reached the browser before reloading.
+    response.cookies.set("apps_returns_marker", "1", {
+      httpOnly: false,
+      secure: true,
+      sameSite: "lax",
+      path: "/",
+      maxAge: cookie.maxAge,
+    });
     return response;
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });

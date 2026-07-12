@@ -59,5 +59,16 @@ export async function GET(request: NextRequest) {
     path: "/",
     maxAge: cookie.maxAge,
   });
+  // Non-httpOnly marker, same attributes otherwise, set alongside the real
+  // session cookie so client-side JS can verify Set-Cookie actually survived
+  // the trip through Shopify's App Proxy (httpOnly cookies are invisible to
+  // document.cookie, so this is the only way to confirm from the client).
+  response.cookies.set("apps_returns_marker", "1", {
+    httpOnly: false,
+    secure: true,
+    sameSite: "lax",
+    path: "/",
+    maxAge: cookie.maxAge,
+  });
   return response;
 }

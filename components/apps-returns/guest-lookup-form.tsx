@@ -39,7 +39,17 @@ export function GuestLookupForm() {
         setError(data.error || "Something went wrong. Please try again.");
         return;
       }
-      // Session cookie is set — reload into the real portal for this order.
+      // Confirm Set-Cookie actually reached the browser (via the non-httpOnly
+      // marker cookie) before reloading — same safeguard as the logged-in
+      // flow (MintSession), since this uses the same session mechanism.
+      const hasMarker = document.cookie.split("; ").some((c) => c === "apps_returns_marker=1");
+      if (!hasMarker) {
+        setStatus("error");
+        setError(
+          "Order verified, but the browser didn't keep the sign-in cookie. This usually means it was stripped in transit."
+        );
+        return;
+      }
       window.location.href = "/apps/returns";
     } catch {
       setStatus("error");
