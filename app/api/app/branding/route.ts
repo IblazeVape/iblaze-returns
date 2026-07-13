@@ -1,24 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { validateMerchantSession, MERCHANT_COOKIE_NAME } from "@/lib/merchant-session";
+import { verifyMerchantSessionToken } from "@/lib/merchant-session-token";
 import { validateBrandingInput, type BrandingInput } from "@/lib/branding-validation";
 import { getTenant, setTenant } from "@/lib/tenant";
 
 export const dynamic = "force-dynamic";
 
 export async function PUT(request: NextRequest) {
-  const cookieStore = await cookies();
-  const session = validateMerchantSession(cookieStore.get(MERCHANT_COOKIE_NAME)?.value);
-  if (!session.valid || !session.shop) {
+  const auth = request.headers.get("authorization") || "";
+  const sessionToken = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  const claims = sessionToken ? verifyMerchantSessionToken(sessionToken) : null;
+  if (!claims) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
+  const shop = claims.shop;
 
   const body = (await request.json().catch(() => null)) as Partial<BrandingInput> | null;
   if (!body) {
     return NextResponse.json({ error: "invalid request body" }, { status: 400 });
   }
 
-  const existing = await getTenant(session.shop);
+  const existing = await getTenant(shop);
   if (!existing) {
     return NextResponse.json({ error: "tenant not found" }, { status: 404 });
   }
@@ -39,7 +40,7 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ errors }, { status: 400 });
   }
 
-  await setTenant(session.shop, {
+  await setTenant(shop, {
     returnWindowDays: input.returnWindowDays,
     branding: {
       name: input.name,
@@ -52,7 +53,7 @@ export async function PUT(request: NextRequest) {
     },
   });
 
-  const saved = await getTenant(session.shop);
+  const saved = await getTenant(shop);
   return NextResponse.json({
     branding: saved!.branding,
     returnWindowDays: saved!.returnWindowDays,
