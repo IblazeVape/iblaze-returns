@@ -7,7 +7,10 @@ embedded = true
 scopes = "read_orders,read_all_orders,write_returns,read_customers,read_fulfillments,read_products,read_files"
 
 [auth]
-redirect_urls = ["https://iblaze-returns.vercel.app/api/shopify-callback"]
+# Not actually used by the runtime flow anymore — merchant auth is now
+# token-exchange (App Bridge session token, no redirect), but Shopify
+# still requires at least one redirect_url to be configured.
+redirect_urls = ["https://iblaze-returns.vercel.app/app"]
 
 [webhooks]
 api_version = "2025-07"
