@@ -3144,7 +3144,7 @@ function OrderRow({ order, onClick }: { order: Order; onClick: () => void }) {
 const RETURN_REVIEW_VARIANT: "A" | "B" = "B"
 
 // ─── Order Detail ─────────────────────────────────────────────────────────────
-function OrderDetail({ order, onBack, returnWindowDays }: { order: Order; onBack: () => void; returnWindowDays: number }) {
+function OrderDetail({ order, onBack, returnWindowDays, supportEmail }: { order: Order; onBack: () => void; returnWindowDays: number; supportEmail?: string }) {
   const [policyAccepted, setPolicyAccepted] = useState(false)
   const [selectedItems, setSelectedItems]   = useState<Record<string, { selected: boolean; quantity: number; reason: string; description: string }>>({})
   const [submitting, setSubmitting]   = useState(false)
@@ -3329,10 +3329,12 @@ function OrderDetail({ order, onBack, returnWindowDays }: { order: Order; onBack
             <p className="text-muted-foreground text-sm">
               We&apos;ve received your request. We&apos;ll review it after delivery is confirmed.
             </p>
-            <p className="text-muted-foreground text-xs">
-              If there&apos;s a delivery issue, please contact us at{" "}
-              <a href="mailto:info@iblazevape.co.uk" className="text-foreground underline underline-offset-2">info@iblazevape.co.uk</a>.
-            </p>
+            {supportEmail && (
+              <p className="text-muted-foreground text-xs">
+                If there&apos;s a delivery issue, please contact us at{" "}
+                <a href={`mailto:${supportEmail}`} className="text-foreground underline underline-offset-2">{supportEmail}</a>.
+              </p>
+            )}
           </>
         ) : (
           <p className="text-muted-foreground text-sm">We&apos;ve sent you a confirmation email. Our team will review your return and be in touch.</p>
@@ -4645,16 +4647,19 @@ function DashboardClientInner() {
         {activeSection === "#home" && !selectedOrder && (
           <>
             {/* Return window strip */}
-            <a
-              href="https://iblazevape.co.uk/policies/refund-policy"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex shrink-0 items-center gap-2 px-4 py-2 border-b border-border bg-background hover:bg-muted/50 transition-colors"
-            >
-              <p className="text-xs text-muted-foreground">
-                <span className="font-medium text-foreground">{data?.returnWindowDays ?? 30}-day returns</span> — items can be returned within {data?.returnWindowDays ?? 30} days of delivery.
-              </p>
-            </a>
+            {branding.policyUrl && (
+              <a
+                href={branding.policyUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex shrink-0 items-center gap-2 px-4 py-2 border-b border-border bg-background hover:bg-muted/50 transition-colors"
+              >
+                <p className="text-xs text-muted-foreground">
+                  <span className="font-medium text-foreground">{data?.returnWindowDays ?? 30}-day returns</span>
+                  {branding.policyText ? ` — ${branding.policyText}` : " — items can be returned within the return window."}
+                </p>
+              </a>
+            )}
             {/* Quick actions — sticky below strip */}
             <div className="shrink-0 flex overflow-x-auto border-b border-border bg-white dark:bg-background scrollbar-none">
               {([
@@ -4714,7 +4719,7 @@ function DashboardClientInner() {
             exit={{ opacity: 0, x: 18 }}
             transition={{ duration: 0.22, ease: [0.25, 0.1, 0.25, 1] }}
           >
-            <OrderDetail order={selectedOrder} onBack={() => setSelectedOrder(null)} returnWindowDays={data?.returnWindowDays ?? 30} />
+            <OrderDetail order={selectedOrder} onBack={() => setSelectedOrder(null)} returnWindowDays={data?.returnWindowDays ?? 30} supportEmail={branding.supportEmail || undefined} />
           </motion.div>
         ) : activeSection === "#home" ? (
           <motion.div
