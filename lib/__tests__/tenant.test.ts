@@ -38,4 +38,37 @@ describe("tenant store", () => {
     expect(await getTenantToken("a.myshopify.com")).toBe("tok_a");
     expect(await getTenantToken("b.myshopify.com")).toBe("tok_b");
   });
+
+  it("defaults the new branding fields to empty strings", async () => {
+    await setTenant("c.myshopify.com", { accessToken: "tok_c" });
+    const t = await getTenant("c.myshopify.com");
+    expect(t?.branding.storefrontUrl).toBe("");
+    expect(t?.branding.supportEmail).toBe("");
+    expect(t?.branding.policyUrl).toBe("");
+    expect(t?.branding.policyText).toBe("");
+    expect(t?.branding.name).toBe("");
+    expect(t?.branding.logoUrl).toBe("");
+    expect(t?.branding.accentColor).toBe("#000000");
+  });
+
+  it("round-trips a full branding update", async () => {
+    await setTenant("d.myshopify.com", {
+      accessToken: "tok_d",
+      returnWindowDays: 14,
+      branding: {
+        name: "Acme Vapes",
+        logoUrl: "https://cdn.shopify.com/acme-logo.png",
+        accentColor: "#4F46E5",
+        storefrontUrl: "https://acme-vapes.com",
+        supportEmail: "help@acme-vapes.com",
+        policyUrl: "https://acme-vapes.com/policies/refund-policy",
+        policyText: "Unopened items only, within the return window.",
+      },
+    });
+    const t = await getTenant("d.myshopify.com");
+    expect(t?.returnWindowDays).toBe(14);
+    expect(t?.branding.name).toBe("Acme Vapes");
+    expect(t?.branding.supportEmail).toBe("help@acme-vapes.com");
+    expect(t?.branding.policyText).toBe("Unopened items only, within the return window.");
+  });
 });

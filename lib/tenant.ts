@@ -1,6 +1,16 @@
 // lib/tenant.ts
 import { redis } from "@/lib/redis";
 
+export type TenantBranding = {
+  name: string;
+  logoUrl: string;
+  accentColor: string;
+  storefrontUrl: string;
+  supportEmail: string;
+  policyUrl: string;
+  policyText: string;
+};
+
 export type Tenant = {
   shop: string;
   accessToken: string;
@@ -8,13 +18,21 @@ export type Tenant = {
   scopes: string;
   plan: string;
   returnWindowDays: number;
-  branding: { name: string; logoUrl: string; accentColor: string };
+  branding: TenantBranding;
 };
 
 export const DEFAULT_TENANT_FIELDS = {
   plan: "free",
   returnWindowDays: 30,
-  branding: { name: "", logoUrl: "", accentColor: "#000000" },
+  branding: {
+    name: "",
+    logoUrl: "",
+    accentColor: "#000000",
+    storefrontUrl: "",
+    supportEmail: "",
+    policyUrl: "",
+    policyText: "",
+  } satisfies TenantBranding,
 };
 
 const key = (shop: string) => `tenant:${shop}`;
@@ -46,6 +64,11 @@ export async function setTenant(
     ...DEFAULT_TENANT_FIELDS,
     ...(existing ?? {}),
     ...patch,
+    branding: {
+      ...DEFAULT_TENANT_FIELDS.branding,
+      ...(existing?.branding ?? {}),
+      ...(patch.branding ?? {}),
+    },
     shop,
   };
   await redis.hset(key(shop), {
