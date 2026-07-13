@@ -686,7 +686,7 @@ function buildNarrativeParagraph(
     if (notShipped === n) {
       // Distinguish "being prepared" (Confirmed + preparing reason) from "not yet dispatched"
       if (preparing === n)
-        return `${intro} We're preparing your order for shipping. Your return window starts on delivery and closes 30 days later.`
+        return `${intro} We're preparing your order for shipping. Your return window starts on delivery and closes ${returnWindowDays} days later.`
       return `${intro} Your order hasn't shipped yet — your return window opens once the items are delivered.`
     }
     if (inTransit === n)
@@ -704,7 +704,7 @@ function buildNarrativeParagraph(
     if (refunded  === n) return `${intro} All ${n === 1 ? "" : `${n} `}item${n !== 1 ? "s have" : " has"} already been refunded.`
     if (expired   === n) {
       const datePart = showWindowDate && expiredDateStr ? ` — it closed on ${expiredDateStr}` : ""
-      return `${intro} All items are past the 30-day return window${datePart}.`
+      return `${intro} All items are past the ${returnWindowDays}-day return window${datePart}.`
     }
     if (finalSale === n) return `${intro} All items were final sale and cannot be returned.`
   }
@@ -812,7 +812,7 @@ function buildNarrativeParagraph(
     fragments.push(notShipped === 1 ? "1 item hasn't been shipped yet" : `${notShipped} items haven't been shipped yet`)
   if (expired > 0) {
     const datePart = showWindowDate && expiredDateStr ? ` (closed ${expiredDateStr})` : ""
-    fragments.push(expired === 1 ? `1 item is past the 30-day return window${datePart}` : `${expired} items are past the 30-day return window${datePart}`)
+    fragments.push(expired === 1 ? `1 item is past the ${returnWindowDays}-day return window${datePart}` : `${expired} items are past the ${returnWindowDays}-day return window${datePart}`)
   }
   if (completed > 0)
     fragments.push(completed === 1 ? "1 item has already been returned" : `${completed} items have already been returned`)
@@ -2660,11 +2660,11 @@ function getReturnStatusIcon(status: ReturnStatus): { icon: React.ElementType; c
 function getIneligibleGroupMessage(item: LineItem, order: Order, returnWindowDays: number, groupItems?: LineItem[]): string {
   switch (item.returnStatus) {
     case "Confirmed":
-      return "We're preparing these items for shipping. Your return window starts on delivery and closes 30 days later."
+      return `We're preparing these items for shipping. Your return window starts on delivery and closes ${returnWindowDays} days later.`
     case "On its way":
-      return "These items are on their way. Your return window starts on delivery and closes 30 days later."
+      return `These items are on their way. Your return window starts on delivery and closes ${returnWindowDays} days later.`
     case "Out for delivery":
-      return "These items are out for delivery today. Your return window starts on delivery and closes 30 days later."
+      return `These items are out for delivery today. Your return window starts on delivery and closes ${returnWindowDays} days later.`
     case "Attempted delivery":
       return "A delivery attempt was made for these items. Please rebook or collect — your return window starts once delivered."
     case "Passed the return window": {
@@ -4644,7 +4644,7 @@ function DashboardClientInner() {
         {selectedOrder && <StickyOrderSummaryStrip key={selectedOrder.id} order={selectedOrder} returnWindowDays={data?.returnWindowDays ?? 30} />}
         {activeSection === "#home" && !selectedOrder && (
           <>
-            {/* 30-day returns strip */}
+            {/* Return window strip */}
             <a
               href="https://iblazevape.co.uk/policies/refund-policy"
               target="_blank"
@@ -4652,7 +4652,7 @@ function DashboardClientInner() {
               className="flex shrink-0 items-center gap-2 px-4 py-2 border-b border-border bg-background hover:bg-muted/50 transition-colors"
             >
               <p className="text-xs text-muted-foreground">
-                <span className="font-medium text-foreground">30-day returns</span> — items can be returned within 30 days of delivery.
+                <span className="font-medium text-foreground">{data?.returnWindowDays ?? 30}-day returns</span> — items can be returned within {data?.returnWindowDays ?? 30} days of delivery.
               </p>
             </a>
             {/* Quick actions — sticky below strip */}
