@@ -49,6 +49,7 @@ describe("tenant store", () => {
     expect(t?.branding.name).toBe("");
     expect(t?.branding.logoUrl).toBe("");
     expect(t?.branding.accentColor).toBe("#000000");
+    expect(t?.branding.requirePolicyAcceptance).toBe(true);
   });
 
   it("round-trips a full branding update", async () => {
@@ -63,6 +64,7 @@ describe("tenant store", () => {
         supportEmail: "help@acme-vapes.com",
         policyUrl: "https://acme-vapes.com/policies/refund-policy",
         policyText: "Unopened items only, within the return window.",
+        requirePolicyAcceptance: false,
       },
     });
     const t = await getTenant("d.myshopify.com");
@@ -70,6 +72,7 @@ describe("tenant store", () => {
     expect(t?.branding.name).toBe("Acme Vapes");
     expect(t?.branding.supportEmail).toBe("help@acme-vapes.com");
     expect(t?.branding.policyText).toBe("Unopened items only, within the return window.");
+    expect(t?.branding.requirePolicyAcceptance).toBe(false);
   });
 
   it("merges old branding JSON with new field defaults", async () => {

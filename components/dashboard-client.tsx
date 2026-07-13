@@ -3144,8 +3144,8 @@ function OrderRow({ order, onClick }: { order: Order; onClick: () => void }) {
 const RETURN_REVIEW_VARIANT: "A" | "B" = "B"
 
 // ─── Order Detail ─────────────────────────────────────────────────────────────
-function OrderDetail({ order, onBack, returnWindowDays, supportEmail }: { order: Order; onBack: () => void; returnWindowDays: number; supportEmail?: string }) {
-  const [policyAccepted, setPolicyAccepted] = useState(false)
+function OrderDetail({ order, onBack, returnWindowDays, supportEmail, requirePolicyAcceptance = true }: { order: Order; onBack: () => void; returnWindowDays: number; supportEmail?: string; requirePolicyAcceptance?: boolean }) {
+  const [policyAccepted, setPolicyAccepted] = useState(!requirePolicyAcceptance)
   const [selectedItems, setSelectedItems]   = useState<Record<string, { selected: boolean; quantity: number; reason: string; description: string }>>({})
   const [submitting, setSubmitting]   = useState(false)
   const [submitted, setSubmitted]     = useState(false)
@@ -3548,7 +3548,7 @@ function OrderDetail({ order, onBack, returnWindowDays, supportEmail }: { order:
 
           {!order.cancelledAt && (
             <>
-            {hasEligible && !policyAccepted && (
+            {hasEligible && requirePolicyAcceptance && !policyAccepted && (
               <div className="flex items-center justify-between gap-3 border-b bg-muted/20 px-3 py-2.5">
                 <div className="flex min-w-0 items-center gap-2 overflow-hidden">
                   <Lock className="size-3.5 shrink-0 text-foreground" aria-hidden />
@@ -4473,7 +4473,8 @@ function DashboardClientInner() {
     supportEmail: string
     policyUrl: string
     policyText: string
-  }>({ name: "", logoUrl: "", accentColor: "#000000", storefrontUrl: "", supportEmail: "", policyUrl: "", policyText: "" })
+    requirePolicyAcceptance: boolean
+  }>({ name: "", logoUrl: "", accentColor: "#000000", storefrontUrl: "", supportEmail: "", policyUrl: "", policyText: "", requirePolicyAcceptance: true })
   const sentinelRef = React.useRef<HTMLDivElement | null>(null)
   const ordersScrollRef = React.useRef<HTMLDivElement | null>(null)
   const loadingMoreRef = React.useRef(false)
@@ -4719,7 +4720,7 @@ function DashboardClientInner() {
             exit={{ opacity: 0, x: 18 }}
             transition={{ duration: 0.22, ease: [0.25, 0.1, 0.25, 1] }}
           >
-            <OrderDetail order={selectedOrder} onBack={() => setSelectedOrder(null)} returnWindowDays={data?.returnWindowDays ?? 30} supportEmail={branding.supportEmail || undefined} />
+            <OrderDetail order={selectedOrder} onBack={() => setSelectedOrder(null)} returnWindowDays={data?.returnWindowDays ?? 30} supportEmail={branding.supportEmail || undefined} requirePolicyAcceptance={branding.requirePolicyAcceptance} />
           </motion.div>
         ) : activeSection === "#home" ? (
           <motion.div

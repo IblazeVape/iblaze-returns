@@ -9,6 +9,7 @@ export type TenantBranding = {
   supportEmail: string;
   policyUrl: string;
   policyText: string;
+  requirePolicyAcceptance: boolean;
 };
 
 export type Tenant = {
@@ -32,6 +33,7 @@ export const DEFAULT_TENANT_FIELDS = {
     supportEmail: "",
     policyUrl: "",
     policyText: "",
+    requirePolicyAcceptance: true,
   } satisfies TenantBranding,
 };
 

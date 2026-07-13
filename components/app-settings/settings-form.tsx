@@ -2,18 +2,26 @@
 
 import { useState } from "react"
 import { validateBrandingInput, type BrandingInput } from "@/lib/branding-validation"
-import { BrandingPreview } from "@/components/app-settings/branding-preview"
 import type { TenantBranding } from "@/lib/tenant"
 
 declare const shopify: {
   idToken: () => Promise<string>;
   picker: (options: {
     heading: string;
-    items: { id: string; heading: string; thumbnailUrl?: string }[];
+    items: { id: string; heading: string; thumbnail?: { url: string } }[];
   }) => Promise<{ selected: { id: string }[] } | null>;
 };
 
 type MediaLibraryFile = { id: string; url: string; alt: string | null; width: number; height: number };
+
+function filenameFromUrl(url: string): string {
+  try {
+    const path = new URL(url).pathname;
+    return decodeURIComponent(path.slice(path.lastIndexOf("/") + 1)) || "Untitled image";
+  } catch {
+    return "Untitled image";
+  }
+}
 
 export function SettingsForm({
   initialBranding,
@@ -75,7 +83,7 @@ export function SettingsForm({
       }
       const result = await shopify.picker({
         heading: "Choose a logo",
-        items: files.map((f) => ({ id: f.id, heading: f.alt || "Untitled image", thumbnailUrl: f.url })),
+        items: files.map((f) => ({ id: f.id, heading: f.alt || filenameFromUrl(f.url), thumbnail: { url: f.url } })),
       })
       const selectedId = result?.selected?.[0]?.id
       const chosen = files.find((f) => f.id === selectedId)
@@ -210,6 +218,13 @@ export function SettingsForm({
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("supportEmail", e.target.value)}
           ></s-email-field>
           {errors.supportEmail && <s-paragraph tone="critical">{errors.supportEmail}</s-paragraph>}
+
+          <s-checkbox
+            label="Require customers to accept the returns policy before selecting items"
+            name="requirePolicyAcceptance"
+            checked={form.requirePolicyAcceptance}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("requirePolicyAcceptance", e.target.checked)}
+          ></s-checkbox>
         </s-stack>
       </s-section>
 
@@ -224,8 +239,6 @@ export function SettingsForm({
           </s-stack>
         </form>
       </s-section>
-
-      <BrandingPreview logoUrl={form.logoUrl} name={form.name} accentColor={form.accentColor} />
     </s-page>
   )
 }

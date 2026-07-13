@@ -57,7 +57,15 @@ export function MerchantAppGate() {
   }, []);
 
   if (state.status === "loading") {
-    return <s-page heading="Returns Settings"><s-spinner accessibilityLabel="Loading" /></s-page>;
+    return (
+      <s-page heading="Returns Settings">
+        <s-box padding="large">
+          <s-stack direction="block" alignItems="center">
+            <s-spinner accessibilityLabel="Loading" />
+          </s-stack>
+        </s-box>
+      </s-page>
+    );
   }
   if (state.status === "error") {
     return (

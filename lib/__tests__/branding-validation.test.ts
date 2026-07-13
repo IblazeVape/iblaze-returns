@@ -10,6 +10,7 @@ const VALID: BrandingInput = {
   policyUrl: "https://acme-vapes.com/policies/refund-policy",
   policyText: "Unopened items only.",
   returnWindowDays: 30,
+  requirePolicyAcceptance: true,
 };
 
 describe("validateBrandingInput", () => {

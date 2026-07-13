@@ -33,6 +33,8 @@ export async function PUT(request: NextRequest) {
     policyUrl: typeof body.policyUrl === "string" ? body.policyUrl : existing.branding.policyUrl,
     policyText: typeof body.policyText === "string" ? body.policyText : existing.branding.policyText,
     returnWindowDays: typeof body.returnWindowDays === "number" ? body.returnWindowDays : existing.returnWindowDays,
+    requirePolicyAcceptance:
+      typeof body.requirePolicyAcceptance === "boolean" ? body.requirePolicyAcceptance : existing.branding.requirePolicyAcceptance,
   };
 
   const { valid, errors } = validateBrandingInput(input);
@@ -50,6 +52,7 @@ export async function PUT(request: NextRequest) {
       supportEmail: input.supportEmail,
       policyUrl: input.policyUrl,
       policyText: input.policyText,
+      requirePolicyAcceptance: input.requirePolicyAcceptance,
     },
   });
 

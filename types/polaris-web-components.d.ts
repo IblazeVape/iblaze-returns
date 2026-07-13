@@ -31,6 +31,7 @@ declare global {
         "s-text": PolarisElementProps;
         "s-thumbnail": PolarisElementProps;
         "s-divider": PolarisElementProps;
+        "s-checkbox": PolarisElementProps;
       }
     }
   }
