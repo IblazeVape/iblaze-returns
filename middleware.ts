@@ -13,7 +13,12 @@ export async function middleware(request: NextRequest) {
   if (pathname === "/app" || pathname.startsWith("/app/")) {
     const shopParam = request.nextUrl.searchParams.get("shop");
     const shopDomain = shopParam && /^[a-z0-9-]+\.myshopify\.com$/i.test(shopParam) ? shopParam : null;
-    const response = NextResponse.next();
+    // Root layout reads this (via next/headers) to decide whether to render
+    // the App Bridge <script> tag server-side — must be set on the request,
+    // not the response, since Server Components only see request headers.
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set("x-embedded-app", "1");
+    const response = NextResponse.next({ request: { headers: requestHeaders } });
     response.headers.set(
       "Content-Security-Policy",
       shopDomain
