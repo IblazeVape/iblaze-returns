@@ -37,6 +37,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <head>
           <meta name="shopify-api-key" content={SHOPIFY_CLIENT_ID} />
           <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js" />
+          {/* Polaris web components (s-page, s-button, s-text-field, etc.) are a
+              separate library from App Bridge — this script is what actually
+              registers the s-* custom elements so they render styled instead
+              of falling back to unstyled inline text. */}
+          <script src="https://cdn.shopify.com/shopifycloud/polaris.js"></script>
         </head>
       )}
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
