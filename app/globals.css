@@ -236,7 +236,8 @@
    both selectors target #marketing-root directly rather than the body.) */
   html:has(#marketing-root),
   html:has(#marketing-two-root),
-  html:has(#marketing-three-root) {
+  html:has(#marketing-three-root),
+  html:has(#merchant-app-root) {
     height: auto;
     overflow: auto;
   }
@@ -245,7 +246,8 @@
    (navbars, the benefits panel) since html is the actual scroller. */
   body:has(#marketing-root),
   body:has(#marketing-two-root),
-  body:has(#marketing-three-root) {
+  body:has(#marketing-three-root),
+  body:has(#merchant-app-root) {
     height: auto;
     overflow: visible;
   }

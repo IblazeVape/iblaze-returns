@@ -10,5 +10,9 @@ export const dynamic = "force-dynamic";
  * page is a thin server shell around that client flow.
  */
 export default function MerchantAppEntry() {
-  return <MerchantAppGate />;
+  return (
+    <div id="merchant-app-root">
+      <MerchantAppGate />
+    </div>
+  );
 }
