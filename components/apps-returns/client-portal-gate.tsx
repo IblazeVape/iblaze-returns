@@ -13,11 +13,18 @@ import {
 } from "@/lib/apps-returns-client-session";
 import { setAppsReturnsPortal, setAppsReturnsIdentityKind, setGuestOrderContext } from "@/lib/apps-returns-portal-mode";
 
+export type InitialBranding = {
+  name: string
+  logoUrl: string
+  accentColor: string
+  storefrontUrl: string
+}
+
 export type GateInitial =
   | { kind: "unsigned" }
   | { kind: "not-set-up"; shop: string }
   | { kind: "logged-in" }
-  | { kind: "guest-or-login" };
+  | { kind: "guest-or-login"; branding: InitialBranding };
 
 /**
  * Client-side identity resolution + portal rendering for the App Proxy
@@ -129,7 +136,7 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
     case "guest-or-login": {
       const loginUrl = `/account/login?return_url=${encodeURIComponent("/apps/returns")}`;
       return (
-        <GuestPortalShell>
+        <GuestPortalShell branding={initial.branding}>
           <GuestLookupForm
             onVerified={(token, order) => {
               storeAppsReturnsSession(token);

@@ -1,6 +1,6 @@
 import { verifyAppProxySignature, parseProxyRequest } from "@/lib/app-proxy";
 import { getTenant } from "@/lib/tenant";
-import { ClientPortalGate, type GateInitial } from "@/components/apps-returns/client-portal-gate";
+import { ClientPortalGate, type GateInitial, type InitialBranding } from "@/components/apps-returns/client-portal-gate";
 
 export const dynamic = "force-dynamic";
 
@@ -50,7 +50,13 @@ export default async function AppProxyReturnsPage({
     } else if (loggedInCustomerId) {
       initial = { kind: "logged-in" };
     } else {
-      initial = { kind: "guest-or-login" };
+      const branding: InitialBranding = {
+        name: tenant.branding.name,
+        logoUrl: tenant.branding.logoUrl,
+        accentColor: tenant.branding.accentColor,
+        storefrontUrl: tenant.branding.storefrontUrl,
+      };
+      initial = { kind: "guest-or-login", branding };
     }
   }
 

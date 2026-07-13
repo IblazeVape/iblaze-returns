@@ -2,6 +2,7 @@
 
 import { SidebarLayoutProvider } from "@/components/sidebar-layout-provider";
 import { PortalShell } from "@/components/portal-shell";
+import type { InitialBranding } from "@/components/apps-returns/client-portal-gate";
 
 /**
  * Wraps the guest lookup form (and the unsigned/not-set-up Notice screens)
@@ -18,14 +19,21 @@ import { PortalShell } from "@/components/portal-shell";
  */
 export function GuestPortalShell({
   title = "Find your order",
+  branding,
   children,
 }: {
   title?: string;
+  branding: InitialBranding;
   children: React.ReactNode;
 }) {
   return (
     <SidebarLayoutProvider>
-      <PortalShell hideIdentity accentColor="#E5403B" headerProps={{ title, showSearch: false }}>
+      <PortalShell
+        hideIdentity
+        accentColor={branding.accentColor}
+        branding={{ name: branding.name, logoUrl: branding.logoUrl, storefrontUrl: branding.storefrontUrl }}
+        headerProps={{ title, showSearch: false, storefrontUrl: branding.storefrontUrl || undefined }}
+      >
         <div className="flex flex-1 flex-col items-center justify-center gap-4 px-4 py-10">
           {children}
         </div>
