@@ -18,25 +18,25 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: "invalid request body" }, { status: 400 });
   }
 
+  const existing = await getTenant(session.shop);
+  if (!existing) {
+    return NextResponse.json({ error: "tenant not found" }, { status: 404 });
+  }
+
   const input: BrandingInput = {
-    name: typeof body.name === "string" ? body.name : "",
-    logoUrl: typeof body.logoUrl === "string" ? body.logoUrl : "",
-    accentColor: typeof body.accentColor === "string" ? body.accentColor : "#000000",
-    storefrontUrl: typeof body.storefrontUrl === "string" ? body.storefrontUrl : "",
-    supportEmail: typeof body.supportEmail === "string" ? body.supportEmail : "",
-    policyUrl: typeof body.policyUrl === "string" ? body.policyUrl : "",
-    policyText: typeof body.policyText === "string" ? body.policyText : "",
-    returnWindowDays: typeof body.returnWindowDays === "number" ? body.returnWindowDays : 30,
+    name: typeof body.name === "string" ? body.name : existing.branding.name,
+    logoUrl: typeof body.logoUrl === "string" ? body.logoUrl : existing.branding.logoUrl,
+    accentColor: typeof body.accentColor === "string" ? body.accentColor : existing.branding.accentColor,
+    storefrontUrl: typeof body.storefrontUrl === "string" ? body.storefrontUrl : existing.branding.storefrontUrl,
+    supportEmail: typeof body.supportEmail === "string" ? body.supportEmail : existing.branding.supportEmail,
+    policyUrl: typeof body.policyUrl === "string" ? body.policyUrl : existing.branding.policyUrl,
+    policyText: typeof body.policyText === "string" ? body.policyText : existing.branding.policyText,
+    returnWindowDays: typeof body.returnWindowDays === "number" ? body.returnWindowDays : existing.returnWindowDays,
   };
 
   const { valid, errors } = validateBrandingInput(input);
   if (!valid) {
     return NextResponse.json({ errors }, { status: 400 });
-  }
-
-  const existing = await getTenant(session.shop);
-  if (!existing) {
-    return NextResponse.json({ error: "tenant not found" }, { status: 404 });
   }
 
   await setTenant(session.shop, {
