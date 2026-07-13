@@ -15,8 +15,8 @@ export function AuthenticatingCard({ label = "Verifying your session securely...
     >
       <Card className="w-full max-w-xs mx-4 shadow-xl">
         <div className="flex flex-col items-center justify-center gap-3 py-8 px-6">
-          <div className="size-10 rounded-full bg-[#E5403B]/10 flex items-center justify-center">
-            <Spinner className="size-5 text-[#E5403B]" />
+          <div className="size-10 rounded-full bg-[var(--brand)]/10 flex items-center justify-center">
+            <Spinner className="size-5 text-[var(--brand)]" />
           </div>
           <div className="text-center">
             <p className="font-semibold text-sm">Authenticating</p>

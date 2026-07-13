@@ -25,7 +25,7 @@ export function GuestPortalShell({
 }) {
   return (
     <SidebarLayoutProvider>
-      <PortalShell hideIdentity headerProps={{ title, showSearch: false }}>
+      <PortalShell hideIdentity accentColor="#E5403B" headerProps={{ title, showSearch: false }}>
         <div className="flex flex-1 flex-col items-center justify-center gap-4 px-4 py-10">
           {children}
         </div>

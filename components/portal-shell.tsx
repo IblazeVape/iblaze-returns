@@ -18,6 +18,7 @@ export function PortalShell({
   onNavigate,
   activeSection,
   hideIdentity = false,
+  accentColor,
   headerProps,
   children,
 }: {
@@ -30,6 +31,11 @@ export function PortalShell({
    * own menu items there via a future settings page, so it shouldn't be
    * locked shut). */
   hideIdentity?: boolean
+  /** Sets the --brand CSS variable every accent-colored element in the
+   * portal reads from — the ONE place a tenant's color enters the render
+   * tree. See Task 7 of the settings-page plan for the full list of call
+   * sites this variable replaced. */
+  accentColor: string
   headerProps: React.ComponentProps<typeof SiteHeader>
   children?: React.ReactNode
 }) {
@@ -43,6 +49,7 @@ export function PortalShell({
           "--sidebar-width": "18rem",
           "--sidebar-width-icon": "3.75rem",
           "--header-height": "3rem",
+          "--brand": accentColor,
         } as React.CSSProperties
       }
     >

@@ -119,7 +119,7 @@ export function GuestLookupForm({
           <Button
             type="submit"
             disabled={status === "loading"}
-            className="w-full bg-[#E5403B] hover:bg-[#E5403B]/90 text-white"
+            className="w-full bg-[var(--brand)] hover:bg-[var(--brand)]/90 text-white"
           >
             {status === "loading" ? (
               <>

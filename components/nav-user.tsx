@@ -55,7 +55,7 @@ export function NavUser({
           className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-0! group-data-[collapsible=icon]:mx-auto"
         >
           <Avatar className="h-8 w-8 rounded-lg shrink-0 group-data-[collapsible=icon]:h-7 group-data-[collapsible=icon]:w-7">
-            <AvatarFallback className="rounded-lg bg-[#E5403B] text-white text-sm font-semibold">
+            <AvatarFallback className="rounded-lg bg-[var(--brand)] text-white text-sm font-semibold">
               {avatarIcon ? <UserIcon className="size-4" /> : initial}
             </AvatarFallback>
           </Avatar>

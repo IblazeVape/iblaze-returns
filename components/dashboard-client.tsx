@@ -328,7 +328,7 @@ function computeHeaderStatBlocks(
   }> = [
     { id: "processing", count: buckets.in_progress || 0, caption: "processing", textColor: "text-orange-600", statusFilter: ["Return in progress"], title: "Return being processed" },
     { id: "requested", count: buckets.requested || 0, caption: "requested", textColor: "text-violet-600", statusFilter: ["Return requested"], title: "Return awaiting review" },
-    { id: "declined", count: buckets.declined || 0, caption: "declined", textColor: "text-[#E5403B]", statusFilter: ["Return declined"], title: "Return declined" },
+    { id: "declined", count: buckets.declined || 0, caption: "declined", textColor: "text-[var(--brand)]", statusFilter: ["Return declined"], title: "Return declined" },
     { id: "in_transit", count: buckets.in_transit || 0, caption: "awaiting", textColor: "text-blue-600", statusFilter: ["On its way"], title: "Awaiting delivery — returnable once delivered" },
     { id: "attempted", count: buckets.attempted_delivery || 0, caption: "attempted", textColor: "text-rose-600", statusFilter: ["Attempted delivery"], title: "Delivery attempted — action may be needed" },
     { id: "out_for_delivery", count: buckets.out_for_delivery || 0, caption: "out for delivery", textColor: "text-blue-600", statusFilter: ["Out for delivery"], title: "Out for delivery today" },
@@ -1017,7 +1017,7 @@ function CountBadge({
   }
   return (
     <span
-      className={cn(base, "text-[#E5403B]")}
+      className={cn(base, "text-[var(--brand)]")}
       style={{ backgroundColor: "#FFF5F5", border: "1px solid #FECACA" }}
     >
       {value}
@@ -1843,13 +1843,13 @@ function HeaderDesign01({
                   transition={{ type: "spring", stiffness: 400, damping: 30 }}
                 />
               )}
-              <span className="tabular-nums font-semibold text-[#E5403B]">{totalIneligibleUnits}</span>
+              <span className="tabular-nums font-semibold text-[var(--brand)]">{totalIneligibleUnits}</span>
               <span className="text-muted-foreground"> blocked</span>
             </button>
           </div>
         ) : fullyIneligible ? (
           <span className="text-xs font-medium px-1 py-1.5">
-            <span className="tabular-nums font-semibold text-[#E5403B]">{totalIneligibleUnits}</span>
+            <span className="tabular-nums font-semibold text-[var(--brand)]">{totalIneligibleUnits}</span>
             <span className="text-muted-foreground"> not eligible</span>
           </span>
         ) : hasEligible ? (
@@ -1903,9 +1903,9 @@ function HeaderDesign02({
               onClick={() => onTabChange("ineligible")}
               className={cn(rowBase, activeTab === "ineligible" ? rowActive : rowIdle, activeTab !== "ineligible" && "opacity-60")}
             >
-              <XCircle className="size-3.5 shrink-0 text-[#E5403B]" aria-hidden />
+              <XCircle className="size-3.5 shrink-0 text-[var(--brand)]" aria-hidden />
               <span className="text-xs leading-tight">
-                <span className="font-semibold tabular-nums text-[#E5403B]">{totalIneligibleUnits}</span>
+                <span className="font-semibold tabular-nums text-[var(--brand)]">{totalIneligibleUnits}</span>
                 <span className="text-muted-foreground"> blocked</span>
               </span>
             </button>
@@ -1913,9 +1913,9 @@ function HeaderDesign02({
         )}
         {fullyIneligible && (
           <div className={cn(rowBase, rowActive)}>
-            <XCircle className="size-3.5 shrink-0 text-[#E5403B]" aria-hidden />
+            <XCircle className="size-3.5 shrink-0 text-[var(--brand)]" aria-hidden />
             <span className="text-xs leading-tight">
-              <span className="font-semibold tabular-nums text-[#E5403B]">{totalIneligibleUnits}</span>
+              <span className="font-semibold tabular-nums text-[var(--brand)]">{totalIneligibleUnits}</span>
               <span className="text-muted-foreground"> not eligible</span>
             </span>
           </div>
@@ -1963,7 +1963,7 @@ function HeaderMetaStats({
           {totalEligibleUnits} ready
         </button>
         {" · "}
-        <button type="button" onClick={() => onTabChange("ineligible")} className={cn(link(activeTab === "ineligible"), "text-[#E5403B]")}>
+        <button type="button" onClick={() => onTabChange("ineligible")} className={cn(link(activeTab === "ineligible"), "text-[var(--brand)]")}>
           {totalIneligibleUnits} blocked
         </button>
       </>
@@ -1973,7 +1973,7 @@ function HeaderMetaStats({
     return (
       <>
         {" · "}
-        <span className="text-[#E5403B] font-medium tabular-nums">{totalIneligibleUnits} not eligible</span>
+        <span className="text-[var(--brand)] font-medium tabular-nums">{totalIneligibleUnits} not eligible</span>
       </>
     )
   }
@@ -2020,14 +2020,14 @@ function HeaderDesign04TabBar({
       <div className="flex border-b bg-muted/40">
         {tab("eligible", "Eligible", totalEligibleUnits, "bg-green-600")}
         <div className="w-px bg-border self-stretch" aria-hidden />
-        {tab("ineligible", "Ineligible", totalIneligibleUnits, "bg-[#E5403B]")}
+        {tab("ineligible", "Ineligible", totalIneligibleUnits, "bg-[var(--brand)]")}
       </div>
     )
   }
   if (fullyIneligible || hasEligible) {
     const count = fullyIneligible ? totalIneligibleUnits : totalEligibleUnits
     const label = fullyIneligible ? "Ineligible" : "Eligible"
-    const color = fullyIneligible ? "text-[#E5403B]" : "text-green-700"
+    const color = fullyIneligible ? "text-[var(--brand)]" : "text-green-700"
     return (
       <div className="border-b bg-card px-5 py-2.5 text-sm font-semibold">
         {label}{" "}
@@ -2109,7 +2109,7 @@ function HeaderDesign05({
               icon={XCircle}
               count={totalIneligibleUnits}
               tooltip={`${totalIneligibleUnits} not eligible`}
-              textColor="text-[#E5403B]"
+              textColor="text-[var(--brand)]"
               active={activeTab === "ineligible"}
               onClick={() => onTabChange("ineligible")}
             />
@@ -2120,7 +2120,7 @@ function HeaderDesign05({
             icon={XCircle}
             count={totalIneligibleUnits}
             tooltip={`${totalIneligibleUnits} not eligible`}
-            textColor="text-[#E5403B]"
+            textColor="text-[var(--brand)]"
             active
           />
         )}
@@ -2913,7 +2913,7 @@ function HygienePolicy({ onAccept, onDecline, compact = false, link = false }: {
     )
     : compact
       ? <Button size="sm" variant="outline" className="h-7 px-2 text-xs shrink-0">Review &amp; Accept</Button>
-      : <Button size="sm" className="bg-[#E5403B] hover:bg-[#cc3935] text-white shrink-0">Review &amp; Accept</Button>
+      : <Button size="sm" className="bg-[var(--brand)] hover:bg-[var(--brand)]/90 text-white shrink-0">Review &amp; Accept</Button>
 
   if (isDesktop) {
     return (
@@ -2921,13 +2921,13 @@ function HygienePolicy({ onAccept, onDecline, compact = false, link = false }: {
         <DialogTrigger asChild>{trigger}</DialogTrigger>
         <DialogContent className="sm:max-w-[425px] gap-0 p-0 overflow-hidden">
           <DialogHeader className="px-6 pt-6 pb-4 border-b border-border">
-            <DialogTitle className="flex items-center gap-2"><ShieldCheck className="size-4 text-[#E5403B]" /> iBlaze Returns Policy</DialogTitle>
+            <DialogTitle className="flex items-center gap-2"><ShieldCheck className="size-4 text-[var(--brand)]" /> iBlaze Returns Policy</DialogTitle>
             <DialogDescription>Review our returns policy before selecting items to return.</DialogDescription>
           </DialogHeader>
           <HygienePolicyList itemPx="px-6" />
           <div className="flex gap-2 px-6 pb-6 pt-4">
             <DialogClose asChild>
-              <Button className="flex-1 bg-[#E5403B] hover:bg-[#cc3935] text-white" onClick={() => { onAccept(); toast.success("Policy accepted") }}><CheckCircle2 className="size-4" /> I Accept</Button>
+              <Button className="flex-1 bg-[var(--brand)] hover:bg-[var(--brand)]/90 text-white" onClick={() => { onAccept(); toast.success("Policy accepted") }}><CheckCircle2 className="size-4" /> I Accept</Button>
             </DialogClose>
             <DialogClose asChild>
               <Button variant="outline" className="flex-1" onClick={() => { onDecline(); toast.warning("Policy declined") }}>Decline</Button>
@@ -2943,7 +2943,7 @@ function HygienePolicy({ onAccept, onDecline, compact = false, link = false }: {
       <DrawerTrigger asChild>{trigger}</DrawerTrigger>
       <DrawerContent>
         <DrawerHeader className="text-left pb-4">
-          <DrawerTitle className="flex items-center gap-2"><ShieldCheck className="size-4 text-[#E5403B]" /> iBlaze Returns Policy</DrawerTitle>
+          <DrawerTitle className="flex items-center gap-2"><ShieldCheck className="size-4 text-[var(--brand)]" /> iBlaze Returns Policy</DrawerTitle>
           <DrawerDescription>Review our returns policy before selecting items to return.</DrawerDescription>
         </DrawerHeader>
         <Separator />
@@ -2953,7 +2953,7 @@ function HygienePolicy({ onAccept, onDecline, compact = false, link = false }: {
         <DrawerFooter className="pt-2">
           <div className="flex gap-2">
             <DrawerClose asChild>
-              <Button className="flex-1 bg-[#E5403B] hover:bg-[#cc3935] text-white" onClick={() => { onAccept(); toast.success("Policy accepted") }}><CheckCircle2 className="size-4" /> I Accept</Button>
+              <Button className="flex-1 bg-[var(--brand)] hover:bg-[var(--brand)]/90 text-white" onClick={() => { onAccept(); toast.success("Policy accepted") }}><CheckCircle2 className="size-4" /> I Accept</Button>
             </DrawerClose>
             <DrawerClose asChild>
               <Button variant="outline" className="flex-1" onClick={() => { onDecline(); toast.warning("Policy declined") }}>Decline</Button>
@@ -3956,7 +3956,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
               <Separator orientation="vertical" className="h-6 shrink-0" />
               <div className="shrink-0">
                 <p className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground font-semibold leading-none mb-0.5">Refund</p>
-                <p className="text-xs sm:text-sm font-bold text-[#E5403B] leading-tight">£{estimatedRefund.toFixed(2)}</p>
+                <p className="text-xs sm:text-sm font-bold text-[var(--brand)] leading-tight">£{estimatedRefund.toFixed(2)}</p>
               </div>
               {!policyAccepted && (
                 <div className="hidden lg:flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
@@ -3970,12 +3970,12 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
               {RETURN_REVIEW_VARIANT === "B" && showReview ? (
                 <>
                   <Button variant="outline" size="sm" onClick={() => setShowReview(false)} className="text-xs">Back</Button>
-                  <Button size="sm" className="bg-[#E5403B] hover:bg-[#cc3935] text-white disabled:opacity-50 text-xs font-bold" disabled={submitting} onClick={submitReturn}>
+                  <Button size="sm" className="bg-[var(--brand)] hover:bg-[var(--brand)]/90 text-white disabled:opacity-50 text-xs font-bold" disabled={submitting} onClick={submitReturn}>
                     {submitting ? <Spinner className="size-3.5" /> : <><CheckCircle2 className="size-3.5" /><span className="hidden min-[1025px]:inline ml-1">Confirm return</span></>}
                   </Button>
                 </>
               ) : (
-                <Button size="sm" className="bg-[#E5403B] hover:bg-[#cc3935] text-white disabled:opacity-50 text-xs font-bold"
+                <Button size="sm" className="bg-[var(--brand)] hover:bg-[var(--brand)]/90 text-white disabled:opacity-50 text-xs font-bold"
                   disabled={!canSubmit || submitting}
                   onClick={RETURN_REVIEW_VARIANT === "A" ? () => setShowReview(true) : RETURN_REVIEW_VARIANT === "B" ? () => setShowReview(true) : submitReturn}
                 >
@@ -4019,11 +4019,11 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
             <div className="flex items-center justify-between pt-3 border-t">
               <div>
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Estimated refund</p>
-                <p className="text-xl font-bold text-[#E5403B]">£{estimatedRefund.toFixed(2)}</p>
+                <p className="text-xl font-bold text-[var(--brand)]">£{estimatedRefund.toFixed(2)}</p>
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={() => setShowReview(false)}>Back</Button>
-                <Button size="sm" className="bg-[#E5403B] hover:bg-[#cc3935] text-white text-xs" disabled={submitting}
+                <Button size="sm" className="bg-[var(--brand)] hover:bg-[var(--brand)]/90 text-white text-xs" disabled={submitting}
                   onClick={() => { setShowReview(false); submitReturn() }}
                 >
                   {submitting ? <Spinner className="size-3.5" /> : "Confirm return"}
@@ -4610,6 +4610,7 @@ function DashboardClientInner() {
       user={user}
       onNavigate={s => { setActiveSection(s); setSelectedOrder(null) }}
       activeSection={activeSection}
+      accentColor="#E5403B"
       headerProps={{
         title: selectedOrder ? getOrderPageHeaderTitle(selectedOrder) : activeSection === "#home" ? "Dashboard" : "My Orders",
         titleIcon: orderHeaderStatus ? { icon: orderHeaderStatus.icon } : undefined,
@@ -4854,7 +4855,7 @@ function DashboardClientInner() {
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/40 backdrop-blur-xs">
             <Card className="w-full max-w-xs mx-4 shadow-xl">
               <div className="flex flex-col items-center justify-center gap-3 py-8 px-6">
-                <div className="size-10 rounded-full bg-[#E5403B]/10 flex items-center justify-center"><Spinner className="size-5 text-[#E5403B]" /></div>
+                <div className="size-10 rounded-full bg-[var(--brand)]/10 flex items-center justify-center"><Spinner className="size-5 text-[var(--brand)]" /></div>
                 <div className="text-center">
                   <p className="font-semibold text-sm">Authenticating</p>
                   <p className="text-xs text-muted-foreground mt-0.5">Verifying your session securely...</p>

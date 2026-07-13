@@ -166,8 +166,8 @@ export function SiteHeader({
               <Separator orientation="vertical" className="data-[orientation=vertical]:h-4" />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Avatar className="h-8 w-8 cursor-pointer hover:ring-2 hover:ring-[#E5403B]/40 hover:ring-offset-1 transition-all">
-                    <AvatarFallback className="bg-[#E5403B] text-white text-sm font-semibold">
+                  <Avatar className="h-8 w-8 cursor-pointer hover:ring-2 hover:ring-[var(--brand)]/40 hover:ring-offset-1 transition-all">
+                    <AvatarFallback className="bg-[var(--brand)] text-white text-sm font-semibold">
                       {initial}
                     </AvatarFallback>
                   </Avatar>

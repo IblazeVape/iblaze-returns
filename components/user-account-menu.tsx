@@ -118,7 +118,7 @@ function SidebarMenuLabel({
     <div className="px-2 py-1.5 text-sm font-medium">
       <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm font-normal">
         <Avatar className="h-8 w-8 rounded-lg">
-          <AvatarFallback className="rounded-lg bg-[#E5403B] text-white text-sm font-semibold">
+          <AvatarFallback className="rounded-lg bg-[var(--brand)] text-white text-sm font-semibold">
             {avatarIcon ? <User className="size-4" /> : initial}
           </AvatarFallback>
         </Avatar>
