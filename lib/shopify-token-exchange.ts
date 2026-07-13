@@ -14,17 +14,19 @@ export async function exchangeSessionTokenForAccessToken(
     throw new Error("Missing SHOPIFY_CLIENT_ID/SHOPIFY_CLIENT_SECRET");
   }
 
+  const body = new URLSearchParams({
+    client_id: clientId,
+    client_secret: clientSecret,
+    grant_type: "urn:ietf:params:oauth:grant-type:token-exchange",
+    subject_token: sessionToken,
+    subject_token_type: "urn:ietf:params:oauth:token-type:id_token",
+    requested_token_type: "urn:shopify:params:oauth:token-type:offline-access-token",
+  });
+
   const res = await fetch(`https://${shop}/admin/oauth/access_token`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      client_id: clientId,
-      client_secret: clientSecret,
-      grant_type: "urn:ietf:params:oauth:grant-type:token-exchange",
-      subject_token: sessionToken,
-      subject_token_type: "urn:ietf:params:oauth:token-type:id_token",
-      requested_token_type: "urn:ietf:params:oauth:token-type:offline_access_token",
-    }),
+    headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" },
+    body,
   });
 
   if (!res.ok) {

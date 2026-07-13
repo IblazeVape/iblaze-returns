@@ -18,10 +18,10 @@ describe("exchangeSessionTokenForAccessToken", () => {
 
   it("posts the correct token-exchange request and returns the access token", async () => {
     let capturedUrl = "";
-    let capturedBody: Record<string, unknown> = {};
+    let capturedBody: Record<string, string> = {};
     global.fetch = vi.fn(async (url: string, init: RequestInit) => {
       capturedUrl = url;
-      capturedBody = JSON.parse(init.body as string);
+      capturedBody = Object.fromEntries(new URLSearchParams(init.body as string));
       return new Response(JSON.stringify({ access_token: "shpat_abc123", scope: "read_orders,write_returns" }), { status: 200 });
     }) as typeof fetch;
 
@@ -34,7 +34,7 @@ describe("exchangeSessionTokenForAccessToken", () => {
       grant_type: "urn:ietf:params:oauth:grant-type:token-exchange",
       subject_token: "session-token-xyz",
       subject_token_type: "urn:ietf:params:oauth:token-type:id_token",
-      requested_token_type: "urn:ietf:params:oauth:token-type:offline_access_token",
+      requested_token_type: "urn:shopify:params:oauth:token-type:offline-access-token",
     });
     expect(result).toEqual({ accessToken: "shpat_abc123", scope: "read_orders,write_returns" });
   });
