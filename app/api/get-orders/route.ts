@@ -6,6 +6,7 @@ import { getOrderReturnInfo, ReturnInfo } from "@/lib/customerAccount";
 import { getAdminReturnableInfo, fetchRemainingLineItems, fetchRemainingReturns, fetchRemainingFulfillmentLineItems } from "@/lib/returnEligibility";
 import { getRequestShop } from "@/lib/request-shop";
 import { withCors, corsPreflight } from "@/lib/cors";
+import { getTenant } from "@/lib/tenant";
 
 // Eligibility is time-sensitive (return window expires by date) and user-specific.
 // Never cache at the Next.js data layer — always recompute per request.
@@ -64,6 +65,8 @@ async function handleGet(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: "unauthorized" }, { status: 401, headers: NO_STORE });
     }
     const { shop } = ctx;
+    const tenant = await getTenant(shop);
+    const returnWindowDays = tenant?.returnWindowDays ?? 30;
 
     const cookieHeader = request.headers.get("cookie");
     const session = validateSession(cookieHeader);
@@ -614,10 +617,10 @@ async function handleGet(request: NextRequest): Promise<NextResponse> {
         // returnableFulfillments (the Admin fallback used when the Customer Account
         // API / returnInformation is unavailable — e.g. native self-serve returns
         // disabled) is NOT window-aware. Enforce the return window ourselves so an
-        // item delivered more than RETURN_WINDOW_DAYS ago is never eligible,
+        // item delivered more than returnWindowDays ago is never eligible,
         // regardless of which returnable source produced ri.returnableItems.
         const windowExpired = delivery.latestDeliveredAt
-          ? (now.getTime() - delivery.latestDeliveredAt.getTime()) / (1000 * 60 * 60 * 24) > RETURN_WINDOW_DAYS
+          ? (now.getTime() - delivery.latestDeliveredAt.getTime()) / (1000 * 60 * 60 * 24) > returnWindowDays
           : false;
         const effectiveEligibleWindowed = windowExpired ? 0 : effectiveEligible;
 
@@ -683,18 +686,18 @@ async function handleGet(request: NextRequest): Promise<NextResponse> {
 
             if (reasonCodes.includes("UNFULFILLED")) {
               // Item confirmed as unfulfilled — delivery state takes precedence
-              const undelivered = statusFromUndeliveredDelivery(delivery, now);
+              const undelivered = statusFromUndeliveredDelivery(delivery, now, returnWindowDays);
               returnStatus = undelivered.returnStatus;
               returnReason = undelivered.returnReason;
             } else if (reasonCodes.includes("RETURN_WINDOW_EXPIRED")) {
               // Window can't be expired before delivery — guard against Shopify API edge cases
               if (delivery.deliveredQty <= 0) {
-                const undelivered = statusFromUndeliveredDelivery(delivery, now);
+                const undelivered = statusFromUndeliveredDelivery(delivery, now, returnWindowDays);
                 returnStatus = undelivered.returnStatus;
                 returnReason = undelivered.returnReason;
               } else {
                 returnStatus = "Passed the return window";
-                returnReason = formatReturnWindowExpiredReason(delivery.latestDeliveredAt);
+                returnReason = formatReturnWindowExpiredReason(delivery.latestDeliveredAt, returnWindowDays);
               }
             } else if (reasonCodes.includes("FINAL_SALE")) {
               returnStatus = "Final sale";
@@ -728,16 +731,16 @@ async function handleGet(request: NextRequest): Promise<NextResponse> {
               const daysSince = delivery.latestDeliveredAt
                 ? (now.getTime() - delivery.latestDeliveredAt.getTime()) / (1000 * 60 * 60 * 24)
                 : Infinity;
-              if (daysSince > RETURN_WINDOW_DAYS) {
+              if (daysSince > returnWindowDays) {
                 returnStatus = "Passed the return window";
-                returnReason = formatReturnWindowExpiredReason(delivery.latestDeliveredAt);
+                returnReason = formatReturnWindowExpiredReason(delivery.latestDeliveredAt, returnWindowDays);
               } else {
                 returnStatus = "Eligible";
                 returnReason = "";
                 effectiveEligibleQty = deliveredAvailable;
               }
             } else {
-              const undelivered2 = statusFromUndeliveredDelivery(delivery, now);
+              const undelivered2 = statusFromUndeliveredDelivery(delivery, now, returnWindowDays);
               returnStatus = undelivered2.returnStatus;
               returnReason = undelivered2.returnReason;
             }
@@ -757,9 +760,9 @@ async function handleGet(request: NextRequest): Promise<NextResponse> {
           } else if (effectiveEligible > 0) {
             if (delivery.latestDeliveredAt) {
               const daysSince = (now.getTime() - delivery.latestDeliveredAt.getTime()) / (1000 * 60 * 60 * 24);
-              if (daysSince > 30) {
+              if (daysSince > returnWindowDays) {
                 returnStatus = "Passed the return window";
-                returnReason = formatReturnWindowExpiredReason(delivery.latestDeliveredAt);
+                returnReason = formatReturnWindowExpiredReason(delivery.latestDeliveredAt, returnWindowDays);
               } else {
                 returnStatus = "Eligible";
                 returnReason = "";
@@ -769,7 +772,7 @@ async function handleGet(request: NextRequest): Promise<NextResponse> {
               returnReason = "";
             }
           } else {
-            const undelivered3 = statusFromUndeliveredDelivery(delivery, now);
+            const undelivered3 = statusFromUndeliveredDelivery(delivery, now, returnWindowDays);
             returnStatus = undelivered3.returnStatus;
             returnReason = undelivered3.returnReason;
           }
@@ -841,7 +844,7 @@ async function handleGet(request: NextRequest): Promise<NextResponse> {
     });
 
     return NextResponse.json(
-      { firstName, email: sessionEmail, orders: processedOrders },
+      { firstName, email: sessionEmail, returnWindowDays, orders: processedOrders },
       { headers: NO_STORE }
     );
   } catch (err) {
@@ -896,11 +899,6 @@ function capDeclinedEntries(
   return result;
 }
 
-// UI-only fallback — used only for expired-window date labels.
-// Eligibility always comes from returnInformation, never from this constant.
-// Keep in sync with iBlaze's configured return window in Shopify Settings → Policies.
-const RETURN_WINDOW_DAYS = 30;
-
 function statusFromUndeliveredDelivery(
   delivery: {
     inTransitQty: number;
@@ -910,17 +908,18 @@ function statusFromUndeliveredDelivery(
     earliestShippedAt: Date | null;
   },
   now: Date,
+  returnWindowDays: number,
 ): { returnStatus: string; returnReason: string } {
   const isInTransit = delivery.attemptedDeliveryQty > 0 || delivery.outForDeliveryQty > 0 || delivery.inTransitQty > 0;
 
-  // Fallback window check: if shipped more than 30 days ago and still not delivered,
+  // Fallback window check: if shipped more than returnWindowDays ago and still not delivered,
   // treat as past return window rather than showing "On its way" indefinitely.
   if (isInTransit && delivery.earliestShippedAt) {
     const daysSinceShipped = (now.getTime() - delivery.earliestShippedAt.getTime()) / (1000 * 60 * 60 * 24);
-    if (daysSinceShipped > RETURN_WINDOW_DAYS) {
+    if (daysSinceShipped > returnWindowDays) {
       return {
         returnStatus: "Passed the return window",
-        returnReason: formatReturnWindowExpiredReason(delivery.earliestShippedAt),
+        returnReason: formatReturnWindowExpiredReason(delivery.earliestShippedAt, returnWindowDays),
       };
     }
   }
@@ -955,9 +954,9 @@ function statusFromUndeliveredDelivery(
   };
 }
 
-function formatReturnWindowExpiredReason(deliveredAt: Date | null): string {
+function formatReturnWindowExpiredReason(deliveredAt: Date | null, returnWindowDays: number): string {
   if (!deliveredAt) return "The return window has expired for this item.";
-  const closed = new Date(deliveredAt.getTime() + RETURN_WINDOW_DAYS * 24 * 60 * 60 * 1000);
+  const closed = new Date(deliveredAt.getTime() + returnWindowDays * 24 * 60 * 60 * 1000);
   const closedLabel = closed.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
   return `The return window closed on ${closedLabel}.`;
 }

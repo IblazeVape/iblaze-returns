@@ -4,6 +4,7 @@ import { shopifyAdmin } from "@/lib/shopify";
 import { getAdminReturnableInfo } from "@/lib/returnEligibility";
 import { redis } from "@/lib/redis";
 import { getRequestShop } from "@/lib/request-shop";
+import { getTenant } from "@/lib/tenant";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,6 @@ const SIGNING_SECRETS = [
   process.env.CUSTOMER_API_CLIENT_SECRET,
 ].filter((s): s is string => !!s);
 
-const RETURN_WINDOW_DAYS = 30;
 const CACHE_TTL_SECONDS = 3600;
 
 // Extensions run in a Web Worker with a null origin — must use wildcard, not
@@ -91,6 +91,8 @@ export async function GET(req: NextRequest) {
     const ctx = destShop ? { shop: destShop } : await getRequestShop(req);
     if (!ctx) return NextResponse.json({ eligible: true, reason: "no-shop" }, { headers: CORS_HEADERS });
     const { shop } = ctx;
+    const tenant = await getTenant(shop);
+    const returnWindowDays = tenant?.returnWindowDays ?? 30;
 
     const orderParam = req.nextUrl.searchParams.get("order") || "";
     if (!orderParam) return NextResponse.json({ eligible: true, reason: "no-order", shop }, { headers: CORS_HEADERS });
@@ -148,7 +150,7 @@ export async function GET(req: NextRequest) {
       if (qty <= 0) continue;
       const delivered = deliveredAt[lid];
       if (!delivered) continue;
-      if ((now - delivered.getTime()) / (1000 * 60 * 60 * 24) <= RETURN_WINDOW_DAYS) {
+      if ((now - delivered.getTime()) / (1000 * 60 * 60 * 24) <= returnWindowDays) {
         eligible = true;
         break;
       }

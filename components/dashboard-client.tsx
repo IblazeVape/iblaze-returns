@@ -102,7 +102,7 @@ interface Order {
   statusPageUrl?: string | null
 }
 
-interface OrdersData { firstName: string; email: string; orders: Order[] }
+interface OrdersData { firstName: string; email: string; returnWindowDays: number; orders: Order[] }
 
 const RETURN_REASONS = [
   { value: "CHANGED_MIND",     label: "Changed my mind" },
@@ -121,8 +121,6 @@ function pUrl(handle?: string | null) {
   return handle ? `https://iblazevape.co.uk/products/${handle}` : "https://iblazevape.co.uk"
 }
 
-const RETURN_WINDOW_DAYS = 30
-
 const RETURN_WINDOW_DATE_FMT: Intl.DateTimeFormatOptions = {
   day: "numeric",
   month: "short",
@@ -135,24 +133,24 @@ function parseDeliveredDate(lineDeliveredAt?: string | null): Date | null {
   return isNaN(delivered.getTime()) ? null : delivered
 }
 
-function formatReturnWindowClosedFromDelivered(delivered: Date | null): string | null {
-  const closed = delivered ? returnWindowClosedOnFromDate(delivered) : null
+function formatReturnWindowClosedFromDelivered(delivered: Date | null, returnWindowDays: number): string | null {
+  const closed = delivered ? returnWindowClosedOnFromDate(delivered, returnWindowDays) : null
   if (!closed) return null
   return closed.toLocaleDateString("en-GB", RETURN_WINDOW_DATE_FMT)
 }
 
-function returnWindowClosedOnFromDate(delivered: Date): Date {
-  return new Date(delivered.getTime() + RETURN_WINDOW_DAYS * 24 * 60 * 60 * 1000)
+function returnWindowClosedOnFromDate(delivered: Date, returnWindowDays: number): Date {
+  return new Date(delivered.getTime() + returnWindowDays * 24 * 60 * 60 * 1000)
 }
 
-function returnWindowClosedOn(lineDeliveredAt?: string | null): Date | null {
+function returnWindowClosedOn(lineDeliveredAt: string | null | undefined, returnWindowDays: number): Date | null {
   const delivered = parseDeliveredDate(lineDeliveredAt)
   if (!delivered) return null
-  return returnWindowClosedOnFromDate(delivered)
+  return returnWindowClosedOnFromDate(delivered, returnWindowDays)
 }
 
-function formatReturnWindowClosedDate(lineDeliveredAt?: string | null): string | null {
-  return formatReturnWindowClosedFromDelivered(parseDeliveredDate(lineDeliveredAt))
+function formatReturnWindowClosedDate(lineDeliveredAt: string | null | undefined, returnWindowDays: number): string | null {
+  return formatReturnWindowClosedFromDelivered(parseDeliveredDate(lineDeliveredAt), returnWindowDays)
 }
 
 function parseCloseDateFromReturnReason(reason?: string): Date | null {
@@ -190,16 +188,16 @@ function resolveGroupDeliveredAt(items: LineItem[], order: Order): Date | null {
   return null
 }
 
-function formatReturnWindowClosedForItem(item: LineItem, order: Order, groupItems?: LineItem[]): string | null {
+function formatReturnWindowClosedForItem(item: LineItem, order: Order, returnWindowDays: number, groupItems?: LineItem[]): string | null {
   const delivered = groupItems?.length
     ? resolveGroupDeliveredAt(groupItems, order)
     : resolveDeliveredAt(item, order)
-  return formatReturnWindowClosedFromDelivered(delivered)
+  return formatReturnWindowClosedFromDelivered(delivered, returnWindowDays)
 }
 
-function daysLeftToReturn(lineDeliveredAt?: string | null): number | null {
+function daysLeftToReturn(lineDeliveredAt: string | null | undefined, returnWindowDays: number): number | null {
   if (!lineDeliveredAt) return null
-  const deadline = returnWindowClosedOn(lineDeliveredAt)
+  const deadline = returnWindowClosedOn(lineDeliveredAt, returnWindowDays)
   if (!deadline) return null
   const today = new Date()
   const days = Math.ceil((deadline.getTime() - today.getTime()) / (24 * 60 * 60 * 1000))
@@ -573,6 +571,7 @@ function buildNarrativeOrderSummary(
   order: Order,
   totalEligibleUnits: number,
   ineligibleItems: DisplayItem[],
+  returnWindowDays: number,
 ): NarrativeOrderSummary {
   const total = parseFloat(order.totalPriceSet.shopMoney.amount)
   const refundedAmount = order.totalRefundedSet?.shopMoney?.amount
@@ -606,7 +605,7 @@ function buildNarrativeOrderSummary(
   // Group ineligible items by their narrative key (reuses existing grouping logic)
   const groupMap = new Map<string, { items: DisplayItem[]; count: number; status: ReturnStatus }>()
   for (const item of ineligibleItems) {
-    const key = getIneligibleGroupKey(item, order)
+    const key = getIneligibleGroupKey(item, order, returnWindowDays)
     const existing = groupMap.get(key)
     if (existing) {
       existing.items.push(item)
@@ -621,7 +620,7 @@ function buildNarrativeOrderSummary(
     .map(({ items, count, status }) => ({
       count,
       status,
-      message: getIneligibleGroupMessage(items[0], order, items as LineItem[]),
+      message: getIneligibleGroupMessage(items[0], order, returnWindowDays, items as LineItem[]),
     }))
 
   return { intro, fulfillmentLine, eligible: totalEligibleUnits, groups }
@@ -637,6 +636,7 @@ function buildNarrativeParagraph(
   order: Order,
   totalEligibleUnits: number,
   ineligibleItems: DisplayItem[],
+  returnWindowDays: number,
   { showWindowDate = true }: { showWindowDate?: boolean } = {},
 ): string {
   const total = parseFloat(order.totalPriceSet.shopMoney.amount)
@@ -678,7 +678,7 @@ function buildNarrativeParagraph(
 
   // Return window close date (show if all expired items share one date)
   const expiredItems  = ineligibleItems.filter(i => i.returnStatus === "Passed the return window")
-  const expiredDates  = new Set(expiredItems.map(i => formatReturnWindowClosedForItem(i, order) ?? ""))
+  const expiredDates  = new Set(expiredItems.map(i => formatReturnWindowClosedForItem(i, order, returnWindowDays) ?? ""))
   const expiredDateStr = expiredDates.size === 1 && [...expiredDates][0] ? [...expiredDates][0] : null
 
   // ── Scenario: all items awaiting delivery, nothing else going on ──────────
@@ -909,7 +909,7 @@ function SnakeBorderAlert({ paragraph }: { paragraph: string }) {
 }
 
 // Wrapper: computes narrative from an Order, renders SnakeBorderAlert
-function OrderSummaryAlertFromOrder({ order }: { order: Order }) {
+function OrderSummaryAlertFromOrder({ order, returnWindowDays }: { order: Order; returnWindowDays: number }) {
   const eligibleItems   = useMemo(
     () => order.processedItems.filter(i => i.returnStatus === "Eligible" && i.eligibleQuantity > 0),
     [order],
@@ -917,14 +917,14 @@ function OrderSummaryAlertFromOrder({ order }: { order: Order }) {
   const ineligibleItems = useMemo(() => buildIneligibleDisplayItems(order), [order])
   const totalEligibleUnits = eligibleItems.reduce((s, i) => s + i.eligibleQuantity, 0)
   const paragraph = useMemo(
-    () => buildNarrativeParagraph(order, totalEligibleUnits, ineligibleItems),
-    [order, totalEligibleUnits, ineligibleItems],
+    () => buildNarrativeParagraph(order, totalEligibleUnits, ineligibleItems, returnWindowDays),
+    [order, totalEligibleUnits, ineligibleItems, returnWindowDays],
   )
   return <SnakeBorderAlert key={order.id} paragraph={paragraph} />
 }
 
 // ─── Sticky header strip: edge-to-edge, bottom-border only, sweeping light ────
-function StickyOrderSummaryStrip({ order }: { order: Order }) {
+function StickyOrderSummaryStrip({ order, returnWindowDays }: { order: Order; returnWindowDays: number }) {
   const eligibleItems      = useMemo(
     () => order.processedItems.filter(i => i.returnStatus === "Eligible" && i.eligibleQuantity > 0),
     [order],
@@ -932,8 +932,8 @@ function StickyOrderSummaryStrip({ order }: { order: Order }) {
   const ineligibleItems    = useMemo(() => buildIneligibleDisplayItems(order), [order])
   const totalEligibleUnits = eligibleItems.reduce((s, i) => s + i.eligibleQuantity, 0)
   const paragraph          = useMemo(
-    () => buildNarrativeParagraph(order, totalEligibleUnits, ineligibleItems, { showWindowDate: false }),
-    [order, totalEligibleUnits, ineligibleItems],
+    () => buildNarrativeParagraph(order, totalEligibleUnits, ineligibleItems, returnWindowDays, { showWindowDate: false }),
+    [order, totalEligibleUnits, ineligibleItems, returnWindowDays],
   )
 
   const [summaryOpen, setSummaryOpen] = useState(false)
@@ -2540,15 +2540,15 @@ function ItemReasonText({ item, align = "start" }: { item: LineItem; align?: "st
   return <p className={textCls}>{item.returnReason}</p>
 }
 
-function getIneligibleGroupKey(item: LineItem, order: Order): string {
+function getIneligibleGroupKey(item: LineItem, order: Order, returnWindowDays: number): string {
   if (item.returnStatus === "Return declined") {
     return `declined:${resolveDeclineMessage(item.returnReason || "")}`
   }
   if (item.returnStatus === "Passed the return window") {
-    const closed = formatReturnWindowClosedForItem(item, order) ?? "unknown"
+    const closed = formatReturnWindowClosedForItem(item, order, returnWindowDays) ?? "unknown"
     return `window:${closed}`
   }
-  return `${item.returnStatus}:${getIneligibleGroupMessage(item, order)}`
+  return `${item.returnStatus}:${getIneligibleGroupMessage(item, order, returnWindowDays)}`
 }
 
 function ineligibleTableColSpan(cols: { variant: boolean; qty: boolean; total: boolean }) {
@@ -2572,11 +2572,11 @@ const INELIGIBLE_STATUS_ORDER: Partial<Record<ReturnStatus, number>> = {
   "Not eligible": 14,
 }
 
-function compareIneligibleItems(a: DisplayItem, b: DisplayItem, order: Order) {
+function compareIneligibleItems(a: DisplayItem, b: DisplayItem, order: Order, returnWindowDays: number) {
   const orderA = INELIGIBLE_STATUS_ORDER[a.returnStatus] ?? 99
   const orderB = INELIGIBLE_STATUS_ORDER[b.returnStatus] ?? 99
   if (orderA !== orderB) return orderA - orderB
-  const keyCmp = getIneligibleGroupKey(a, order).localeCompare(getIneligibleGroupKey(b, order))
+  const keyCmp = getIneligibleGroupKey(a, order, returnWindowDays).localeCompare(getIneligibleGroupKey(b, order, returnWindowDays))
   if (keyCmp !== 0) return keyCmp
   const titleCmp = a.title.localeCompare(b.title)
   if (titleCmp !== 0) return titleCmp
@@ -2657,7 +2657,7 @@ function getReturnStatusIcon(status: ReturnStatus): { icon: React.ElementType; c
 }
 
 /** One customer-facing sentence per group — Sidekick-approved copy, no redundant label + sub-line. */
-function getIneligibleGroupMessage(item: LineItem, order: Order, groupItems?: LineItem[]): string {
+function getIneligibleGroupMessage(item: LineItem, order: Order, returnWindowDays: number, groupItems?: LineItem[]): string {
   switch (item.returnStatus) {
     case "Confirmed":
       return "We're preparing these items for shipping. Your return window starts on delivery and closes 30 days later."
@@ -2668,7 +2668,7 @@ function getIneligibleGroupMessage(item: LineItem, order: Order, groupItems?: Li
     case "Attempted delivery":
       return "A delivery attempt was made for these items. Please rebook or collect — your return window starts once delivered."
     case "Passed the return window": {
-      const closed = formatReturnWindowClosedForItem(item, order, groupItems)
+      const closed = formatReturnWindowClosedForItem(item, order, returnWindowDays, groupItems)
       return closed
         ? `The return window has expired for these items. It closed on ${closed}.`
         : "The return window has expired for these items."
@@ -2706,9 +2706,9 @@ function getIneligibleFilterOptions(items: DisplayItem[]): { label: string; stat
   return Array.from(groups.entries()).map(([label, statuses]) => ({ label, statuses }))
 }
 
-function IneligibleGroupSummary({ item, order, groupItems, count }: { item: LineItem; order: Order; groupItems?: LineItem[]; count: string }) {
+function IneligibleGroupSummary({ item, order, groupItems, count, returnWindowDays }: { item: LineItem; order: Order; groupItems?: LineItem[]; count: string; returnWindowDays: number }) {
   const { icon: Icon, color } = getReturnStatusIcon(item.returnStatus)
-  const message = getIneligibleGroupMessage(item, order, groupItems)
+  const message = getIneligibleGroupMessage(item, order, returnWindowDays, groupItems)
   const title = getIneligibleAccordionTitle(item.returnStatus)
   const [open, setOpen] = useState(false)
 
@@ -3144,7 +3144,7 @@ function OrderRow({ order, onClick }: { order: Order; onClick: () => void }) {
 const RETURN_REVIEW_VARIANT: "A" | "B" = "B"
 
 // ─── Order Detail ─────────────────────────────────────────────────────────────
-function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
+function OrderDetail({ order, onBack, returnWindowDays }: { order: Order; onBack: () => void; returnWindowDays: number }) {
   const [policyAccepted, setPolicyAccepted] = useState(false)
   const [selectedItems, setSelectedItems]   = useState<Record<string, { selected: boolean; quantity: number; reason: string; description: string }>>({})
   const [submitting, setSubmitting]   = useState(false)
@@ -3202,13 +3202,13 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
   )
 
   const narrativeSummary = useMemo(
-    () => buildNarrativeOrderSummary(order, totalEligibleUnits, ineligibleItems),
-    [order, totalEligibleUnits, ineligibleItems]
+    () => buildNarrativeOrderSummary(order, totalEligibleUnits, ineligibleItems, returnWindowDays),
+    [order, totalEligibleUnits, ineligibleItems, returnWindowDays]
   )
 
   const narrativeParagraph = useMemo(
-    () => buildNarrativeParagraph(order, totalEligibleUnits, ineligibleItems),
-    [order, totalEligibleUnits, ineligibleItems]
+    () => buildNarrativeParagraph(order, totalEligibleUnits, ineligibleItems, returnWindowDays),
+    [order, totalEligibleUnits, ineligibleItems, returnWindowDays]
   )
 
   const matchesSearch = (item: LineItem) => {
@@ -3225,8 +3225,8 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
         if (ineligibleStatusFilter.length > 0 && !ineligibleStatusFilter.includes(item.returnStatus)) return false
         return true
       })
-      .sort((a, b) => compareIneligibleItems(a, b, order)),
-  [ineligibleItems, searchQuery, ineligibleStatusFilter, order])
+      .sort((a, b) => compareIneligibleItems(a, b, order, returnWindowDays)),
+  [ineligibleItems, searchQuery, ineligibleStatusFilter, order, returnWindowDays])
 
   // FIX: default to whichever tab actually has items; reset when order changes
   const [activeTab, setActiveTab] = useState<"eligible" | "ineligible">(
@@ -3787,12 +3787,12 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                     const sel        = selectedItems[item.id]
                     const isLocked   = !policyAccepted && activeTab === "eligible"
                     const itemPrice  = item.unitPrice ?? orderAvgPrice
-                    const groupKey   = activeTab === "ineligible" ? getIneligibleGroupKey(item, order) : ""
+                    const groupKey   = activeTab === "ineligible" ? getIneligibleGroupKey(item, order, returnWindowDays) : ""
                     const showGroupHeader = activeTab === "ineligible" && (
-                      rowIdx === 0 || getIneligibleGroupKey(paginatedData[rowIdx - 1], order) !== groupKey
+                      rowIdx === 0 || getIneligibleGroupKey(paginatedData[rowIdx - 1], order, returnWindowDays) !== groupKey
                     )
                     const groupRows = activeTab === "ineligible"
-                      ? filteredIneligible.filter(i => getIneligibleGroupKey(i, order) === groupKey)
+                      ? filteredIneligible.filter(i => getIneligibleGroupKey(i, order, returnWindowDays) === groupKey)
                       : []
 
                     return (
@@ -3800,7 +3800,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                         {showGroupHeader && (
                           <TableRow className="bg-muted/80 hover:bg-muted/80 border-b border-border/60">
                             <TableCell colSpan={ineligibleTableColSpan(colsVisible)} className="p-0 whitespace-normal">
-                              <IneligibleGroupSummary item={item} order={order} groupItems={groupRows} count={formatGroupCount(groupRows)} />
+                              <IneligibleGroupSummary item={item} order={order} groupItems={groupRows} count={formatGroupCount(groupRows)} returnWindowDays={returnWindowDays} />
                             </TableCell>
                           </TableRow>
                         )}
@@ -3826,7 +3826,7 @@ function OrderDetail({ order, onBack }: { order: Order; onBack: () => void }) {
                                   {displayQty}×{item.variant?.title && item.variant.title !== "Default Title" ? ` ${item.variant.title}` : ""}
                                 </span>
                                 <span className="text-[11px] text-muted-foreground">
-                                  £{itemPrice.toFixed(2)} each{activeTab === "eligible" && (() => { const d = daysLeftToReturn(item.lineDeliveredAt); return d !== null ? <ReturnWindowBadge days={d} /> : null })()}
+                                  £{itemPrice.toFixed(2)} each{activeTab === "eligible" && (() => { const d = daysLeftToReturn(item.lineDeliveredAt, returnWindowDays); return d !== null ? <ReturnWindowBadge days={d} /> : null })()}
                                 </span>
                                 {activeTab === "eligible" && hasRetryableDecline(item.declinedReturnEntries) && (item.inTransitQuantity ?? 0) > 0 && (
                                   <p className="text-[11px] text-blue-600 leading-snug mt-0.5">
@@ -4214,7 +4214,7 @@ function DashboardHome({
   const eligibleItems = orders.flatMap(o =>
     o.processedItems
       .filter(i => i.returnStatus === "Eligible" && i.eligibleQuantity > 0)
-      .map(i => ({ item: i, order: o, daysLeft: daysLeftToReturn(i.lineDeliveredAt) }))
+      .map(i => ({ item: i, order: o, daysLeft: daysLeftToReturn(i.lineDeliveredAt, data?.returnWindowDays ?? 30) }))
   ).sort((a, b) => (a.daysLeft ?? 999) - (b.daysLeft ?? 999))
 
   const ease = [0.25, 0.1, 0.25, 1] as const
@@ -4641,7 +4641,7 @@ function DashboardClientInner() {
         storefrontUrl: branding.storefrontUrl || undefined,
       }}
     >
-        {selectedOrder && <StickyOrderSummaryStrip key={selectedOrder.id} order={selectedOrder} />}
+        {selectedOrder && <StickyOrderSummaryStrip key={selectedOrder.id} order={selectedOrder} returnWindowDays={data?.returnWindowDays ?? 30} />}
         {activeSection === "#home" && !selectedOrder && (
           <>
             {/* 30-day returns strip */}
@@ -4714,7 +4714,7 @@ function DashboardClientInner() {
             exit={{ opacity: 0, x: 18 }}
             transition={{ duration: 0.22, ease: [0.25, 0.1, 0.25, 1] }}
           >
-            <OrderDetail order={selectedOrder} onBack={() => setSelectedOrder(null)} />
+            <OrderDetail order={selectedOrder} onBack={() => setSelectedOrder(null)} returnWindowDays={data?.returnWindowDays ?? 30} />
           </motion.div>
         ) : activeSection === "#home" ? (
           <motion.div
