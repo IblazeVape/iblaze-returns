@@ -2,7 +2,8 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { verifyQueryHmac } from "@/lib/shopify-hmac";
 import { validateMerchantSession, MERCHANT_COOKIE_NAME } from "@/lib/merchant-session";
-import { getTenant, getTenantToken } from "@/lib/tenant";
+import { getTenant, getTenantToken, DEFAULT_TENANT_FIELDS } from "@/lib/tenant";
+import { SettingsForm } from "@/components/app-settings/settings-form";
 
 export const dynamic = "force-dynamic";
 
@@ -63,9 +64,9 @@ export default async function MerchantAppEntry({
 async function MerchantHome({ shop }: { shop: string }) {
   const tenant = await getTenant(shop);
   return (
-    <Shell
-      title="iBlaze Returns — connected ✅"
-      body={`Your store (${shop}) is connected. Plan: ${tenant?.plan ?? "free"} · Return window: ${tenant?.returnWindowDays ?? 30} days. Branding & settings controls are coming next — this is where you'll customise your returns portal.`}
+    <SettingsForm
+      initialBranding={tenant?.branding ?? DEFAULT_TENANT_FIELDS.branding}
+      initialReturnWindowDays={tenant?.returnWindowDays ?? DEFAULT_TENANT_FIELDS.returnWindowDays}
     />
   );
 }
