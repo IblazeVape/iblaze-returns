@@ -7,6 +7,22 @@ const PROTECTED_PATHS = ["/"];
 export async function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
+  // Merchant Settings page — embedded in Shopify admin, needs an explicit
+  // frame-ancestors CSP header or the browser refuses to let Shopify iframe
+  // it at all (independent of shopify.app.toml's embedded=true).
+  if (pathname === "/app" || pathname.startsWith("/app/")) {
+    const shopParam = request.nextUrl.searchParams.get("shop");
+    const shopDomain = shopParam && /^[a-z0-9-]+\.myshopify\.com$/i.test(shopParam) ? shopParam : null;
+    const response = NextResponse.next();
+    response.headers.set(
+      "Content-Security-Policy",
+      shopDomain
+        ? `frame-ancestors https://admin.shopify.com https://${shopDomain};`
+        : `frame-ancestors https://admin.shopify.com;`
+    );
+    return response;
+  }
+
   const isProtected = PROTECTED_PATHS.some(
     (p) => pathname === p || (p !== "/" && pathname.startsWith(p)),
   );
@@ -37,5 +53,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/"],
+  matcher: ["/", "/app", "/app/:path*"],
 };
