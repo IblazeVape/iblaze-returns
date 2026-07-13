@@ -1,14 +1,19 @@
 "use client"
 
 import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Button } from "@/components/ui/button"
 import { validateBrandingInput, type BrandingInput } from "@/lib/branding-validation"
 import { BrandingPreview } from "@/components/app-settings/branding-preview"
 import type { TenantBranding } from "@/lib/tenant"
+
+declare const shopify: {
+  idToken: () => Promise<string>;
+  picker: (options: {
+    heading: string;
+    items: { id: string; heading: string; thumbnailUrl?: string }[];
+  }) => Promise<{ selected: { id: string }[] } | null>;
+};
+
+type MediaLibraryFile = { id: string; url: string; alt: string | null; width: number; height: number };
 
 export function SettingsForm({
   initialBranding,
@@ -24,9 +29,15 @@ export function SettingsForm({
   const [errors, setErrors] = useState<Partial<Record<keyof BrandingInput, string>>>({})
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle")
   const [uploading, setUploading] = useState(false)
+  const [loadingLibrary, setLoadingLibrary] = useState(false)
 
   function set<K extends keyof BrandingInput>(key: K, value: BrandingInput[K]) {
     setForm((f) => ({ ...f, [key]: value }))
+  }
+
+  async function authedFetch(input: string, init: RequestInit = {}) {
+    const token = await shopify.idToken()
+    return fetch(input, { ...init, headers: { ...init.headers, Authorization: `Bearer ${token}` } })
   }
 
   async function handleLogoFile(file: File) {
@@ -34,11 +45,10 @@ export function SettingsForm({
     try {
       const body = new FormData()
       body.append("file", file)
-      const res = await fetch("/api/app/logo-upload", { method: "POST", body })
+      const res = await authedFetch("/api/app/logo-upload", { method: "POST", body })
       const data = await res.json()
       if (res.ok && data.url) {
         set("logoUrl", data.url)
-        // Clear any prior logoUrl error on successful upload
         setErrors((e) => {
           const { logoUrl, ...rest } = e
           return rest
@@ -53,6 +63,36 @@ export function SettingsForm({
     }
   }
 
+  async function handleChooseFromLibrary() {
+    setLoadingLibrary(true)
+    try {
+      const res = await authedFetch("/api/app/media-library")
+      const data = (await res.json()) as { files?: MediaLibraryFile[] }
+      const files = data.files ?? []
+      if (files.length === 0) {
+        setErrors((e) => ({ ...e, logoUrl: "No images found in your Shopify media library." }))
+        return
+      }
+      const result = await shopify.picker({
+        heading: "Choose a logo",
+        items: files.map((f) => ({ id: f.id, heading: f.alt || "Untitled image", thumbnailUrl: f.url })),
+      })
+      const selectedId = result?.selected?.[0]?.id
+      const chosen = files.find((f) => f.id === selectedId)
+      if (chosen) {
+        set("logoUrl", chosen.url)
+        setErrors((e) => {
+          const { logoUrl, ...rest } = e
+          return rest
+        })
+      }
+    } catch {
+      setErrors((e) => ({ ...e, logoUrl: "Couldn't open the media library. Try again." }))
+    } finally {
+      setLoadingLibrary(false)
+    }
+  }
+
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     const { valid, errors: validationErrors } = validateBrandingInput(form)
@@ -61,7 +101,7 @@ export function SettingsForm({
 
     setStatus("saving")
     try {
-      const res = await fetch("/api/app/branding", {
+      const res = await authedFetch("/api/app/branding", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
@@ -77,104 +117,115 @@ export function SettingsForm({
   }
 
   return (
-    <div className="mx-auto flex max-w-4xl gap-8 p-6">
-      <form onSubmit={handleSave} className="flex flex-1 flex-col gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Branding</CardTitle>
-            <CardDescription>How your returns portal looks to customers.</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="brand-name">Brand name</Label>
-              <Input id="brand-name" value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="Your Store" />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="logo-url">Logo</Label>
-              <Input
-                id="logo-file"
-                type="file"
-                accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                disabled={uploading}
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleLogoFile(f) }}
-              />
-              <Input
-                id="logo-url"
-                value={form.logoUrl}
-                onChange={(e) => set("logoUrl", e.target.value)}
-                placeholder="https://cdn.shopify.com/your-logo.png"
-              />
-              {errors.logoUrl && <p className="text-sm text-destructive">{errors.logoUrl}</p>}
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="accent-color">Accent color</Label>
-              <div className="flex items-center gap-2">
-                <input
-                  id="accent-color"
-                  type="color"
-                  value={form.accentColor}
-                  onChange={(e) => set("accentColor", e.target.value)}
-                  className="h-9 w-12 rounded border"
-                />
-                <Input value={form.accentColor} onChange={(e) => set("accentColor", e.target.value)} className="w-32" />
-              </div>
-              {errors.accentColor && <p className="text-sm text-destructive">{errors.accentColor}</p>}
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="storefront-url">Storefront URL</Label>
-              <Input id="storefront-url" value={form.storefrontUrl} onChange={(e) => set("storefrontUrl", e.target.value)} placeholder="https://your-store.com" />
-              {errors.storefrontUrl && <p className="text-sm text-destructive">{errors.storefrontUrl}</p>}
-            </div>
-          </CardContent>
-        </Card>
+    <s-page heading="Returns Settings">
+      <s-section heading="Branding">
+        <s-stack direction="block" gap="base">
+          <s-text-field
+            label="Brand name"
+            name="name"
+            value={form.name}
+            placeholder="Your Store"
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("name", e.target.value)}
+          ></s-text-field>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Returns</CardTitle>
-            <CardDescription>Return window and policy shown to customers.</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="return-window">Return window (days)</Label>
-              <Input
-                id="return-window"
-                type="number"
-                min={1}
-                max={365}
-                value={form.returnWindowDays}
-                onChange={(e) => set("returnWindowDays", Number(e.target.value))}
-                className="w-32"
-              />
-              {errors.returnWindowDays && <p className="text-sm text-destructive">{errors.returnWindowDays}</p>}
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="policy-url">Policy URL</Label>
-              <Input id="policy-url" value={form.policyUrl} onChange={(e) => set("policyUrl", e.target.value)} placeholder="https://your-store.com/policies/refund-policy" />
-              {errors.policyUrl && <p className="text-sm text-destructive">{errors.policyUrl}</p>}
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="policy-text">Policy text</Label>
-              <Textarea id="policy-text" value={form.policyText} onChange={(e) => set("policyText", e.target.value)} maxLength={500} rows={3} />
-              {errors.policyText && <p className="text-sm text-destructive">{errors.policyText}</p>}
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="support-email">Support email</Label>
-              <Input id="support-email" type="email" value={form.supportEmail} onChange={(e) => set("supportEmail", e.target.value)} placeholder="help@your-store.com" />
-              {errors.supportEmail && <p className="text-sm text-destructive">{errors.supportEmail}</p>}
-            </div>
-          </CardContent>
-        </Card>
+          <s-stack direction="inline" gap="base" alignItems="center">
+            <s-button onClick={() => document.getElementById("logo-file-input")?.click()} disabled={uploading}>
+              {uploading ? "Uploading…" : "Upload logo"}
+            </s-button>
+            <s-button onClick={handleChooseFromLibrary} disabled={loadingLibrary}>
+              {loadingLibrary ? "Loading…" : "Choose from Shopify"}
+            </s-button>
+            <input
+              id="logo-file-input"
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/svg+xml"
+              style={{ display: "none" }}
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleLogoFile(f) }}
+            />
+          </s-stack>
+          <s-url-field
+            label="Or paste a logo URL"
+            name="logoUrl"
+            value={form.logoUrl}
+            placeholder="https://cdn.shopify.com/your-logo.png"
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("logoUrl", e.target.value)}
+          ></s-url-field>
+          {errors.logoUrl && <s-paragraph tone="critical">{errors.logoUrl}</s-paragraph>}
 
-        <div className="flex items-center gap-3">
-          <Button type="submit" disabled={status === "saving"} className="bg-[#000000]">
-            {status === "saving" ? "Saving…" : "Save"}
-          </Button>
-          {status === "saved" && <span className="text-sm text-green-700">Saved.</span>}
-          {status === "error" && <span className="text-sm text-destructive">Something went wrong. Try again.</span>}
-        </div>
-      </form>
+          <s-color-field
+            label="Accent color"
+            name="accentColor"
+            value={form.accentColor}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("accentColor", e.target.value)}
+          ></s-color-field>
+          {errors.accentColor && <s-paragraph tone="critical">{errors.accentColor}</s-paragraph>}
+
+          <s-url-field
+            label="Storefront URL"
+            name="storefrontUrl"
+            value={form.storefrontUrl}
+            placeholder="https://your-store.com"
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("storefrontUrl", e.target.value)}
+          ></s-url-field>
+          {errors.storefrontUrl && <s-paragraph tone="critical">{errors.storefrontUrl}</s-paragraph>}
+        </s-stack>
+      </s-section>
+
+      <s-section heading="Returns">
+        <s-stack direction="block" gap="base">
+          <s-number-field
+            label="Return window (days)"
+            name="returnWindowDays"
+            min={1}
+            max={365}
+            value={form.returnWindowDays}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("returnWindowDays", Number(e.target.value))}
+          ></s-number-field>
+          {errors.returnWindowDays && <s-paragraph tone="critical">{errors.returnWindowDays}</s-paragraph>}
+
+          <s-url-field
+            label="Policy URL"
+            name="policyUrl"
+            value={form.policyUrl}
+            placeholder="https://your-store.com/policies/refund-policy"
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policyUrl", e.target.value)}
+          ></s-url-field>
+          {errors.policyUrl && <s-paragraph tone="critical">{errors.policyUrl}</s-paragraph>}
+
+          <s-text-area
+            label="Policy text"
+            name="policyText"
+            value={form.policyText}
+            maxLength={500}
+            rows={3}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("policyText", e.target.value)}
+          ></s-text-area>
+          {errors.policyText && <s-paragraph tone="critical">{errors.policyText}</s-paragraph>}
+
+          <s-email-field
+            label="Support email"
+            name="supportEmail"
+            value={form.supportEmail}
+            placeholder="help@your-store.com"
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("supportEmail", e.target.value)}
+          ></s-email-field>
+          {errors.supportEmail && <s-paragraph tone="critical">{errors.supportEmail}</s-paragraph>}
+        </s-stack>
+      </s-section>
+
+      <s-section>
+        <form onSubmit={handleSave}>
+          <s-stack direction="inline" gap="base" alignItems="center">
+            <s-button type="submit" variant="primary" disabled={status === "saving"}>
+              {status === "saving" ? "Saving…" : "Save"}
+            </s-button>
+            {status === "saved" && <s-text tone="success">Saved.</s-text>}
+            {status === "error" && <s-paragraph tone="critical">Something went wrong. Try again.</s-paragraph>}
+          </s-stack>
+        </form>
+      </s-section>
 
       <BrandingPreview logoUrl={form.logoUrl} name={form.name} accentColor={form.accentColor} />
-    </div>
+    </s-page>
   )
 }
