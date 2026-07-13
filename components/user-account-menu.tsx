@@ -135,7 +135,7 @@ export function UserAccountMenuItems({ inline = false }: { inline?: boolean }) {
   if (inline) {
     return (
       <>
-        <MenuLink href="https://account.iblazevape.co.uk/profile" icon={UserCircle} external inline>
+        <MenuLink href="/account" icon={UserCircle} inline>
           My Profile
         </MenuLink>
         <MenuSeparator />
@@ -159,7 +159,7 @@ export function UserAccountMenuItems({ inline = false }: { inline?: boolean }) {
   return (
     <>
       <DropdownMenuGroup>
-        <MenuLink href="https://account.iblazevape.co.uk/profile" icon={UserCircle} external>
+        <MenuLink href="/account" icon={UserCircle}>
           My Profile
         </MenuLink>
       </DropdownMenuGroup>
