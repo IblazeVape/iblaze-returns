@@ -36,7 +36,18 @@ export function SettingsForm({
       body.append("file", file)
       const res = await fetch("/api/app/logo-upload", { method: "POST", body })
       const data = await res.json()
-      if (res.ok && data.url) set("logoUrl", data.url)
+      if (res.ok && data.url) {
+        set("logoUrl", data.url)
+        // Clear any prior logoUrl error on successful upload
+        setErrors((e) => {
+          const { logoUrl, ...rest } = e
+          return rest
+        })
+      } else {
+        setErrors((e) => ({ ...e, logoUrl: "Upload failed. Try a different file or paste a URL instead." }))
+      }
+    } catch {
+      setErrors((e) => ({ ...e, logoUrl: "Upload failed. Try a different file or paste a URL instead." }))
     } finally {
       setUploading(false)
     }
