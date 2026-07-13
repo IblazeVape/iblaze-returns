@@ -162,7 +162,7 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
 
     const shopifyAccessToken = await getTenantToken(shop);
     if (!shopifyAccessToken) {
-      console.error("No Shopify Admin token in Redis. Visit /api/shopify-callback to install.");
+      console.error("No Shopify Admin token in Redis. Merchant needs to (re)open the app in Shopify admin to install.");
       return NextResponse.json(
         { error: "Store configuration error. Please contact support." },
         { status: 500 }
