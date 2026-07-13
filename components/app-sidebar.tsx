@@ -16,11 +16,15 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   user?: { name: string; email: string }
   onNavigate?: (section: string) => void
   activeSection?: string
+  branding?: { name: string; logoUrl: string; storefrontUrl: string }
 }
 
-function SidebarBrandHeader() {
+function SidebarBrandHeader({ branding }: { branding?: { name: string; logoUrl: string; storefrontUrl: string } }) {
   const { state } = useSidebar()
   const isCollapsed = state === "collapsed"
+  const storeUrl = branding?.storefrontUrl || "https://iblazevape.co.uk"
+  const logoUrl = branding?.logoUrl || "https://cdn.shopify.com/s/files/1/0941/5383/4761/files/IblazeLogo.png?v=14858"
+  const brandName = branding?.name || "iBlaze Returns"
 
   return (
     <SidebarHeader
@@ -38,17 +42,17 @@ function SidebarBrandHeader() {
             className="data-[slot=sidebar-menu-button]:p-1.5! group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:hover:bg-transparent brand-logo-button"
           >
             <a
-              href="https://iblazevape.co.uk"
+              href={storeUrl}
               target="_blank"
               className="flex items-center group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:overflow-hidden"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="https://cdn.shopify.com/s/files/1/0941/5383/4761/files/IblazeLogo.png?v=14858"
+                src={logoUrl}
                 className="size-8 shrink-0 object-contain object-center brand-logo-img"
-                alt="iBlaze Vape"
+                alt={brandName}
               />
-              <span className="text-base font-semibold group-data-[collapsible=icon]:hidden">iBlaze Returns</span>
+              <span className="text-base font-semibold group-data-[collapsible=icon]:hidden">{brandName}</span>
             </a>
           </SidebarMenuButton>
         </SidebarMenuItem>
@@ -65,7 +69,7 @@ const LOOKUP_ANOTHER_ORDER_URL = "#lookup-another-order"
  * instead of an initial letter. */
 const GUEST_PENDING_USER = { name: "Login to see all orders", email: "" }
 
-export function AppSidebar({ user, onNavigate, activeSection, ...props }: AppSidebarProps) {
+export function AppSidebar({ user, onNavigate, activeSection, branding, ...props }: AppSidebarProps) {
   // Guest hasn't verified an order yet (still on the lookup form) — nothing
   // to navigate to yet.
   const isGuestPending = getAppsReturnsIdentityKind() === "guest-or-login" && !isGuestOrderContext()
@@ -86,7 +90,7 @@ export function AppSidebar({ user, onNavigate, activeSection, ...props }: AppSid
   }
   return (
     <Sidebar collapsible="icon" {...props}>
-      <SidebarBrandHeader />
+      <SidebarBrandHeader branding={branding} />
       <SidebarContent>
         <div className="flex min-h-0 flex-1 w-full flex-col group-data-[collapsible=icon]:items-center">
           {navMain.length > 0 && <NavMain items={navMain} onNavigate={handleNavigate} activeSection={activeSection} />}

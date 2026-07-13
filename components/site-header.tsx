@@ -29,6 +29,7 @@ interface SiteHeaderProps {
   /** Hide the account avatar/dropdown — there's no identity to represent
    * before a guest has verified an order. */
   showAccountMenu?: boolean
+  storefrontUrl?: string
 }
 
 function SidebarToggleControls({ mobileOnly = false }: { mobileOnly?: boolean }) {
@@ -60,6 +61,7 @@ export function SiteHeader({
   orderStatusUrl,
   showSidebarToggle = true,
   showAccountMenu = true,
+  storefrontUrl = "https://iblazevape.co.uk",
 }: SiteHeaderProps) {
   const initial = firstName?.[0]?.toUpperCase() || "?"
   const user = { name: firstName || "Customer", email: email || "" }
@@ -112,7 +114,7 @@ export function SiteHeader({
             </a>
           )}
           <a
-            href="https://iblazevape.co.uk"
+            href={storefrontUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="hidden min-[1025px]:flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -135,7 +137,7 @@ export function SiteHeader({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="min-w-40">
                 <DropdownMenuItem asChild>
-                  <a href="https://iblazevape.co.uk" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                  <a href={storefrontUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
                     <Home className="size-4" />
                     Store
                   </a>
@@ -152,7 +154,7 @@ export function SiteHeader({
           ) : (
             /* Mobile: single Store link when no Status */
             <a
-              href="https://iblazevape.co.uk"
+              href={storefrontUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="min-[1025px]:hidden flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"

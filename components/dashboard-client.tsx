@@ -4463,6 +4463,15 @@ function DashboardClientInner() {
   const [statusFilter, setStatusFilter]   = useState<string[]>([])
   const [activeSection, setActiveSection] = useState("#orders")
   const [statusSheetOpen, setStatusSheetOpen] = useState(false)
+  const [branding, setBranding] = useState<{
+    name: string
+    logoUrl: string
+    accentColor: string
+    storefrontUrl: string
+    supportEmail: string
+    policyUrl: string
+    policyText: string
+  }>({ name: "", logoUrl: "", accentColor: "#000000", storefrontUrl: "", supportEmail: "", policyUrl: "", policyText: "" })
   const sentinelRef = React.useRef<HTMLDivElement | null>(null)
   const ordersScrollRef = React.useRef<HTMLDivElement | null>(null)
   const loadingMoreRef = React.useRef(false)
@@ -4492,6 +4501,14 @@ function DashboardClientInner() {
       })
       .catch(() => setError("Failed to load orders."))
       .finally(() => setLoading(false))
+  }, [])
+
+  useEffect(() => {
+    if (DEMO_MODE) return
+    fetch("/api/branding", { cache: "no-store" })
+      .then(r => r.json())
+      .then(d => { if (d.branding) setBranding(d.branding) })
+      .catch(() => {})
   }, [])
 
   // Auto-select an order when ?order=<numericId> is in the URL (e.g. from Shopify
@@ -4610,7 +4627,8 @@ function DashboardClientInner() {
       user={user}
       onNavigate={s => { setActiveSection(s); setSelectedOrder(null) }}
       activeSection={activeSection}
-      accentColor="#E5403B"
+      accentColor={branding.accentColor}
+      branding={{ name: branding.name, logoUrl: branding.logoUrl, storefrontUrl: branding.storefrontUrl }}
       headerProps={{
         title: selectedOrder ? getOrderPageHeaderTitle(selectedOrder) : activeSection === "#home" ? "Dashboard" : "My Orders",
         titleIcon: orderHeaderStatus ? { icon: orderHeaderStatus.icon } : undefined,
@@ -4620,6 +4638,7 @@ function DashboardClientInner() {
         firstName: data?.firstName,
         email: data?.email,
         orderStatusUrl: selectedOrder ? (isAppsReturnsPortal() && selectedOrder.statusPageUrl ? selectedOrder.statusPageUrl : `https://account.iblazevape.co.uk/orders/${selectedOrder.id.split("/").pop()}`) : undefined,
+        storefrontUrl: branding.storefrontUrl || undefined,
       }}
     >
         {selectedOrder && <StickyOrderSummaryStrip key={selectedOrder.id} order={selectedOrder} />}

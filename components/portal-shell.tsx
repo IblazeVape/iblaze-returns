@@ -19,6 +19,7 @@ export function PortalShell({
   activeSection,
   hideIdentity = false,
   accentColor,
+  branding,
   headerProps,
   children,
 }: {
@@ -36,6 +37,10 @@ export function PortalShell({
    * tree. See Task 7 of the settings-page plan for the full list of call
    * sites this variable replaced. */
   accentColor: string
+  /** Tenant identity forwarded to AppSidebar's brand header (logo, name,
+   * storefront link). Optional — the legacy `/` portal doesn't pass it yet,
+   * so AppSidebar falls back to the iBlaze defaults. */
+  branding?: { name: string; logoUrl: string; storefrontUrl: string }
   headerProps: React.ComponentProps<typeof SiteHeader>
   children?: React.ReactNode
 }) {
@@ -53,7 +58,7 @@ export function PortalShell({
         } as React.CSSProperties
       }
     >
-      <AppSidebar variant={layout} user={user} onNavigate={onNavigate} activeSection={activeSection} />
+      <AppSidebar variant={layout} user={user} onNavigate={onNavigate} activeSection={activeSection} branding={branding} />
       <SidebarInset className="min-w-0">
         <SiteHeader {...(hideIdentity ? { showAccountMenu: false } : {})} {...headerProps} />
         {children}
