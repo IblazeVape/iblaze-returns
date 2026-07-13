@@ -48,10 +48,12 @@ export async function getTenant(shop: string): Promise<Tenant | null> {
     scopes: String(r.scopes ?? ""),
     plan: String(r.plan ?? DEFAULT_TENANT_FIELDS.plan),
     returnWindowDays: Number(r.returnWindowDays ?? DEFAULT_TENANT_FIELDS.returnWindowDays),
-    branding:
-      typeof r.branding === "string"
+    branding: {
+      ...DEFAULT_TENANT_FIELDS.branding,
+      ...(typeof r.branding === "string"
         ? JSON.parse(r.branding)
-        : (r.branding as Tenant["branding"]) ?? DEFAULT_TENANT_FIELDS.branding,
+        : (r.branding as Partial<Tenant["branding"]> | undefined) ?? {}),
+    },
   };
 }
 

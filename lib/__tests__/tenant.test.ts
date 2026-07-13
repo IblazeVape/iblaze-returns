@@ -71,4 +71,33 @@ describe("tenant store", () => {
     expect(t?.branding.supportEmail).toBe("help@acme-vapes.com");
     expect(t?.branding.policyText).toBe("Unopened items only, within the return window.");
   });
+
+  it("merges old branding JSON with new field defaults", async () => {
+    // Simulate a tenant record written before the new branding fields existed,
+    // containing only the 3 old fields as a JSON string
+    const oldBrandingJson = JSON.stringify({
+      name: "Old Co",
+      logoUrl: "https://old.example/logo.png",
+      accentColor: "#111111",
+    });
+    store.set("tenant:legacy.myshopify.com", {
+      accessToken: "tok_legacy",
+      installedAt: "2024-01-01T00:00:00Z",
+      scopes: "read_orders",
+      plan: "free",
+      returnWindowDays: 30,
+      branding: oldBrandingJson,
+    });
+
+    const t = await getTenant("legacy.myshopify.com");
+    // Old fields should be preserved from the stored JSON
+    expect(t?.branding.name).toBe("Old Co");
+    expect(t?.branding.logoUrl).toBe("https://old.example/logo.png");
+    expect(t?.branding.accentColor).toBe("#111111");
+    // New fields should default to empty strings (not undefined)
+    expect(t?.branding.storefrontUrl).toBe("");
+    expect(t?.branding.supportEmail).toBe("");
+    expect(t?.branding.policyUrl).toBe("");
+    expect(t?.branding.policyText).toBe("");
+  });
 });
