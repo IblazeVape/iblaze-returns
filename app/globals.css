@@ -349,6 +349,14 @@
 
 @layer base {
   :root {
+    /* Fallback for the tenant accent color. PortalShell sets the real
+       per-tenant value on document.documentElement (see its useEffect) so
+       that Radix UI Dialog/Drawer content — portaled straight to
+       document.body, outside PortalShell's own DOM subtree — still
+       resolves var(--brand) to the tenant's actual color rather than
+       nothing. This value is only the last-resort default (e.g. before
+       PortalShell mounts, or in contexts that never render PortalShell). */
+    --brand: #000000;
     --radius: 0.625rem;
     --chart-1: 3 76% 56%;
     --chart-2: 0 0% 60%;

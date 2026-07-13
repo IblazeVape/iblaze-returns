@@ -46,6 +46,23 @@ export function PortalShell({
 }) {
   const { layout } = useSidebarLayout()
 
+  // Also set --brand on the <html> element itself. The inline style below
+  // on SidebarProvider only covers PortalShell's own DOM subtree, so CSS
+  // custom properties don't reach content Radix UI's Dialog/Drawer portal
+  // straight to document.body (a sibling of PortalShell's subtree, not a
+  // descendant). document.documentElement is a true ancestor of both
+  // PortalShell's subtree AND anything portaled to document.body, so
+  // setting it there makes var(--brand) resolve to the tenant's real color
+  // everywhere. The inline style on SidebarProvider still wins for elements
+  // inside PortalShell itself (inline styles have higher specificity than
+  // the inherited value from an ancestor), so it's kept for that fast path.
+  React.useEffect(() => {
+    document.documentElement.style.setProperty("--brand", accentColor)
+    return () => {
+      document.documentElement.style.removeProperty("--brand")
+    }
+  }, [accentColor])
+
   return (
     <SidebarProvider
       defaultOpen={true}
