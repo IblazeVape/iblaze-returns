@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { AppNav } from "@/components/app-nav";
 import { SettingsForm } from "@/components/app-settings/settings-form";
 import type { TenantBranding } from "@/lib/tenant";
 
@@ -58,23 +59,34 @@ export function MerchantAppGate() {
 
   if (state.status === "loading") {
     return (
-      <s-page heading="Returns Settings">
-        <s-box padding="large">
-          <s-stack direction="block" alignItems="center">
-            <s-spinner accessibilityLabel="Loading" />
-          </s-stack>
-        </s-box>
-      </s-page>
+      <>
+        <AppNav />
+        <s-page heading="Returns Settings">
+          <s-box padding="large">
+            <s-stack direction="block" alignItems="center">
+              <s-spinner accessibilityLabel="Loading" />
+            </s-stack>
+          </s-box>
+        </s-page>
+      </>
     );
   }
   if (state.status === "error") {
     return (
-      <s-page heading="Returns Settings">
-        <s-banner heading="Couldn't load settings" tone="critical">
-          <s-paragraph>{state.message}</s-paragraph>
-        </s-banner>
-      </s-page>
+      <>
+        <AppNav />
+        <s-page heading="Returns Settings">
+          <s-banner heading="Couldn't load settings" tone="critical">
+            <s-paragraph>{state.message}</s-paragraph>
+          </s-banner>
+        </s-page>
+      </>
     );
   }
-  return <SettingsForm initialBranding={state.branding} initialReturnWindowDays={state.returnWindowDays} />;
+  return (
+    <>
+      <AppNav />
+      <SettingsForm initialBranding={state.branding} initialReturnWindowDays={state.returnWindowDays} />
+    </>
+  );
 }

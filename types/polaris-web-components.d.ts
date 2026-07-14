@@ -12,6 +12,8 @@ declare global {
   namespace React {
     namespace JSX {
       interface IntrinsicElements {
+        "s-app-nav": PolarisElementProps;
+        "s-link": PolarisElementProps;
         "s-page": PolarisElementProps;
         "s-section": PolarisElementProps;
         "s-stack": PolarisElementProps;
