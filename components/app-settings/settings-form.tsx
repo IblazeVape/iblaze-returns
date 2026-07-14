@@ -414,6 +414,7 @@ export function SettingsForm({
                 rows={3}
                 onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("policyText", e.target.value)}
               ></s-text-area>
+              <s-paragraph tone="subdued">Shown right after "{form.returnWindowDays}-day returns" in that same home-page banner — e.g. "— {form.policyText || "items can be returned within 30 days"}". Not the same as the "Review & Accept" dialog below, which has its own separate text.</s-paragraph>
               {errors.policyText && <s-paragraph tone="critical">{errors.policyText}</s-paragraph>}
 
               <s-checkbox
