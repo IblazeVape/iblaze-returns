@@ -26,6 +26,7 @@ export type InitialBranding = {
   sidebarLayoutSwitcherEnabled: boolean
   defaultSidebarLayout: "inset" | "sidebar"
   sidebarSubmenusExpandedByDefault: boolean
+  guestBackgroundStyle: "none" | "shapeGrid" | "dotField"
 }
 
 export type GateInitial =

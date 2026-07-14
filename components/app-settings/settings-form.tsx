@@ -23,7 +23,7 @@ type MediaLibraryFile = { id: string; url: string; alt: string | null; width: nu
 type SettingsTab = "branding" | "returns" | "navigation" | "table";
 
 const TAB_FIELDS: Record<SettingsTab, (keyof BrandingInput)[]> = {
-  branding: ["name", "logoUrl", "accentColor", "storefrontUrl", "supportEmail"],
+  branding: ["name", "logoUrl", "accentColor", "storefrontUrl", "supportEmail", "guestBackgroundStyle"],
   returns: [
     "returnWindowDays", "requirePolicyAcceptance",
     "policyHeading", "policySubheading", "policyLastUpdated", "policyBodyMode", "policyCategories", "policyBodyText",
@@ -378,6 +378,18 @@ export function SettingsForm({
             ></s-email-field>
             <s-paragraph tone="subdued">Only shown after a customer submits a return that includes an item still in transit (a split-shipment order where the rest has already arrived), as a "contact us if that item has a delivery issue" line.</s-paragraph>
             {errors.supportEmail && <s-paragraph tone="critical">{errors.supportEmail}</s-paragraph>}
+
+            <s-select
+              label="Guest lookup background"
+              name="guestBackgroundStyle"
+              value={form.guestBackgroundStyle}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => set("guestBackgroundStyle", e.target.value as "none" | "shapeGrid" | "dotField")}
+            >
+              <s-option value="none">None</s-option>
+              <s-option value="shapeGrid">Shape grid (animated squares)</s-option>
+              <s-option value="dotField">Dot field (interactive dots)</s-option>
+            </s-select>
+            <s-paragraph tone="subdued">An animated background behind the "Find your order" guest lookup screen, before a customer signs in.</s-paragraph>
           </s-stack>
         </s-section>
       )}

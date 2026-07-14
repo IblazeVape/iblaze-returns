@@ -47,6 +47,7 @@ export type TenantBranding = {
   shipmentCardsEnabled: boolean;
   productImageLinksEnabled: boolean;
   sidebarSubmenusExpandedByDefault: boolean;
+  guestBackgroundStyle: "none" | "shapeGrid" | "dotField";
 };
 
 export type Tenant = {
@@ -102,6 +103,7 @@ export const DEFAULT_TENANT_FIELDS = {
     shipmentCardsEnabled: true,
     productImageLinksEnabled: true,
     sidebarSubmenusExpandedByDefault: true,
+    guestBackgroundStyle: "none",
   } satisfies TenantBranding,
 };
 

@@ -89,6 +89,10 @@ export async function PUT(request: NextRequest) {
       typeof body.sidebarSubmenusExpandedByDefault === "boolean"
         ? body.sidebarSubmenusExpandedByDefault
         : existing.branding.sidebarSubmenusExpandedByDefault,
+    guestBackgroundStyle:
+      body.guestBackgroundStyle === "none" || body.guestBackgroundStyle === "shapeGrid" || body.guestBackgroundStyle === "dotField"
+        ? body.guestBackgroundStyle
+        : existing.branding.guestBackgroundStyle,
   };
 
   const { valid, errors } = validateBrandingInput(input);
@@ -133,6 +137,7 @@ export async function PUT(request: NextRequest) {
       shipmentCardsEnabled: input.shipmentCardsEnabled,
       productImageLinksEnabled: input.productImageLinksEnabled,
       sidebarSubmenusExpandedByDefault: input.sidebarSubmenusExpandedByDefault,
+      guestBackgroundStyle: input.guestBackgroundStyle,
     },
   });
 

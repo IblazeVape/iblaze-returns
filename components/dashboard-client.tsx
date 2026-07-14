@@ -4220,6 +4220,7 @@ function DashboardClientInner() {
     tableSearchEnabled: true, tableSearchPlaceholder: "Search product or variant...",
     tableColumnsButtonEnabled: true, tableFilterButtonEnabled: true, tablePageSizeEnabled: true,
     shipmentCardsEnabled: true, productImageLinksEnabled: true, sidebarSubmenusExpandedByDefault: true,
+    guestBackgroundStyle: "none",
   })
   // False until accentColor holds a real (cached or fetched) tenant value —
   // the "#000000" placeholder above is a type-safe default, not a real

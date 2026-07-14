@@ -37,6 +37,7 @@ const VALID: BrandingInput = {
   shipmentCardsEnabled: true,
   productImageLinksEnabled: true,
   sidebarSubmenusExpandedByDefault: true,
+  guestBackgroundStyle: "none",
 };
 
 describe("validateBrandingInput", () => {

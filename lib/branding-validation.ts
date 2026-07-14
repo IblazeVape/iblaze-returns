@@ -38,6 +38,7 @@ export type BrandingInput = {
   shipmentCardsEnabled: boolean;
   productImageLinksEnabled: boolean;
   sidebarSubmenusExpandedByDefault: boolean;
+  guestBackgroundStyle: "none" | "shapeGrid" | "dotField";
 };
 
 const HEX_COLOR_RE = /^#[0-9a-fA-F]{6}$/;
