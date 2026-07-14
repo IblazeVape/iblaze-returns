@@ -6,10 +6,16 @@ import type { TenantBranding } from "@/lib/tenant"
 
 declare const shopify: {
   idToken: () => Promise<string>;
+  // shopify.picker() resolves to an object whose `selected` property is
+  // ITSELF a promise of plain ID strings — not a resolved array of
+  // {id: string} objects. Confirmed via Shopify's own docs example:
+  // `const picker = await shopify.picker({...}); const selected = await picker.selected`.
+  // Getting this shape wrong meant the code below never actually read a
+  // selection (accessing [0] on a Promise is always undefined).
   picker: (options: {
     heading: string;
     items: { id: string; heading: string; thumbnail?: { url: string } }[];
-  }) => Promise<{ selected: { id: string }[] } | null>;
+  }) => Promise<{ selected: Promise<string[] | undefined> }>;
 };
 
 type MediaLibraryFile = { id: string; url: string; alt: string | null; width: number; height: number };
@@ -96,16 +102,16 @@ export function SettingsForm({
         setErrors((e) => ({ ...e, logoUrl: "No images found in your Shopify media library." }))
         return
       }
-      const result = await shopify.picker({
+      const picker = await shopify.picker({
         heading: "Choose a logo",
         items: files.map((f) => ({ id: f.id, heading: f.alt || filenameFromUrl(f.url), thumbnail: { url: f.url } })),
       })
-      // A null/undefined result means the merchant cancelled the picker —
-      // not an error, do nothing. Only a non-empty selection that fails to
-      // match one of the files we listed is a real (unexpected) failure.
-      if (!result?.selected?.length) return
-      const selectedId = result.selected[0]?.id
-      const chosen = files.find((f) => f.id === selectedId)
+      const selectedIds = await picker.selected
+      // undefined means the merchant cancelled the picker — not an error,
+      // do nothing. Only a non-empty selection that fails to match one of
+      // the files we listed is a real (unexpected) failure.
+      if (!selectedIds?.length) return
+      const chosen = files.find((f) => f.id === selectedIds[0])
       if (chosen) {
         set("logoUrl", chosen.url)
         setErrors((e) => {

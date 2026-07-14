@@ -12,6 +12,7 @@ import {
   installAppsReturnsFetchPatch,
 } from "@/lib/apps-returns-client-session";
 import { setAppsReturnsPortal, setAppsReturnsIdentityKind, setGuestOrderContext } from "@/lib/apps-returns-portal-mode";
+import { setCachedAccentColor } from "@/lib/accent-color-cache";
 
 export type InitialBranding = {
   name: string
@@ -146,6 +147,12 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
           <GuestLookupForm
             onVerified={(token, order) => {
               storeAppsReturnsSession(token);
+              // We already have the real accent color server-side (it came
+              // down in `initial.branding`) — seed the cache DashboardClient
+              // reads on its first paint so its "Authenticating" overlay
+              // shows the tenant's actual color immediately instead of
+              // flashing neutral gray while it re-fetches branding itself.
+              setCachedAccentColor(initial.branding.accentColor);
               const numericOrderId = order.id.split("/").pop() ?? null;
               setGuestOrderContext(numericOrderId, handleLookupAnother);
               setReady(true);

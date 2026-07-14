@@ -30,6 +30,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { PolicyMarkdown } from "@/components/policy-markdown"
+import { getCachedAccentColor, setCachedAccentColor } from "@/lib/accent-color-cache"
 import { cn } from "@/lib/utils"
 import { Bar, BarChart, CartesianGrid, XAxis } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
@@ -2956,15 +2957,15 @@ function HygienePolicy({
     return (
       <Dialog>
         <DialogTrigger asChild>{trigger}</DialogTrigger>
-        <DialogContent className="sm:max-w-[425px] gap-0 p-0 overflow-hidden max-h-[85vh] flex flex-col">
-          <DialogHeader className="px-6 pt-6 pb-4 border-b border-border shrink-0">
+        <DialogContent className="sm:max-w-[425px] gap-0 p-0 overflow-hidden">
+          <DialogHeader className="px-6 pt-6 pb-4 border-b border-border">
             <DialogTitle className="flex items-center gap-2"><ShieldCheck className="size-4 text-[var(--brand)]" /> {heading}</DialogTitle>
             <DialogDescription>{subheading}</DialogDescription>
           </DialogHeader>
-          <ScrollArea className="flex-1 min-h-0">
+          <ScrollArea className="max-h-[50vh]">
             <HygienePolicyList itemPx="px-6" bodyMode={bodyMode} categories={categories} bodyText={bodyText} footerNote={footerNote} />
           </ScrollArea>
-          <div className="flex gap-2 px-6 pb-6 pt-4 shrink-0">
+          <div className="flex gap-2 px-6 pb-6 pt-4">
             <DialogClose asChild>
               <Button className="flex-1 bg-[var(--brand)] hover:bg-[var(--brand)]/90 text-white" onClick={() => { onAccept(); toast.success("Policy accepted") }}><CheckCircle2 className="size-4" /> I Accept</Button>
             </DialogClose>
@@ -2981,15 +2982,15 @@ function HygienePolicy({
     <Drawer shouldScaleBackground={false}>
       <DrawerTrigger asChild>{trigger}</DrawerTrigger>
       <DrawerContent>
-        <DrawerHeader className="text-left pb-4 shrink-0">
+        <DrawerHeader className="text-left pb-4">
           <DrawerTitle className="flex items-center gap-2"><ShieldCheck className="size-4 text-[var(--brand)]" /> {heading}</DrawerTitle>
           <DrawerDescription>{subheading}</DrawerDescription>
         </DrawerHeader>
-        <Separator className="shrink-0" />
-        <ScrollArea className="flex-1 min-h-0">
+        <Separator />
+        <div className="overflow-y-auto max-h-[45vh]">
           <HygienePolicyList itemPx="px-4" bodyMode={bodyMode} categories={categories} bodyText={bodyText} footerNote={footerNote} />
-        </ScrollArea>
-        <DrawerFooter className="pt-2 shrink-0">
+        </div>
+        <DrawerFooter className="pt-2">
           <div className="flex gap-2">
             <DrawerClose asChild>
               <Button className="flex-1 bg-[var(--brand)] hover:bg-[var(--brand)]/90 text-white" onClick={() => { onAccept(); toast.success("Policy accepted") }}><CheckCircle2 className="size-4" /> I Accept</Button>
@@ -4524,29 +4525,6 @@ export default function DashboardClient({ demo = false }: { demo?: boolean } = {
   )
 }
 
-const CACHED_ACCENT_COLOR_KEY = "iblaze_cached_accent_color"
-
-/** The tenant's accent color only arrives after the branding fetch resolves,
- * so the very first paint (e.g. the "Authenticating" spinner) has no real
- * color to use yet. Caching the last-seen value means every visit AFTER the
- * first renders branded immediately instead of flashing a neutral color —
- * the first-ever visit still falls back to neutral since there's nothing to
- * read yet. */
-function getCachedAccentColor(): string | null {
-  if (typeof window === "undefined") return null
-  try {
-    return window.localStorage.getItem(CACHED_ACCENT_COLOR_KEY)
-  } catch {
-    return null
-  }
-}
-function setCachedAccentColor(color: string) {
-  try {
-    window.localStorage.setItem(CACHED_ACCENT_COLOR_KEY, color)
-  } catch {
-    // localStorage unavailable (private mode, etc.) — non-critical, skip.
-  }
-}
 
 function DashboardClientInner() {
   const searchParams = useSearchParams()
