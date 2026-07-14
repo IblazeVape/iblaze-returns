@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { SidebarLayoutProvider, useSidebarLayout } from "@/components/sidebar-layout-provider";
 import { PortalShell } from "@/components/portal-shell";
+import { ShapeGrid } from "@/components/shape-grid";
 import type { InitialBranding } from "@/components/apps-returns/client-portal-gate";
 
 /**
@@ -73,8 +74,11 @@ function GuestPortalShellInner({
         storeLinkLabel: branding.storeLinkLabel,
       }}
     >
-      <div className="flex flex-1 flex-col items-center justify-center gap-4 px-4 py-10">
-        {children}
+      <div className="relative flex flex-1 flex-col items-center justify-center gap-4 px-4 py-10 overflow-hidden">
+        <ShapeGrid className="absolute inset-0 w-full h-full pointer-events-none" />
+        <div className="relative z-10 flex flex-col items-center gap-4 w-full">
+          {children}
+        </div>
       </div>
     </PortalShell>
   );
