@@ -1,22 +1,26 @@
 "use client"
 
 import * as React from "react"
-import { ShoppingBag, Search, ExternalLink } from "lucide-react"
+import { ShoppingBag, Search, ExternalLink, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
 import { isGuestOrderContext, lookupAnotherOrder, getAppsReturnsIdentityKind } from "@/lib/apps-returns-portal-mode"
+import { getSidebarIcon } from "@/lib/sidebar-icons"
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent,
   SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
+  SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem,
   useSidebar,
 } from "@/components/ui/sidebar"
+
+type SidebarLinkData = { label: string; url: string; icon?: string; children?: { label: string; url: string; icon?: string }[] }
 
 type SidebarBranding = {
   name: string
   logoUrl: string
   storefrontUrl: string
-  sidebarLinks?: { label: string; url: string }[]
+  sidebarLinks?: SidebarLinkData[]
   sidebarNote?: string
 }
 
@@ -43,23 +47,45 @@ function BoldText({ text }: { text: string }) {
   )
 }
 
-function SidebarCustomLinks({ links, note }: { links?: { label: string; url: string }[]; note?: string }) {
+function SidebarCustomLinks({ links, note }: { links?: SidebarLinkData[]; note?: string }) {
   if (!links?.length && !note) return null
   return (
     <SidebarGroup>
       <SidebarGroupContent className="flex flex-col gap-1">
         {links && links.length > 0 && (
           <SidebarMenu>
-            {links.map((link) => (
-              <SidebarMenuItem key={link.label}>
-                <SidebarMenuButton tooltip={link.label} asChild>
-                  <a href={link.url} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="size-4 shrink-0" />
-                    <span className="group-data-[collapsible=icon]:hidden">{link.label}</span>
-                  </a>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
+            {links.map((link) => {
+              const Icon = getSidebarIcon(link.icon) ?? ExternalLink
+              const hasChildren = !!link.children?.length
+              return (
+                <SidebarMenuItem key={link.label}>
+                  <SidebarMenuButton tooltip={link.label} asChild>
+                    <a href={link.url} target="_blank" rel="noopener noreferrer">
+                      <Icon className="size-4 shrink-0" />
+                      <span className="group-data-[collapsible=icon]:hidden">{link.label}</span>
+                      {hasChildren && <ChevronRight className="ml-auto size-3.5 shrink-0 opacity-50 group-data-[collapsible=icon]:hidden" />}
+                    </a>
+                  </SidebarMenuButton>
+                  {hasChildren && (
+                    <SidebarMenuSub>
+                      {link.children!.map((child) => {
+                        const ChildIcon = getSidebarIcon(child.icon)
+                        return (
+                          <SidebarMenuSubItem key={child.label}>
+                            <SidebarMenuSubButton asChild>
+                              <a href={child.url} target="_blank" rel="noopener noreferrer">
+                                {ChildIcon && <ChildIcon className="size-3.5 shrink-0" />}
+                                <span>{child.label}</span>
+                              </a>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        )
+                      })}
+                    </SidebarMenuSub>
+                  )}
+                </SidebarMenuItem>
+              )
+            })}
           </SidebarMenu>
         )}
         {note && (

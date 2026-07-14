@@ -41,7 +41,13 @@ export function PortalShell({
    * storefront link) plus its custom nav links/note. Optional — the legacy
    * `/` portal doesn't pass it yet, so AppSidebar falls back to the iBlaze
    * defaults. */
-  branding?: { name: string; logoUrl: string; storefrontUrl: string; sidebarLinks?: { label: string; url: string }[]; sidebarNote?: string }
+  branding?: {
+    name: string
+    logoUrl: string
+    storefrontUrl: string
+    sidebarLinks?: { label: string; url: string; icon?: string; children?: { label: string; url: string; icon?: string }[] }[]
+    sidebarNote?: string
+  }
   headerProps: React.ComponentProps<typeof SiteHeader>
   children?: React.ReactNode
 }) {
