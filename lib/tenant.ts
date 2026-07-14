@@ -15,8 +15,6 @@ export type TenantBranding = {
   accentColor: string;
   storefrontUrl: string;
   supportEmail: string;
-  policyUrl: string;
-  policyText: string;
   requirePolicyAcceptance: boolean;
   storeLinkEnabled: boolean;
   storeLinkLabel: string;
@@ -70,8 +68,6 @@ export const DEFAULT_TENANT_FIELDS = {
     accentColor: "#000000",
     storefrontUrl: "",
     supportEmail: "",
-    policyUrl: "",
-    policyText: "",
     requirePolicyAcceptance: true,
     storeLinkEnabled: true,
     storeLinkLabel: "Store",

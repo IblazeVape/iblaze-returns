@@ -4207,7 +4207,7 @@ function DashboardClientInner() {
   const [statusFilter, setStatusFilter]   = useState<string[]>([])
   const [activeSection, setActiveSection] = useState("#orders")
   const [branding, setBranding] = useState<TenantBranding>({
-    name: "", logoUrl: "", accentColor: "#000000", storefrontUrl: "", supportEmail: "", policyUrl: "", policyText: "",
+    name: "", logoUrl: "", accentColor: "#000000", storefrontUrl: "", supportEmail: "",
     requirePolicyAcceptance: true, storeLinkEnabled: true, storeLinkLabel: "Store",
     orderStatusLinkEnabled: true, orderStatusLinkLabel: "Order Status",
     policyHeading: "iBlaze Returns Policy", policySubheading: "Review our returns policy before selecting items to return.",

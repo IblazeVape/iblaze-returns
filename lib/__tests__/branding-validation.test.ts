@@ -7,8 +7,6 @@ const VALID: BrandingInput = {
   accentColor: "#4F46E5",
   storefrontUrl: "https://acme-vapes.com",
   supportEmail: "help@acme-vapes.com",
-  policyUrl: "https://acme-vapes.com/policies/refund-policy",
-  policyText: "Unopened items only.",
   returnWindowDays: 30,
   requirePolicyAcceptance: true,
   storeLinkEnabled: true,
@@ -48,14 +46,12 @@ describe("validateBrandingInput", () => {
     expect(result.errors).toEqual({});
   });
 
-  it("accepts empty optional fields (logoUrl, storefrontUrl, policyUrl, policyText, supportEmail)", () => {
+  it("accepts empty optional fields (logoUrl, storefrontUrl, supportEmail)", () => {
     const result = validateBrandingInput({
       ...VALID,
       logoUrl: "",
       storefrontUrl: "",
       supportEmail: "",
-      policyUrl: "",
-      policyText: "",
     });
     expect(result.valid).toBe(true);
   });
@@ -72,23 +68,11 @@ describe("validateBrandingInput", () => {
     expect(result.errors.accentColor).toBeDefined();
   });
 
-  it("rejects an invalid policy URL when non-empty", () => {
-    const result = validateBrandingInput({ ...VALID, policyUrl: "not a url" });
-    expect(result.valid).toBe(false);
-    expect(result.errors.policyUrl).toBeDefined();
-  });
-
   it("rejects a return window outside 1-365", () => {
     expect(validateBrandingInput({ ...VALID, returnWindowDays: 0 }).valid).toBe(false);
     expect(validateBrandingInput({ ...VALID, returnWindowDays: 366 }).valid).toBe(false);
     expect(validateBrandingInput({ ...VALID, returnWindowDays: 365 }).valid).toBe(true);
     expect(validateBrandingInput({ ...VALID, returnWindowDays: 1 }).valid).toBe(true);
-  });
-
-  it("rejects policy text over 500 characters", () => {
-    const result = validateBrandingInput({ ...VALID, policyText: "x".repeat(501) });
-    expect(result.valid).toBe(false);
-    expect(result.errors.policyText).toBeDefined();
   });
 
   it("accepts an empty policyCategories and sidebarLinks list", () => {

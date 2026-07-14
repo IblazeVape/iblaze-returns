@@ -8,8 +8,6 @@ export type BrandingInput = {
   accentColor: string;
   storefrontUrl: string;
   supportEmail: string;
-  policyUrl: string;
-  policyText: string;
   returnWindowDays: number;
   requirePolicyAcceptance: boolean;
   storeLinkEnabled: boolean;
@@ -44,7 +42,6 @@ export type BrandingInput = {
 
 const HEX_COLOR_RE = /^#[0-9a-fA-F]{6}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const POLICY_TEXT_MAX_LENGTH = 500;
 const STORE_LINK_LABEL_MAX_LENGTH = 30;
 const POLICY_HEADING_MAX_LENGTH = 100;
 const POLICY_SUBHEADING_MAX_LENGTH = 200;
@@ -83,14 +80,8 @@ export function validateBrandingInput(
   if (input.storefrontUrl && !isValidUrl(input.storefrontUrl)) {
     errors.storefrontUrl = "Must be a valid URL.";
   }
-  if (input.policyUrl && !isValidUrl(input.policyUrl)) {
-    errors.policyUrl = "Must be a valid URL.";
-  }
   if (input.supportEmail && !EMAIL_RE.test(input.supportEmail)) {
     errors.supportEmail = "Must be a valid email address.";
-  }
-  if (input.policyText.length > POLICY_TEXT_MAX_LENGTH) {
-    errors.policyText = `Must be ${POLICY_TEXT_MAX_LENGTH} characters or fewer.`;
   }
   if (!Number.isInteger(input.returnWindowDays) || input.returnWindowDays < 1 || input.returnWindowDays > 365) {
     errors.returnWindowDays = "Must be a whole number of days between 1 and 365.";

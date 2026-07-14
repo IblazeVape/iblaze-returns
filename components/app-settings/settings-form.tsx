@@ -25,7 +25,7 @@ type SettingsTab = "branding" | "returns" | "navigation" | "table";
 const TAB_FIELDS: Record<SettingsTab, (keyof BrandingInput)[]> = {
   branding: ["name", "logoUrl", "accentColor", "storefrontUrl", "supportEmail"],
   returns: [
-    "returnWindowDays", "policyUrl", "policyText", "requirePolicyAcceptance",
+    "returnWindowDays", "requirePolicyAcceptance",
     "policyHeading", "policySubheading", "policyLastUpdated", "policyBodyMode", "policyCategories", "policyBodyText",
     "policyFooterNoteEnabled", "policyFooterNote", "policyAcceptedMessage", "policyDeclinedMessage",
   ],
@@ -395,27 +395,6 @@ export function SettingsForm({
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("returnWindowDays", Number(e.target.value))}
               ></s-number-field>
               {errors.returnWindowDays && <s-paragraph tone="critical">{errors.returnWindowDays}</s-paragraph>}
-
-              <s-url-field
-                label="Policy URL"
-                name="policyUrl"
-                value={form.policyUrl}
-                placeholder="https://your-store.com/policies/refund-policy"
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policyUrl", e.target.value)}
-              ></s-url-field>
-              <s-paragraph tone="subdued">Shown as a clickable link in the "{form.returnWindowDays}-day returns" banner on the customer's dashboard home page.</s-paragraph>
-              {errors.policyUrl && <s-paragraph tone="critical">{errors.policyUrl}</s-paragraph>}
-
-              <s-text-area
-                label="Policy text"
-                name="policyText"
-                value={form.policyText}
-                maxLength={500}
-                rows={3}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("policyText", e.target.value)}
-              ></s-text-area>
-              <s-paragraph tone="subdued">Shown right after "{form.returnWindowDays}-day returns" in that same home-page banner — e.g. "— {form.policyText || "items can be returned within 30 days"}". Not the same as the "Review & Accept" dialog below, which has its own separate text.</s-paragraph>
-              {errors.policyText && <s-paragraph tone="critical">{errors.policyText}</s-paragraph>}
 
               <s-checkbox
                 label="Require customers to accept the returns policy before selecting items"

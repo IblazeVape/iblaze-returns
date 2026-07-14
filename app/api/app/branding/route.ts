@@ -38,8 +38,6 @@ export async function PUT(request: NextRequest) {
     accentColor: typeof body.accentColor === "string" ? body.accentColor : existing.branding.accentColor,
     storefrontUrl: typeof body.storefrontUrl === "string" ? body.storefrontUrl : existing.branding.storefrontUrl,
     supportEmail: typeof body.supportEmail === "string" ? body.supportEmail : existing.branding.supportEmail,
-    policyUrl: typeof body.policyUrl === "string" ? body.policyUrl : existing.branding.policyUrl,
-    policyText: typeof body.policyText === "string" ? body.policyText : existing.branding.policyText,
     returnWindowDays: typeof body.returnWindowDays === "number" ? body.returnWindowDays : existing.returnWindowDays,
     requirePolicyAcceptance:
       typeof body.requirePolicyAcceptance === "boolean" ? body.requirePolicyAcceptance : existing.branding.requirePolicyAcceptance,
@@ -106,8 +104,6 @@ export async function PUT(request: NextRequest) {
       accentColor: input.accentColor,
       storefrontUrl: input.storefrontUrl,
       supportEmail: input.supportEmail,
-      policyUrl: input.policyUrl,
-      policyText: input.policyText,
       requirePolicyAcceptance: input.requirePolicyAcceptance,
       storeLinkEnabled: input.storeLinkEnabled,
       storeLinkLabel: input.storeLinkLabel,

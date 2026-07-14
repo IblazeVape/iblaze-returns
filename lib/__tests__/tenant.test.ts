@@ -44,8 +44,6 @@ describe("tenant store", () => {
     const t = await getTenant("c.myshopify.com");
     expect(t?.branding.storefrontUrl).toBe("");
     expect(t?.branding.supportEmail).toBe("");
-    expect(t?.branding.policyUrl).toBe("");
-    expect(t?.branding.policyText).toBe("");
     expect(t?.branding.name).toBe("");
     expect(t?.branding.logoUrl).toBe("");
     expect(t?.branding.accentColor).toBe("#000000");
@@ -85,8 +83,6 @@ describe("tenant store", () => {
         accentColor: "#4F46E5",
         storefrontUrl: "https://acme-vapes.com",
         supportEmail: "help@acme-vapes.com",
-        policyUrl: "https://acme-vapes.com/policies/refund-policy",
-        policyText: "Unopened items only, within the return window.",
         requirePolicyAcceptance: false,
         storeLinkEnabled: false,
         storeLinkLabel: "Back to store",
@@ -122,7 +118,6 @@ describe("tenant store", () => {
     expect(t?.returnWindowDays).toBe(14);
     expect(t?.branding.name).toBe("Acme Vapes");
     expect(t?.branding.supportEmail).toBe("help@acme-vapes.com");
-    expect(t?.branding.policyText).toBe("Unopened items only, within the return window.");
     expect(t?.branding.requirePolicyAcceptance).toBe(false);
     expect(t?.branding.storeLinkEnabled).toBe(false);
     expect(t?.branding.storeLinkLabel).toBe("Back to store");
@@ -173,7 +168,5 @@ describe("tenant store", () => {
     // New fields should default to empty strings (not undefined)
     expect(t?.branding.storefrontUrl).toBe("");
     expect(t?.branding.supportEmail).toBe("");
-    expect(t?.branding.policyUrl).toBe("");
-    expect(t?.branding.policyText).toBe("");
   });
 });
