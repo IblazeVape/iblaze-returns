@@ -123,8 +123,8 @@ describe("validateBrandingInput", () => {
     expect(result.valid).toBe(true);
   });
 
-  it("rejects policyBodyText over 2000 characters", () => {
-    const result = validateBrandingInput({ ...VALID, policyBodyText: "x".repeat(2001) });
+  it("rejects policyBodyText over 20000 characters", () => {
+    const result = validateBrandingInput({ ...VALID, policyBodyText: "x".repeat(20001) });
     expect(result.valid).toBe(false);
     expect(result.errors.policyBodyText).toBeDefined();
   });

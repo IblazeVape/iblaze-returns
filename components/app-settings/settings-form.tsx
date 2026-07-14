@@ -15,6 +15,15 @@ declare const shopify: {
 type MediaLibraryFile = { id: string; url: string; alt: string | null; width: number; height: number };
 type SettingsTab = "branding" | "returns" | "navigation";
 
+const TAB_FIELDS: Record<SettingsTab, (keyof BrandingInput)[]> = {
+  branding: ["name", "logoUrl", "accentColor", "storefrontUrl", "supportEmail"],
+  returns: [
+    "returnWindowDays", "policyUrl", "policyText", "requirePolicyAcceptance",
+    "policyHeading", "policySubheading", "policyBodyMode", "policyCategories", "policyBodyText", "policyFooterNote",
+  ],
+  navigation: ["storeLinkEnabled", "storeLinkLabel", "sidebarLinks", "sidebarNote", "sidebarLayoutSwitcherEnabled", "defaultSidebarLayout"],
+};
+
 function filenameFromUrl(url: string): string {
   try {
     const path = new URL(url).pathname;
@@ -36,7 +45,7 @@ export function SettingsForm({
     returnWindowDays: initialReturnWindowDays,
   })
   const [errors, setErrors] = useState<Partial<Record<keyof BrandingInput, string>>>({})
-  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle")
+  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error" | "invalid">("idle")
   const [uploading, setUploading] = useState(false)
   const [loadingLibrary, setLoadingLibrary] = useState(false)
   // Polaris's s-tabs/s-tab-list/s-tab/s-tab-panel custom elements don't
@@ -91,7 +100,11 @@ export function SettingsForm({
         heading: "Choose a logo",
         items: files.map((f) => ({ id: f.id, heading: f.alt || filenameFromUrl(f.url), thumbnail: { url: f.url } })),
       })
-      const selectedId = result?.selected?.[0]?.id
+      // A null/undefined result means the merchant cancelled the picker —
+      // not an error, do nothing. Only a non-empty selection that fails to
+      // match one of the files we listed is a real (unexpected) failure.
+      if (!result?.selected?.length) return
+      const selectedId = result.selected[0]?.id
       const chosen = files.find((f) => f.id === selectedId)
       if (chosen) {
         set("logoUrl", chosen.url)
@@ -99,6 +112,8 @@ export function SettingsForm({
           const { logoUrl, ...rest } = e
           return rest
         })
+      } else {
+        setErrors((e) => ({ ...e, logoUrl: "Couldn't match the selected image. Try again." }))
       }
     } catch {
       setErrors((e) => ({ ...e, logoUrl: "Couldn't open the media library. Try again." }))
@@ -149,7 +164,18 @@ export function SettingsForm({
     e.preventDefault()
     const { valid, errors: validationErrors } = validateBrandingInput(form)
     setErrors(validationErrors)
-    if (!valid) return
+    if (!valid) {
+      // A validation error on a tab that isn't currently open renders to a
+      // hidden section — from the merchant's view, clicking Save appeared to
+      // do nothing at all. Jump to whichever tab actually has the error.
+      const errorKeys = Object.keys(validationErrors)
+      const tabWithError = (Object.keys(TAB_FIELDS) as SettingsTab[]).find((tab) =>
+        TAB_FIELDS[tab].some((field) => errorKeys.includes(field))
+      )
+      if (tabWithError) setActiveTab(tabWithError)
+      setStatus("invalid")
+      return
+    }
 
     setStatus("saving")
     try {
@@ -205,11 +231,19 @@ export function SettingsForm({
 
             <s-stack direction="inline" gap="base" alignItems="center">
               {form.logoUrl && (
+                // key forces a fresh <img> (and fresh error state) whenever the
+                // URL changes, so a broken new URL doesn't keep showing a stale
+                // "broken image" state from a previous one.
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
+                  key={form.logoUrl}
                   src={form.logoUrl}
                   alt="Current logo"
                   style={{ width: 40, height: 40, objectFit: "contain", borderRadius: 6, border: "1px solid #d1d5db" }}
+                  onError={(e) => {
+                    e.currentTarget.style.display = "none"
+                    setErrors((err) => ({ ...err, logoUrl: "This image URL didn't load. Try a different one." }))
+                  }}
                 />
               )}
               <s-button onClick={() => document.getElementById("logo-file-input")?.click()} disabled={uploading}>
@@ -378,9 +412,9 @@ export function SettingsForm({
                     label="Policy body text"
                     name="policyBodyText"
                     value={form.policyBodyText}
-                    maxLength={2000}
-                    rows={6}
-                    placeholder="Write your full returns policy here instead of using category cards."
+                    maxLength={20000}
+                    rows={12}
+                    placeholder="Write your full returns policy here instead of using category cards. Supports Markdown: **bold**, ### headings, and - bullet lists."
                     onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("policyBodyText", e.target.value)}
                   ></s-text-area>
                   {errors.policyBodyText && <s-paragraph tone="critical">{errors.policyBodyText}</s-paragraph>}
@@ -495,6 +529,7 @@ export function SettingsForm({
             </s-button>
             {status === "saved" && <s-text tone="success">Saved.</s-text>}
             {status === "error" && <s-paragraph tone="critical">Something went wrong. Try again.</s-paragraph>}
+            {status === "invalid" && <s-paragraph tone="critical">Fix the highlighted error and try again.</s-paragraph>}
           </s-stack>
         </form>
       </s-section>

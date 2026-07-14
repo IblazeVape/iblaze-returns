@@ -29,6 +29,7 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, Di
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer"
 import { useMediaQuery } from "@/hooks/use-media-query"
+import { PolicyMarkdown } from "@/components/policy-markdown"
 import { cn } from "@/lib/utils"
 import { Bar, BarChart, CartesianGrid, XAxis } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
@@ -2839,7 +2840,7 @@ function HygienePolicyList({
   return (
     <div className={cn("divide-y divide-border", className)}>
       {bodyMode === "text" ? (
-        <p className={cn("text-sm whitespace-pre-wrap py-3", itemPx)}>{bodyText}</p>
+        <PolicyMarkdown text={bodyText ?? ""} className={cn("py-3", itemPx)} />
       ) : (
         categories.map(p => (
           <div key={p.title} className={cn("py-3", itemPx)}>
@@ -2955,13 +2956,15 @@ function HygienePolicy({
     return (
       <Dialog>
         <DialogTrigger asChild>{trigger}</DialogTrigger>
-        <DialogContent className="sm:max-w-[425px] gap-0 p-0 overflow-hidden">
-          <DialogHeader className="px-6 pt-6 pb-4 border-b border-border">
+        <DialogContent className="sm:max-w-[425px] gap-0 p-0 overflow-hidden max-h-[85vh] flex flex-col">
+          <DialogHeader className="px-6 pt-6 pb-4 border-b border-border shrink-0">
             <DialogTitle className="flex items-center gap-2"><ShieldCheck className="size-4 text-[var(--brand)]" /> {heading}</DialogTitle>
             <DialogDescription>{subheading}</DialogDescription>
           </DialogHeader>
-          <HygienePolicyList itemPx="px-6" bodyMode={bodyMode} categories={categories} bodyText={bodyText} footerNote={footerNote} />
-          <div className="flex gap-2 px-6 pb-6 pt-4">
+          <ScrollArea className="flex-1 min-h-0">
+            <HygienePolicyList itemPx="px-6" bodyMode={bodyMode} categories={categories} bodyText={bodyText} footerNote={footerNote} />
+          </ScrollArea>
+          <div className="flex gap-2 px-6 pb-6 pt-4 shrink-0">
             <DialogClose asChild>
               <Button className="flex-1 bg-[var(--brand)] hover:bg-[var(--brand)]/90 text-white" onClick={() => { onAccept(); toast.success("Policy accepted") }}><CheckCircle2 className="size-4" /> I Accept</Button>
             </DialogClose>
@@ -2978,15 +2981,15 @@ function HygienePolicy({
     <Drawer shouldScaleBackground={false}>
       <DrawerTrigger asChild>{trigger}</DrawerTrigger>
       <DrawerContent>
-        <DrawerHeader className="text-left pb-4">
+        <DrawerHeader className="text-left pb-4 shrink-0">
           <DrawerTitle className="flex items-center gap-2"><ShieldCheck className="size-4 text-[var(--brand)]" /> {heading}</DrawerTitle>
           <DrawerDescription>{subheading}</DrawerDescription>
         </DrawerHeader>
-        <Separator />
-        <ScrollArea className="max-h-[50vh]">
+        <Separator className="shrink-0" />
+        <ScrollArea className="flex-1 min-h-0">
           <HygienePolicyList itemPx="px-4" bodyMode={bodyMode} categories={categories} bodyText={bodyText} footerNote={footerNote} />
         </ScrollArea>
-        <DrawerFooter className="pt-2">
+        <DrawerFooter className="pt-2 shrink-0">
           <div className="flex gap-2">
             <DrawerClose asChild>
               <Button className="flex-1 bg-[var(--brand)] hover:bg-[var(--brand)]/90 text-white" onClick={() => { onAccept(); toast.success("Policy accepted") }}><CheckCircle2 className="size-4" /> I Accept</Button>
@@ -4521,6 +4524,30 @@ export default function DashboardClient({ demo = false }: { demo?: boolean } = {
   )
 }
 
+const CACHED_ACCENT_COLOR_KEY = "iblaze_cached_accent_color"
+
+/** The tenant's accent color only arrives after the branding fetch resolves,
+ * so the very first paint (e.g. the "Authenticating" spinner) has no real
+ * color to use yet. Caching the last-seen value means every visit AFTER the
+ * first renders branded immediately instead of flashing a neutral color —
+ * the first-ever visit still falls back to neutral since there's nothing to
+ * read yet. */
+function getCachedAccentColor(): string | null {
+  if (typeof window === "undefined") return null
+  try {
+    return window.localStorage.getItem(CACHED_ACCENT_COLOR_KEY)
+  } catch {
+    return null
+  }
+}
+function setCachedAccentColor(color: string) {
+  try {
+    window.localStorage.setItem(CACHED_ACCENT_COLOR_KEY, color)
+  } catch {
+    // localStorage unavailable (private mode, etc.) — non-critical, skip.
+  }
+}
+
 function DashboardClientInner() {
   const searchParams = useSearchParams()
   const { applyMerchantDefault } = useSidebarLayout()
@@ -4564,11 +4591,27 @@ function DashboardClientInner() {
     policyBodyMode: "categories", policyCategories: DEFAULT_POLICY_CATEGORIES, policyBodyText: "", policyFooterNote: DEFAULT_POLICY_FOOTER_NOTE,
     sidebarLinks: [], sidebarNote: "", sidebarLayoutSwitcherEnabled: true, defaultSidebarLayout: "inset",
   })
+  // False until accentColor holds a real (cached or fetched) tenant value —
+  // the "#000000" placeholder above is a type-safe default, not a real
+  // color, and must never be painted as if it were one.
+  const [accentColorReady, setAccentColorReady] = useState(false)
   const sentinelRef = React.useRef<HTMLDivElement | null>(null)
   const ordersScrollRef = React.useRef<HTMLDivElement | null>(null)
   const loadingMoreRef = React.useRef(false)
   const hasNextPageRef = React.useRef(false)
   const endCursorRef = React.useRef<string | null>(null)
+
+  // Runs before paint (not after, like a plain useEffect would) so a cached
+  // accent color from a previous visit is applied before the user ever sees
+  // the neutral default — same reasoning as SidebarLayoutProvider's cookie
+  // read, just via useLayoutEffect since this one needs to beat first paint.
+  useLayoutEffect(() => {
+    const cached = getCachedAccentColor()
+    if (cached) {
+      setBranding((b) => ({ ...b, accentColor: cached }))
+      setAccentColorReady(true)
+    }
+  }, [])
 
   useEffect(() => {
     loadingMoreRef.current = loadingMore
@@ -4603,6 +4646,10 @@ function DashboardClientInner() {
         if (d.branding) {
           setBranding(d.branding)
           applyMerchantDefault(d.branding.defaultSidebarLayout, d.branding.sidebarLayoutSwitcherEnabled)
+          if (d.branding.accentColor) {
+            setCachedAccentColor(d.branding.accentColor)
+            setAccentColorReady(true)
+          }
         }
       })
       .catch(() => {})
@@ -4988,11 +5035,18 @@ function DashboardClientInner() {
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/40 backdrop-blur-xs">
             <Card className="w-full max-w-xs mx-4 shadow-xl">
               <div className="flex flex-col items-center justify-center gap-3 py-8 px-6">
-                {/* Neutral, not brand-colored: this screen always renders before the
-                    branding fetch resolves, so --brand is still the #000000 CSS
-                    fallback here — using it would flash black before switching to
-                    the tenant's real accent color once it loads. */}
-                <div className="size-10 rounded-full bg-muted flex items-center justify-center"><Spinner className="size-5 text-muted-foreground" /></div>
+                {/* Driven directly from branding.accentColor state (not the
+                    --brand CSS var, which isn't set this early) — seeded from
+                    a cached value on mount (see the useLayoutEffect above) so
+                    repeat visits are branded immediately. A true first-ever
+                    visit has no cache yet, so it falls back to a neutral gray
+                    instead of flashing the wrong color. */}
+                <div
+                  className={cn("size-10 rounded-full flex items-center justify-center", !accentColorReady && "bg-muted")}
+                  style={accentColorReady ? { backgroundColor: `${branding.accentColor}1a` } : undefined}
+                >
+                  <Spinner className={cn("size-5", !accentColorReady && "text-muted-foreground")} style={accentColorReady ? { color: branding.accentColor } : undefined} />
+                </div>
                 <div className="text-center">
                   <p className="font-semibold text-sm">Authenticating</p>
                   <p className="text-xs text-muted-foreground mt-0.5">Verifying your session securely...</p>
