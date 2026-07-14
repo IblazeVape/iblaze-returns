@@ -13,16 +13,29 @@ const VALID: BrandingInput = {
   requirePolicyAcceptance: true,
   storeLinkEnabled: true,
   storeLinkLabel: "Store",
+  orderStatusLinkEnabled: true,
+  orderStatusLinkLabel: "Order Status",
   policyHeading: "Acme Returns Policy",
   policySubheading: "Review our policy before selecting items to return.",
+  policyLastUpdated: "14 July 2026",
   policyBodyMode: "categories",
   policyCategories: [{ title: "Vapes", desc: "30-day refund period." }],
   policyBodyText: "",
   policyFooterNote: "Return postage is at your expense.",
+  policyAcceptedMessage: "Policy accepted",
+  policyDeclinedMessage: "Policy declined",
   sidebarLinks: [{ label: "FAQ", url: "https://acme-vapes.com/faq" }],
   sidebarNote: "",
   sidebarLayoutSwitcherEnabled: true,
   defaultSidebarLayout: "inset",
+  headerSearchEnabled: true,
+  headerSearchPlaceholder: "Search orders...",
+  tableSearchEnabled: true,
+  tableSearchPlaceholder: "Search product or variant...",
+  tableColumnsButtonEnabled: true,
+  tableFilterButtonEnabled: true,
+  tablePageSizeEnabled: true,
+  shipmentCardsEnabled: true,
 };
 
 describe("validateBrandingInput", () => {
@@ -105,9 +118,32 @@ describe("validateBrandingInput", () => {
     expect(result.errors.sidebarLinks).toBeDefined();
   });
 
-  it("rejects more than 10 sidebar links", () => {
-    const links = Array.from({ length: 11 }, (_, i) => ({ label: `Link ${i}`, url: "https://acme-vapes.com" }));
+  it("accepts up to 100 sidebar links", () => {
+    const links = Array.from({ length: 100 }, (_, i) => ({ label: `Link ${i}`, url: "https://acme-vapes.com" }));
     const result = validateBrandingInput({ ...VALID, sidebarLinks: links });
+    expect(result.valid).toBe(true);
+  });
+
+  it("rejects more than 100 sidebar links", () => {
+    const links = Array.from({ length: 101 }, (_, i) => ({ label: `Link ${i}`, url: "https://acme-vapes.com" }));
+    const result = validateBrandingInput({ ...VALID, sidebarLinks: links });
+    expect(result.valid).toBe(false);
+    expect(result.errors.sidebarLinks).toBeDefined();
+  });
+
+  it("accepts a sidebar link with a valid submenu", () => {
+    const result = validateBrandingInput({
+      ...VALID,
+      sidebarLinks: [{ label: "Help", url: "https://acme-vapes.com/help", children: [{ label: "FAQ", url: "https://acme-vapes.com/faq" }] }],
+    });
+    expect(result.valid).toBe(true);
+  });
+
+  it("rejects a sidebar submenu link with an invalid URL", () => {
+    const result = validateBrandingInput({
+      ...VALID,
+      sidebarLinks: [{ label: "Help", url: "https://acme-vapes.com/help", children: [{ label: "FAQ", url: "not a url" }] }],
+    });
     expect(result.valid).toBe(false);
     expect(result.errors.sidebarLinks).toBeDefined();
   });
@@ -127,5 +163,27 @@ describe("validateBrandingInput", () => {
     const result = validateBrandingInput({ ...VALID, policyBodyText: "x".repeat(20001) });
     expect(result.valid).toBe(false);
     expect(result.errors.policyBodyText).toBeDefined();
+  });
+
+  it("rejects an orderStatusLinkLabel over 30 characters", () => {
+    const result = validateBrandingInput({ ...VALID, orderStatusLinkLabel: "x".repeat(31) });
+    expect(result.valid).toBe(false);
+    expect(result.errors.orderStatusLinkLabel).toBeDefined();
+  });
+
+  it("rejects a policyLastUpdated over 50 characters", () => {
+    const result = validateBrandingInput({ ...VALID, policyLastUpdated: "x".repeat(51) });
+    expect(result.valid).toBe(false);
+    expect(result.errors.policyLastUpdated).toBeDefined();
+  });
+
+  it("rejects toast messages over 100 characters", () => {
+    expect(validateBrandingInput({ ...VALID, policyAcceptedMessage: "x".repeat(101) }).valid).toBe(false);
+    expect(validateBrandingInput({ ...VALID, policyDeclinedMessage: "x".repeat(101) }).valid).toBe(false);
+  });
+
+  it("rejects search placeholders over 100 characters", () => {
+    expect(validateBrandingInput({ ...VALID, headerSearchPlaceholder: "x".repeat(101) }).valid).toBe(false);
+    expect(validateBrandingInput({ ...VALID, tableSearchPlaceholder: "x".repeat(101) }).valid).toBe(false);
   });
 });

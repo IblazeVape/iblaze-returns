@@ -58,6 +58,18 @@ describe("tenant store", () => {
     expect(t?.branding.sidebarLinks).toEqual([]);
     expect(t?.branding.sidebarLayoutSwitcherEnabled).toBe(true);
     expect(t?.branding.defaultSidebarLayout).toBe("inset");
+    expect(t?.branding.orderStatusLinkEnabled).toBe(true);
+    expect(t?.branding.orderStatusLinkLabel).toBe("Order Status");
+    expect(t?.branding.policyLastUpdated).toBe("");
+    expect(t?.branding.policyAcceptedMessage).toBe("Policy accepted");
+    expect(t?.branding.policyDeclinedMessage).toBe("Policy declined");
+    expect(t?.branding.headerSearchEnabled).toBe(true);
+    expect(t?.branding.headerSearchPlaceholder).toBe("Search orders...");
+    expect(t?.branding.tableSearchEnabled).toBe(true);
+    expect(t?.branding.tableColumnsButtonEnabled).toBe(true);
+    expect(t?.branding.tableFilterButtonEnabled).toBe(true);
+    expect(t?.branding.tablePageSizeEnabled).toBe(true);
+    expect(t?.branding.shipmentCardsEnabled).toBe(true);
   });
 
   it("round-trips a full branding update", async () => {
@@ -75,16 +87,29 @@ describe("tenant store", () => {
         requirePolicyAcceptance: false,
         storeLinkEnabled: false,
         storeLinkLabel: "Back to store",
+        orderStatusLinkEnabled: false,
+        orderStatusLinkLabel: "Track order",
         policyHeading: "Acme Returns Policy",
         policySubheading: "Please review before returning items.",
+        policyLastUpdated: "14 July 2026",
         policyBodyMode: "text",
         policyCategories: [{ title: "Vapes", desc: "30-day refund." }],
         policyBodyText: "Free-form policy text instead of categories.",
         policyFooterNote: "Postage at your expense.",
-        sidebarLinks: [{ label: "FAQ", url: "https://acme-vapes.com/faq" }],
+        policyAcceptedMessage: "Thanks, policy accepted!",
+        policyDeclinedMessage: "No worries, policy declined.",
+        sidebarLinks: [{ label: "FAQ", url: "https://acme-vapes.com/faq", icon: "HelpCircle", children: [{ label: "Sub", url: "https://acme-vapes.com/sub" }] }],
         sidebarNote: "**Note:** processing may take 48h.",
         sidebarLayoutSwitcherEnabled: false,
         defaultSidebarLayout: "sidebar",
+        headerSearchEnabled: false,
+        headerSearchPlaceholder: "Find an order...",
+        tableSearchEnabled: false,
+        tableSearchPlaceholder: "Find a product...",
+        tableColumnsButtonEnabled: false,
+        tableFilterButtonEnabled: false,
+        tablePageSizeEnabled: false,
+        shipmentCardsEnabled: false,
       },
     });
     const t = await getTenant("d.myshopify.com");
@@ -98,9 +123,20 @@ describe("tenant store", () => {
     expect(t?.branding.policyBodyMode).toBe("text");
     expect(t?.branding.policyBodyText).toBe("Free-form policy text instead of categories.");
     expect(t?.branding.policyCategories).toEqual([{ title: "Vapes", desc: "30-day refund." }]);
-    expect(t?.branding.sidebarLinks).toEqual([{ label: "FAQ", url: "https://acme-vapes.com/faq" }]);
+    expect(t?.branding.sidebarLinks).toEqual([
+      { label: "FAQ", url: "https://acme-vapes.com/faq", icon: "HelpCircle", children: [{ label: "Sub", url: "https://acme-vapes.com/sub" }] },
+    ]);
     expect(t?.branding.sidebarLayoutSwitcherEnabled).toBe(false);
     expect(t?.branding.defaultSidebarLayout).toBe("sidebar");
+    expect(t?.branding.orderStatusLinkEnabled).toBe(false);
+    expect(t?.branding.orderStatusLinkLabel).toBe("Track order");
+    expect(t?.branding.policyLastUpdated).toBe("14 July 2026");
+    expect(t?.branding.policyAcceptedMessage).toBe("Thanks, policy accepted!");
+    expect(t?.branding.sidebarLinks[0].icon).toBe("HelpCircle");
+    expect(t?.branding.sidebarLinks[0].children).toEqual([{ label: "Sub", url: "https://acme-vapes.com/sub" }]);
+    expect(t?.branding.headerSearchEnabled).toBe(false);
+    expect(t?.branding.tableColumnsButtonEnabled).toBe(false);
+    expect(t?.branding.shipmentCardsEnabled).toBe(false);
   });
 
   it("merges old branding JSON with new field defaults", async () => {

@@ -45,13 +45,21 @@ export async function PUT(request: NextRequest) {
       typeof body.requirePolicyAcceptance === "boolean" ? body.requirePolicyAcceptance : existing.branding.requirePolicyAcceptance,
     storeLinkEnabled: typeof body.storeLinkEnabled === "boolean" ? body.storeLinkEnabled : existing.branding.storeLinkEnabled,
     storeLinkLabel: typeof body.storeLinkLabel === "string" ? body.storeLinkLabel : existing.branding.storeLinkLabel,
+    orderStatusLinkEnabled:
+      typeof body.orderStatusLinkEnabled === "boolean" ? body.orderStatusLinkEnabled : existing.branding.orderStatusLinkEnabled,
+    orderStatusLinkLabel: typeof body.orderStatusLinkLabel === "string" ? body.orderStatusLinkLabel : existing.branding.orderStatusLinkLabel,
     policyHeading: typeof body.policyHeading === "string" ? body.policyHeading : existing.branding.policyHeading,
     policySubheading: typeof body.policySubheading === "string" ? body.policySubheading : existing.branding.policySubheading,
+    policyLastUpdated: typeof body.policyLastUpdated === "string" ? body.policyLastUpdated : existing.branding.policyLastUpdated,
     policyBodyMode:
       body.policyBodyMode === "categories" || body.policyBodyMode === "text" ? body.policyBodyMode : existing.branding.policyBodyMode,
     policyCategories: isPolicyCategoryArray(body.policyCategories) ? body.policyCategories : existing.branding.policyCategories,
     policyBodyText: typeof body.policyBodyText === "string" ? body.policyBodyText : existing.branding.policyBodyText,
     policyFooterNote: typeof body.policyFooterNote === "string" ? body.policyFooterNote : existing.branding.policyFooterNote,
+    policyAcceptedMessage:
+      typeof body.policyAcceptedMessage === "string" ? body.policyAcceptedMessage : existing.branding.policyAcceptedMessage,
+    policyDeclinedMessage:
+      typeof body.policyDeclinedMessage === "string" ? body.policyDeclinedMessage : existing.branding.policyDeclinedMessage,
     sidebarLinks: isSidebarLinkArray(body.sidebarLinks) ? body.sidebarLinks : existing.branding.sidebarLinks,
     sidebarNote: typeof body.sidebarNote === "string" ? body.sidebarNote : existing.branding.sidebarNote,
     sidebarLayoutSwitcherEnabled:
@@ -60,6 +68,21 @@ export async function PUT(request: NextRequest) {
       body.defaultSidebarLayout === "inset" || body.defaultSidebarLayout === "sidebar"
         ? body.defaultSidebarLayout
         : existing.branding.defaultSidebarLayout,
+    headerSearchEnabled:
+      typeof body.headerSearchEnabled === "boolean" ? body.headerSearchEnabled : existing.branding.headerSearchEnabled,
+    headerSearchPlaceholder:
+      typeof body.headerSearchPlaceholder === "string" ? body.headerSearchPlaceholder : existing.branding.headerSearchPlaceholder,
+    tableSearchEnabled: typeof body.tableSearchEnabled === "boolean" ? body.tableSearchEnabled : existing.branding.tableSearchEnabled,
+    tableSearchPlaceholder:
+      typeof body.tableSearchPlaceholder === "string" ? body.tableSearchPlaceholder : existing.branding.tableSearchPlaceholder,
+    tableColumnsButtonEnabled:
+      typeof body.tableColumnsButtonEnabled === "boolean" ? body.tableColumnsButtonEnabled : existing.branding.tableColumnsButtonEnabled,
+    tableFilterButtonEnabled:
+      typeof body.tableFilterButtonEnabled === "boolean" ? body.tableFilterButtonEnabled : existing.branding.tableFilterButtonEnabled,
+    tablePageSizeEnabled:
+      typeof body.tablePageSizeEnabled === "boolean" ? body.tablePageSizeEnabled : existing.branding.tablePageSizeEnabled,
+    shipmentCardsEnabled:
+      typeof body.shipmentCardsEnabled === "boolean" ? body.shipmentCardsEnabled : existing.branding.shipmentCardsEnabled,
   };
 
   const { valid, errors } = validateBrandingInput(input);
@@ -80,16 +103,29 @@ export async function PUT(request: NextRequest) {
       requirePolicyAcceptance: input.requirePolicyAcceptance,
       storeLinkEnabled: input.storeLinkEnabled,
       storeLinkLabel: input.storeLinkLabel,
+      orderStatusLinkEnabled: input.orderStatusLinkEnabled,
+      orderStatusLinkLabel: input.orderStatusLinkLabel,
       policyHeading: input.policyHeading,
       policySubheading: input.policySubheading,
+      policyLastUpdated: input.policyLastUpdated,
       policyBodyMode: input.policyBodyMode,
       policyCategories: input.policyCategories,
       policyBodyText: input.policyBodyText,
       policyFooterNote: input.policyFooterNote,
+      policyAcceptedMessage: input.policyAcceptedMessage,
+      policyDeclinedMessage: input.policyDeclinedMessage,
       sidebarLinks: input.sidebarLinks,
       sidebarNote: input.sidebarNote,
       sidebarLayoutSwitcherEnabled: input.sidebarLayoutSwitcherEnabled,
       defaultSidebarLayout: input.defaultSidebarLayout,
+      headerSearchEnabled: input.headerSearchEnabled,
+      headerSearchPlaceholder: input.headerSearchPlaceholder,
+      tableSearchEnabled: input.tableSearchEnabled,
+      tableSearchPlaceholder: input.tableSearchPlaceholder,
+      tableColumnsButtonEnabled: input.tableColumnsButtonEnabled,
+      tableFilterButtonEnabled: input.tableFilterButtonEnabled,
+      tablePageSizeEnabled: input.tablePageSizeEnabled,
+      shipmentCardsEnabled: input.shipmentCardsEnabled,
     },
   });
 

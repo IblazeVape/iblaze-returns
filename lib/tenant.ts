@@ -2,7 +2,11 @@
 import { redis } from "@/lib/redis";
 
 export type PolicyCategory = { title: string; desc: string };
-export type SidebarLink = { label: string; url: string };
+/** icon is an optional Lucide icon name (e.g. "HelpCircle") — validated
+ * against the actual Lucide export list where it's used, not here.
+ * children supports exactly one level of nesting (a submenu), matching
+ * shadcn's SidebarMenuSub — not arbitrarily deep. */
+export type SidebarLink = { label: string; url: string; icon?: string; children?: { label: string; url: string; icon?: string }[] };
 export type SidebarLayout = "inset" | "sidebar";
 
 export type TenantBranding = {
@@ -16,8 +20,11 @@ export type TenantBranding = {
   requirePolicyAcceptance: boolean;
   storeLinkEnabled: boolean;
   storeLinkLabel: string;
+  orderStatusLinkEnabled: boolean;
+  orderStatusLinkLabel: string;
   policyHeading: string;
   policySubheading: string;
+  policyLastUpdated: string;
   /** "categories" shows policyCategories as cards; "text" shows policyBodyText
    * as a single free-form block instead — some merchants don't want a
    * structured list. */
@@ -25,10 +32,20 @@ export type TenantBranding = {
   policyCategories: PolicyCategory[];
   policyBodyText: string;
   policyFooterNote: string;
+  policyAcceptedMessage: string;
+  policyDeclinedMessage: string;
   sidebarLinks: SidebarLink[];
   sidebarNote: string;
   sidebarLayoutSwitcherEnabled: boolean;
   defaultSidebarLayout: SidebarLayout;
+  headerSearchEnabled: boolean;
+  headerSearchPlaceholder: string;
+  tableSearchEnabled: boolean;
+  tableSearchPlaceholder: string;
+  tableColumnsButtonEnabled: boolean;
+  tableFilterButtonEnabled: boolean;
+  tablePageSizeEnabled: boolean;
+  shipmentCardsEnabled: boolean;
 };
 
 export type Tenant = {
@@ -55,8 +72,11 @@ export const DEFAULT_TENANT_FIELDS = {
     requirePolicyAcceptance: true,
     storeLinkEnabled: true,
     storeLinkLabel: "Store",
+    orderStatusLinkEnabled: true,
+    orderStatusLinkLabel: "Order Status",
     policyHeading: "iBlaze Returns Policy",
     policySubheading: "Review our returns policy before selecting items to return.",
+    policyLastUpdated: "",
     policyBodyMode: "categories",
     policyCategories: [
       { title: "Vape Kits & Mods", desc: "30-day refund period. 30-day warranty from delivery." },
@@ -66,10 +86,20 @@ export const DEFAULT_TENANT_FIELDS = {
     ],
     policyBodyText: "",
     policyFooterNote: "Return postage is at your expense. Tracked service required. Refunds within 5–10 business days.",
+    policyAcceptedMessage: "Policy accepted",
+    policyDeclinedMessage: "Policy declined",
     sidebarLinks: [],
     sidebarNote: "",
     sidebarLayoutSwitcherEnabled: true,
     defaultSidebarLayout: "inset",
+    headerSearchEnabled: true,
+    headerSearchPlaceholder: "Search orders...",
+    tableSearchEnabled: true,
+    tableSearchPlaceholder: "Search product or variant...",
+    tableColumnsButtonEnabled: true,
+    tableFilterButtonEnabled: true,
+    tablePageSizeEnabled: true,
+    shipmentCardsEnabled: true,
   } satisfies TenantBranding,
 };
 

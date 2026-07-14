@@ -1,5 +1,6 @@
 export type PolicyCategoryInput = { title: string; desc: string };
-export type SidebarLinkInput = { label: string; url: string };
+export type SidebarSubLinkInput = { label: string; url: string; icon?: string };
+export type SidebarLinkInput = { label: string; url: string; icon?: string; children?: SidebarSubLinkInput[] };
 
 export type BrandingInput = {
   name: string;
@@ -13,16 +14,29 @@ export type BrandingInput = {
   requirePolicyAcceptance: boolean;
   storeLinkEnabled: boolean;
   storeLinkLabel: string;
+  orderStatusLinkEnabled: boolean;
+  orderStatusLinkLabel: string;
   policyHeading: string;
   policySubheading: string;
+  policyLastUpdated: string;
   policyBodyMode: "categories" | "text";
   policyCategories: PolicyCategoryInput[];
   policyBodyText: string;
   policyFooterNote: string;
+  policyAcceptedMessage: string;
+  policyDeclinedMessage: string;
   sidebarLinks: SidebarLinkInput[];
   sidebarNote: string;
   sidebarLayoutSwitcherEnabled: boolean;
   defaultSidebarLayout: "inset" | "sidebar";
+  headerSearchEnabled: boolean;
+  headerSearchPlaceholder: string;
+  tableSearchEnabled: boolean;
+  tableSearchPlaceholder: string;
+  tableColumnsButtonEnabled: boolean;
+  tableFilterButtonEnabled: boolean;
+  tablePageSizeEnabled: boolean;
+  shipmentCardsEnabled: boolean;
 };
 
 const HEX_COLOR_RE = /^#[0-9a-fA-F]{6}$/;
@@ -31,14 +45,17 @@ const POLICY_TEXT_MAX_LENGTH = 500;
 const STORE_LINK_LABEL_MAX_LENGTH = 30;
 const POLICY_HEADING_MAX_LENGTH = 100;
 const POLICY_SUBHEADING_MAX_LENGTH = 200;
+const POLICY_LAST_UPDATED_MAX_LENGTH = 50;
 const POLICY_CATEGORY_TITLE_MAX_LENGTH = 60;
 const POLICY_CATEGORY_DESC_MAX_LENGTH = 200;
 const POLICY_CATEGORIES_MAX_COUNT = 12;
 const POLICY_FOOTER_NOTE_MAX_LENGTH = 300;
 const POLICY_BODY_TEXT_MAX_LENGTH = 20000;
+const POLICY_TOAST_MESSAGE_MAX_LENGTH = 100;
 const SIDEBAR_LINK_LABEL_MAX_LENGTH = 30;
-const SIDEBAR_LINKS_MAX_COUNT = 10;
+const SIDEBAR_LINKS_MAX_COUNT = 100;
 const SIDEBAR_NOTE_MAX_LENGTH = 500;
+const SEARCH_PLACEHOLDER_MAX_LENGTH = 100;
 
 function isValidUrl(value: string): boolean {
   try {
@@ -78,17 +95,35 @@ export function validateBrandingInput(
   if (input.storeLinkLabel.length > STORE_LINK_LABEL_MAX_LENGTH) {
     errors.storeLinkLabel = `Must be ${STORE_LINK_LABEL_MAX_LENGTH} characters or fewer.`;
   }
+  if (input.orderStatusLinkLabel.length > STORE_LINK_LABEL_MAX_LENGTH) {
+    errors.orderStatusLinkLabel = `Must be ${STORE_LINK_LABEL_MAX_LENGTH} characters or fewer.`;
+  }
   if (input.policyHeading.length > POLICY_HEADING_MAX_LENGTH) {
     errors.policyHeading = `Must be ${POLICY_HEADING_MAX_LENGTH} characters or fewer.`;
   }
   if (input.policySubheading.length > POLICY_SUBHEADING_MAX_LENGTH) {
     errors.policySubheading = `Must be ${POLICY_SUBHEADING_MAX_LENGTH} characters or fewer.`;
   }
+  if (input.policyLastUpdated.length > POLICY_LAST_UPDATED_MAX_LENGTH) {
+    errors.policyLastUpdated = `Must be ${POLICY_LAST_UPDATED_MAX_LENGTH} characters or fewer.`;
+  }
   if (input.policyFooterNote.length > POLICY_FOOTER_NOTE_MAX_LENGTH) {
     errors.policyFooterNote = `Must be ${POLICY_FOOTER_NOTE_MAX_LENGTH} characters or fewer.`;
   }
   if (input.policyBodyText.length > POLICY_BODY_TEXT_MAX_LENGTH) {
     errors.policyBodyText = `Must be ${POLICY_BODY_TEXT_MAX_LENGTH} characters or fewer.`;
+  }
+  if (input.policyAcceptedMessage.length > POLICY_TOAST_MESSAGE_MAX_LENGTH) {
+    errors.policyAcceptedMessage = `Must be ${POLICY_TOAST_MESSAGE_MAX_LENGTH} characters or fewer.`;
+  }
+  if (input.policyDeclinedMessage.length > POLICY_TOAST_MESSAGE_MAX_LENGTH) {
+    errors.policyDeclinedMessage = `Must be ${POLICY_TOAST_MESSAGE_MAX_LENGTH} characters or fewer.`;
+  }
+  if (input.headerSearchPlaceholder.length > SEARCH_PLACEHOLDER_MAX_LENGTH) {
+    errors.headerSearchPlaceholder = `Must be ${SEARCH_PLACEHOLDER_MAX_LENGTH} characters or fewer.`;
+  }
+  if (input.tableSearchPlaceholder.length > SEARCH_PLACEHOLDER_MAX_LENGTH) {
+    errors.tableSearchPlaceholder = `Must be ${SEARCH_PLACEHOLDER_MAX_LENGTH} characters or fewer.`;
   }
   if (input.sidebarNote.length > SIDEBAR_NOTE_MAX_LENGTH) {
     errors.sidebarNote = `Must be ${SIDEBAR_NOTE_MAX_LENGTH} characters or fewer.`;
@@ -102,12 +137,14 @@ export function validateBrandingInput(
   ) {
     errors.policyCategories = `Each category needs a title (max ${POLICY_CATEGORY_TITLE_MAX_LENGTH} characters) and a description (max ${POLICY_CATEGORY_DESC_MAX_LENGTH} characters).`;
   }
+  const isValidLink = (l: { label: string; url: string }) =>
+    l.label.trim() && l.label.length <= SIDEBAR_LINK_LABEL_MAX_LENGTH && isValidUrl(l.url);
   if (input.sidebarLinks.length > SIDEBAR_LINKS_MAX_COUNT) {
     errors.sidebarLinks = `Must be ${SIDEBAR_LINKS_MAX_COUNT} links or fewer.`;
   } else if (
-    input.sidebarLinks.some((l) => !l.label.trim() || l.label.length > SIDEBAR_LINK_LABEL_MAX_LENGTH || !isValidUrl(l.url))
+    input.sidebarLinks.some((l) => !isValidLink(l) || (l.children?.length ?? 0) > SIDEBAR_LINKS_MAX_COUNT || l.children?.some((c) => !isValidLink(c)))
   ) {
-    errors.sidebarLinks = `Each link needs a label (max ${SIDEBAR_LINK_LABEL_MAX_LENGTH} characters) and a valid URL.`;
+    errors.sidebarLinks = `Each link (and sub-link) needs a label (max ${SIDEBAR_LINK_LABEL_MAX_LENGTH} characters) and a valid URL.`;
   }
 
   return { valid: Object.keys(errors).length === 0, errors };
