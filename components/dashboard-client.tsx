@@ -5,9 +5,8 @@ import { useEffect, useState, useMemo, useRef, useLayoutEffect, useCallback, Sus
 import { useSearchParams } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { toast } from "sonner"
-import { ChevronRight, ChevronDown, LayoutGrid, List, ArrowLeft, RotateCcw, CheckCircle2, ShoppingBag, ShieldCheck, ExternalLink, Lock, Truck, Package, Search, MapPin, SlidersHorizontal, CreditCard, XCircle, CircleX, Columns2, LayoutDashboard, MessageCircle, FileText, Clock, BadgeCheck, HelpCircle, Eye, Archive, Info, type LucideIcon } from "lucide-react"
+import { ChevronRight, ChevronDown, LayoutGrid, List, ArrowLeft, RotateCcw, CheckCircle2, ShoppingBag, ShieldCheck, ExternalLink, Lock, Truck, Package, Search, MapPin, SlidersHorizontal, XCircle, CircleX, Columns2, Clock, BadgeCheck, HelpCircle, Eye, Info, type LucideIcon } from "lucide-react"
 
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { PortalShell } from "@/components/portal-shell"
 import { SidebarLayoutProvider, useSidebarLayout } from "@/components/sidebar-layout-provider"
 import { isAppsReturnsPortal, isGuestOrderContext, getGuestOrderId, lookupAnotherOrder } from "@/lib/apps-returns-portal-mode"
@@ -33,8 +32,6 @@ import { PolicyMarkdown } from "@/components/policy-markdown"
 import { getCachedAccentColor, setCachedAccentColor } from "@/lib/accent-color-cache"
 import type { TenantBranding } from "@/lib/tenant"
 import { cn } from "@/lib/utils"
-import { Bar, BarChart, CartesianGrid, XAxis } from "recharts"
-import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type ReturnStatus =
@@ -4177,401 +4174,6 @@ function OrderDetail({
   )
 }
 
-// ─── Dashboard Home ───────────────────────────────────────────────────────────
-const spendChartConfig = {
-  spend: {
-    label: "Spent",
-    theme: {
-      light: "hsl(var(--chart-1))",
-      dark: "hsl(0 0% 98%)",
-    },
-  },
-  orders: { label: "Orders", color: "hsl(var(--chart-2))" },
-} satisfies ChartConfig
-
-function SpendingChart({ orders }: { orders: Order[] }) {
-  const chartData = useMemo(() => {
-    const now = new Date()
-    const months: { key: string; label: string; spend: number; orders: number }[] = []
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
-      months.push({
-        key: `${d.getFullYear()}-${d.getMonth()}`,
-        label: d.toLocaleDateString("en-GB", { month: "short" }),
-        spend: 0,
-        orders: 0,
-      })
-    }
-    for (const o of orders) {
-      if (o.cancelledAt) continue
-      const d = new Date(o.createdAt)
-      const key = `${d.getFullYear()}-${d.getMonth()}`
-      const slot = months.find(m => m.key === key)
-      if (slot) {
-        slot.spend += parseFloat(o.totalPriceSet.shopMoney.amount)
-        slot.orders += 1
-      }
-    }
-    return months
-  }, [orders])
-
-  const hasData = chartData.some(m => m.spend > 0)
-
-  return (
-    <Card className="shadow-xs py-0 gap-0 overflow-hidden rounded-xl h-full">
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-border">
-        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Monthly Spend</p>
-        <p className="text-[10px] text-muted-foreground">Last 6 months</p>
-      </div>
-      {hasData ? (
-        <div className="px-2 pt-3 pb-1">
-          <ChartContainer config={spendChartConfig} className="h-[120px] w-full">
-            <BarChart data={chartData} barCategoryGap="30%" margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
-              <CartesianGrid vertical={false} stroke="hsl(var(--border))" />
-              <XAxis
-                dataKey="label"
-                tickLine={false}
-                axisLine={false}
-                tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                tickMargin={6}
-              />
-              <ChartTooltip
-                cursor={{ fill: "hsl(var(--muted))", radius: 4 }}
-                content={
-                  <ChartTooltipContent
-                    formatter={(value, name) =>
-                      name === "spend"
-                        ? [`£${Number(value).toFixed(2)}`, "Spent"]
-                        : [`${value}`, "Orders"]
-                    }
-                  />
-                }
-              />
-              <Bar dataKey="spend" fill="var(--color-spend)" radius={[3, 3, 0, 0]} />
-            </BarChart>
-          </ChartContainer>
-        </div>
-      ) : (
-        <div className="flex items-center justify-center py-8">
-          <p className="text-xs text-muted-foreground">No order data for the last 6 months.</p>
-        </div>
-      )}
-    </Card>
-  )
-}
-
-// ─── Bento tile wrapper — stagger-in + hover lift ─────────────────────────────
-function BentoTile({
-  children,
-  className,
-  delay = 0,
-  onClick,
-  ariaLabel,
-}: {
-  children: React.ReactNode
-  className?: string
-  delay?: number
-  onClick?: () => void
-  ariaLabel?: string
-}) {
-  const ease = [0.25, 0.1, 0.25, 1] as const
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, delay, ease }}
-      whileHover={onClick ? { y: -3 } : undefined}
-      onClick={onClick}
-      role={onClick ? "button" : undefined}
-      tabIndex={onClick ? 0 : undefined}
-      onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick() } } : undefined}
-      aria-label={ariaLabel}
-      className={cn(
-        "rounded-xl border border-border bg-card shadow-xs overflow-hidden flex flex-col",
-        onClick && "cursor-pointer transition-shadow hover:shadow-md focus:outline-hidden focus-visible:ring-2 focus-visible:ring-ring/50",
-        className,
-      )}
-    >
-      {children}
-    </motion.div>
-  )
-}
-
-function ThumbStack({ urls, max = 4 }: { urls: string[]; max?: number }) {
-  const shown = urls.slice(0, max)
-  const extra = urls.length - shown.length
-  if (shown.length === 0) {
-    return (
-      <div className="size-10 rounded-lg border border-border bg-card overflow-hidden shrink-0">
-        <ProductImagePlaceholder />
-      </div>
-    )
-  }
-  return (
-    <div className="flex items-center">
-      <div className="flex -space-x-3">
-        {shown.map((url, i) => (
-          <div key={i} className="size-10 rounded-lg border-2 border-card dark:border-border bg-card overflow-hidden shadow-xs shrink-0">
-            <img src={url} alt="" className="w-full h-full object-cover" />
-          </div>
-        ))}
-      </div>
-      {extra > 0 && <span className="ml-1.5 text-xs text-muted-foreground">+{extra}</span>}
-    </div>
-  )
-}
-
-function DashboardHome({
-  data,
-  onViewOrders,
-  onViewOrder,
-}: {
-  data: OrdersData | null
-  onViewOrders: () => void
-  onViewOrder: (order: Order) => void
-}) {
-  const orders        = data?.orders || []
-  const fmt           = (d: string) => new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
-  const activeOrders  = orders.filter(o => !o.cancelledAt)
-  const totalSpent    = activeOrders.reduce((s, o) => s + parseFloat(o.totalPriceSet.shopMoney.amount), 0)
-  const totalRefunded = orders.reduce((s, o) => s + parseFloat(o.totalRefundedSet?.shopMoney?.amount || "0"), 0)
-  const recentOrders  = orders.slice(0, 5)
-
-  // Next delivery: first order currently in transit
-  const inTransit = activeOrders.find(o =>
-    o.orderStatus === "On its way" || o.orderStatus === "Partially dispatched" || o.orderStatus === "Partially delivered"
-  )
-  const trackingUrl = inTransit?.shipments.find(s => s.trackingInfo.length > 0)?.trackingInfo[0]?.url
-
-  // Active return requests
-  const activeReturnItems = orders.flatMap(o =>
-    o.processedItems
-      .filter(i => i.returnStatus === "Return requested" || i.returnStatus === "Return in progress")
-      .map(i => ({ item: i, order: o }))
-  )
-
-  // Eligible items
-  const eligibleItems = orders.flatMap(o =>
-    o.processedItems
-      .filter(i => i.returnStatus === "Eligible" && i.eligibleQuantity > 0)
-      .map(i => ({ item: i, order: o, daysLeft: daysLeftToReturn(i.lineDeliveredAt, data?.returnWindowDays ?? 30) }))
-  ).sort((a, b) => (a.daysLeft ?? 999) - (b.daysLeft ?? 999))
-
-  const ease = [0.25, 0.1, 0.25, 1] as const
-
-  // ── Bento-derived values ──
-  const distinctEligible  = eligibleItems.length
-  const mostUrgent        = eligibleItems.find(e => e.daysLeft !== null)?.daysLeft ?? null
-  const isUrgent          = mostUrgent !== null && mostUrgent <= 7
-  const eligibleThumbs    = eligibleItems.map(e => e.item.image?.url).filter(Boolean).slice(0, 5) as string[]
-  const firstEligibleOrder = eligibleItems[0]?.order
-  const activeReturnsCount = new Set(activeReturnItems.map(r => r.order.id)).size
-  const inTransitThumbs   = inTransit
-    ? (inTransit.processedItems.map(p => p.image?.url).filter((u, i, a) => u && a.indexOf(u) === i) as string[])
-    : []
-
-  return (
-    <div className="flex flex-col gap-4 pb-4">
-
-      {/* Greeting */}
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.22, ease }}
-        className="pb-0.5"
-      >
-        <h2 className="text-lg font-semibold">{data?.firstName ? `Hi, ${data.firstName} 👋` : "Welcome back"}</h2>
-        <p className="text-sm text-muted-foreground mt-0.5">Here&apos;s a summary of your orders and returns.</p>
-      </motion.div>
-
-      {/* Bento grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-
-        {/* HERO — Ready to return */}
-        <BentoTile
-          delay={0.05}
-          onClick={firstEligibleOrder ? () => onViewOrders() : undefined}
-          ariaLabel="Ready to return"
-          className={cn("col-span-2 relative", isUrgent && "ring-1 ring-red-200")}
-        >
-          {isUrgent && <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-red-50/70 to-transparent dark:from-red-950/30" />}
-          <div className="relative flex flex-1 flex-col p-4 sm:p-5">
-            <div className="flex items-center gap-1.5 mb-3">
-              <BadgeCheck className="size-4 text-green-600" />
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Ready to return</p>
-            </div>
-            {distinctEligible > 0 ? (
-              <div className="flex flex-1 flex-col">
-                <div className="flex items-end gap-2">
-                  <span className="text-4xl font-bold leading-none tracking-tight">{distinctEligible}</span>
-                  <span className="text-sm text-muted-foreground mb-0.5">item{distinctEligible !== 1 ? "s" : ""} eligible</span>
-                </div>
-                {mostUrgent !== null && (
-                  <p className={cn("mt-2 flex items-center gap-1 text-xs font-medium", isUrgent ? "text-red-600" : "text-muted-foreground")}>
-                    <Clock className="size-3" />
-                    {mostUrgent} day{mostUrgent !== 1 ? "s" : ""} left on your soonest return
-                  </p>
-                )}
-                <div className="mt-auto pt-4 flex items-center justify-between">
-                  <ThumbStack urls={eligibleThumbs} max={4} />
-                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-foreground whitespace-nowrap">
-                    Start a return <ChevronRight className="size-3.5" />
-                  </span>
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-1 flex-col items-start justify-center py-2">
-                <CheckCircle2 className="size-7 text-green-500/70 mb-2" />
-                <p className="text-sm font-medium">You&apos;re all caught up</p>
-                <p className="text-xs text-muted-foreground">Nothing to return right now.</p>
-              </div>
-            )}
-          </div>
-        </BentoTile>
-
-        {/* Next delivery */}
-        <BentoTile
-          delay={0.1}
-          onClick={inTransit ? () => onViewOrder(inTransit) : undefined}
-          ariaLabel="Next delivery"
-          className="col-span-2"
-        >
-          <div className="flex flex-1 flex-col p-4 sm:p-5">
-            <div className="flex items-center gap-1.5 mb-3">
-              <Truck className="size-4 text-blue-500" />
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Next delivery</p>
-            </div>
-            {inTransit ? (
-              <div className="flex flex-1 flex-col">
-                <p className="text-base font-semibold leading-tight">{inTransit.name}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {inTransit.totalUnits} item{inTransit.totalUnits !== 1 ? "s" : ""}
-                  {inTransit.latestDelivery && inTransit.orderStatus === "On its way"
-                    ? ` · Expected ${fmt(inTransit.latestDelivery)}`
-                    : ` · ${getOrderFulfillmentHeadline(inTransit)}`}
-                </p>
-                <div className="mt-auto pt-4 flex items-center justify-between">
-                  <ThumbStack urls={inTransitThumbs} max={4} />
-                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-foreground whitespace-nowrap">
-                    Track order <ChevronRight className="size-3.5" />
-                  </span>
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-1 flex-col items-start justify-center py-2">
-                <Package className="size-7 text-muted-foreground/40 mb-2" />
-                <p className="text-sm font-medium">No incoming orders</p>
-                <p className="text-xs text-muted-foreground">Everything has been delivered.</p>
-              </div>
-            )}
-          </div>
-        </BentoTile>
-
-        {/* Active returns */}
-        <BentoTile
-          delay={0.14}
-          onClick={activeReturnsCount > 0 ? () => onViewOrders() : undefined}
-          ariaLabel="Active returns"
-          className="col-span-1"
-        >
-          <div className="flex flex-1 flex-col p-4">
-            <div className="flex items-center gap-1.5 mb-2">
-              <RotateCcw className="size-3.5 text-amber-500" />
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Active returns</p>
-            </div>
-            <span className="text-3xl font-bold leading-none tracking-tight">{activeReturnsCount}</span>
-            <p className="mt-auto pt-2 text-xs text-muted-foreground">{activeReturnsCount === 0 ? "None in progress" : "In progress"}</p>
-          </div>
-        </BentoTile>
-
-        {/* Refunded */}
-        <BentoTile delay={0.17} ariaLabel="Refunded" className="col-span-1">
-          <div className="flex flex-1 flex-col p-4">
-            <div className="flex items-center gap-1.5 mb-2">
-              <CreditCard className="size-3.5 text-green-500" />
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Refunded</p>
-            </div>
-            <span className="text-2xl font-bold leading-none tracking-tight">£{totalRefunded.toFixed(2)}</span>
-            <p className="mt-auto pt-2 text-xs text-muted-foreground">{totalRefunded > 0 ? "Allow 5–10 days" : "No refunds yet"}</p>
-          </div>
-        </BentoTile>
-
-        {/* Spend chart */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, delay: 0.2, ease }}
-          className="col-span-2"
-        >
-          <SpendingChart orders={orders} />
-        </motion.div>
-
-        {/* Recent orders — full width */}
-        <BentoTile delay={0.24} ariaLabel="Recent orders" className="col-span-2 lg:col-span-4">
-          <div className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-muted/30">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Recent orders</p>
-            <button onClick={onViewOrders} className="text-xs font-medium text-foreground hover:text-foreground/70 flex items-center gap-0.5 transition-colors">
-              View all <ChevronRight className="size-3" />
-            </button>
-          </div>
-          <div className="divide-y divide-border">
-            {recentOrders.length === 0 ? (
-              <div className="py-6 text-center">
-                <ShoppingBag className="size-6 text-muted-foreground/30 mx-auto mb-1.5" />
-                <p className="text-sm text-muted-foreground">No orders yet.</p>
-              </div>
-            ) : recentOrders.map(o => {
-              const images = o.processedItems.map(i => i.image?.url).filter(Boolean).slice(0, 3) as string[]
-              const total  = parseFloat(o.totalPriceSet.shopMoney.amount)
-              const isCancelled = !!o.cancelledAt
-              const statusIcon = isCancelled
-                ? { icon: XCircle,      color: "text-red-500" }
-                : o.orderStatus === "Delivered"
-                ? { icon: CheckCircle2, color: "text-green-500" }
-                : o.orderStatus === "Partially delivered"
-                ? { icon: Package,      color: "text-amber-500" }
-                : o.orderStatus === "On its way" || o.orderStatus === "Partially dispatched"
-                ? { icon: Truck,        color: "text-blue-500" }
-                : { icon: Clock,        color: "text-zinc-400" }
-              return (
-                <button key={o.id} onClick={isCancelled ? undefined : () => onViewOrder(o)}
-                  className={cn("w-full grid items-center gap-x-3 px-4 py-3 text-left group focus:outline-hidden transition-colors",
-                    isCancelled ? "opacity-50 cursor-not-allowed" : "hover:bg-muted/50")}
-                  style={{ gridTemplateColumns: "88px 1fr 64px 80px" }}>
-                  <div className="flex -space-x-4 shrink-0">
-                    {images.slice(0, 3).map((url, i) => (
-                      <div key={i} className="size-10 rounded-md border-2 border-card dark:border-border bg-card overflow-hidden shadow-xs shrink-0">
-                        <img src={url} alt="" className="w-full h-full object-cover" />
-                      </div>
-                    ))}
-                    {images.length === 0 && (
-                      <div className="size-10 rounded-md border border-border bg-card overflow-hidden shrink-0">
-                        <ProductImagePlaceholder />
-                      </div>
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <p className={cn("text-sm font-semibold leading-tight truncate", !isCancelled && "group-hover:underline")}>{o.name}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{fmt(o.createdAt)} &bull; {o.totalUnits} item{o.totalUnits !== 1 ? "s" : ""}</p>
-                  </div>
-                  <div className="flex items-center justify-center" title={isCancelled ? "Cancelled" : o.orderStatus}>
-                    <statusIcon.icon className={cn("size-4", statusIcon.color)} />
-                  </div>
-                  <div className="flex items-center justify-end gap-1.5">
-                    <p className="text-sm font-semibold">£{total.toFixed(2)}</p>
-                    {isCancelled ? <span className="size-3.5" /> : <ChevronRight className="size-3.5 text-muted-foreground" />}
-                  </div>
-                </button>
-              )
-            })}
-          </div>
-        </BentoTile>
-
-      </div>
-    </div>
-  )
-}
-
 // Demo mode: the public /demo page renders this exact component against
 // canned data (/api/demo-orders) with no auth, so the demo is pixel-identical
 // to the production portal. Module-level so nested components (OrderDetail's
@@ -4604,7 +4206,6 @@ function DashboardClientInner() {
   const [search, setSearch]               = useState("")
   const [statusFilter, setStatusFilter]   = useState<string[]>([])
   const [activeSection, setActiveSection] = useState("#orders")
-  const [statusSheetOpen, setStatusSheetOpen] = useState(false)
   const [branding, setBranding] = useState<TenantBranding>({
     name: "", logoUrl: "", accentColor: "#000000", storefrontUrl: "", supportEmail: "", policyUrl: "", policyText: "",
     requirePolicyAcceptance: true, storeLinkEnabled: true, storeLinkLabel: "Store",
@@ -4702,7 +4303,7 @@ function DashboardClientInner() {
     }
   }, [data, autoOrderId])
 
-  const showOrdersList = activeSection !== "#home" && !selectedOrder
+  const showOrdersList = !selectedOrder
 
   const loadMore = React.useCallback(() => {
     if (loadingMoreRef.current || !hasNextPageRef.current || !endCursorRef.current) return
@@ -4807,11 +4408,11 @@ function DashboardClientInner() {
         sidebarSubmenusExpandedByDefault: branding.sidebarSubmenusExpandedByDefault,
       }}
       headerProps={{
-        title: selectedOrder ? getOrderPageHeaderTitle(selectedOrder) : activeSection === "#home" ? "Dashboard" : "My Orders",
+        title: selectedOrder ? getOrderPageHeaderTitle(selectedOrder) : "My Orders",
         titleIcon: orderHeaderStatus ? { icon: orderHeaderStatus.icon } : undefined,
         search,
         onSearch: setSearch,
-        showSearch: !selectedOrder && activeSection !== "#home",
+        showSearch: !selectedOrder,
         firstName: data?.firstName,
         email: data?.email,
         orderStatusUrl: selectedOrder ? (isAppsReturnsPortal() && selectedOrder.statusPageUrl ? selectedOrder.statusPageUrl : `https://account.iblazevape.co.uk/orders/${selectedOrder.id.split("/").pop()}`) : undefined,
@@ -4825,69 +4426,6 @@ function DashboardClientInner() {
       }}
     >
         {selectedOrder && <StickyOrderSummaryStrip key={selectedOrder.id} order={selectedOrder} returnWindowDays={data?.returnWindowDays ?? 30} />}
-        {activeSection === "#home" && !selectedOrder && (
-          <>
-            {/* Return window strip */}
-            {branding.policyUrl && (
-              <a
-                href={branding.policyUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex shrink-0 items-center gap-2 px-4 py-2 border-b border-border bg-background hover:bg-muted/50 transition-colors"
-              >
-                <p className="text-xs text-muted-foreground">
-                  <span className="font-medium text-foreground">{data?.returnWindowDays ?? 30}-day returns</span>
-                  {branding.policyText ? ` — ${branding.policyText}` : " — items can be returned within the return window."}
-                </p>
-              </a>
-            )}
-            {/* Quick actions — sticky below strip */}
-            <div className="shrink-0 flex overflow-x-auto border-b border-border bg-white dark:bg-background scrollbar-none">
-              {([
-                { icon: RotateCcw,     label: "Start a Return",  onClick: () => setActiveSection("#orders") },
-                { icon: ShoppingBag,   label: "View All Orders", onClick: () => setActiveSection("#orders") },
-                { icon: MessageCircle, label: "Contact Support", href: "mailto:info@iblazevape.co.uk" },
-                { icon: FileText,      label: "Help & Docs",     href: "/docs" },
-                { icon: HelpCircle,    label: "Order Statuses",  onClick: () => setStatusSheetOpen(true) },
-              ] as const).map(({ icon: Icon, label, onClick, href }: { icon: React.ElementType, label: string, onClick?: () => void, href?: string }) => {
-                const cls = "flex flex-col items-center justify-center gap-1 py-2.5 px-4 text-center hover:bg-muted/50 transition-colors flex-1 min-w-[80px] border-r border-border last:border-r-0 focus:outline-hidden"
-                const content = <><Icon className="size-4 text-zinc-500 dark:text-white" /><span className="text-xs font-medium text-foreground leading-tight">{label}</span></>
-                return href
-                  ? <a key={label} href={href} {...(href.startsWith("/") ? {} : { target: "_blank", rel: "noopener noreferrer" })} className={cls}>{content}</a>
-                  : <button key={label} onClick={onClick} className={cls}>{content}</button>
-              })}
-            </div>
-            {/* Order statuses sheet */}
-            <Sheet open={statusSheetOpen} onOpenChange={setStatusSheetOpen}>
-              <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
-                <SheetHeader className="px-4 py-4 border-b border-border">
-                  <SheetTitle>Order Statuses</SheetTitle>
-                  <SheetDescription>What each status means and what to expect next.</SheetDescription>
-                </SheetHeader>
-                <div className="flex flex-col divide-y divide-border px-4 pb-8">
-                  {([
-                    { status: "Confirmed",           icon: Clock,        color: "text-zinc-400",  description: "We've received your order and it's being prepared for dispatch.",                                         example: "You placed an order this morning and received your confirmation email — your items haven't shipped yet." },
-                    { status: "On its way",          icon: Truck,        color: "text-blue-500",  description: "Your order has been dispatched and is en route to you. Some items may still be on their way.",           example: "Your items have shipped and you should have a tracking number. A breakdown is shown inside the order." },
-                    { status: "Partially delivered", icon: Package,      color: "text-amber-500", description: "Some items have been delivered but part of your order is still on its way.",                              example: "2 items arrived today but the 3rd was shipped separately and hasn't arrived yet." },
-                    { status: "Delivered",           icon: CheckCircle2, color: "text-green-500", description: "All items in your order have been delivered successfully.",                                               example: "Your full order arrived and was marked as delivered by the courier." },
-                    { status: "Cancelled",           icon: XCircle,      color: "text-red-500",   description: "This order has been cancelled. If you were charged, a refund will be issued.",                          example: "You cancelled the order before it shipped, or the item was out of stock." },
-                  ] as const).map(({ status, icon: Icon, color, description, example }) => (
-                    <div key={status} className="py-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Icon className={cn("size-4 shrink-0", color)} />
-                        <span className="text-sm font-semibold text-foreground">{status}</span>
-                      </div>
-                      <p className="text-sm text-muted-foreground mb-1">{description}</p>
-                      <p className="text-xs text-muted-foreground/70 leading-relaxed">
-                        <span className="font-medium text-muted-foreground">Example:</span> {example}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </SheetContent>
-            </Sheet>
-          </>
-        )}
         <div className="flex flex-1 min-h-0 min-w-0 overflow-hidden">
         <AnimatePresence mode="wait" initial={false}>
         {selectedOrder ? (
@@ -4905,22 +4443,6 @@ function DashboardClientInner() {
               onBack={() => setSelectedOrder(null)}
               returnWindowDays={data?.returnWindowDays ?? 30}
               branding={branding}
-            />
-          </motion.div>
-        ) : activeSection === "#home" ? (
-          <motion.div
-            key="home"
-            className="flex-1 min-h-0 overflow-y-auto styled-scroll"
-            style={{ padding: "1rem", scrollbarGutter: "stable" }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.18, ease: [0.25, 0.1, 0.25, 1] }}
-          >
-            <DashboardHome
-              data={data}
-              onViewOrders={() => setActiveSection("#orders")}
-              onViewOrder={o => { setSelectedOrder(o); setActiveSection("#orders") }}
             />
           </motion.div>
         ) : (
