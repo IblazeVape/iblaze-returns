@@ -3702,7 +3702,11 @@ function OrderDetail({
                     <Input placeholder={tableSearchPlaceholder} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9 bg-transparent text-sm h-8" />
                   </div>
                 )}
-                {tableFilterButtonEnabled && activeTab === "ineligible" && showIneligibleFilter && (
+                {/* ml-auto here (not on each control) pushes this whole group to the
+                    right edge when search is disabled — with search enabled its
+                    flex-1 already consumes the space, so this has no visible effect. */}
+                <div className="flex items-center gap-2 ml-auto">
+                {showToolbarFilter && (
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button variant="outline" className="h-8 gap-1.5 text-sm shrink-0 px-3 bg-transparent">
@@ -3780,6 +3784,7 @@ function OrderDetail({
                     </SelectContent>
                   </Select>
                 )}
+                </div>
               </div>
 
               {/* Mobile: search + filter icon (ineligible only) + show */}
@@ -3790,7 +3795,8 @@ function OrderDetail({
                     <Input placeholder={tableSearchPlaceholder} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9 bg-transparent text-sm h-8" />
                   </div>
                 )}
-                {tableFilterButtonEnabled && activeTab === "ineligible" && showIneligibleFilter && (
+                <div className="flex items-center gap-2 ml-auto">
+                {showToolbarFilter && (
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button variant="outline" size="icon" className="h-8 w-8 shrink-0 bg-transparent">
@@ -3832,6 +3838,7 @@ function OrderDetail({
                     </SelectContent>
                   </Select>
                 )}
+                </div>
               </div>
             </div>
             )}

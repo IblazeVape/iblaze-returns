@@ -69,6 +69,19 @@ export function SettingsForm({
   // — they fell back to unstyled inline text with no panel switching), so
   // tab navigation is done manually here with plain state instead.
   const [activeTab, setActiveTab] = useState<SettingsTab>("branding")
+  // Which sidebar-link rows are expanded — collapsed by default (existing
+  // links show a one-line summary) so the list stays scannable once a
+  // merchant has several links with sub-links. A newly added link opens
+  // automatically so it's immediately editable.
+  const [openLinkIndices, setOpenLinkIndices] = useState<Set<number>>(new Set())
+  function toggleLinkOpen(index: number) {
+    setOpenLinkIndices((prev) => {
+      const next = new Set(prev)
+      if (next.has(index)) next.delete(index)
+      else next.add(index)
+      return next
+    })
+  }
 
   function set<K extends keyof BrandingInput>(key: K, value: BrandingInput[K]) {
     setForm((f) => ({ ...f, [key]: value }))
@@ -161,18 +174,40 @@ export function SettingsForm({
     setForm((f) => ({ ...f, sidebarLinks: f.sidebarLinks.map((l, i) => (i === index ? { ...l, ...patch } : l)) }))
   }
   function addSidebarLink() {
-    setForm((f) => ({ ...f, sidebarLinks: [...f.sidebarLinks, { label: "", url: "" }] }))
+    setForm((f) => {
+      const newIndex = f.sidebarLinks.length
+      setOpenLinkIndices((prev) => new Set(prev).add(newIndex))
+      return { ...f, sidebarLinks: [...f.sidebarLinks, { label: "", url: "" }] }
+    })
   }
   function removeSidebarLink(index: number) {
     setForm((f) => ({ ...f, sidebarLinks: f.sidebarLinks.filter((_, i) => i !== index) }))
+    setOpenLinkIndices((prev) => {
+      const next = new Set<number>()
+      for (const i of prev) {
+        if (i < index) next.add(i)
+        else if (i > index) next.add(i - 1)
+        // i === index: dropped along with the removed link
+      }
+      return next
+    })
   }
   function moveSidebarLink(index: number, direction: -1 | 1) {
+    const target = index + direction
     setForm((f) => {
+      if (target < 0 || target >= f.sidebarLinks.length) return f
       const next = [...f.sidebarLinks]
-      const target = index + direction
-      if (target < 0 || target >= next.length) return f
       ;[next[index], next[target]] = [next[target], next[index]]
       return { ...f, sidebarLinks: next }
+    })
+    setOpenLinkIndices((prev) => {
+      if (target < 0 || target >= form.sidebarLinks.length) return prev
+      const hadIndex = prev.has(index)
+      const hadTarget = prev.has(target)
+      const next = new Set(prev)
+      if (hadIndex) next.add(target); else next.delete(target)
+      if (hadTarget) next.add(index); else next.delete(index)
+      return next
     })
   }
 
@@ -566,63 +601,75 @@ export function SettingsForm({
           <s-section heading="Sidebar links">
             <s-stack direction="block" gap="base">
               <s-paragraph tone="subdued">Extra links shown in the customer portal's sidebar, alongside Home and Orders. Open in a new tab. Each link can optionally have its own sub-links (a one-level submenu).</s-paragraph>
-              {form.sidebarLinks.map((link, i) => (
-                <s-box key={i} padding="base" border="base" borderRadius="base">
-                  <s-stack direction="block" gap="small">
-                    <s-text-field
-                      label="Label"
-                      value={link.label}
-                      placeholder="FAQ"
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateSidebarLink(i, { label: e.target.value })}
-                    ></s-text-field>
-                    <s-url-field
-                      label="URL"
-                      value={link.url}
-                      placeholder="https://your-store.com/pages/faq"
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateSidebarLink(i, { url: e.target.value })}
-                    ></s-url-field>
-                    <s-select
-                      label="Icon (optional)"
-                      value={link.icon ?? ""}
-                      onChange={(e: React.ChangeEvent<HTMLSelectElement>) => updateSidebarLink(i, { icon: e.target.value || undefined })}
-                    >
-                      <s-option value="">No icon</s-option>
-                      {SIDEBAR_ICON_NAMES.map((name) => (
-                        <s-option key={name} value={name}>{name}</s-option>
-                      ))}
-                    </s-select>
-
-                    {(link.children ?? []).length > 0 && (
-                      <s-stack direction="block" gap="small">
-                        <s-text tone="subdued">Sub-links</s-text>
-                        {link.children!.map((child, ci) => (
-                          <s-box key={ci} padding="small" border="base" borderRadius="base">
-                            <s-stack direction="block" gap="small">
-                              <s-text-field
-                                label="Sub-link label"
-                                value={child.label}
-                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateSubLink(i, ci, { label: e.target.value })}
-                              ></s-text-field>
-                              <s-url-field
-                                label="Sub-link URL"
-                                value={child.url}
-                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateSubLink(i, ci, { url: e.target.value })}
-                              ></s-url-field>
-                              <s-button tone="critical" onClick={() => removeSubLink(i, ci)}>Remove sub-link</s-button>
-                            </s-stack>
-                          </s-box>
-                        ))}
+              {form.sidebarLinks.map((link, i) => {
+                const isOpen = openLinkIndices.has(i)
+                const subCount = link.children?.length ?? 0
+                return (
+                  <s-box key={i} padding="base" border="base" borderRadius="base">
+                    <s-stack direction="block" gap="small">
+                      <s-stack direction="inline" gap="small-300" alignItems="center">
+                        <s-button onClick={() => toggleLinkOpen(i)}>{isOpen ? "Collapse" : "Expand"}</s-button>
+                        <s-text>{link.label || "(untitled link)"}{subCount > 0 ? ` · ${subCount} sub-link${subCount === 1 ? "" : "s"}` : ""}</s-text>
                       </s-stack>
-                    )}
-                    <s-stack direction="inline" gap="small-300">
-                      <s-button onClick={() => addSubLink(i)}>Add sub-link</s-button>
-                      <s-button onClick={() => moveSidebarLink(i, -1)} disabled={i === 0}>Move up</s-button>
-                      <s-button onClick={() => moveSidebarLink(i, 1)} disabled={i === form.sidebarLinks.length - 1}>Move down</s-button>
-                      <s-button tone="critical" onClick={() => removeSidebarLink(i)}>Remove</s-button>
+                      {isOpen && (
+                        <>
+                          <s-text-field
+                            label="Label"
+                            value={link.label}
+                            placeholder="FAQ"
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateSidebarLink(i, { label: e.target.value })}
+                          ></s-text-field>
+                          <s-url-field
+                            label="URL"
+                            value={link.url}
+                            placeholder="https://your-store.com/pages/faq"
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateSidebarLink(i, { url: e.target.value })}
+                          ></s-url-field>
+                          <s-select
+                            label="Icon (optional)"
+                            value={link.icon ?? ""}
+                            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => updateSidebarLink(i, { icon: e.target.value || undefined })}
+                          >
+                            <s-option value="">No icon</s-option>
+                            {SIDEBAR_ICON_NAMES.map((name) => (
+                              <s-option key={name} value={name}>{name}</s-option>
+                            ))}
+                          </s-select>
+
+                          {(link.children ?? []).length > 0 && (
+                            <s-stack direction="block" gap="small">
+                              <s-text tone="subdued">Sub-links</s-text>
+                              {link.children!.map((child, ci) => (
+                                <s-box key={ci} padding="small" border="base" borderRadius="base">
+                                  <s-stack direction="block" gap="small">
+                                    <s-text-field
+                                      label="Sub-link label"
+                                      value={child.label}
+                                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateSubLink(i, ci, { label: e.target.value })}
+                                    ></s-text-field>
+                                    <s-url-field
+                                      label="Sub-link URL"
+                                      value={child.url}
+                                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateSubLink(i, ci, { url: e.target.value })}
+                                    ></s-url-field>
+                                    <s-button tone="critical" onClick={() => removeSubLink(i, ci)}>Remove sub-link</s-button>
+                                  </s-stack>
+                                </s-box>
+                              ))}
+                            </s-stack>
+                          )}
+                          <s-stack direction="inline" gap="small-300">
+                            <s-button onClick={() => addSubLink(i)}>Add sub-link</s-button>
+                            <s-button onClick={() => moveSidebarLink(i, -1)} disabled={i === 0}>Move up</s-button>
+                            <s-button onClick={() => moveSidebarLink(i, 1)} disabled={i === form.sidebarLinks.length - 1}>Move down</s-button>
+                            <s-button tone="critical" onClick={() => removeSidebarLink(i)}>Remove</s-button>
+                          </s-stack>
+                        </>
+                      )}
                     </s-stack>
-                  </s-stack>
-                </s-box>
-              ))}
+                  </s-box>
+                )
+              })}
               <s-button onClick={addSidebarLink}>Add link</s-button>
               {errors.sidebarLinks && <s-paragraph tone="critical">{errors.sidebarLinks}</s-paragraph>}
 
