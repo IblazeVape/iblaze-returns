@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyMerchantSessionToken } from "@/lib/merchant-session-token";
-import { validateBrandingInput, type BrandingInput } from "@/lib/branding-validation";
+import { validateBrandingInput, type BrandingInput, type PolicyCategoryInput, type SidebarLinkInput } from "@/lib/branding-validation";
 import { getTenant, setTenant } from "@/lib/tenant";
 
 export const dynamic = "force-dynamic";
+
+function isPolicyCategoryArray(value: unknown): value is PolicyCategoryInput[] {
+  return Array.isArray(value) && value.every((v) => v && typeof v.title === "string" && typeof v.desc === "string");
+}
+
+function isSidebarLinkArray(value: unknown): value is SidebarLinkInput[] {
+  return Array.isArray(value) && value.every((v) => v && typeof v.label === "string" && typeof v.url === "string");
+}
 
 export async function PUT(request: NextRequest) {
   const auth = request.headers.get("authorization") || "";
@@ -35,6 +43,20 @@ export async function PUT(request: NextRequest) {
     returnWindowDays: typeof body.returnWindowDays === "number" ? body.returnWindowDays : existing.returnWindowDays,
     requirePolicyAcceptance:
       typeof body.requirePolicyAcceptance === "boolean" ? body.requirePolicyAcceptance : existing.branding.requirePolicyAcceptance,
+    storeLinkEnabled: typeof body.storeLinkEnabled === "boolean" ? body.storeLinkEnabled : existing.branding.storeLinkEnabled,
+    storeLinkLabel: typeof body.storeLinkLabel === "string" ? body.storeLinkLabel : existing.branding.storeLinkLabel,
+    policyHeading: typeof body.policyHeading === "string" ? body.policyHeading : existing.branding.policyHeading,
+    policySubheading: typeof body.policySubheading === "string" ? body.policySubheading : existing.branding.policySubheading,
+    policyCategories: isPolicyCategoryArray(body.policyCategories) ? body.policyCategories : existing.branding.policyCategories,
+    policyFooterNote: typeof body.policyFooterNote === "string" ? body.policyFooterNote : existing.branding.policyFooterNote,
+    sidebarLinks: isSidebarLinkArray(body.sidebarLinks) ? body.sidebarLinks : existing.branding.sidebarLinks,
+    sidebarNote: typeof body.sidebarNote === "string" ? body.sidebarNote : existing.branding.sidebarNote,
+    sidebarLayoutSwitcherEnabled:
+      typeof body.sidebarLayoutSwitcherEnabled === "boolean" ? body.sidebarLayoutSwitcherEnabled : existing.branding.sidebarLayoutSwitcherEnabled,
+    defaultSidebarLayout:
+      body.defaultSidebarLayout === "inset" || body.defaultSidebarLayout === "sidebar"
+        ? body.defaultSidebarLayout
+        : existing.branding.defaultSidebarLayout,
   };
 
   const { valid, errors } = validateBrandingInput(input);
@@ -53,6 +75,16 @@ export async function PUT(request: NextRequest) {
       policyUrl: input.policyUrl,
       policyText: input.policyText,
       requirePolicyAcceptance: input.requirePolicyAcceptance,
+      storeLinkEnabled: input.storeLinkEnabled,
+      storeLinkLabel: input.storeLinkLabel,
+      policyHeading: input.policyHeading,
+      policySubheading: input.policySubheading,
+      policyCategories: input.policyCategories,
+      policyFooterNote: input.policyFooterNote,
+      sidebarLinks: input.sidebarLinks,
+      sidebarNote: input.sidebarNote,
+      sidebarLayoutSwitcherEnabled: input.sidebarLayoutSwitcherEnabled,
+      defaultSidebarLayout: input.defaultSidebarLayout,
     },
   });
 

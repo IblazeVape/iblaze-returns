@@ -1,22 +1,75 @@
 "use client"
 
 import * as React from "react"
-import { ShoppingBag, Search } from "lucide-react"
+import { ShoppingBag, Search, ExternalLink } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
 import { isGuestOrderContext, lookupAnotherOrder, getAppsReturnsIdentityKind } from "@/lib/apps-returns-portal-mode"
 import {
-  Sidebar, SidebarContent, SidebarFooter,
+  Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent,
   SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
+
+type SidebarBranding = {
+  name: string
+  logoUrl: string
+  storefrontUrl: string
+  sidebarLinks?: { label: string; url: string }[]
+  sidebarNote?: string
+}
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   user?: { name: string; email: string }
   onNavigate?: (section: string) => void
   activeSection?: string
-  branding?: { name: string; logoUrl: string; storefrontUrl: string }
+  branding?: SidebarBranding
+}
+
+/** Renders **double-asterisk** spans as <strong> — the only formatting the
+ * Settings page's sidebar note field supports, so this is a small regex
+ * split rather than a markdown dependency. */
+function BoldText({ text }: { text: string }) {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g)
+  return (
+    <>
+      {parts.map((part, i) =>
+        part.startsWith("**") && part.endsWith("**")
+          ? <strong key={i}>{part.slice(2, -2)}</strong>
+          : <React.Fragment key={i}>{part}</React.Fragment>
+      )}
+    </>
+  )
+}
+
+function SidebarCustomLinks({ links, note }: { links?: { label: string; url: string }[]; note?: string }) {
+  if (!links?.length && !note) return null
+  return (
+    <SidebarGroup>
+      <SidebarGroupContent className="flex flex-col gap-1">
+        {links && links.length > 0 && (
+          <SidebarMenu>
+            {links.map((link) => (
+              <SidebarMenuItem key={link.label}>
+                <SidebarMenuButton tooltip={link.label} asChild>
+                  <a href={link.url} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="size-4 shrink-0" />
+                    <span className="group-data-[collapsible=icon]:hidden">{link.label}</span>
+                  </a>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
+        )}
+        {note && (
+          <p className="px-2 py-1.5 text-xs text-sidebar-foreground/70 leading-snug group-data-[collapsible=icon]:hidden">
+            <BoldText text={note} />
+          </p>
+        )}
+      </SidebarGroupContent>
+    </SidebarGroup>
+  )
 }
 
 function SidebarBrandHeader({ branding }: { branding?: { name: string; logoUrl: string; storefrontUrl: string } }) {
@@ -94,10 +147,7 @@ export function AppSidebar({ user, onNavigate, activeSection, branding, ...props
       <SidebarContent>
         <div className="flex min-h-0 flex-1 w-full flex-col group-data-[collapsible=icon]:items-center">
           {navMain.length > 0 && <NavMain items={navMain} onNavigate={handleNavigate} activeSection={activeSection} />}
-          {/* Nothing else here for now — the header's own "Store" link
-              already covers going back to the storefront on every screen,
-              so a duplicate sidebar entry was redundant. Empty until a
-              merchant adds their own items via a future settings page. */}
+          <SidebarCustomLinks links={branding?.sidebarLinks} note={branding?.sidebarNote} />
         </div>
       </SidebarContent>
       <SidebarFooter className="overflow-visible group-data-[collapsible=icon]:pb-3">

@@ -50,6 +50,9 @@ function LayoutOption({
 }
 
 export function SidebarLayoutSwitcher({ inline = false }: { inline?: boolean }) {
+  const { switcherEnabled } = useSidebarLayout()
+  if (!switcherEnabled) return null
+
   if (inline) {
     return (
       <>

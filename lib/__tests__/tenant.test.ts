@@ -50,6 +50,13 @@ describe("tenant store", () => {
     expect(t?.branding.logoUrl).toBe("");
     expect(t?.branding.accentColor).toBe("#000000");
     expect(t?.branding.requirePolicyAcceptance).toBe(true);
+    expect(t?.branding.storeLinkEnabled).toBe(true);
+    expect(t?.branding.storeLinkLabel).toBe("Store");
+    expect(t?.branding.policyHeading).toBe("iBlaze Returns Policy");
+    expect(t?.branding.policyCategories.length).toBe(4);
+    expect(t?.branding.sidebarLinks).toEqual([]);
+    expect(t?.branding.sidebarLayoutSwitcherEnabled).toBe(true);
+    expect(t?.branding.defaultSidebarLayout).toBe("inset");
   });
 
   it("round-trips a full branding update", async () => {
@@ -65,6 +72,16 @@ describe("tenant store", () => {
         policyUrl: "https://acme-vapes.com/policies/refund-policy",
         policyText: "Unopened items only, within the return window.",
         requirePolicyAcceptance: false,
+        storeLinkEnabled: false,
+        storeLinkLabel: "Back to store",
+        policyHeading: "Acme Returns Policy",
+        policySubheading: "Please review before returning items.",
+        policyCategories: [{ title: "Vapes", desc: "30-day refund." }],
+        policyFooterNote: "Postage at your expense.",
+        sidebarLinks: [{ label: "FAQ", url: "https://acme-vapes.com/faq" }],
+        sidebarNote: "**Note:** processing may take 48h.",
+        sidebarLayoutSwitcherEnabled: false,
+        defaultSidebarLayout: "sidebar",
       },
     });
     const t = await getTenant("d.myshopify.com");
@@ -73,6 +90,12 @@ describe("tenant store", () => {
     expect(t?.branding.supportEmail).toBe("help@acme-vapes.com");
     expect(t?.branding.policyText).toBe("Unopened items only, within the return window.");
     expect(t?.branding.requirePolicyAcceptance).toBe(false);
+    expect(t?.branding.storeLinkEnabled).toBe(false);
+    expect(t?.branding.storeLinkLabel).toBe("Back to store");
+    expect(t?.branding.policyCategories).toEqual([{ title: "Vapes", desc: "30-day refund." }]);
+    expect(t?.branding.sidebarLinks).toEqual([{ label: "FAQ", url: "https://acme-vapes.com/faq" }]);
+    expect(t?.branding.sidebarLayoutSwitcherEnabled).toBe(false);
+    expect(t?.branding.defaultSidebarLayout).toBe("sidebar");
   });
 
   it("merges old branding JSON with new field defaults", async () => {

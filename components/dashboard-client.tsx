@@ -9,7 +9,7 @@ import { ChevronRight, ChevronDown, LayoutGrid, List, ArrowLeft, RotateCcw, Chec
 
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { PortalShell } from "@/components/portal-shell"
-import { SidebarLayoutProvider } from "@/components/sidebar-layout-provider"
+import { SidebarLayoutProvider, useSidebarLayout } from "@/components/sidebar-layout-provider"
 import { isAppsReturnsPortal, isGuestOrderContext, getGuestOrderId, lookupAnotherOrder } from "@/lib/apps-returns-portal-mode"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -2813,23 +2813,34 @@ function ShipmentItemList({ shipment, order, className }: { shipment: Shipment; 
 }
 
 // ─── Hygiene policy list ──────────────────────────────────────────────────────
-const POLICY_ITEMS = [
+const DEFAULT_POLICY_CATEGORIES = [
   { title: "Vape Kits & Mods",       desc: "30-day refund period. 30-day warranty from delivery." },
   { title: "Batteries & Chargers",    desc: "60-day battery warranty. 30-day charger warranty." },
   { title: "E-Liquids & Disposables", desc: "Must remain sealed and unopened. No returns on opened liquids." },
   { title: "Tanks & Clearomisers",    desc: "7-day Dead On Arrival window — report faults within 7 days." },
 ]
+const DEFAULT_POLICY_FOOTER_NOTE = "Return postage is at your expense. Tracked service required. Refunds within 5–10 business days."
 
-function HygienePolicyList({ className, itemPx = "px-6" }: { className?: string; itemPx?: string }) {
+function HygienePolicyList({
+  className,
+  itemPx = "px-6",
+  categories = DEFAULT_POLICY_CATEGORIES,
+  footerNote = DEFAULT_POLICY_FOOTER_NOTE,
+}: {
+  className?: string
+  itemPx?: string
+  categories?: { title: string; desc: string }[]
+  footerNote?: string
+}) {
   return (
     <div className={cn("divide-y divide-border", className)}>
-      {POLICY_ITEMS.map(p => (
+      {categories.map(p => (
         <div key={p.title} className={cn("py-3", itemPx)}>
           <p className="font-medium text-sm">{p.title}</p>
           <p className="text-xs text-muted-foreground mt-0.5">{p.desc}</p>
         </div>
       ))}
-      <p className={cn("text-xs text-muted-foreground py-3", itemPx)}>Return postage is at your expense. Tracked service required. Refunds within 5–10 business days.</p>
+      {footerNote && <p className={cn("text-xs text-muted-foreground py-3", itemPx)}>{footerNote}</p>}
     </div>
   )
 }
@@ -2892,11 +2903,24 @@ function ShipmentItemsModal({ shipment, order, idx }: { shipment: Shipment; orde
 }
 
 // ─── Hygiene Policy Modal ─────────────────────────────────────────────────────
-function HygienePolicy({ onAccept, onDecline, compact = false, link = false }: {
+function HygienePolicy({
+  onAccept,
+  onDecline,
+  compact = false,
+  link = false,
+  heading = "iBlaze Returns Policy",
+  subheading = "Review our returns policy before selecting items to return.",
+  categories,
+  footerNote,
+}: {
   onAccept: () => void
   onDecline: () => void
   compact?: boolean
   link?: boolean
+  heading?: string
+  subheading?: string
+  categories?: { title: string; desc: string }[]
+  footerNote?: string
 }) {
   const isDesktop = useMediaQuery("(min-width: 768px)")
 
@@ -2921,10 +2945,10 @@ function HygienePolicy({ onAccept, onDecline, compact = false, link = false }: {
         <DialogTrigger asChild>{trigger}</DialogTrigger>
         <DialogContent className="sm:max-w-[425px] gap-0 p-0 overflow-hidden">
           <DialogHeader className="px-6 pt-6 pb-4 border-b border-border">
-            <DialogTitle className="flex items-center gap-2"><ShieldCheck className="size-4 text-[var(--brand)]" /> iBlaze Returns Policy</DialogTitle>
-            <DialogDescription>Review our returns policy before selecting items to return.</DialogDescription>
+            <DialogTitle className="flex items-center gap-2"><ShieldCheck className="size-4 text-[var(--brand)]" /> {heading}</DialogTitle>
+            <DialogDescription>{subheading}</DialogDescription>
           </DialogHeader>
-          <HygienePolicyList itemPx="px-6" />
+          <HygienePolicyList itemPx="px-6" categories={categories} footerNote={footerNote} />
           <div className="flex gap-2 px-6 pb-6 pt-4">
             <DialogClose asChild>
               <Button className="flex-1 bg-[var(--brand)] hover:bg-[var(--brand)]/90 text-white" onClick={() => { onAccept(); toast.success("Policy accepted") }}><CheckCircle2 className="size-4" /> I Accept</Button>
@@ -2943,12 +2967,12 @@ function HygienePolicy({ onAccept, onDecline, compact = false, link = false }: {
       <DrawerTrigger asChild>{trigger}</DrawerTrigger>
       <DrawerContent>
         <DrawerHeader className="text-left pb-4">
-          <DrawerTitle className="flex items-center gap-2"><ShieldCheck className="size-4 text-[var(--brand)]" /> iBlaze Returns Policy</DrawerTitle>
-          <DrawerDescription>Review our returns policy before selecting items to return.</DrawerDescription>
+          <DrawerTitle className="flex items-center gap-2"><ShieldCheck className="size-4 text-[var(--brand)]" /> {heading}</DrawerTitle>
+          <DrawerDescription>{subheading}</DrawerDescription>
         </DrawerHeader>
         <Separator />
         <ScrollArea className="max-h-[50vh]">
-          <HygienePolicyList itemPx="px-4" />
+          <HygienePolicyList itemPx="px-4" categories={categories} footerNote={footerNote} />
         </ScrollArea>
         <DrawerFooter className="pt-2">
           <div className="flex gap-2">
@@ -3144,7 +3168,27 @@ function OrderRow({ order, onClick }: { order: Order; onClick: () => void }) {
 const RETURN_REVIEW_VARIANT: "A" | "B" = "B"
 
 // ─── Order Detail ─────────────────────────────────────────────────────────────
-function OrderDetail({ order, onBack, returnWindowDays, supportEmail, requirePolicyAcceptance = true }: { order: Order; onBack: () => void; returnWindowDays: number; supportEmail?: string; requirePolicyAcceptance?: boolean }) {
+function OrderDetail({
+  order,
+  onBack,
+  returnWindowDays,
+  supportEmail,
+  requirePolicyAcceptance = true,
+  policyHeading,
+  policySubheading,
+  policyCategories,
+  policyFooterNote,
+}: {
+  order: Order
+  onBack: () => void
+  returnWindowDays: number
+  supportEmail?: string
+  requirePolicyAcceptance?: boolean
+  policyHeading?: string
+  policySubheading?: string
+  policyCategories?: { title: string; desc: string }[]
+  policyFooterNote?: string
+}) {
   const [policyAccepted, setPolicyAccepted] = useState(!requirePolicyAcceptance)
   const [selectedItems, setSelectedItems]   = useState<Record<string, { selected: boolean; quantity: number; reason: string; description: string }>>({})
   const [submitting, setSubmitting]   = useState(false)
@@ -3556,7 +3600,15 @@ function OrderDetail({ order, onBack, returnWindowDays, supportEmail, requirePol
                     Accept our returns policy to select items to return
                   </span>
                 </div>
-                <HygienePolicy link onAccept={() => setPolicyAccepted(true)} onDecline={() => setPolicyAccepted(false)} />
+                <HygienePolicy
+                  link
+                  onAccept={() => setPolicyAccepted(true)}
+                  onDecline={() => setPolicyAccepted(false)}
+                  heading={policyHeading}
+                  subheading={policySubheading}
+                  categories={policyCategories}
+                  footerNote={policyFooterNote}
+                />
               </div>
             )}
             <div className="border-b bg-muted/20 px-3 py-2.5">
@@ -4453,6 +4505,7 @@ export default function DashboardClient({ demo = false }: { demo?: boolean } = {
 
 function DashboardClientInner() {
   const searchParams = useSearchParams()
+  const { applyMerchantDefault } = useSidebarLayout()
   const [data, setData]                   = useState<OrdersData | null>(null)
   const [loading, setLoading]             = useState(true)
   const [loadingMore, setLoadingMore]     = useState(false)
@@ -4474,7 +4527,23 @@ function DashboardClientInner() {
     policyUrl: string
     policyText: string
     requirePolicyAcceptance: boolean
-  }>({ name: "", logoUrl: "", accentColor: "#000000", storefrontUrl: "", supportEmail: "", policyUrl: "", policyText: "", requirePolicyAcceptance: true })
+    storeLinkEnabled: boolean
+    storeLinkLabel: string
+    policyHeading: string
+    policySubheading: string
+    policyCategories: { title: string; desc: string }[]
+    policyFooterNote: string
+    sidebarLinks: { label: string; url: string }[]
+    sidebarNote: string
+    sidebarLayoutSwitcherEnabled: boolean
+    defaultSidebarLayout: "inset" | "sidebar"
+  }>({
+    name: "", logoUrl: "", accentColor: "#000000", storefrontUrl: "", supportEmail: "", policyUrl: "", policyText: "",
+    requirePolicyAcceptance: true, storeLinkEnabled: true, storeLinkLabel: "Store",
+    policyHeading: "iBlaze Returns Policy", policySubheading: "Review our returns policy before selecting items to return.",
+    policyCategories: DEFAULT_POLICY_CATEGORIES, policyFooterNote: DEFAULT_POLICY_FOOTER_NOTE,
+    sidebarLinks: [], sidebarNote: "", sidebarLayoutSwitcherEnabled: true, defaultSidebarLayout: "inset",
+  })
   const sentinelRef = React.useRef<HTMLDivElement | null>(null)
   const ordersScrollRef = React.useRef<HTMLDivElement | null>(null)
   const loadingMoreRef = React.useRef(false)
@@ -4510,9 +4579,14 @@ function DashboardClientInner() {
     if (DEMO_MODE) return
     fetch("/api/branding", { cache: "no-store" })
       .then(r => r.json())
-      .then(d => { if (d.branding) setBranding(d.branding) })
+      .then(d => {
+        if (d.branding) {
+          setBranding(d.branding)
+          applyMerchantDefault(d.branding.defaultSidebarLayout, d.branding.sidebarLayoutSwitcherEnabled)
+        }
+      })
       .catch(() => {})
-  }, [])
+  }, [applyMerchantDefault])
 
   // Auto-select an order when ?order=<numericId> is in the URL (e.g. from Shopify
   // extension), or when a guest just verified exactly one order via the App
@@ -4631,7 +4705,7 @@ function DashboardClientInner() {
       onNavigate={s => { setActiveSection(s); setSelectedOrder(null) }}
       activeSection={activeSection}
       accentColor={branding.accentColor}
-      branding={{ name: branding.name, logoUrl: branding.logoUrl, storefrontUrl: branding.storefrontUrl }}
+      branding={{ name: branding.name, logoUrl: branding.logoUrl, storefrontUrl: branding.storefrontUrl, sidebarLinks: branding.sidebarLinks, sidebarNote: branding.sidebarNote }}
       headerProps={{
         title: selectedOrder ? getOrderPageHeaderTitle(selectedOrder) : activeSection === "#home" ? "Dashboard" : "My Orders",
         titleIcon: orderHeaderStatus ? { icon: orderHeaderStatus.icon } : undefined,
@@ -4642,6 +4716,8 @@ function DashboardClientInner() {
         email: data?.email,
         orderStatusUrl: selectedOrder ? (isAppsReturnsPortal() && selectedOrder.statusPageUrl ? selectedOrder.statusPageUrl : `https://account.iblazevape.co.uk/orders/${selectedOrder.id.split("/").pop()}`) : undefined,
         storefrontUrl: branding.storefrontUrl || undefined,
+        storeLinkEnabled: branding.storeLinkEnabled,
+        storeLinkLabel: branding.storeLinkLabel,
       }}
     >
         {selectedOrder && <StickyOrderSummaryStrip key={selectedOrder.id} order={selectedOrder} returnWindowDays={data?.returnWindowDays ?? 30} />}
@@ -4720,7 +4796,17 @@ function DashboardClientInner() {
             exit={{ opacity: 0, x: 18 }}
             transition={{ duration: 0.22, ease: [0.25, 0.1, 0.25, 1] }}
           >
-            <OrderDetail order={selectedOrder} onBack={() => setSelectedOrder(null)} returnWindowDays={data?.returnWindowDays ?? 30} supportEmail={branding.supportEmail || undefined} requirePolicyAcceptance={branding.requirePolicyAcceptance} />
+            <OrderDetail
+              order={selectedOrder}
+              onBack={() => setSelectedOrder(null)}
+              returnWindowDays={data?.returnWindowDays ?? 30}
+              supportEmail={branding.supportEmail || undefined}
+              requirePolicyAcceptance={branding.requirePolicyAcceptance}
+              policyHeading={branding.policyHeading}
+              policySubheading={branding.policySubheading}
+              policyCategories={branding.policyCategories}
+              policyFooterNote={branding.policyFooterNote}
+            />
           </motion.div>
         ) : activeSection === "#home" ? (
           <motion.div
@@ -4880,7 +4966,11 @@ function DashboardClientInner() {
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/40 backdrop-blur-xs">
             <Card className="w-full max-w-xs mx-4 shadow-xl">
               <div className="flex flex-col items-center justify-center gap-3 py-8 px-6">
-                <div className="size-10 rounded-full bg-[var(--brand)]/10 flex items-center justify-center"><Spinner className="size-5 text-[var(--brand)]" /></div>
+                {/* Neutral, not brand-colored: this screen always renders before the
+                    branding fetch resolves, so --brand is still the #000000 CSS
+                    fallback here — using it would flash black before switching to
+                    the tenant's real accent color once it loads. */}
+                <div className="size-10 rounded-full bg-muted flex items-center justify-center"><Spinner className="size-5 text-muted-foreground" /></div>
                 <div className="text-center">
                   <p className="font-semibold text-sm">Authenticating</p>
                   <p className="text-xs text-muted-foreground mt-0.5">Verifying your session securely...</p>

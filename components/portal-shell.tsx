@@ -38,9 +38,10 @@ export function PortalShell({
    * sites this variable replaced. */
   accentColor: string
   /** Tenant identity forwarded to AppSidebar's brand header (logo, name,
-   * storefront link). Optional — the legacy `/` portal doesn't pass it yet,
-   * so AppSidebar falls back to the iBlaze defaults. */
-  branding?: { name: string; logoUrl: string; storefrontUrl: string }
+   * storefront link) plus its custom nav links/note. Optional — the legacy
+   * `/` portal doesn't pass it yet, so AppSidebar falls back to the iBlaze
+   * defaults. */
+  branding?: { name: string; logoUrl: string; storefrontUrl: string; sidebarLinks?: { label: string; url: string }[]; sidebarNote?: string }
   headerProps: React.ComponentProps<typeof SiteHeader>
   children?: React.ReactNode
 }) {

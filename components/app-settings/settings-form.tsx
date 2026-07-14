@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { validateBrandingInput, type BrandingInput } from "@/lib/branding-validation"
+import { validateBrandingInput, type BrandingInput, type PolicyCategoryInput, type SidebarLinkInput } from "@/lib/branding-validation"
 import type { TenantBranding } from "@/lib/tenant"
 
 declare const shopify: {
@@ -101,6 +101,44 @@ export function SettingsForm({
     }
   }
 
+  function updateCategory(index: number, patch: Partial<PolicyCategoryInput>) {
+    setForm((f) => ({ ...f, policyCategories: f.policyCategories.map((c, i) => (i === index ? { ...c, ...patch } : c)) }))
+  }
+  function addCategory() {
+    setForm((f) => ({ ...f, policyCategories: [...f.policyCategories, { title: "", desc: "" }] }))
+  }
+  function removeCategory(index: number) {
+    setForm((f) => ({ ...f, policyCategories: f.policyCategories.filter((_, i) => i !== index) }))
+  }
+  function moveCategory(index: number, direction: -1 | 1) {
+    setForm((f) => {
+      const next = [...f.policyCategories]
+      const target = index + direction
+      if (target < 0 || target >= next.length) return f
+      ;[next[index], next[target]] = [next[target], next[index]]
+      return { ...f, policyCategories: next }
+    })
+  }
+
+  function updateSidebarLink(index: number, patch: Partial<SidebarLinkInput>) {
+    setForm((f) => ({ ...f, sidebarLinks: f.sidebarLinks.map((l, i) => (i === index ? { ...l, ...patch } : l)) }))
+  }
+  function addSidebarLink() {
+    setForm((f) => ({ ...f, sidebarLinks: [...f.sidebarLinks, { label: "", url: "" }] }))
+  }
+  function removeSidebarLink(index: number) {
+    setForm((f) => ({ ...f, sidebarLinks: f.sidebarLinks.filter((_, i) => i !== index) }))
+  }
+  function moveSidebarLink(index: number, direction: -1 | 1) {
+    setForm((f) => {
+      const next = [...f.sidebarLinks]
+      const target = index + direction
+      if (target < 0 || target >= next.length) return f
+      ;[next[index], next[target]] = [next[target], next[index]]
+      return { ...f, sidebarLinks: next }
+    })
+  }
+
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     const { valid, errors: validationErrors } = validateBrandingInput(form)
@@ -126,107 +164,267 @@ export function SettingsForm({
 
   return (
     <s-page heading="Returns Settings">
-      <s-section heading="Branding">
-        <s-stack direction="block" gap="base">
-          <s-text-field
-            label="Brand name"
-            name="name"
-            value={form.name}
-            placeholder="Your Store"
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("name", e.target.value)}
-          ></s-text-field>
+      <s-tabs defaultValue="branding">
+        <s-tab-list>
+          <s-tab controls="branding">Branding</s-tab>
+          <s-tab controls="returns">Returns policy</s-tab>
+          <s-tab controls="navigation">Navigation</s-tab>
+        </s-tab-list>
 
-          <s-stack direction="inline" gap="base" alignItems="center">
-            <s-button onClick={() => document.getElementById("logo-file-input")?.click()} disabled={uploading}>
-              {uploading ? "Uploading…" : "Upload logo"}
-            </s-button>
-            <s-button onClick={handleChooseFromLibrary} disabled={loadingLibrary}>
-              {loadingLibrary ? "Loading…" : "Choose from Shopify"}
-            </s-button>
-            <input
-              id="logo-file-input"
-              type="file"
-              accept="image/png,image/jpeg,image/webp,image/svg+xml"
-              style={{ display: "none" }}
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleLogoFile(f) }}
-            />
-          </s-stack>
-          <s-url-field
-            label="Or paste a logo URL"
-            name="logoUrl"
-            value={form.logoUrl}
-            placeholder="https://cdn.shopify.com/your-logo.png"
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("logoUrl", e.target.value)}
-          ></s-url-field>
-          {errors.logoUrl && <s-paragraph tone="critical">{errors.logoUrl}</s-paragraph>}
+        <s-tab-panel id="branding">
+          <s-section heading="Branding">
+            <s-stack direction="block" gap="base">
+              <s-text-field
+                label="Brand name"
+                name="name"
+                value={form.name}
+                placeholder="Your Store"
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("name", e.target.value)}
+              ></s-text-field>
 
-          <s-color-field
-            label="Accent color"
-            name="accentColor"
-            value={form.accentColor}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("accentColor", e.target.value)}
-          ></s-color-field>
-          {errors.accentColor && <s-paragraph tone="critical">{errors.accentColor}</s-paragraph>}
+              <s-stack direction="inline" gap="base" alignItems="center">
+                {form.logoUrl && <s-thumbnail size="base" src={form.logoUrl} alt="Current logo"></s-thumbnail>}
+                <s-button onClick={() => document.getElementById("logo-file-input")?.click()} disabled={uploading}>
+                  {uploading ? "Uploading…" : "Upload logo"}
+                </s-button>
+                <s-button onClick={handleChooseFromLibrary} disabled={loadingLibrary}>
+                  {loadingLibrary ? "Loading…" : "Choose from Shopify"}
+                </s-button>
+                <input
+                  id="logo-file-input"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                  style={{ display: "none" }}
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleLogoFile(f) }}
+                />
+              </s-stack>
+              <s-url-field
+                label="Or paste a logo URL"
+                name="logoUrl"
+                value={form.logoUrl}
+                placeholder="https://cdn.shopify.com/your-logo.png"
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("logoUrl", e.target.value)}
+              ></s-url-field>
+              {errors.logoUrl && <s-paragraph tone="critical">{errors.logoUrl}</s-paragraph>}
 
-          <s-url-field
-            label="Storefront URL"
-            name="storefrontUrl"
-            value={form.storefrontUrl}
-            placeholder="https://your-store.com"
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("storefrontUrl", e.target.value)}
-          ></s-url-field>
-          {errors.storefrontUrl && <s-paragraph tone="critical">{errors.storefrontUrl}</s-paragraph>}
-        </s-stack>
-      </s-section>
+              <s-color-field
+                label="Accent color"
+                name="accentColor"
+                value={form.accentColor}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("accentColor", e.target.value)}
+              ></s-color-field>
+              {errors.accentColor && <s-paragraph tone="critical">{errors.accentColor}</s-paragraph>}
 
-      <s-section heading="Returns">
-        <s-stack direction="block" gap="base">
-          <s-number-field
-            label="Return window (days)"
-            name="returnWindowDays"
-            min={1}
-            max={365}
-            value={form.returnWindowDays}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("returnWindowDays", Number(e.target.value))}
-          ></s-number-field>
-          {errors.returnWindowDays && <s-paragraph tone="critical">{errors.returnWindowDays}</s-paragraph>}
+              <s-url-field
+                label="Storefront URL"
+                name="storefrontUrl"
+                value={form.storefrontUrl}
+                placeholder="https://your-store.com"
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("storefrontUrl", e.target.value)}
+              ></s-url-field>
+              <s-paragraph tone="subdued">Where the sidebar logo and the header's store link send customers — usually your live storefront domain, not your myshopify.com admin URL.</s-paragraph>
+              {errors.storefrontUrl && <s-paragraph tone="critical">{errors.storefrontUrl}</s-paragraph>}
 
-          <s-url-field
-            label="Policy URL"
-            name="policyUrl"
-            value={form.policyUrl}
-            placeholder="https://your-store.com/policies/refund-policy"
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policyUrl", e.target.value)}
-          ></s-url-field>
-          {errors.policyUrl && <s-paragraph tone="critical">{errors.policyUrl}</s-paragraph>}
+              <s-email-field
+                label="Support email"
+                name="supportEmail"
+                value={form.supportEmail}
+                placeholder="help@your-store.com"
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("supportEmail", e.target.value)}
+              ></s-email-field>
+              <s-paragraph tone="subdued">Only shown to a customer if they submit a return before their order is marked delivered, as a "contact us if there's a delivery issue" line.</s-paragraph>
+              {errors.supportEmail && <s-paragraph tone="critical">{errors.supportEmail}</s-paragraph>}
+            </s-stack>
+          </s-section>
+        </s-tab-panel>
 
-          <s-text-area
-            label="Policy text"
-            name="policyText"
-            value={form.policyText}
-            maxLength={500}
-            rows={3}
-            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("policyText", e.target.value)}
-          ></s-text-area>
-          {errors.policyText && <s-paragraph tone="critical">{errors.policyText}</s-paragraph>}
+        <s-tab-panel id="returns">
+          <s-section heading="Return window">
+            <s-stack direction="block" gap="base">
+              <s-number-field
+                label="Return window (days)"
+                name="returnWindowDays"
+                min={1}
+                max={365}
+                value={form.returnWindowDays}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("returnWindowDays", Number(e.target.value))}
+              ></s-number-field>
+              {errors.returnWindowDays && <s-paragraph tone="critical">{errors.returnWindowDays}</s-paragraph>}
 
-          <s-email-field
-            label="Support email"
-            name="supportEmail"
-            value={form.supportEmail}
-            placeholder="help@your-store.com"
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("supportEmail", e.target.value)}
-          ></s-email-field>
-          {errors.supportEmail && <s-paragraph tone="critical">{errors.supportEmail}</s-paragraph>}
+              <s-url-field
+                label="Policy URL"
+                name="policyUrl"
+                value={form.policyUrl}
+                placeholder="https://your-store.com/policies/refund-policy"
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policyUrl", e.target.value)}
+              ></s-url-field>
+              <s-paragraph tone="subdued">Shown as a clickable link in the "{form.returnWindowDays}-day returns" banner on the customer's dashboard home page.</s-paragraph>
+              {errors.policyUrl && <s-paragraph tone="critical">{errors.policyUrl}</s-paragraph>}
 
-          <s-checkbox
-            label="Require customers to accept the returns policy before selecting items"
-            name="requirePolicyAcceptance"
-            checked={form.requirePolicyAcceptance}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("requirePolicyAcceptance", e.target.checked)}
-          ></s-checkbox>
-        </s-stack>
-      </s-section>
+              <s-text-area
+                label="Policy text"
+                name="policyText"
+                value={form.policyText}
+                maxLength={500}
+                rows={3}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("policyText", e.target.value)}
+              ></s-text-area>
+              {errors.policyText && <s-paragraph tone="critical">{errors.policyText}</s-paragraph>}
+
+              <s-checkbox
+                label="Require customers to accept the returns policy before selecting items"
+                name="requirePolicyAcceptance"
+                checked={form.requirePolicyAcceptance}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("requirePolicyAcceptance", e.target.checked)}
+              ></s-checkbox>
+            </s-stack>
+          </s-section>
+
+          <s-section heading="Returns policy dialog">
+            <s-stack direction="block" gap="base">
+              <s-paragraph tone="subdued">Controls the "Review & Accept" dialog customers see before selecting items to return.</s-paragraph>
+
+              <s-text-field
+                label="Dialog heading"
+                name="policyHeading"
+                value={form.policyHeading}
+                placeholder="iBlaze Returns Policy"
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policyHeading", e.target.value)}
+              ></s-text-field>
+              {errors.policyHeading && <s-paragraph tone="critical">{errors.policyHeading}</s-paragraph>}
+
+              <s-text-field
+                label="Dialog subheading"
+                name="policySubheading"
+                value={form.policySubheading}
+                placeholder="Review our returns policy before selecting items to return."
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policySubheading", e.target.value)}
+              ></s-text-field>
+              {errors.policySubheading && <s-paragraph tone="critical">{errors.policySubheading}</s-paragraph>}
+
+              <s-stack direction="block" gap="base">
+                {form.policyCategories.map((cat, i) => (
+                  <s-box key={i} padding="base" border="base" borderRadius="base">
+                    <s-stack direction="block" gap="small">
+                      <s-text-field
+                        label="Category title"
+                        value={cat.title}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateCategory(i, { title: e.target.value })}
+                      ></s-text-field>
+                      <s-text-field
+                        label="Category description"
+                        value={cat.desc}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateCategory(i, { desc: e.target.value })}
+                      ></s-text-field>
+                      <s-stack direction="inline" gap="small-300">
+                        <s-button onClick={() => moveCategory(i, -1)} disabled={i === 0}>Move up</s-button>
+                        <s-button onClick={() => moveCategory(i, 1)} disabled={i === form.policyCategories.length - 1}>Move down</s-button>
+                        <s-button tone="critical" onClick={() => removeCategory(i)}>Remove</s-button>
+                      </s-stack>
+                    </s-stack>
+                  </s-box>
+                ))}
+                <s-button onClick={addCategory}>Add category</s-button>
+                {errors.policyCategories && <s-paragraph tone="critical">{errors.policyCategories}</s-paragraph>}
+              </s-stack>
+
+              <s-text-area
+                label="Footer note"
+                name="policyFooterNote"
+                value={form.policyFooterNote}
+                maxLength={300}
+                rows={2}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("policyFooterNote", e.target.value)}
+              ></s-text-area>
+              {errors.policyFooterNote && <s-paragraph tone="critical">{errors.policyFooterNote}</s-paragraph>}
+            </s-stack>
+          </s-section>
+        </s-tab-panel>
+
+        <s-tab-panel id="navigation">
+          <s-section heading="Store link">
+            <s-stack direction="block" gap="base">
+              <s-checkbox
+                label="Show a link back to the storefront in the header"
+                name="storeLinkEnabled"
+                checked={form.storeLinkEnabled}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("storeLinkEnabled", e.target.checked)}
+              ></s-checkbox>
+              <s-text-field
+                label="Store link label"
+                name="storeLinkLabel"
+                value={form.storeLinkLabel}
+                placeholder="Store"
+                disabled={!form.storeLinkEnabled}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("storeLinkLabel", e.target.value)}
+              ></s-text-field>
+              {errors.storeLinkLabel && <s-paragraph tone="critical">{errors.storeLinkLabel}</s-paragraph>}
+            </s-stack>
+          </s-section>
+
+          <s-section heading="Sidebar links">
+            <s-stack direction="block" gap="base">
+              <s-paragraph tone="subdued">Extra links shown in the customer portal's sidebar, alongside Home and Orders. Open in a new tab.</s-paragraph>
+              {form.sidebarLinks.map((link, i) => (
+                <s-box key={i} padding="base" border="base" borderRadius="base">
+                  <s-stack direction="block" gap="small">
+                    <s-text-field
+                      label="Label"
+                      value={link.label}
+                      placeholder="FAQ"
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateSidebarLink(i, { label: e.target.value })}
+                    ></s-text-field>
+                    <s-url-field
+                      label="URL"
+                      value={link.url}
+                      placeholder="https://your-store.com/pages/faq"
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateSidebarLink(i, { url: e.target.value })}
+                    ></s-url-field>
+                    <s-stack direction="inline" gap="small-300">
+                      <s-button onClick={() => moveSidebarLink(i, -1)} disabled={i === 0}>Move up</s-button>
+                      <s-button onClick={() => moveSidebarLink(i, 1)} disabled={i === form.sidebarLinks.length - 1}>Move down</s-button>
+                      <s-button tone="critical" onClick={() => removeSidebarLink(i)}>Remove</s-button>
+                    </s-stack>
+                  </s-stack>
+                </s-box>
+              ))}
+              <s-button onClick={addSidebarLink}>Add link</s-button>
+              {errors.sidebarLinks && <s-paragraph tone="critical">{errors.sidebarLinks}</s-paragraph>}
+
+              <s-text-area
+                label="Sidebar note"
+                name="sidebarNote"
+                value={form.sidebarNote}
+                maxLength={500}
+                rows={3}
+                placeholder="A short announcement instead of (or alongside) links. Wrap text in **double asterisks** for bold."
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("sidebarNote", e.target.value)}
+              ></s-text-area>
+              {errors.sidebarNote && <s-paragraph tone="critical">{errors.sidebarNote}</s-paragraph>}
+            </s-stack>
+          </s-section>
+
+          <s-section heading="Sidebar layout">
+            <s-stack direction="block" gap="base">
+              <s-checkbox
+                label="Let customers switch between sidebar and inset layouts"
+                name="sidebarLayoutSwitcherEnabled"
+                checked={form.sidebarLayoutSwitcherEnabled}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("sidebarLayoutSwitcherEnabled", e.target.checked)}
+              ></s-checkbox>
+              <s-select
+                label={form.sidebarLayoutSwitcherEnabled ? "Default layout" : "Layout (fixed — switcher is off)"}
+                name="defaultSidebarLayout"
+                value={form.defaultSidebarLayout}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => set("defaultSidebarLayout", e.target.value as "inset" | "sidebar")}
+              >
+                <s-option value="inset">Inset</s-option>
+                <s-option value="sidebar">Sidebar</s-option>
+              </s-select>
+            </s-stack>
+          </s-section>
+        </s-tab-panel>
+      </s-tabs>
 
       <s-section>
         <form onSubmit={handleSave}>

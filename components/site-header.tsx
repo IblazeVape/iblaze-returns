@@ -30,6 +30,8 @@ interface SiteHeaderProps {
    * before a guest has verified an order. */
   showAccountMenu?: boolean
   storefrontUrl?: string
+  storeLinkEnabled?: boolean
+  storeLinkLabel?: string
 }
 
 function SidebarToggleControls({ mobileOnly = false }: { mobileOnly?: boolean }) {
@@ -62,6 +64,8 @@ export function SiteHeader({
   showSidebarToggle = true,
   showAccountMenu = true,
   storefrontUrl = "https://iblazevape.co.uk",
+  storeLinkEnabled = true,
+  storeLinkLabel = "Store",
 }: SiteHeaderProps) {
   const initial = firstName?.[0]?.toUpperCase() || "?"
   const user = { name: firstName || "Customer", email: email || "" }
@@ -113,18 +117,20 @@ export function SiteHeader({
               Order Status
             </a>
           )}
-          <a
-            href={storefrontUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hidden min-[1025px]:flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <Home className="size-3.5" />
-            Store
-          </a>
+          {storeLinkEnabled && (
+            <a
+              href={storefrontUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden min-[1025px]:flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Home className="size-3.5" />
+              {storeLinkLabel}
+            </a>
+          )}
 
           {/* ── Mobile: menu dropdown when 2+ links (order selected = Status + Store) ── */}
-          {orderStatusUrl ? (
+          {orderStatusUrl && storeLinkEnabled ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
@@ -139,7 +145,7 @@ export function SiteHeader({
                 <DropdownMenuItem asChild>
                   <a href={storefrontUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
                     <Home className="size-4" />
-                    Store
+                    {storeLinkLabel}
                   </a>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
@@ -151,7 +157,7 @@ export function SiteHeader({
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          ) : (
+          ) : storeLinkEnabled ? (
             /* Mobile: single Store link when no Status */
             <a
               href={storefrontUrl}
@@ -160,9 +166,20 @@ export function SiteHeader({
               className="min-[1025px]:hidden flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               <Home className="size-4" />
-              <span className="text-xs font-medium">Store</span>
+              <span className="text-xs font-medium">{storeLinkLabel}</span>
             </a>
-          )}
+          ) : orderStatusUrl ? (
+            /* Mobile: single Order Status link when Store is disabled */
+            <a
+              href={orderStatusUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="min-[1025px]:hidden flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Package className="size-4" />
+              <span className="text-xs font-medium">Order Status</span>
+            </a>
+          ) : null}
           {showAccountMenu && (
             <>
               <Separator orientation="vertical" className="data-[orientation=vertical]:h-4" />
