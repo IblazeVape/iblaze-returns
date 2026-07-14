@@ -61,6 +61,7 @@ export default async function AppProxyReturnsPage({
         sidebarNote: tenant.branding.sidebarNote,
         sidebarLayoutSwitcherEnabled: tenant.branding.sidebarLayoutSwitcherEnabled,
         defaultSidebarLayout: tenant.branding.defaultSidebarLayout,
+        sidebarSubmenusExpandedByDefault: tenant.branding.sidebarSubmenusExpandedByDefault,
       };
       initial = { kind: "guest-or-login", branding };
     }

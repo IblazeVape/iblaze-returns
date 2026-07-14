@@ -21,10 +21,11 @@ export type InitialBranding = {
   storefrontUrl: string
   storeLinkEnabled: boolean
   storeLinkLabel: string
-  sidebarLinks: { label: string; url: string }[]
+  sidebarLinks: { label: string; url: string; icon?: string; children?: { label: string; url: string; icon?: string }[] }[]
   sidebarNote: string
   sidebarLayoutSwitcherEnabled: boolean
   defaultSidebarLayout: "inset" | "sidebar"
+  sidebarSubmenusExpandedByDefault: boolean
 }
 
 export type GateInitial =

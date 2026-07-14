@@ -85,6 +85,12 @@ export async function PUT(request: NextRequest) {
       typeof body.tablePageSizeEnabled === "boolean" ? body.tablePageSizeEnabled : existing.branding.tablePageSizeEnabled,
     shipmentCardsEnabled:
       typeof body.shipmentCardsEnabled === "boolean" ? body.shipmentCardsEnabled : existing.branding.shipmentCardsEnabled,
+    productImageLinksEnabled:
+      typeof body.productImageLinksEnabled === "boolean" ? body.productImageLinksEnabled : existing.branding.productImageLinksEnabled,
+    sidebarSubmenusExpandedByDefault:
+      typeof body.sidebarSubmenusExpandedByDefault === "boolean"
+        ? body.sidebarSubmenusExpandedByDefault
+        : existing.branding.sidebarSubmenusExpandedByDefault,
   };
 
   const { valid, errors } = validateBrandingInput(input);
@@ -129,6 +135,8 @@ export async function PUT(request: NextRequest) {
       tableFilterButtonEnabled: input.tableFilterButtonEnabled,
       tablePageSizeEnabled: input.tablePageSizeEnabled,
       shipmentCardsEnabled: input.shipmentCardsEnabled,
+      productImageLinksEnabled: input.productImageLinksEnabled,
+      sidebarSubmenusExpandedByDefault: input.sidebarSubmenusExpandedByDefault,
     },
   });
 

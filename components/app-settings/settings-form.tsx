@@ -31,11 +31,12 @@ const TAB_FIELDS: Record<SettingsTab, (keyof BrandingInput)[]> = {
   ],
   navigation: [
     "storeLinkEnabled", "storeLinkLabel", "orderStatusLinkEnabled", "orderStatusLinkLabel",
-    "sidebarLinks", "sidebarNote", "sidebarLayoutSwitcherEnabled", "defaultSidebarLayout",
+    "sidebarLinks", "sidebarNote", "sidebarSubmenusExpandedByDefault", "sidebarLayoutSwitcherEnabled", "defaultSidebarLayout",
   ],
   table: [
     "headerSearchEnabled", "headerSearchPlaceholder", "tableSearchEnabled", "tableSearchPlaceholder",
     "tableColumnsButtonEnabled", "tableFilterButtonEnabled", "tablePageSizeEnabled", "shipmentCardsEnabled",
+    "productImageLinksEnabled",
   ],
 };
 
@@ -625,6 +626,13 @@ export function SettingsForm({
               <s-button onClick={addSidebarLink}>Add link</s-button>
               {errors.sidebarLinks && <s-paragraph tone="critical">{errors.sidebarLinks}</s-paragraph>}
 
+              <s-checkbox
+                label="Expand sub-links by default (uncheck to start collapsed until clicked)"
+                name="sidebarSubmenusExpandedByDefault"
+                checked={form.sidebarSubmenusExpandedByDefault}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("sidebarSubmenusExpandedByDefault", e.target.checked)}
+              ></s-checkbox>
+
               <s-text-area
                 label="Sidebar note"
                 name="sidebarNote"
@@ -723,6 +731,12 @@ export function SettingsForm({
                 name="shipmentCardsEnabled"
                 checked={form.shipmentCardsEnabled}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("shipmentCardsEnabled", e.target.checked)}
+              ></s-checkbox>
+              <s-checkbox
+                label="Make product images clickable links to the storefront product page"
+                name="productImageLinksEnabled"
+                checked={form.productImageLinksEnabled}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("productImageLinksEnabled", e.target.checked)}
               ></s-checkbox>
             </s-stack>
           </s-section>

@@ -37,6 +37,8 @@ const VALID: BrandingInput = {
   tableFilterButtonEnabled: true,
   tablePageSizeEnabled: true,
   shipmentCardsEnabled: true,
+  productImageLinksEnabled: true,
+  sidebarSubmenusExpandedByDefault: true,
 };
 
 describe("validateBrandingInput", () => {

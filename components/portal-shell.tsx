@@ -47,6 +47,7 @@ export function PortalShell({
     storefrontUrl: string
     sidebarLinks?: { label: string; url: string; icon?: string; children?: { label: string; url: string; icon?: string }[] }[]
     sidebarNote?: string
+    sidebarSubmenusExpandedByDefault?: boolean
   }
   headerProps: React.ComponentProps<typeof SiteHeader>
   children?: React.ReactNode

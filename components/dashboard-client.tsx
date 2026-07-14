@@ -2767,14 +2767,18 @@ function ProductImagePlaceholder({ iconClassName }: { iconClassName?: string }) 
   )
 }
 
-function ProductThumb({ item }: { item: LineItem }) {
+function ProductThumb({ item, linkEnabled = true }: { item: LineItem; linkEnabled?: boolean }) {
+  const image = (
+    <div className="size-10 rounded-md overflow-hidden bg-card border border-border hover:border-foreground transition-colors">
+      {item.image?.url
+        ? <img src={item.image.url} alt={item.title} className="w-full h-full object-cover" />
+        : <ProductImagePlaceholder />}
+    </div>
+  )
+  if (!linkEnabled) return <div className="shrink-0">{image}</div>
   return (
     <a href={pUrl(item.productHandle)} target="_blank" rel="noopener noreferrer" className="shrink-0">
-      <div className="size-10 rounded-md overflow-hidden bg-card border border-border hover:border-foreground transition-colors">
-        {item.image?.url
-          ? <img src={item.image.url} alt={item.title} className="w-full h-full object-cover" />
-          : <ProductImagePlaceholder />}
-      </div>
+      {image}
     </a>
   )
 }
@@ -3216,6 +3220,7 @@ type OrderDetailBranding = {
   tableFilterButtonEnabled: boolean
   tablePageSizeEnabled: boolean
   shipmentCardsEnabled: boolean
+  productImageLinksEnabled: boolean
 }
 
 function OrderDetail({
@@ -3234,6 +3239,7 @@ function OrderDetail({
     policyBodyMode, policyCategories, policyBodyText, policyFooterNoteEnabled, policyFooterNote,
     policyAcceptedMessage, policyDeclinedMessage, tableSearchEnabled, tableSearchPlaceholder,
     tableColumnsButtonEnabled, tableFilterButtonEnabled, tablePageSizeEnabled, shipmentCardsEnabled,
+    productImageLinksEnabled,
   } = branding
   const [policyAccepted, setPolicyAccepted] = useState(!requirePolicyAcceptance)
   const [selectedItems, setSelectedItems]   = useState<Record<string, { selected: boolean; quantity: number; reason: string; description: string }>>({})
@@ -3333,6 +3339,15 @@ function OrderDetail({
 
   useEffect(() => { setCurrentPage(1) }, [activeTab, searchQuery, pageSize, ineligibleStatusFilter])
   useEffect(() => { setIneligibleStatusFilter([]) }, [order.id])
+
+  // Whether the item-table toolbar bar has anything to actually show — every
+  // piece inside it (tab selector, search, filter, columns, page size) is
+  // independently conditional, and with everything disabled/hidden the bar
+  // itself must not render at all (it was showing as an empty bordered strip).
+  const showToolbarTabSelector = (hasBothTabs && HEADER_STAT_DESIGN !== 4)
+    || (!fullyIneligible && HEADER_STAT_DESIGN !== 4 && HEADER_STAT_DESIGN !== 6)
+  const showToolbarFilter = tableFilterButtonEnabled && activeTab === "ineligible" && showIneligibleFilter
+  const hasAnyToolbarControl = showToolbarTabSelector || tableSearchEnabled || showToolbarFilter || tableColumnsButtonEnabled || tablePageSizeEnabled
 
   const selectedCount   = Object.values(selectedItems).filter(v => v.selected).length
   const estimatedRefund = Object.entries(selectedItems).filter(([, v]) => v.selected).reduce((sum, [id, v]) => {
@@ -3663,7 +3678,8 @@ function OrderDetail({
                 />
               </div>
             )}
-            <div className="border-b bg-muted/20 px-3 py-2.5">
+            {hasAnyToolbarControl && (
+            <div className="border-b bg-background px-3 py-2.5">
               {/* Desktop: single row — tab + search + filter + columns + show */}
               <div className="hidden min-[1025px]:flex items-center gap-2">
                 {hasBothTabs && HEADER_STAT_DESIGN !== 4 ? (
@@ -3818,6 +3834,7 @@ function OrderDetail({
                 )}
               </div>
             </div>
+            )}
 
             {/* ── Mobile: label when only one tab (no tab bar needed) ── */}
             {!hasBothTabs && !fullyIneligible && HEADER_STAT_DESIGN !== 4 && HEADER_STAT_DESIGN !== 6 && (
@@ -3935,7 +3952,7 @@ function OrderDetail({
                           )}
                           <TableCell className={cn("py-3", activeTab === "eligible" ? "pl-3" : "pl-5")}>
                             <div className="flex items-center gap-3">
-                              <ProductThumb item={item} />
+                              <ProductThumb item={item} linkEnabled={productImageLinksEnabled} />
                               <div className="min-w-0">
                                 <a href={pUrl(item.productHandle)} target="_blank" rel="noopener noreferrer" className="font-medium text-sm hover:underline truncate block max-w-[160px] min-[1025px]:max-w-[200px]">{item.title}</a>
                                 <span className="min-[1025px]:hidden text-[11px] text-muted-foreground block truncate max-w-[140px]">
@@ -4594,7 +4611,7 @@ function DashboardClientInner() {
     headerSearchEnabled: true, headerSearchPlaceholder: "Search orders...",
     tableSearchEnabled: true, tableSearchPlaceholder: "Search product or variant...",
     tableColumnsButtonEnabled: true, tableFilterButtonEnabled: true, tablePageSizeEnabled: true,
-    shipmentCardsEnabled: true,
+    shipmentCardsEnabled: true, productImageLinksEnabled: true, sidebarSubmenusExpandedByDefault: true,
   })
   // False until accentColor holds a real (cached or fetched) tenant value —
   // the "#000000" placeholder above is a type-safe default, not a real
@@ -4777,7 +4794,11 @@ function DashboardClientInner() {
       onNavigate={s => { setActiveSection(s); setSelectedOrder(null) }}
       activeSection={activeSection}
       accentColor={branding.accentColor}
-      branding={{ name: branding.name, logoUrl: branding.logoUrl, storefrontUrl: branding.storefrontUrl, sidebarLinks: branding.sidebarLinks, sidebarNote: branding.sidebarNote }}
+      branding={{
+        name: branding.name, logoUrl: branding.logoUrl, storefrontUrl: branding.storefrontUrl,
+        sidebarLinks: branding.sidebarLinks, sidebarNote: branding.sidebarNote,
+        sidebarSubmenusExpandedByDefault: branding.sidebarSubmenusExpandedByDefault,
+      }}
       headerProps={{
         title: selectedOrder ? getOrderPageHeaderTitle(selectedOrder) : activeSection === "#home" ? "Dashboard" : "My Orders",
         titleIcon: orderHeaderStatus ? { icon: orderHeaderStatus.icon } : undefined,

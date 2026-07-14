@@ -70,6 +70,8 @@ describe("tenant store", () => {
     expect(t?.branding.tableFilterButtonEnabled).toBe(true);
     expect(t?.branding.tablePageSizeEnabled).toBe(true);
     expect(t?.branding.shipmentCardsEnabled).toBe(true);
+    expect(t?.branding.productImageLinksEnabled).toBe(true);
+    expect(t?.branding.sidebarSubmenusExpandedByDefault).toBe(true);
     expect(t?.branding.policyFooterNoteEnabled).toBe(true);
   });
 
@@ -112,6 +114,8 @@ describe("tenant store", () => {
         tableFilterButtonEnabled: false,
         tablePageSizeEnabled: false,
         shipmentCardsEnabled: false,
+        productImageLinksEnabled: false,
+        sidebarSubmenusExpandedByDefault: false,
       },
     });
     const t = await getTenant("d.myshopify.com");
@@ -139,6 +143,8 @@ describe("tenant store", () => {
     expect(t?.branding.headerSearchEnabled).toBe(false);
     expect(t?.branding.tableColumnsButtonEnabled).toBe(false);
     expect(t?.branding.shipmentCardsEnabled).toBe(false);
+    expect(t?.branding.productImageLinksEnabled).toBe(false);
+    expect(t?.branding.sidebarSubmenusExpandedByDefault).toBe(false);
     expect(t?.branding.policyFooterNoteEnabled).toBe(false);
   });
 

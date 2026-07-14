@@ -65,6 +65,7 @@ function GuestPortalShellInner({
         storefrontUrl: branding.storefrontUrl,
         sidebarLinks: branding.sidebarLinks,
         sidebarNote: branding.sidebarNote,
+        sidebarSubmenusExpandedByDefault: branding.sidebarSubmenusExpandedByDefault,
       }}
       headerProps={{
         title,

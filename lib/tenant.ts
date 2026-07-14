@@ -47,6 +47,8 @@ export type TenantBranding = {
   tableFilterButtonEnabled: boolean;
   tablePageSizeEnabled: boolean;
   shipmentCardsEnabled: boolean;
+  productImageLinksEnabled: boolean;
+  sidebarSubmenusExpandedByDefault: boolean;
 };
 
 export type Tenant = {
@@ -102,6 +104,8 @@ export const DEFAULT_TENANT_FIELDS = {
     tableFilterButtonEnabled: true,
     tablePageSizeEnabled: true,
     shipmentCardsEnabled: true,
+    productImageLinksEnabled: true,
+    sidebarSubmenusExpandedByDefault: true,
   } satisfies TenantBranding,
 };
 

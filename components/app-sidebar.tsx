@@ -7,6 +7,7 @@ import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
 import { isGuestOrderContext, lookupAnotherOrder, getAppsReturnsIdentityKind } from "@/lib/apps-returns-portal-mode"
 import { getSidebarIcon } from "@/lib/sidebar-icons"
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible"
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent,
   SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
@@ -22,6 +23,7 @@ type SidebarBranding = {
   storefrontUrl: string
   sidebarLinks?: SidebarLinkData[]
   sidebarNote?: string
+  sidebarSubmenusExpandedByDefault?: boolean
 }
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
@@ -47,7 +49,15 @@ function BoldText({ text }: { text: string }) {
   )
 }
 
-function SidebarCustomLinks({ links, note }: { links?: SidebarLinkData[]; note?: string }) {
+function SidebarCustomLinks({
+  links,
+  note,
+  submenusExpandedByDefault = true,
+}: {
+  links?: SidebarLinkData[]
+  note?: string
+  submenusExpandedByDefault?: boolean
+}) {
   if (!links?.length && !note) return null
   return (
     <SidebarGroup>
@@ -57,32 +67,53 @@ function SidebarCustomLinks({ links, note }: { links?: SidebarLinkData[]; note?:
             {links.map((link) => {
               const Icon = getSidebarIcon(link.icon) ?? ExternalLink
               const hasChildren = !!link.children?.length
+              // The parent link navigates on click (own <a>), so the
+              // expand/collapse toggle has to be a separate control next to
+              // it rather than the same clickable element — nesting an
+              // interactive toggle inside an <a> isn't valid, and would
+              // conflict with normal link clicks anyway.
               return (
                 <SidebarMenuItem key={link.label}>
-                  <SidebarMenuButton tooltip={link.label} asChild>
-                    <a href={link.url} target="_blank" rel="noopener noreferrer">
-                      <Icon className="size-4 shrink-0" />
-                      <span className="group-data-[collapsible=icon]:hidden">{link.label}</span>
-                      {hasChildren && <ChevronRight className="ml-auto size-3.5 shrink-0 opacity-50 group-data-[collapsible=icon]:hidden" />}
-                    </a>
-                  </SidebarMenuButton>
-                  {hasChildren && (
-                    <SidebarMenuSub>
-                      {link.children!.map((child) => {
-                        const ChildIcon = getSidebarIcon(child.icon)
-                        return (
-                          <SidebarMenuSubItem key={child.label}>
-                            <SidebarMenuSubButton asChild>
-                              <a href={child.url} target="_blank" rel="noopener noreferrer">
-                                {ChildIcon && <ChildIcon className="size-3.5 shrink-0" />}
-                                <span>{child.label}</span>
-                              </a>
-                            </SidebarMenuSubButton>
-                          </SidebarMenuSubItem>
-                        )
-                      })}
-                    </SidebarMenuSub>
-                  )}
+                  <Collapsible defaultOpen={submenusExpandedByDefault} className="group/collapsible">
+                    <div className="flex items-center">
+                      <SidebarMenuButton tooltip={link.label} asChild className="flex-1">
+                        <a href={link.url} target="_blank" rel="noopener noreferrer">
+                          <Icon className="size-4 shrink-0" />
+                          <span className="group-data-[collapsible=icon]:hidden">{link.label}</span>
+                        </a>
+                      </SidebarMenuButton>
+                      {hasChildren && (
+                        <CollapsibleTrigger asChild>
+                          <button
+                            type="button"
+                            aria-label={`Toggle ${link.label} submenu`}
+                            className="flex size-6 shrink-0 items-center justify-center rounded-md hover:bg-sidebar-accent group-data-[collapsible=icon]:hidden"
+                          >
+                            <ChevronRight className="size-3.5 opacity-50 transition-transform group-data-[state=open]/collapsible:rotate-90" />
+                          </button>
+                        </CollapsibleTrigger>
+                      )}
+                    </div>
+                    {hasChildren && (
+                      <CollapsibleContent>
+                        <SidebarMenuSub>
+                          {link.children!.map((child) => {
+                            const ChildIcon = getSidebarIcon(child.icon)
+                            return (
+                              <SidebarMenuSubItem key={child.label}>
+                                <SidebarMenuSubButton asChild>
+                                  <a href={child.url} target="_blank" rel="noopener noreferrer">
+                                    {ChildIcon && <ChildIcon className="size-3.5 shrink-0" />}
+                                    <span>{child.label}</span>
+                                  </a>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                            )
+                          })}
+                        </SidebarMenuSub>
+                      </CollapsibleContent>
+                    )}
+                  </Collapsible>
                 </SidebarMenuItem>
               )
             })}
@@ -170,10 +201,14 @@ export function AppSidebar({ user, onNavigate, activeSection, branding, ...props
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarBrandHeader branding={branding} />
-      <SidebarContent>
+      <SidebarContent className="styled-scroll">
         <div className="flex min-h-0 flex-1 w-full flex-col group-data-[collapsible=icon]:items-center">
           {navMain.length > 0 && <NavMain items={navMain} onNavigate={handleNavigate} activeSection={activeSection} />}
-          <SidebarCustomLinks links={branding?.sidebarLinks} note={branding?.sidebarNote} />
+          <SidebarCustomLinks
+            links={branding?.sidebarLinks}
+            note={branding?.sidebarNote}
+            submenusExpandedByDefault={branding?.sidebarSubmenusExpandedByDefault}
+          />
         </div>
       </SidebarContent>
       <SidebarFooter className="overflow-visible group-data-[collapsible=icon]:pb-3">
