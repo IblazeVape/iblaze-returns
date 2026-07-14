@@ -294,7 +294,7 @@ export function SettingsForm({
               placeholder="help@your-store.com"
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("supportEmail", e.target.value)}
             ></s-email-field>
-            <s-paragraph tone="subdued">Only shown to a customer if they submit a return before their order is marked delivered, as a "contact us if there's a delivery issue" line.</s-paragraph>
+            <s-paragraph tone="subdued">Only shown after a customer submits a return that includes an item still in transit (a split-shipment order where the rest has already arrived), as a "contact us if that item has a delivery issue" line.</s-paragraph>
             {errors.supportEmail && <s-paragraph tone="critical">{errors.supportEmail}</s-paragraph>}
           </s-stack>
         </s-section>
