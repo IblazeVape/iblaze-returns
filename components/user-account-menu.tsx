@@ -5,6 +5,7 @@ import { LogOut, Moon, Sun, User, UserCircle, type LucideIcon } from "lucide-rea
 import { useTheme } from "next-themes"
 import { THEME_TOGGLE_ENABLED } from "@/components/theme-provider"
 import { SidebarLayoutSwitcher } from "@/components/sidebar-layout-switcher"
+import { useSidebarLayout } from "@/components/sidebar-layout-provider"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
@@ -132,14 +133,20 @@ function SidebarMenuLabel({
 }
 
 export function UserAccountMenuItems({ inline = false }: { inline?: boolean }) {
+  const { switcherEnabled } = useSidebarLayout()
+
   if (inline) {
     return (
       <>
         <MenuLink href="/account" icon={UserCircle} inline>
           My Profile
         </MenuLink>
-        <MenuSeparator />
-        <SidebarLayoutSwitcher inline />
+        {switcherEnabled && (
+          <>
+            <MenuSeparator />
+            <SidebarLayoutSwitcher inline />
+          </>
+        )}
         {(THEME_TOGGLE_ENABLED || !hideLegacySignOut) && <MenuSeparator />}
         {THEME_TOGGLE_ENABLED && (
           <>
@@ -163,8 +170,12 @@ export function UserAccountMenuItems({ inline = false }: { inline?: boolean }) {
           My Profile
         </MenuLink>
       </DropdownMenuGroup>
-      <DropdownMenuSeparator />
-      <SidebarLayoutSwitcher />
+      {switcherEnabled && (
+        <>
+          <DropdownMenuSeparator />
+          <SidebarLayoutSwitcher />
+        </>
+      )}
       {(THEME_TOGGLE_ENABLED || !hideLegacySignOut) && <DropdownMenuSeparator />}
       {THEME_TOGGLE_ENABLED && (
         <>

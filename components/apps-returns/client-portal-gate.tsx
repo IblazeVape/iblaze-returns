@@ -18,6 +18,12 @@ export type InitialBranding = {
   logoUrl: string
   accentColor: string
   storefrontUrl: string
+  storeLinkEnabled: boolean
+  storeLinkLabel: string
+  sidebarLinks: { label: string; url: string }[]
+  sidebarNote: string
+  sidebarLayoutSwitcherEnabled: boolean
+  defaultSidebarLayout: "inset" | "sidebar"
 }
 
 export type GateInitial =

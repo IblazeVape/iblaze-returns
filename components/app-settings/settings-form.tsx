@@ -13,6 +13,7 @@ declare const shopify: {
 };
 
 type MediaLibraryFile = { id: string; url: string; alt: string | null; width: number; height: number };
+type SettingsTab = "branding" | "returns" | "navigation";
 
 function filenameFromUrl(url: string): string {
   try {
@@ -38,6 +39,11 @@ export function SettingsForm({
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle")
   const [uploading, setUploading] = useState(false)
   const [loadingLibrary, setLoadingLibrary] = useState(false)
+  // Polaris's s-tabs/s-tab-list/s-tab/s-tab-panel custom elements don't
+  // register/render correctly in this app's embedded runtime (confirmed live
+  // — they fell back to unstyled inline text with no panel switching), so
+  // tab navigation is done manually here with plain state instead.
+  const [activeTab, setActiveTab] = useState<SettingsTab>("branding")
 
   function set<K extends keyof BrandingInput>(key: K, value: BrandingInput[K]) {
     setForm((f) => ({ ...f, [key]: value }))
@@ -162,83 +168,106 @@ export function SettingsForm({
     }
   }
 
+  const TABS: { id: SettingsTab; label: string }[] = [
+    { id: "branding", label: "Branding" },
+    { id: "returns", label: "Returns policy" },
+    { id: "navigation", label: "Navigation" },
+  ]
+
   return (
     <s-page heading="Returns Settings">
-      <s-tabs defaultValue="branding">
-        <s-tab-list>
-          <s-tab controls="branding">Branding</s-tab>
-          <s-tab controls="returns">Returns policy</s-tab>
-          <s-tab controls="navigation">Navigation</s-tab>
-        </s-tab-list>
+      <s-section padding="none">
+        <s-box padding="base">
+          <s-stack direction="inline" gap="small-300">
+            {TABS.map((tab) => (
+              <s-button
+                key={tab.id}
+                variant={activeTab === tab.id ? "primary" : "secondary"}
+                onClick={() => setActiveTab(tab.id)}
+              >
+                {tab.label}
+              </s-button>
+            ))}
+          </s-stack>
+        </s-box>
+      </s-section>
 
-        <s-tab-panel id="branding">
-          <s-section heading="Branding">
-            <s-stack direction="block" gap="base">
-              <s-text-field
-                label="Brand name"
-                name="name"
-                value={form.name}
-                placeholder="Your Store"
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("name", e.target.value)}
-              ></s-text-field>
+      {activeTab === "branding" && (
+        <s-section heading="Branding">
+          <s-stack direction="block" gap="base">
+            <s-text-field
+              label="Brand name"
+              name="name"
+              value={form.name}
+              placeholder="Your Store"
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("name", e.target.value)}
+            ></s-text-field>
 
-              <s-stack direction="inline" gap="base" alignItems="center">
-                {form.logoUrl && <s-thumbnail size="base" src={form.logoUrl} alt="Current logo"></s-thumbnail>}
-                <s-button onClick={() => document.getElementById("logo-file-input")?.click()} disabled={uploading}>
-                  {uploading ? "Uploading…" : "Upload logo"}
-                </s-button>
-                <s-button onClick={handleChooseFromLibrary} disabled={loadingLibrary}>
-                  {loadingLibrary ? "Loading…" : "Choose from Shopify"}
-                </s-button>
-                <input
-                  id="logo-file-input"
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                  style={{ display: "none" }}
-                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleLogoFile(f) }}
+            <s-stack direction="inline" gap="base" alignItems="center">
+              {form.logoUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={form.logoUrl}
+                  alt="Current logo"
+                  style={{ width: 40, height: 40, objectFit: "contain", borderRadius: 6, border: "1px solid #d1d5db" }}
                 />
-              </s-stack>
-              <s-url-field
-                label="Or paste a logo URL"
-                name="logoUrl"
-                value={form.logoUrl}
-                placeholder="https://cdn.shopify.com/your-logo.png"
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("logoUrl", e.target.value)}
-              ></s-url-field>
-              {errors.logoUrl && <s-paragraph tone="critical">{errors.logoUrl}</s-paragraph>}
-
-              <s-color-field
-                label="Accent color"
-                name="accentColor"
-                value={form.accentColor}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("accentColor", e.target.value)}
-              ></s-color-field>
-              {errors.accentColor && <s-paragraph tone="critical">{errors.accentColor}</s-paragraph>}
-
-              <s-url-field
-                label="Storefront URL"
-                name="storefrontUrl"
-                value={form.storefrontUrl}
-                placeholder="https://your-store.com"
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("storefrontUrl", e.target.value)}
-              ></s-url-field>
-              <s-paragraph tone="subdued">Where the sidebar logo and the header's store link send customers — usually your live storefront domain, not your myshopify.com admin URL.</s-paragraph>
-              {errors.storefrontUrl && <s-paragraph tone="critical">{errors.storefrontUrl}</s-paragraph>}
-
-              <s-email-field
-                label="Support email"
-                name="supportEmail"
-                value={form.supportEmail}
-                placeholder="help@your-store.com"
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("supportEmail", e.target.value)}
-              ></s-email-field>
-              <s-paragraph tone="subdued">Only shown to a customer if they submit a return before their order is marked delivered, as a "contact us if there's a delivery issue" line.</s-paragraph>
-              {errors.supportEmail && <s-paragraph tone="critical">{errors.supportEmail}</s-paragraph>}
+              )}
+              <s-button onClick={() => document.getElementById("logo-file-input")?.click()} disabled={uploading}>
+                {uploading ? "Uploading…" : "Upload logo"}
+              </s-button>
+              <s-button onClick={handleChooseFromLibrary} disabled={loadingLibrary}>
+                {loadingLibrary ? "Loading…" : "Choose from Shopify"}
+              </s-button>
+              <input
+                id="logo-file-input"
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                style={{ display: "none" }}
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleLogoFile(f) }}
+              />
             </s-stack>
-          </s-section>
-        </s-tab-panel>
+            <s-url-field
+              label="Or paste a logo URL"
+              name="logoUrl"
+              value={form.logoUrl}
+              placeholder="https://cdn.shopify.com/your-logo.png"
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("logoUrl", e.target.value)}
+            ></s-url-field>
+            {errors.logoUrl && <s-paragraph tone="critical">{errors.logoUrl}</s-paragraph>}
 
-        <s-tab-panel id="returns">
+            <s-color-field
+              label="Accent color"
+              name="accentColor"
+              value={form.accentColor}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("accentColor", e.target.value)}
+            ></s-color-field>
+            {errors.accentColor && <s-paragraph tone="critical">{errors.accentColor}</s-paragraph>}
+
+            <s-url-field
+              label="Storefront URL"
+              name="storefrontUrl"
+              value={form.storefrontUrl}
+              placeholder="https://your-store.com"
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("storefrontUrl", e.target.value)}
+            ></s-url-field>
+            <s-paragraph tone="subdued">Where the sidebar logo and the header's store link send customers — usually your live storefront domain, not your myshopify.com admin URL.</s-paragraph>
+            {errors.storefrontUrl && <s-paragraph tone="critical">{errors.storefrontUrl}</s-paragraph>}
+
+            <s-email-field
+              label="Support email"
+              name="supportEmail"
+              value={form.supportEmail}
+              placeholder="help@your-store.com"
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("supportEmail", e.target.value)}
+            ></s-email-field>
+            <s-paragraph tone="subdued">Only shown to a customer if they submit a return before their order is marked delivered, as a "contact us if there's a delivery issue" line.</s-paragraph>
+            {errors.supportEmail && <s-paragraph tone="critical">{errors.supportEmail}</s-paragraph>}
+          </s-stack>
+        </s-section>
+      )}
+
+      {activeTab === "returns" && (
+        <>
           <s-section heading="Return window">
             <s-stack direction="block" gap="base">
               <s-number-field
@@ -302,31 +331,61 @@ export function SettingsForm({
               ></s-text-field>
               {errors.policySubheading && <s-paragraph tone="critical">{errors.policySubheading}</s-paragraph>}
 
-              <s-stack direction="block" gap="base">
-                {form.policyCategories.map((cat, i) => (
-                  <s-box key={i} padding="base" border="base" borderRadius="base">
-                    <s-stack direction="block" gap="small">
-                      <s-text-field
-                        label="Category title"
-                        value={cat.title}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateCategory(i, { title: e.target.value })}
-                      ></s-text-field>
-                      <s-text-field
-                        label="Category description"
-                        value={cat.desc}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateCategory(i, { desc: e.target.value })}
-                      ></s-text-field>
-                      <s-stack direction="inline" gap="small-300">
-                        <s-button onClick={() => moveCategory(i, -1)} disabled={i === 0}>Move up</s-button>
-                        <s-button onClick={() => moveCategory(i, 1)} disabled={i === form.policyCategories.length - 1}>Move down</s-button>
-                        <s-button tone="critical" onClick={() => removeCategory(i)}>Remove</s-button>
-                      </s-stack>
-                    </s-stack>
-                  </s-box>
-                ))}
-                <s-button onClick={addCategory}>Add category</s-button>
-                {errors.policyCategories && <s-paragraph tone="critical">{errors.policyCategories}</s-paragraph>}
+              <s-stack direction="inline" gap="small-300">
+                <s-button
+                  variant={form.policyBodyMode === "categories" ? "primary" : "secondary"}
+                  onClick={() => set("policyBodyMode", "categories")}
+                >
+                  Category list
+                </s-button>
+                <s-button
+                  variant={form.policyBodyMode === "text" ? "primary" : "secondary"}
+                  onClick={() => set("policyBodyMode", "text")}
+                >
+                  Free text
+                </s-button>
               </s-stack>
+
+              {form.policyBodyMode === "categories" ? (
+                <s-stack direction="block" gap="base">
+                  {form.policyCategories.map((cat, i) => (
+                    <s-box key={i} padding="base" border="base" borderRadius="base">
+                      <s-stack direction="block" gap="small">
+                        <s-text-field
+                          label="Category title"
+                          value={cat.title}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateCategory(i, { title: e.target.value })}
+                        ></s-text-field>
+                        <s-text-field
+                          label="Category description"
+                          value={cat.desc}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateCategory(i, { desc: e.target.value })}
+                        ></s-text-field>
+                        <s-stack direction="inline" gap="small-300">
+                          <s-button onClick={() => moveCategory(i, -1)} disabled={i === 0}>Move up</s-button>
+                          <s-button onClick={() => moveCategory(i, 1)} disabled={i === form.policyCategories.length - 1}>Move down</s-button>
+                          <s-button tone="critical" onClick={() => removeCategory(i)}>Remove</s-button>
+                        </s-stack>
+                      </s-stack>
+                    </s-box>
+                  ))}
+                  <s-button onClick={addCategory}>Add category</s-button>
+                  {errors.policyCategories && <s-paragraph tone="critical">{errors.policyCategories}</s-paragraph>}
+                </s-stack>
+              ) : (
+                <>
+                  <s-text-area
+                    label="Policy body text"
+                    name="policyBodyText"
+                    value={form.policyBodyText}
+                    maxLength={2000}
+                    rows={6}
+                    placeholder="Write your full returns policy here instead of using category cards."
+                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("policyBodyText", e.target.value)}
+                  ></s-text-area>
+                  {errors.policyBodyText && <s-paragraph tone="critical">{errors.policyBodyText}</s-paragraph>}
+                </>
+              )}
 
               <s-text-area
                 label="Footer note"
@@ -339,9 +398,11 @@ export function SettingsForm({
               {errors.policyFooterNote && <s-paragraph tone="critical">{errors.policyFooterNote}</s-paragraph>}
             </s-stack>
           </s-section>
-        </s-tab-panel>
+        </>
+      )}
 
-        <s-tab-panel id="navigation">
+      {activeTab === "navigation" && (
+        <>
           <s-section heading="Store link">
             <s-stack direction="block" gap="base">
               <s-checkbox
@@ -423,8 +484,8 @@ export function SettingsForm({
               </s-select>
             </s-stack>
           </s-section>
-        </s-tab-panel>
-      </s-tabs>
+        </>
+      )}
 
       <s-section>
         <form onSubmit={handleSave}>

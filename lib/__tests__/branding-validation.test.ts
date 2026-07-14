@@ -15,7 +15,9 @@ const VALID: BrandingInput = {
   storeLinkLabel: "Store",
   policyHeading: "Acme Returns Policy",
   policySubheading: "Review our policy before selecting items to return.",
+  policyBodyMode: "categories",
   policyCategories: [{ title: "Vapes", desc: "30-day refund period." }],
+  policyBodyText: "",
   policyFooterNote: "Return postage is at your expense.",
   sidebarLinks: [{ label: "FAQ", url: "https://acme-vapes.com/faq" }],
   sidebarNote: "",
@@ -114,5 +116,16 @@ describe("validateBrandingInput", () => {
     const result = validateBrandingInput({ ...VALID, storeLinkLabel: "x".repeat(31) });
     expect(result.valid).toBe(false);
     expect(result.errors.storeLinkLabel).toBeDefined();
+  });
+
+  it("accepts policyBodyMode text with a long policyBodyText, ignoring policyCategories", () => {
+    const result = validateBrandingInput({ ...VALID, policyBodyMode: "text", policyBodyText: "Free-form policy text.", policyCategories: [] });
+    expect(result.valid).toBe(true);
+  });
+
+  it("rejects policyBodyText over 2000 characters", () => {
+    const result = validateBrandingInput({ ...VALID, policyBodyText: "x".repeat(2001) });
+    expect(result.valid).toBe(false);
+    expect(result.errors.policyBodyText).toBeDefined();
   });
 });

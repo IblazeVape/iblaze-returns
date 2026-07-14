@@ -1,6 +1,7 @@
 "use client";
 
-import { SidebarLayoutProvider } from "@/components/sidebar-layout-provider";
+import { useEffect } from "react";
+import { SidebarLayoutProvider, useSidebarLayout } from "@/components/sidebar-layout-provider";
 import { PortalShell } from "@/components/portal-shell";
 import type { InitialBranding } from "@/components/apps-returns/client-portal-gate";
 
@@ -13,9 +14,9 @@ import type { InitialBranding } from "@/components/apps-returns/client-portal-ga
  *
  * The guest hasn't verified an order yet, so there's no identity to show
  * in the header (`hideIdentity`) — but the sidebar itself opens/collapses
- * normally, same as everywhere else in the portal: merchants will be able
- * to add their own menu items there via a future settings page, so it
- * shouldn't be locked shut here.
+ * normally, same as everywhere else in the portal, and reflects the same
+ * merchant-configured sidebar links/note/layout settings DashboardClient
+ * applies once a customer is signed in.
  */
 export function GuestPortalShell({
   title = "Find your order",
@@ -28,16 +29,53 @@ export function GuestPortalShell({
 }) {
   return (
     <SidebarLayoutProvider>
-      <PortalShell
-        hideIdentity
-        accentColor={branding.accentColor}
-        branding={{ name: branding.name, logoUrl: branding.logoUrl, storefrontUrl: branding.storefrontUrl }}
-        headerProps={{ title, showSearch: false, storefrontUrl: branding.storefrontUrl || undefined }}
-      >
-        <div className="flex flex-1 flex-col items-center justify-center gap-4 px-4 py-10">
-          {children}
-        </div>
-      </PortalShell>
+      <GuestPortalShellInner title={title} branding={branding}>
+        {children}
+      </GuestPortalShellInner>
     </SidebarLayoutProvider>
+  );
+}
+
+function GuestPortalShellInner({
+  title,
+  branding,
+  children,
+}: {
+  title: string;
+  branding: InitialBranding;
+  children: React.ReactNode;
+}) {
+  const { applyMerchantDefault } = useSidebarLayout();
+
+  // Branding is server-rendered (passed as a prop, no client fetch), so this
+  // can apply immediately on mount rather than waiting on an async fetch
+  // like DashboardClient's equivalent effect does.
+  useEffect(() => {
+    applyMerchantDefault(branding.defaultSidebarLayout, branding.sidebarLayoutSwitcherEnabled);
+  }, [applyMerchantDefault, branding.defaultSidebarLayout, branding.sidebarLayoutSwitcherEnabled]);
+
+  return (
+    <PortalShell
+      hideIdentity
+      accentColor={branding.accentColor}
+      branding={{
+        name: branding.name,
+        logoUrl: branding.logoUrl,
+        storefrontUrl: branding.storefrontUrl,
+        sidebarLinks: branding.sidebarLinks,
+        sidebarNote: branding.sidebarNote,
+      }}
+      headerProps={{
+        title,
+        showSearch: false,
+        storefrontUrl: branding.storefrontUrl || undefined,
+        storeLinkEnabled: branding.storeLinkEnabled,
+        storeLinkLabel: branding.storeLinkLabel,
+      }}
+    >
+      <div className="flex flex-1 flex-col items-center justify-center gap-4 px-4 py-10">
+        {children}
+      </div>
+    </PortalShell>
   );
 }

@@ -18,7 +18,12 @@ export type TenantBranding = {
   storeLinkLabel: string;
   policyHeading: string;
   policySubheading: string;
+  /** "categories" shows policyCategories as cards; "text" shows policyBodyText
+   * as a single free-form block instead — some merchants don't want a
+   * structured list. */
+  policyBodyMode: "categories" | "text";
   policyCategories: PolicyCategory[];
+  policyBodyText: string;
   policyFooterNote: string;
   sidebarLinks: SidebarLink[];
   sidebarNote: string;
@@ -52,12 +57,14 @@ export const DEFAULT_TENANT_FIELDS = {
     storeLinkLabel: "Store",
     policyHeading: "iBlaze Returns Policy",
     policySubheading: "Review our returns policy before selecting items to return.",
+    policyBodyMode: "categories",
     policyCategories: [
       { title: "Vape Kits & Mods", desc: "30-day refund period. 30-day warranty from delivery." },
       { title: "Batteries & Chargers", desc: "60-day battery warranty. 30-day charger warranty." },
       { title: "E-Liquids & Disposables", desc: "Must remain sealed and unopened. No returns on opened liquids." },
       { title: "Tanks & Clearomisers", desc: "7-day Dead On Arrival window — report faults within 7 days." },
     ],
+    policyBodyText: "",
     policyFooterNote: "Return postage is at your expense. Tracked service required. Refunds within 5–10 business days.",
     sidebarLinks: [],
     sidebarNote: "",

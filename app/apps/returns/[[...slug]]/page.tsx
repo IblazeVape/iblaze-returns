@@ -55,6 +55,12 @@ export default async function AppProxyReturnsPage({
         logoUrl: tenant.branding.logoUrl,
         accentColor: tenant.branding.accentColor,
         storefrontUrl: tenant.branding.storefrontUrl,
+        storeLinkEnabled: tenant.branding.storeLinkEnabled,
+        storeLinkLabel: tenant.branding.storeLinkLabel,
+        sidebarLinks: tenant.branding.sidebarLinks,
+        sidebarNote: tenant.branding.sidebarNote,
+        sidebarLayoutSwitcherEnabled: tenant.branding.sidebarLayoutSwitcherEnabled,
+        defaultSidebarLayout: tenant.branding.defaultSidebarLayout,
       };
       initial = { kind: "guest-or-login", branding };
     }

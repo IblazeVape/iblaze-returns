@@ -2824,22 +2824,30 @@ const DEFAULT_POLICY_FOOTER_NOTE = "Return postage is at your expense. Tracked s
 function HygienePolicyList({
   className,
   itemPx = "px-6",
+  bodyMode = "categories",
   categories = DEFAULT_POLICY_CATEGORIES,
+  bodyText,
   footerNote = DEFAULT_POLICY_FOOTER_NOTE,
 }: {
   className?: string
   itemPx?: string
+  bodyMode?: "categories" | "text"
   categories?: { title: string; desc: string }[]
+  bodyText?: string
   footerNote?: string
 }) {
   return (
     <div className={cn("divide-y divide-border", className)}>
-      {categories.map(p => (
-        <div key={p.title} className={cn("py-3", itemPx)}>
-          <p className="font-medium text-sm">{p.title}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">{p.desc}</p>
-        </div>
-      ))}
+      {bodyMode === "text" ? (
+        <p className={cn("text-sm whitespace-pre-wrap py-3", itemPx)}>{bodyText}</p>
+      ) : (
+        categories.map(p => (
+          <div key={p.title} className={cn("py-3", itemPx)}>
+            <p className="font-medium text-sm">{p.title}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{p.desc}</p>
+          </div>
+        ))
+      )}
       {footerNote && <p className={cn("text-xs text-muted-foreground py-3", itemPx)}>{footerNote}</p>}
     </div>
   )
@@ -2910,7 +2918,9 @@ function HygienePolicy({
   link = false,
   heading = "iBlaze Returns Policy",
   subheading = "Review our returns policy before selecting items to return.",
+  bodyMode,
   categories,
+  bodyText,
   footerNote,
 }: {
   onAccept: () => void
@@ -2919,7 +2929,9 @@ function HygienePolicy({
   link?: boolean
   heading?: string
   subheading?: string
+  bodyMode?: "categories" | "text"
   categories?: { title: string; desc: string }[]
+  bodyText?: string
   footerNote?: string
 }) {
   const isDesktop = useMediaQuery("(min-width: 768px)")
@@ -2948,7 +2960,7 @@ function HygienePolicy({
             <DialogTitle className="flex items-center gap-2"><ShieldCheck className="size-4 text-[var(--brand)]" /> {heading}</DialogTitle>
             <DialogDescription>{subheading}</DialogDescription>
           </DialogHeader>
-          <HygienePolicyList itemPx="px-6" categories={categories} footerNote={footerNote} />
+          <HygienePolicyList itemPx="px-6" bodyMode={bodyMode} categories={categories} bodyText={bodyText} footerNote={footerNote} />
           <div className="flex gap-2 px-6 pb-6 pt-4">
             <DialogClose asChild>
               <Button className="flex-1 bg-[var(--brand)] hover:bg-[var(--brand)]/90 text-white" onClick={() => { onAccept(); toast.success("Policy accepted") }}><CheckCircle2 className="size-4" /> I Accept</Button>
@@ -2972,7 +2984,7 @@ function HygienePolicy({
         </DrawerHeader>
         <Separator />
         <ScrollArea className="max-h-[50vh]">
-          <HygienePolicyList itemPx="px-4" categories={categories} footerNote={footerNote} />
+          <HygienePolicyList itemPx="px-4" bodyMode={bodyMode} categories={categories} bodyText={bodyText} footerNote={footerNote} />
         </ScrollArea>
         <DrawerFooter className="pt-2">
           <div className="flex gap-2">
@@ -3176,7 +3188,9 @@ function OrderDetail({
   requirePolicyAcceptance = true,
   policyHeading,
   policySubheading,
+  policyBodyMode,
   policyCategories,
+  policyBodyText,
   policyFooterNote,
 }: {
   order: Order
@@ -3186,7 +3200,9 @@ function OrderDetail({
   requirePolicyAcceptance?: boolean
   policyHeading?: string
   policySubheading?: string
+  policyBodyMode?: "categories" | "text"
   policyCategories?: { title: string; desc: string }[]
+  policyBodyText?: string
   policyFooterNote?: string
 }) {
   const [policyAccepted, setPolicyAccepted] = useState(!requirePolicyAcceptance)
@@ -3606,7 +3622,9 @@ function OrderDetail({
                   onDecline={() => setPolicyAccepted(false)}
                   heading={policyHeading}
                   subheading={policySubheading}
+                  bodyMode={policyBodyMode}
                   categories={policyCategories}
+                  bodyText={policyBodyText}
                   footerNote={policyFooterNote}
                 />
               </div>
@@ -4531,7 +4549,9 @@ function DashboardClientInner() {
     storeLinkLabel: string
     policyHeading: string
     policySubheading: string
+    policyBodyMode: "categories" | "text"
     policyCategories: { title: string; desc: string }[]
+    policyBodyText: string
     policyFooterNote: string
     sidebarLinks: { label: string; url: string }[]
     sidebarNote: string
@@ -4541,7 +4561,7 @@ function DashboardClientInner() {
     name: "", logoUrl: "", accentColor: "#000000", storefrontUrl: "", supportEmail: "", policyUrl: "", policyText: "",
     requirePolicyAcceptance: true, storeLinkEnabled: true, storeLinkLabel: "Store",
     policyHeading: "iBlaze Returns Policy", policySubheading: "Review our returns policy before selecting items to return.",
-    policyCategories: DEFAULT_POLICY_CATEGORIES, policyFooterNote: DEFAULT_POLICY_FOOTER_NOTE,
+    policyBodyMode: "categories", policyCategories: DEFAULT_POLICY_CATEGORIES, policyBodyText: "", policyFooterNote: DEFAULT_POLICY_FOOTER_NOTE,
     sidebarLinks: [], sidebarNote: "", sidebarLayoutSwitcherEnabled: true, defaultSidebarLayout: "inset",
   })
   const sentinelRef = React.useRef<HTMLDivElement | null>(null)
@@ -4804,7 +4824,9 @@ function DashboardClientInner() {
               requirePolicyAcceptance={branding.requirePolicyAcceptance}
               policyHeading={branding.policyHeading}
               policySubheading={branding.policySubheading}
+              policyBodyMode={branding.policyBodyMode}
               policyCategories={branding.policyCategories}
+              policyBodyText={branding.policyBodyText}
               policyFooterNote={branding.policyFooterNote}
             />
           </motion.div>

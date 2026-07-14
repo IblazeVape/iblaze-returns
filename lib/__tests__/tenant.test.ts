@@ -53,6 +53,7 @@ describe("tenant store", () => {
     expect(t?.branding.storeLinkEnabled).toBe(true);
     expect(t?.branding.storeLinkLabel).toBe("Store");
     expect(t?.branding.policyHeading).toBe("iBlaze Returns Policy");
+    expect(t?.branding.policyBodyMode).toBe("categories");
     expect(t?.branding.policyCategories.length).toBe(4);
     expect(t?.branding.sidebarLinks).toEqual([]);
     expect(t?.branding.sidebarLayoutSwitcherEnabled).toBe(true);
@@ -76,7 +77,9 @@ describe("tenant store", () => {
         storeLinkLabel: "Back to store",
         policyHeading: "Acme Returns Policy",
         policySubheading: "Please review before returning items.",
+        policyBodyMode: "text",
         policyCategories: [{ title: "Vapes", desc: "30-day refund." }],
+        policyBodyText: "Free-form policy text instead of categories.",
         policyFooterNote: "Postage at your expense.",
         sidebarLinks: [{ label: "FAQ", url: "https://acme-vapes.com/faq" }],
         sidebarNote: "**Note:** processing may take 48h.",
@@ -92,6 +95,8 @@ describe("tenant store", () => {
     expect(t?.branding.requirePolicyAcceptance).toBe(false);
     expect(t?.branding.storeLinkEnabled).toBe(false);
     expect(t?.branding.storeLinkLabel).toBe("Back to store");
+    expect(t?.branding.policyBodyMode).toBe("text");
+    expect(t?.branding.policyBodyText).toBe("Free-form policy text instead of categories.");
     expect(t?.branding.policyCategories).toEqual([{ title: "Vapes", desc: "30-day refund." }]);
     expect(t?.branding.sidebarLinks).toEqual([{ label: "FAQ", url: "https://acme-vapes.com/faq" }]);
     expect(t?.branding.sidebarLayoutSwitcherEnabled).toBe(false);

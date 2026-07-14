@@ -15,7 +15,9 @@ export type BrandingInput = {
   storeLinkLabel: string;
   policyHeading: string;
   policySubheading: string;
+  policyBodyMode: "categories" | "text";
   policyCategories: PolicyCategoryInput[];
+  policyBodyText: string;
   policyFooterNote: string;
   sidebarLinks: SidebarLinkInput[];
   sidebarNote: string;
@@ -33,6 +35,7 @@ const POLICY_CATEGORY_TITLE_MAX_LENGTH = 60;
 const POLICY_CATEGORY_DESC_MAX_LENGTH = 200;
 const POLICY_CATEGORIES_MAX_COUNT = 12;
 const POLICY_FOOTER_NOTE_MAX_LENGTH = 300;
+const POLICY_BODY_TEXT_MAX_LENGTH = 2000;
 const SIDEBAR_LINK_LABEL_MAX_LENGTH = 30;
 const SIDEBAR_LINKS_MAX_COUNT = 10;
 const SIDEBAR_NOTE_MAX_LENGTH = 500;
@@ -83,6 +86,9 @@ export function validateBrandingInput(
   }
   if (input.policyFooterNote.length > POLICY_FOOTER_NOTE_MAX_LENGTH) {
     errors.policyFooterNote = `Must be ${POLICY_FOOTER_NOTE_MAX_LENGTH} characters or fewer.`;
+  }
+  if (input.policyBodyText.length > POLICY_BODY_TEXT_MAX_LENGTH) {
+    errors.policyBodyText = `Must be ${POLICY_BODY_TEXT_MAX_LENGTH} characters or fewer.`;
   }
   if (input.sidebarNote.length > SIDEBAR_NOTE_MAX_LENGTH) {
     errors.sidebarNote = `Must be ${SIDEBAR_NOTE_MAX_LENGTH} characters or fewer.`;
