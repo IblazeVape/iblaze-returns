@@ -246,17 +246,20 @@ export function SettingsForm({
   return (
     <s-page heading="Returns Settings">
       <s-section padding="none">
-        <s-box padding="base">
-          <s-stack direction="inline" gap="small-300">
-            {TABS.map((tab) => (
-              <s-button
-                key={tab.id}
-                variant={activeTab === tab.id ? "primary" : "secondary"}
-                onClick={() => setActiveTab(tab.id)}
-              >
-                {tab.label}
-              </s-button>
-            ))}
+        <s-box padding="base" borderBlockEndWidth="base" borderColor="subdued">
+          <s-stack direction="block" gap="small-300">
+            <s-paragraph tone="subdued">Customize branding, returns policy, navigation, and table behavior for your customer returns portal.</s-paragraph>
+            <s-stack direction="inline" gap="small-300">
+              {TABS.map((tab) => (
+                <s-button
+                  key={tab.id}
+                  variant={activeTab === tab.id ? "primary" : "secondary"}
+                  onClick={() => setActiveTab(tab.id)}
+                >
+                  {tab.label}
+                </s-button>
+              ))}
+            </s-stack>
           </s-stack>
         </s-box>
       </s-section>
