@@ -31,6 +31,7 @@ export type TenantBranding = {
   policyBodyMode: "categories" | "text";
   policyCategories: PolicyCategory[];
   policyBodyText: string;
+  policyFooterNoteEnabled: boolean;
   policyFooterNote: string;
   policyAcceptedMessage: string;
   policyDeclinedMessage: string;
@@ -85,6 +86,7 @@ export const DEFAULT_TENANT_FIELDS = {
       { title: "Tanks & Clearomisers", desc: "7-day Dead On Arrival window — report faults within 7 days." },
     ],
     policyBodyText: "",
+    policyFooterNoteEnabled: true,
     policyFooterNote: "Return postage is at your expense. Tracked service required. Refunds within 5–10 business days.",
     policyAcceptedMessage: "Policy accepted",
     policyDeclinedMessage: "Policy declined",

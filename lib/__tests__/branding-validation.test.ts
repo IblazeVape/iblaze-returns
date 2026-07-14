@@ -21,6 +21,7 @@ const VALID: BrandingInput = {
   policyBodyMode: "categories",
   policyCategories: [{ title: "Vapes", desc: "30-day refund period." }],
   policyBodyText: "",
+  policyFooterNoteEnabled: true,
   policyFooterNote: "Return postage is at your expense.",
   policyAcceptedMessage: "Policy accepted",
   policyDeclinedMessage: "Policy declined",

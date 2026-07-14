@@ -31,6 +31,7 @@ import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, Dr
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { PolicyMarkdown } from "@/components/policy-markdown"
 import { getCachedAccentColor, setCachedAccentColor } from "@/lib/accent-color-cache"
+import type { TenantBranding } from "@/lib/tenant"
 import { cn } from "@/lib/utils"
 import { Bar, BarChart, CartesianGrid, XAxis } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
@@ -2829,6 +2830,7 @@ function HygienePolicyList({
   bodyMode = "categories",
   categories = DEFAULT_POLICY_CATEGORIES,
   bodyText,
+  footerNoteEnabled = true,
   footerNote = DEFAULT_POLICY_FOOTER_NOTE,
 }: {
   className?: string
@@ -2836,6 +2838,7 @@ function HygienePolicyList({
   bodyMode?: "categories" | "text"
   categories?: { title: string; desc: string }[]
   bodyText?: string
+  footerNoteEnabled?: boolean
   footerNote?: string
 }) {
   return (
@@ -2850,7 +2853,7 @@ function HygienePolicyList({
           </div>
         ))
       )}
-      {footerNote && <p className={cn("text-xs text-muted-foreground py-3", itemPx)}>{footerNote}</p>}
+      {footerNoteEnabled && footerNote && <p className={cn("text-xs text-muted-foreground py-3", itemPx)}>{footerNote}</p>}
     </div>
   )
 }
@@ -2920,10 +2923,14 @@ function HygienePolicy({
   link = false,
   heading = "iBlaze Returns Policy",
   subheading = "Review our returns policy before selecting items to return.",
+  lastUpdated,
   bodyMode,
   categories,
   bodyText,
+  footerNoteEnabled,
   footerNote,
+  acceptedMessage = "Policy accepted",
+  declinedMessage = "Policy declined",
 }: {
   onAccept: () => void
   onDecline: () => void
@@ -2931,10 +2938,14 @@ function HygienePolicy({
   link?: boolean
   heading?: string
   subheading?: string
+  lastUpdated?: string
   bodyMode?: "categories" | "text"
   categories?: { title: string; desc: string }[]
   bodyText?: string
+  footerNoteEnabled?: boolean
   footerNote?: string
+  acceptedMessage?: string
+  declinedMessage?: string
 }) {
   const isDesktop = useMediaQuery("(min-width: 768px)")
 
@@ -2961,16 +2972,17 @@ function HygienePolicy({
           <DialogHeader className="px-6 pt-6 pb-4 border-b border-border">
             <DialogTitle className="flex items-center gap-2"><ShieldCheck className="size-4 text-[var(--brand)]" /> {heading}</DialogTitle>
             <DialogDescription>{subheading}</DialogDescription>
+            {lastUpdated && <p className="text-xs text-muted-foreground">Last updated: {lastUpdated}</p>}
           </DialogHeader>
           <ScrollArea className="max-h-[50vh]">
-            <HygienePolicyList itemPx="px-6" bodyMode={bodyMode} categories={categories} bodyText={bodyText} footerNote={footerNote} />
+            <HygienePolicyList itemPx="px-6" bodyMode={bodyMode} categories={categories} bodyText={bodyText} footerNoteEnabled={footerNoteEnabled} footerNote={footerNote} />
           </ScrollArea>
           <div className="flex gap-2 px-6 pb-6 pt-4">
             <DialogClose asChild>
-              <Button className="flex-1 bg-[var(--brand)] hover:bg-[var(--brand)]/90 text-white" onClick={() => { onAccept(); toast.success("Policy accepted") }}><CheckCircle2 className="size-4" /> I Accept</Button>
+              <Button className="flex-1 bg-[var(--brand)] hover:bg-[var(--brand)]/90 text-white" onClick={() => { onAccept(); toast.success(acceptedMessage) }}><CheckCircle2 className="size-4" /> I Accept</Button>
             </DialogClose>
             <DialogClose asChild>
-              <Button variant="outline" className="flex-1" onClick={() => { onDecline(); toast.warning("Policy declined") }}>Decline</Button>
+              <Button variant="outline" className="flex-1" onClick={() => { onDecline(); toast.warning(declinedMessage) }}>Decline</Button>
             </DialogClose>
           </div>
         </DialogContent>
@@ -2985,18 +2997,19 @@ function HygienePolicy({
         <DrawerHeader className="text-left pb-4">
           <DrawerTitle className="flex items-center gap-2"><ShieldCheck className="size-4 text-[var(--brand)]" /> {heading}</DrawerTitle>
           <DrawerDescription>{subheading}</DrawerDescription>
+          {lastUpdated && <p className="text-xs text-muted-foreground">Last updated: {lastUpdated}</p>}
         </DrawerHeader>
         <Separator />
         <div className="overflow-y-auto max-h-[45vh]">
-          <HygienePolicyList itemPx="px-4" bodyMode={bodyMode} categories={categories} bodyText={bodyText} footerNote={footerNote} />
+          <HygienePolicyList itemPx="px-4" bodyMode={bodyMode} categories={categories} bodyText={bodyText} footerNoteEnabled={footerNoteEnabled} footerNote={footerNote} />
         </div>
         <DrawerFooter className="pt-2">
           <div className="flex gap-2">
             <DrawerClose asChild>
-              <Button className="flex-1 bg-[var(--brand)] hover:bg-[var(--brand)]/90 text-white" onClick={() => { onAccept(); toast.success("Policy accepted") }}><CheckCircle2 className="size-4" /> I Accept</Button>
+              <Button className="flex-1 bg-[var(--brand)] hover:bg-[var(--brand)]/90 text-white" onClick={() => { onAccept(); toast.success(acceptedMessage) }}><CheckCircle2 className="size-4" /> I Accept</Button>
             </DrawerClose>
             <DrawerClose asChild>
-              <Button variant="outline" className="flex-1" onClick={() => { onDecline(); toast.warning("Policy declined") }}>Decline</Button>
+              <Button variant="outline" className="flex-1" onClick={() => { onDecline(); toast.warning(declinedMessage) }}>Decline</Button>
             </DrawerClose>
           </div>
         </DrawerFooter>
@@ -3184,31 +3197,44 @@ function OrderRow({ order, onClick }: { order: Order; onClick: () => void }) {
 const RETURN_REVIEW_VARIANT: "A" | "B" = "B"
 
 // ─── Order Detail ─────────────────────────────────────────────────────────────
+type OrderDetailBranding = {
+  supportEmail: string
+  requirePolicyAcceptance: boolean
+  policyHeading: string
+  policySubheading: string
+  policyLastUpdated: string
+  policyBodyMode: "categories" | "text"
+  policyCategories: { title: string; desc: string }[]
+  policyBodyText: string
+  policyFooterNoteEnabled: boolean
+  policyFooterNote: string
+  policyAcceptedMessage: string
+  policyDeclinedMessage: string
+  tableSearchEnabled: boolean
+  tableSearchPlaceholder: string
+  tableColumnsButtonEnabled: boolean
+  tableFilterButtonEnabled: boolean
+  tablePageSizeEnabled: boolean
+  shipmentCardsEnabled: boolean
+}
+
 function OrderDetail({
   order,
   onBack,
   returnWindowDays,
-  supportEmail,
-  requirePolicyAcceptance = true,
-  policyHeading,
-  policySubheading,
-  policyBodyMode,
-  policyCategories,
-  policyBodyText,
-  policyFooterNote,
+  branding,
 }: {
   order: Order
   onBack: () => void
   returnWindowDays: number
-  supportEmail?: string
-  requirePolicyAcceptance?: boolean
-  policyHeading?: string
-  policySubheading?: string
-  policyBodyMode?: "categories" | "text"
-  policyCategories?: { title: string; desc: string }[]
-  policyBodyText?: string
-  policyFooterNote?: string
+  branding: OrderDetailBranding
 }) {
+  const {
+    supportEmail, requirePolicyAcceptance, policyHeading, policySubheading, policyLastUpdated,
+    policyBodyMode, policyCategories, policyBodyText, policyFooterNoteEnabled, policyFooterNote,
+    policyAcceptedMessage, policyDeclinedMessage, tableSearchEnabled, tableSearchPlaceholder,
+    tableColumnsButtonEnabled, tableFilterButtonEnabled, tablePageSizeEnabled, shipmentCardsEnabled,
+  } = branding
   const [policyAccepted, setPolicyAccepted] = useState(!requirePolicyAcceptance)
   const [selectedItems, setSelectedItems]   = useState<Record<string, { selected: boolean; quantity: number; reason: string; description: string }>>({})
   const [submitting, setSubmitting]   = useState(false)
@@ -3430,7 +3456,7 @@ function OrderDetail({
         )}
 
         {/* ── Shipments & tracking ── */}
-        {!order.cancelledAt && order.shipments && order.shipments.length > 0 && (
+        {shipmentCardsEnabled && !order.cancelledAt && order.shipments && order.shipments.length > 0 && (
           <div>
             <div className="overflow-x-auto">
               <div className="flex gap-3 snap-x">
@@ -3626,10 +3652,14 @@ function OrderDetail({
                   onDecline={() => setPolicyAccepted(false)}
                   heading={policyHeading}
                   subheading={policySubheading}
+                  lastUpdated={policyLastUpdated}
                   bodyMode={policyBodyMode}
                   categories={policyCategories}
                   bodyText={policyBodyText}
+                  footerNoteEnabled={policyFooterNoteEnabled}
                   footerNote={policyFooterNote}
+                  acceptedMessage={policyAcceptedMessage}
+                  declinedMessage={policyDeclinedMessage}
                 />
               </div>
             )}
@@ -3650,11 +3680,13 @@ function OrderDetail({
                     <CountBadge value={totalEligibleUnits} variant="green" />
                   </div>
                 ) : null}
-                <div className="relative flex-1">
-                  <Search className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
-                  <Input placeholder="Search product or variant..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9 bg-transparent text-sm h-8" />
-                </div>
-                {activeTab === "ineligible" && showIneligibleFilter && (
+                {tableSearchEnabled && (
+                  <div className="relative flex-1">
+                    <Search className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
+                    <Input placeholder={tableSearchPlaceholder} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9 bg-transparent text-sm h-8" />
+                  </div>
+                )}
+                {tableFilterButtonEnabled && activeTab === "ineligible" && showIneligibleFilter && (
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button variant="outline" className="h-8 gap-1.5 text-sm shrink-0 px-3 bg-transparent">
@@ -3687,56 +3719,62 @@ function OrderDetail({
                     </PopoverContent>
                   </Popover>
                 )}
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="h-8 gap-1.5 text-sm shrink-0 px-3 bg-transparent hover:bg-transparent hover:text-foreground">
-                      <Columns2 className="size-3" />
-                      Columns
-                      {Object.values(colsVisible).filter(v => !v).length > 0 && (
-                        <span className="rounded-full bg-foreground text-background text-[10px] font-bold px-1.5 leading-5">
-                          {Object.values(colsVisible).filter(v => !v).length}
-                        </span>
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-44 p-2" align="end">
-                    <div className="flex flex-col gap-0.5">
-                      {([["variant", "Variant"], ["qty", "Quantity"], ["total", "Total"]] as const).map(([key, label]) => (
-                        <label key={key} className="flex items-center gap-2.5 px-2 py-1.5 rounded-md hover:bg-muted cursor-pointer text-sm">
-                          <Checkbox
-                            checked={colsVisible[key]}
-                            onCheckedChange={c => setColsVisible(p => ({ ...p, [key]: !!c }))}
-                          />
-                          {label}
-                        </label>
-                      ))}
-                      {Object.values(colsVisible).some(v => !v) && (
-                        <>
-                          <Separator className="my-1 -mx-2 w-auto" />
-                          <button onClick={() => setColsVisible({ variant: true, qty: true, total: true })} className="text-xs text-muted-foreground hover:text-foreground px-2 py-1 text-left w-full rounded-md hover:bg-muted">Reset columns</button>
-                        </>
-                      )}
-                    </div>
-                  </PopoverContent>
-                </Popover>
-                <Select value={pageSize} onValueChange={setPageSize}>
-                  <SelectTrigger size="sm" className="w-[100px] bg-transparent text-sm shrink-0"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="5">Show 5</SelectItem>
-                    <SelectItem value="10">Show 10</SelectItem>
-                    <SelectItem value="25">Show 25</SelectItem>
-                    <SelectItem value="all">Show All</SelectItem>
-                  </SelectContent>
-                </Select>
+                {tableColumnsButtonEnabled && (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="h-8 gap-1.5 text-sm shrink-0 px-3 bg-transparent hover:bg-transparent hover:text-foreground">
+                        <Columns2 className="size-3" />
+                        Columns
+                        {Object.values(colsVisible).filter(v => !v).length > 0 && (
+                          <span className="rounded-full bg-foreground text-background text-[10px] font-bold px-1.5 leading-5">
+                            {Object.values(colsVisible).filter(v => !v).length}
+                          </span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-44 p-2" align="end">
+                      <div className="flex flex-col gap-0.5">
+                        {([["variant", "Variant"], ["qty", "Quantity"], ["total", "Total"]] as const).map(([key, label]) => (
+                          <label key={key} className="flex items-center gap-2.5 px-2 py-1.5 rounded-md hover:bg-muted cursor-pointer text-sm">
+                            <Checkbox
+                              checked={colsVisible[key]}
+                              onCheckedChange={c => setColsVisible(p => ({ ...p, [key]: !!c }))}
+                            />
+                            {label}
+                          </label>
+                        ))}
+                        {Object.values(colsVisible).some(v => !v) && (
+                          <>
+                            <Separator className="my-1 -mx-2 w-auto" />
+                            <button onClick={() => setColsVisible({ variant: true, qty: true, total: true })} className="text-xs text-muted-foreground hover:text-foreground px-2 py-1 text-left w-full rounded-md hover:bg-muted">Reset columns</button>
+                          </>
+                        )}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                )}
+                {tablePageSizeEnabled && (
+                  <Select value={pageSize} onValueChange={setPageSize}>
+                    <SelectTrigger size="sm" className="w-[100px] bg-transparent text-sm shrink-0"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="5">Show 5</SelectItem>
+                      <SelectItem value="10">Show 10</SelectItem>
+                      <SelectItem value="25">Show 25</SelectItem>
+                      <SelectItem value="all">Show All</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
 
               {/* Mobile: search + filter icon (ineligible only) + show */}
               <div className="flex min-[1025px]:hidden items-center gap-2">
-                <div className="relative flex-1">
-                  <Search className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
-                  <Input placeholder="Search product or variant..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9 bg-transparent text-sm h-8" />
-                </div>
-                {activeTab === "ineligible" && showIneligibleFilter && (
+                {tableSearchEnabled && (
+                  <div className="relative flex-1">
+                    <Search className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
+                    <Input placeholder={tableSearchPlaceholder} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9 bg-transparent text-sm h-8" />
+                  </div>
+                )}
+                {tableFilterButtonEnabled && activeTab === "ineligible" && showIneligibleFilter && (
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button variant="outline" size="icon" className="h-8 w-8 shrink-0 bg-transparent">
@@ -3767,15 +3805,17 @@ function OrderDetail({
                     </PopoverContent>
                   </Popover>
                 )}
-                <Select value={pageSize} onValueChange={setPageSize}>
-                  <SelectTrigger size="sm" className="w-[100px] bg-transparent text-sm shrink-0"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="5">Show 5</SelectItem>
-                    <SelectItem value="10">Show 10</SelectItem>
-                    <SelectItem value="25">Show 25</SelectItem>
-                    <SelectItem value="all">Show All</SelectItem>
-                  </SelectContent>
-                </Select>
+                {tablePageSizeEnabled && (
+                  <Select value={pageSize} onValueChange={setPageSize}>
+                    <SelectTrigger size="sm" className="w-[100px] bg-transparent text-sm shrink-0"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="5">Show 5</SelectItem>
+                      <SelectItem value="10">Show 10</SelectItem>
+                      <SelectItem value="25">Show 25</SelectItem>
+                      <SelectItem value="all">Show All</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
             </div>
 
@@ -4541,33 +4581,20 @@ function DashboardClientInner() {
   const [statusFilter, setStatusFilter]   = useState<string[]>([])
   const [activeSection, setActiveSection] = useState("#orders")
   const [statusSheetOpen, setStatusSheetOpen] = useState(false)
-  const [branding, setBranding] = useState<{
-    name: string
-    logoUrl: string
-    accentColor: string
-    storefrontUrl: string
-    supportEmail: string
-    policyUrl: string
-    policyText: string
-    requirePolicyAcceptance: boolean
-    storeLinkEnabled: boolean
-    storeLinkLabel: string
-    policyHeading: string
-    policySubheading: string
-    policyBodyMode: "categories" | "text"
-    policyCategories: { title: string; desc: string }[]
-    policyBodyText: string
-    policyFooterNote: string
-    sidebarLinks: { label: string; url: string }[]
-    sidebarNote: string
-    sidebarLayoutSwitcherEnabled: boolean
-    defaultSidebarLayout: "inset" | "sidebar"
-  }>({
+  const [branding, setBranding] = useState<TenantBranding>({
     name: "", logoUrl: "", accentColor: "#000000", storefrontUrl: "", supportEmail: "", policyUrl: "", policyText: "",
     requirePolicyAcceptance: true, storeLinkEnabled: true, storeLinkLabel: "Store",
+    orderStatusLinkEnabled: true, orderStatusLinkLabel: "Order Status",
     policyHeading: "iBlaze Returns Policy", policySubheading: "Review our returns policy before selecting items to return.",
-    policyBodyMode: "categories", policyCategories: DEFAULT_POLICY_CATEGORIES, policyBodyText: "", policyFooterNote: DEFAULT_POLICY_FOOTER_NOTE,
+    policyLastUpdated: "",
+    policyBodyMode: "categories", policyCategories: DEFAULT_POLICY_CATEGORIES, policyBodyText: "",
+    policyFooterNoteEnabled: true, policyFooterNote: DEFAULT_POLICY_FOOTER_NOTE,
+    policyAcceptedMessage: "Policy accepted", policyDeclinedMessage: "Policy declined",
     sidebarLinks: [], sidebarNote: "", sidebarLayoutSwitcherEnabled: true, defaultSidebarLayout: "inset",
+    headerSearchEnabled: true, headerSearchPlaceholder: "Search orders...",
+    tableSearchEnabled: true, tableSearchPlaceholder: "Search product or variant...",
+    tableColumnsButtonEnabled: true, tableFilterButtonEnabled: true, tablePageSizeEnabled: true,
+    shipmentCardsEnabled: true,
   })
   // False until accentColor holds a real (cached or fetched) tenant value —
   // the "#000000" placeholder above is a type-safe default, not a real
@@ -4763,6 +4790,10 @@ function DashboardClientInner() {
         storefrontUrl: branding.storefrontUrl || undefined,
         storeLinkEnabled: branding.storeLinkEnabled,
         storeLinkLabel: branding.storeLinkLabel,
+        orderStatusLinkEnabled: branding.orderStatusLinkEnabled,
+        orderStatusLinkLabel: branding.orderStatusLinkLabel,
+        searchEnabled: branding.headerSearchEnabled,
+        searchPlaceholder: branding.headerSearchPlaceholder,
       }}
     >
         {selectedOrder && <StickyOrderSummaryStrip key={selectedOrder.id} order={selectedOrder} returnWindowDays={data?.returnWindowDays ?? 30} />}
@@ -4845,14 +4876,7 @@ function DashboardClientInner() {
               order={selectedOrder}
               onBack={() => setSelectedOrder(null)}
               returnWindowDays={data?.returnWindowDays ?? 30}
-              supportEmail={branding.supportEmail || undefined}
-              requirePolicyAcceptance={branding.requirePolicyAcceptance}
-              policyHeading={branding.policyHeading}
-              policySubheading={branding.policySubheading}
-              policyBodyMode={branding.policyBodyMode}
-              policyCategories={branding.policyCategories}
-              policyBodyText={branding.policyBodyText}
-              policyFooterNote={branding.policyFooterNote}
+              branding={branding}
             />
           </motion.div>
         ) : activeSection === "#home" ? (

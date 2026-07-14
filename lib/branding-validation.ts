@@ -22,6 +22,7 @@ export type BrandingInput = {
   policyBodyMode: "categories" | "text";
   policyCategories: PolicyCategoryInput[];
   policyBodyText: string;
+  policyFooterNoteEnabled: boolean;
   policyFooterNote: string;
   policyAcceptedMessage: string;
   policyDeclinedMessage: string;

@@ -55,6 +55,8 @@ export async function PUT(request: NextRequest) {
       body.policyBodyMode === "categories" || body.policyBodyMode === "text" ? body.policyBodyMode : existing.branding.policyBodyMode,
     policyCategories: isPolicyCategoryArray(body.policyCategories) ? body.policyCategories : existing.branding.policyCategories,
     policyBodyText: typeof body.policyBodyText === "string" ? body.policyBodyText : existing.branding.policyBodyText,
+    policyFooterNoteEnabled:
+      typeof body.policyFooterNoteEnabled === "boolean" ? body.policyFooterNoteEnabled : existing.branding.policyFooterNoteEnabled,
     policyFooterNote: typeof body.policyFooterNote === "string" ? body.policyFooterNote : existing.branding.policyFooterNote,
     policyAcceptedMessage:
       typeof body.policyAcceptedMessage === "string" ? body.policyAcceptedMessage : existing.branding.policyAcceptedMessage,
@@ -111,6 +113,7 @@ export async function PUT(request: NextRequest) {
       policyBodyMode: input.policyBodyMode,
       policyCategories: input.policyCategories,
       policyBodyText: input.policyBodyText,
+      policyFooterNoteEnabled: input.policyFooterNoteEnabled,
       policyFooterNote: input.policyFooterNote,
       policyAcceptedMessage: input.policyAcceptedMessage,
       policyDeclinedMessage: input.policyDeclinedMessage,

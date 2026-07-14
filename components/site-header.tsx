@@ -32,6 +32,12 @@ interface SiteHeaderProps {
   storefrontUrl?: string
   storeLinkEnabled?: boolean
   storeLinkLabel?: string
+  orderStatusLinkEnabled?: boolean
+  orderStatusLinkLabel?: string
+  /** Merchant-level Settings toggle — distinct from `showSearch`, which is
+   * per-screen context (e.g. hidden on the order detail view regardless). */
+  searchEnabled?: boolean
+  searchPlaceholder?: string
 }
 
 function SidebarToggleControls({ mobileOnly = false }: { mobileOnly?: boolean }) {
@@ -66,9 +72,14 @@ export function SiteHeader({
   storefrontUrl = "https://iblazevape.co.uk",
   storeLinkEnabled = true,
   storeLinkLabel = "Store",
+  orderStatusLinkEnabled = true,
+  orderStatusLinkLabel = "Order Status",
+  searchEnabled = true,
+  searchPlaceholder = "Search orders...",
 }: SiteHeaderProps) {
   const initial = firstName?.[0]?.toUpperCase() || "?"
   const user = { name: firstName || "Customer", email: email || "" }
+  const effectiveOrderStatusUrl = orderStatusLinkEnabled ? orderStatusUrl : undefined
 
   return (
     <header className="flex h-12 shrink-0 items-center gap-2 border-b bg-white dark:bg-background z-40 relative">
@@ -89,12 +100,12 @@ export function SiteHeader({
           <span className="truncate">{title}</span>
         </h1>
 
-        {showSearch && (
+        {showSearch && searchEnabled && (
           <div className="ml-4 flex-1 max-w-sm">
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
               <Input
-                placeholder="Search orders..."
+                placeholder={searchPlaceholder}
                 value={search || ""}
                 onChange={(e) => onSearch?.(e.target.value)}
                 className="pl-8 h-8 text-sm"
@@ -106,15 +117,15 @@ export function SiteHeader({
         <div className="ml-auto flex items-center gap-2 min-[1025px]:gap-4">
 
           {/* ── Desktop: all links inline ── */}
-          {orderStatusUrl && (
+          {effectiveOrderStatusUrl && (
             <a
-              href={orderStatusUrl}
+              href={effectiveOrderStatusUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="hidden min-[1025px]:flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               <Package className="size-3.5" />
-              Order Status
+              {orderStatusLinkLabel}
             </a>
           )}
           {storeLinkEnabled && (
@@ -130,7 +141,7 @@ export function SiteHeader({
           )}
 
           {/* ── Mobile: menu dropdown when 2+ links (order selected = Status + Store) ── */}
-          {orderStatusUrl && storeLinkEnabled ? (
+          {effectiveOrderStatusUrl && storeLinkEnabled ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
@@ -150,9 +161,9 @@ export function SiteHeader({
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <a href={orderStatusUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                  <a href={effectiveOrderStatusUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
                     <Package className="size-4" />
-                    Order Status
+                    {orderStatusLinkLabel}
                   </a>
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -168,16 +179,16 @@ export function SiteHeader({
               <Home className="size-4" />
               <span className="text-xs font-medium">{storeLinkLabel}</span>
             </a>
-          ) : orderStatusUrl ? (
+          ) : effectiveOrderStatusUrl ? (
             /* Mobile: single Order Status link when Store is disabled */
             <a
-              href={orderStatusUrl}
+              href={effectiveOrderStatusUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="min-[1025px]:hidden flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               <Package className="size-4" />
-              <span className="text-xs font-medium">Order Status</span>
+              <span className="text-xs font-medium">{orderStatusLinkLabel}</span>
             </a>
           ) : null}
           {showAccountMenu && (

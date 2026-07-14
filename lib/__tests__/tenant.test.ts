@@ -70,6 +70,7 @@ describe("tenant store", () => {
     expect(t?.branding.tableFilterButtonEnabled).toBe(true);
     expect(t?.branding.tablePageSizeEnabled).toBe(true);
     expect(t?.branding.shipmentCardsEnabled).toBe(true);
+    expect(t?.branding.policyFooterNoteEnabled).toBe(true);
   });
 
   it("round-trips a full branding update", async () => {
@@ -95,6 +96,7 @@ describe("tenant store", () => {
         policyBodyMode: "text",
         policyCategories: [{ title: "Vapes", desc: "30-day refund." }],
         policyBodyText: "Free-form policy text instead of categories.",
+        policyFooterNoteEnabled: false,
         policyFooterNote: "Postage at your expense.",
         policyAcceptedMessage: "Thanks, policy accepted!",
         policyDeclinedMessage: "No worries, policy declined.",
@@ -137,6 +139,7 @@ describe("tenant store", () => {
     expect(t?.branding.headerSearchEnabled).toBe(false);
     expect(t?.branding.tableColumnsButtonEnabled).toBe(false);
     expect(t?.branding.shipmentCardsEnabled).toBe(false);
+    expect(t?.branding.policyFooterNoteEnabled).toBe(false);
   });
 
   it("merges old branding JSON with new field defaults", async () => {
