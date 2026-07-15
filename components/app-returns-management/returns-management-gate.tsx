@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from "react";
 import { AppNav } from "@/components/app-nav";
+import { ReturnsList } from "@/components/app-returns-management/returns-list";
 
 declare const shopify: {
   idToken: () => Promise<string>;
@@ -95,9 +96,7 @@ export function ReturnsManagementGate() {
   return (
     <>
       <AppNav />
-      <s-page heading="Returns">
-        <s-paragraph>Loading returns…</s-paragraph>
-      </s-page>
+      <ReturnsList shop={state.shop} />
     </>
   );
 }
