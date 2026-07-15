@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyMerchantSessionToken } from "@/lib/merchant-session-token";
 import { shopifyAdmin } from "@/lib/shopify";
 import {
-  isReturnStatusFilter,
   buildReturnsSearchQuery,
   shapeReturnsResponse,
   shapePageInfo,
@@ -29,6 +28,7 @@ const RETURNS_QUERY = `
           subtotalLineItemsQuantity
           currentTotalPriceSet { shopMoney { amount currencyCode } }
           shippingLine { title }
+          fulfillments(first: 1) { displayStatus }
         }
       }
       pageInfo {
@@ -47,10 +47,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const statusParam = request.nextUrl.searchParams.get("status") ?? "all";
-  if (!isReturnStatusFilter(statusParam)) {
-    return NextResponse.json({ error: "invalid status" }, { status: 400 });
-  }
   const after = request.nextUrl.searchParams.get("after") || undefined;
   const search = request.nextUrl.searchParams.get("search") ?? "";
 
@@ -64,7 +60,7 @@ export async function GET(request: NextRequest) {
     const data = await shopifyAdmin(
       claims.shop,
       RETURNS_QUERY,
-      { query: buildReturnsSearchQuery(statusParam, search), after, sortKey, reverse },
+      { query: buildReturnsSearchQuery(search), after, sortKey, reverse },
       "ReturnsManagementList"
     );
     return NextResponse.json({

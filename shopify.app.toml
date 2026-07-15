@@ -4,7 +4,7 @@ application_url = "https://iblaze-returns.vercel.app/app"
 embedded = true
 
 [access_scopes]
-scopes = "read_orders,read_all_orders,write_returns,read_customers,read_fulfillments,read_products,read_files"
+scopes = "read_orders,read_all_orders,write_returns,read_customers,read_fulfillments,read_products,read_files,read_returns,read_assigned_fulfillment_orders,read_merchant_managed_fulfillment_orders,read_third_party_fulfillment_orders"
 
 [auth]
 # Not actually used by the runtime flow anymore — merchant auth is now

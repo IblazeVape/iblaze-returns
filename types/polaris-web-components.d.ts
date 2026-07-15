@@ -51,6 +51,7 @@ declare global {
         "s-popover": PolarisElementProps;
         "s-choice-list": PolarisElementProps;
         "s-choice": PolarisElementProps;
+        "s-image": PolarisElementProps;
       }
     }
   }

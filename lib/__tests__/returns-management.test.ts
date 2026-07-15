@@ -1,60 +1,23 @@
 import { describe, it, expect } from "vitest";
 import {
-  RETURN_STATUS_FILTERS,
-  isReturnStatusFilter,
-  buildReturnStatusSearchQuery,
   buildReturnsSearchQuery,
   shapeReturnsResponse,
   shapePageInfo,
+  shapeOrderItemsResponse,
   RETURN_SORT_OPTIONS,
   isReturnSortOption,
   shopifySortForOption,
 } from "@/lib/returns-management";
 
-describe("isReturnStatusFilter", () => {
-  it("accepts every value in RETURN_STATUS_FILTERS", () => {
-    for (const value of RETURN_STATUS_FILTERS) {
-      expect(isReturnStatusFilter(value)).toBe(true);
-    }
-  });
-
-  it("rejects unknown strings", () => {
-    expect(isReturnStatusFilter("bogus")).toBe(false);
-    expect(isReturnStatusFilter("no_return")).toBe(false);
-  });
-
-  it("rejects non-string values", () => {
-    expect(isReturnStatusFilter(undefined)).toBe(false);
-    expect(isReturnStatusFilter(42)).toBe(false);
-    expect(isReturnStatusFilter(null)).toBe(false);
-  });
-});
-
-describe("buildReturnStatusSearchQuery", () => {
-  it("builds a return_status: filter for a specific status", () => {
-    expect(buildReturnStatusSearchQuery("return_requested")).toBe("return_status:return_requested");
-    expect(buildReturnStatusSearchQuery("in_progress")).toBe("return_status:in_progress");
-    expect(buildReturnStatusSearchQuery("inspection_complete")).toBe("return_status:inspection_complete");
-    expect(buildReturnStatusSearchQuery("returned")).toBe("return_status:returned");
-    expect(buildReturnStatusSearchQuery("return_failed")).toBe("return_status:return_failed");
-  });
-
-  it("excludes no_return orders for the 'all' filter instead of matching a single status", () => {
-    expect(buildReturnStatusSearchQuery("all")).toBe("-return_status:no_return");
-  });
-});
-
 describe("buildReturnsSearchQuery", () => {
-  it("returns just the status filter when there's no search text", () => {
-    expect(buildReturnsSearchQuery("all", "")).toBe("-return_status:no_return");
-    expect(buildReturnsSearchQuery("all", "   ")).toBe("-return_status:no_return");
+  it("returns just the fixed return-requested filter when there's no search text", () => {
+    expect(buildReturnsSearchQuery("")).toBe("return_status:return_requested");
+    expect(buildReturnsSearchQuery("   ")).toBe("return_status:return_requested");
   });
 
-  it("ANDs a trimmed free-text search term onto the status filter", () => {
-    expect(buildReturnsSearchQuery("return_requested", "  #1034  ")).toBe(
-      "return_status:return_requested AND (#1034)"
-    );
-    expect(buildReturnsSearchQuery("all", "Jane Doe")).toBe("-return_status:no_return AND (Jane Doe)");
+  it("ANDs a trimmed free-text search term onto the fixed filter", () => {
+    expect(buildReturnsSearchQuery("  #1034  ")).toBe("return_status:return_requested AND (#1034)");
+    expect(buildReturnsSearchQuery("Jane Doe")).toBe("return_status:return_requested AND (Jane Doe)");
   });
 });
 
@@ -75,6 +38,7 @@ describe("shapeReturnsResponse", () => {
               subtotalLineItemsQuantity: 18,
               currentTotalPriceSet: { shopMoney: { amount: "72.00", currencyCode: "GBP" } },
               shippingLine: { title: "Standard Shipping" },
+              fulfillments: [{ displayStatus: "DELIVERED" }],
             },
           },
         ],
@@ -94,6 +58,7 @@ describe("shapeReturnsResponse", () => {
         totalAmount: "72.00",
         totalCurrency: "GBP",
         deliveryMethod: "Standard Shipping",
+        deliveryStatus: "DELIVERED",
       },
     ]);
   });
@@ -107,13 +72,14 @@ describe("shapeReturnsResponse", () => {
               id: "gid://shopify/Order/1",
               name: "#1002",
               customer: null,
-              returnStatus: "IN_PROGRESS",
+              returnStatus: "RETURN_REQUESTED",
               createdAt: "2026-07-02T12:00:00Z",
               displayFinancialStatus: "PAID",
               displayFulfillmentStatus: "FULFILLED",
               subtotalLineItemsQuantity: 1,
               currentTotalPriceSet: { shopMoney: { amount: "10.00", currencyCode: "GBP" } },
               shippingLine: null,
+              fulfillments: [],
             },
           },
         ],
@@ -122,7 +88,7 @@ describe("shapeReturnsResponse", () => {
     expect(shapeReturnsResponse(data)[0].customerName).toBe("Guest");
   });
 
-  it("defaults financial/fulfillment status, item count, total, and delivery method when fields are missing", () => {
+  it("defaults financial/fulfillment status, item count, total, delivery method, and delivery status when fields are missing", () => {
     const data = {
       orders: {
         edges: [
@@ -131,13 +97,14 @@ describe("shapeReturnsResponse", () => {
               id: "gid://shopify/Order/2",
               name: "#1003",
               customer: null,
-              returnStatus: "RETURNED",
+              returnStatus: "RETURN_REQUESTED",
               createdAt: "2026-07-03T12:00:00Z",
               displayFinancialStatus: null,
               displayFulfillmentStatus: null,
               subtotalLineItemsQuantity: 0,
               currentTotalPriceSet: null,
               shippingLine: null,
+              fulfillments: [],
             },
           },
         ],
@@ -150,6 +117,7 @@ describe("shapeReturnsResponse", () => {
       totalAmount: "0.00",
       totalCurrency: "",
       deliveryMethod: null,
+      deliveryStatus: null,
     });
   });
 
@@ -157,6 +125,114 @@ describe("shapeReturnsResponse", () => {
     expect(shapeReturnsResponse(null)).toEqual([]);
     expect(shapeReturnsResponse({})).toEqual([]);
     expect(shapeReturnsResponse({ orders: {} })).toEqual([]);
+  });
+});
+
+describe("shapeOrderItemsResponse", () => {
+  it("maps line items and attaches the matching return reason from the order's returns", () => {
+    const data = {
+      order: {
+        lineItems: {
+          edges: [
+            {
+              node: {
+                id: "gid://shopify/LineItem/1",
+                title: "Test 1 Sub Ohm kit",
+                quantity: 1,
+                variantTitle: "4tt",
+                image: { url: "https://example.com/img.jpg" },
+              },
+            },
+            {
+              node: {
+                id: "gid://shopify/LineItem/2",
+                title: "Widget",
+                quantity: 2,
+                variantTitle: null,
+                image: null,
+              },
+            },
+          ],
+        },
+        returns: {
+          edges: [
+            {
+              node: {
+                returnLineItems: {
+                  edges: [
+                    {
+                      node: {
+                        quantity: 1,
+                        returnReasonNote: "Received the wrong item",
+                        returnReasonDefinition: { name: "Wrong item" },
+                        fulfillmentLineItem: { lineItem: { id: "gid://shopify/LineItem/1" } },
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          ],
+        },
+      },
+    };
+    expect(shapeOrderItemsResponse(data)).toEqual([
+      {
+        id: "gid://shopify/LineItem/1",
+        title: "Test 1 Sub Ohm kit",
+        quantity: 1,
+        variantTitle: "4tt",
+        imageUrl: "https://example.com/img.jpg",
+        returnReason: "Received the wrong item",
+      },
+      {
+        id: "gid://shopify/LineItem/2",
+        title: "Widget",
+        quantity: 2,
+        variantTitle: null,
+        imageUrl: null,
+        returnReason: null,
+      },
+    ]);
+  });
+
+  it("falls back to the standardized reason name when there's no free-text note", () => {
+    const data = {
+      order: {
+        lineItems: {
+          edges: [
+            { node: { id: "gid://shopify/LineItem/1", title: "Item", quantity: 1, variantTitle: null, image: null } },
+          ],
+        },
+        returns: {
+          edges: [
+            {
+              node: {
+                returnLineItems: {
+                  edges: [
+                    {
+                      node: {
+                        quantity: 1,
+                        returnReasonNote: "",
+                        returnReasonDefinition: { name: "Other" },
+                        fulfillmentLineItem: { lineItem: { id: "gid://shopify/LineItem/1" } },
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          ],
+        },
+      },
+    };
+    expect(shapeOrderItemsResponse(data)[0].returnReason).toBe("Other");
+  });
+
+  it("returns an empty array for malformed or missing data", () => {
+    expect(shapeOrderItemsResponse(null)).toEqual([]);
+    expect(shapeOrderItemsResponse({})).toEqual([]);
+    expect(shapeOrderItemsResponse({ order: {} })).toEqual([]);
   });
 });
 

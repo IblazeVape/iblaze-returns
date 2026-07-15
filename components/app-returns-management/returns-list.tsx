@@ -3,11 +3,10 @@
 
 import { useEffect, useState } from "react";
 import {
-  RETURN_STATUS_FILTERS,
   RETURN_SORT_OPTIONS,
-  type ReturnStatusFilter,
   type ReturnSortOption,
   type ReturnManagementOrder,
+  type ReturnOrderLineItem,
 } from "@/lib/returns-management";
 
 /** `undefined` cursor means "first page" (no `after` param sent). */
@@ -17,15 +16,6 @@ declare const shopify: {
   idToken: () => Promise<string>;
 };
 
-const STATUS_LABELS: Record<ReturnStatusFilter, string> = {
-  all: "All",
-  return_requested: "Return requested",
-  in_progress: "In progress",
-  inspection_complete: "Inspection complete",
-  returned: "Returned",
-  return_failed: "Failed",
-};
-
 const SORT_LABELS: Record<ReturnSortOption, string> = {
   date_desc: "Date: Newest first",
   date_asc: "Date: Oldest first",
@@ -33,55 +23,87 @@ const SORT_LABELS: Record<ReturnSortOption, string> = {
   customer_desc: "Customer: Z to A",
 };
 
-/** "Order" is always shown (primary column, same as Shopify's own list where it isn't in the hide menu). */
-type ColumnKey = "date" | "customer" | "total" | "returnStatus" | "financialStatus" | "fulfillmentStatus" | "items" | "deliveryMethod";
+/** "Order" is always shown (primary column, not draggable/hideable — same as Shopify's own list). */
+type ColumnKey =
+  | "date"
+  | "customer"
+  | "total"
+  | "returnStatus"
+  | "financialStatus"
+  | "fulfillmentStatus"
+  | "items"
+  | "deliveryMethod"
+  | "deliveryStatus";
 
-const ALL_COLUMNS: { key: ColumnKey; label: string; format?: "numeric" | "currency" }[] = [
-  { key: "date", label: "Date" },
-  { key: "customer", label: "Customer" },
-  { key: "total", label: "Total", format: "currency" },
-  { key: "returnStatus", label: "Return status" },
-  { key: "financialStatus", label: "Payment status" },
-  { key: "fulfillmentStatus", label: "Fulfillment status" },
-  { key: "items", label: "Items", format: "numeric" },
-  { key: "deliveryMethod", label: "Delivery method" },
+const COLUMN_LABELS: Record<ColumnKey, string> = {
+  date: "Date",
+  customer: "Customer",
+  total: "Total",
+  returnStatus: "Return status",
+  financialStatus: "Payment status",
+  fulfillmentStatus: "Fulfillment status",
+  items: "Items",
+  deliveryMethod: "Delivery method",
+  deliveryStatus: "Delivery status",
+};
+
+const DEFAULT_COLUMN_ORDER: ColumnKey[] = [
+  "date",
+  "customer",
+  "total",
+  "returnStatus",
+  "financialStatus",
+  "fulfillmentStatus",
+  "items",
+  "deliveryMethod",
+  "deliveryStatus",
 ];
-
-/** All the columns this app needs are visible by default — no optional/hidden set here. */
-const DEFAULT_VISIBLE_COLUMNS: ColumnKey[] = ALL_COLUMNS.map((c) => c.key);
 
 type FetchState =
   | { status: "loading" }
   | { status: "error"; message: string }
   | { status: "ready"; orders: ReturnManagementOrder[]; hasNextPage: boolean; endCursor: string | null };
 
+type ItemsCacheEntry =
+  | { status: "loading" }
+  | { status: "error"; message: string }
+  | { status: "ready"; items: ReturnOrderLineItem[] };
+
 async function authedFetch(input: string, init: RequestInit = {}) {
   const token = await shopify.idToken();
   return fetch(input, { ...init, headers: { ...init.headers, Authorization: `Bearer ${token}` } });
 }
 
-/**
- * Shopify's GraphQL OrderReturnStatus enum comes back SCREAMING_SNAKE_CASE
- * (e.g. "RETURN_REQUESTED"); STATUS_LABELS above is keyed by the lowercase
- * search-filter values instead, so this maps the enum shape to the same
- * label set for display.
- */
-function labelForGraphqlReturnStatus(value: string): string {
-  const key = value.toLowerCase() as ReturnStatusFilter;
-  return STATUS_LABELS[key] ?? value;
-}
-
-/** "PARTIALLY_REFUNDED" -> "Partially refunded". Used for the financial/fulfillment status enums, which don't have a fixed label map like return status does. */
+/** "PARTIALLY_REFUNDED" -> "Partially refunded". Shared humanizer for every SCREAMING_SNAKE_CASE enum this page shows. */
 function humanizeEnum(value: string | null): string {
   if (!value) return "—";
   const words = value.toLowerCase().split("_");
   return words[0].charAt(0).toUpperCase() + words[0].slice(1) + (words.length > 1 ? " " + words.slice(1).join(" ") : "");
 }
 
-/** Return statuses needing action (requested/in-progress/failed) get a warning badge, matching Shopify's own "Return requested" tone; resolved statuses are neutral. */
-function returnStatusTone(value: string): string {
-  const needsAction = value === "RETURN_REQUESTED" || value === "IN_PROGRESS" || value === "RETURN_FAILED";
-  return needsAction ? "warning" : "neutral";
+function returnStatusTone(): string {
+  // This page only ever lists return_requested orders, so every badge is the same "needs attention" tone.
+  return "warning";
+}
+
+function financialStatusTone(value: string | null): string {
+  if (value === "PAID") return "success";
+  if (value === "PARTIALLY_REFUNDED" || value === "REFUNDED" || value === "PENDING") return "warning";
+  return "neutral";
+}
+
+function fulfillmentStatusTone(value: string | null): string {
+  if (value === "FULFILLED") return "success";
+  if (value === "PARTIALLY_FULFILLED") return "warning";
+  if (value === "UNFULFILLED") return "critical";
+  return "neutral";
+}
+
+function deliveryStatusTone(value: string | null): string {
+  if (value === "DELIVERED") return "success";
+  if (value === "IN_TRANSIT" || value === "OUT_FOR_DELIVERY" || value === "CONFIRMED") return "info";
+  if (value === "FAILURE" || value === "NOT_DELIVERED") return "critical";
+  return "neutral";
 }
 
 function formatMoney(amount: string, currency: string): string {
@@ -91,7 +113,6 @@ function formatMoney(amount: string, currency: string): string {
 }
 
 export function ReturnsList({ shop }: { shop: string }) {
-  const [activeStatus, setActiveStatus] = useState<ReturnStatusFilter>("all");
   const [sortOption, setSortOption] = useState<ReturnSortOption>("date_desc");
   const [searchInput, setSearchInput] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -102,7 +123,11 @@ export function ReturnsList({ shop }: { shop: string }) {
   const [cursor, setCursor] = useState<Cursor>(undefined);
   const [backStack, setBackStack] = useState<Cursor[]>([]);
 
-  const [visibleColumns, setVisibleColumns] = useState<Set<ColumnKey>>(new Set(DEFAULT_VISIBLE_COLUMNS));
+  const [columnOrder, setColumnOrder] = useState<ColumnKey[]>(DEFAULT_COLUMN_ORDER);
+  const [visibleColumns, setVisibleColumns] = useState<Set<ColumnKey>>(new Set(DEFAULT_COLUMN_ORDER));
+  const [draggedColumn, setDraggedColumn] = useState<ColumnKey | null>(null);
+
+  const [itemsCache, setItemsCache] = useState<Record<string, ItemsCacheEntry>>({});
 
   function toggleColumn(key: ColumnKey) {
     setVisibleColumns((prev) => {
@@ -116,6 +141,26 @@ export function ReturnsList({ shop }: { shop: string }) {
     return visibleColumns.has(key);
   }
 
+  function handleColumnDragStart(key: ColumnKey) {
+    setDraggedColumn(key);
+  }
+  function handleColumnDragOver(e: React.DragEvent, overKey: ColumnKey) {
+    e.preventDefault();
+    if (!draggedColumn || draggedColumn === overKey) return;
+    setColumnOrder((prev) => {
+      const from = prev.indexOf(draggedColumn);
+      const to = prev.indexOf(overKey);
+      if (from === -1 || to === -1) return prev;
+      const next = [...prev];
+      next.splice(from, 1);
+      next.splice(to, 0, draggedColumn);
+      return next;
+    });
+  }
+  function handleColumnDragEnd() {
+    setDraggedColumn(null);
+  }
+
   // Debounce the search box so every keystroke doesn't fire a request.
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(searchInput), 400);
@@ -125,7 +170,7 @@ export function ReturnsList({ shop }: { shop: string }) {
   async function loadReturns(guard?: { cancelled: boolean }) {
     setState((prev) => (prev.status === "ready" ? prev : { status: "loading" }));
     try {
-      const params = new URLSearchParams({ status: activeStatus, sort: sortOption });
+      const params = new URLSearchParams({ sort: sortOption });
       if (debouncedSearch) params.set("search", debouncedSearch);
       if (cursor) params.set("after", cursor);
       const res = await authedFetch(`/api/app/returns?${params.toString()}`);
@@ -151,16 +196,10 @@ export function ReturnsList({ shop }: { shop: string }) {
     loadReturns(guard);
     return () => { guard.cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeStatus, sortOption, debouncedSearch, cursor]);
+  }, [sortOption, debouncedSearch, cursor]);
 
   function retry() {
     loadReturns();
-  }
-
-  function selectStatus(value: ReturnStatusFilter) {
-    setActiveStatus(value);
-    setCursor(undefined);
-    setBackStack([]);
   }
 
   function selectSort(value: ReturnSortOption) {
@@ -190,8 +229,27 @@ export function ReturnsList({ shop }: { shop: string }) {
     });
   }
 
+  function loadItemsFor(orderId: string) {
+    const existing = itemsCache[orderId];
+    if (existing && (existing.status === "loading" || existing.status === "ready")) return;
+    setItemsCache((prev) => ({ ...prev, [orderId]: { status: "loading" } }));
+    authedFetch(`/api/app/returns/items?orderId=${encodeURIComponent(orderId)}`)
+      .then(async (res) => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || "Couldn't load items.");
+        setItemsCache((prev) => ({ ...prev, [orderId]: { status: "ready", items: data.items } }));
+      })
+      .catch((err) => {
+        setItemsCache((prev) => ({
+          ...prev,
+          [orderId]: { status: "error", message: err instanceof Error ? err.message : "Something went wrong." },
+        }));
+      });
+  }
+
   const orders = state.status === "ready" ? state.orders : [];
   const isLoading = state.status === "loading";
+  const visibleColumnOrder = columnOrder.filter((key) => isColumnVisible(key));
 
   return (
     <s-page heading="Returns" inlineSize="large">
@@ -204,46 +262,29 @@ export function ReturnsList({ shop }: { shop: string }) {
 
       {state.status !== "error" && (
         <s-section padding="none" accessibilityLabel="Returns table">
-          <s-table
-            paginate
-            hasPreviousPage={backStack.length > 0}
-            hasNextPage={state.status === "ready" ? state.hasNextPage : false}
-            loading={isLoading}
-            onPreviousPage={goBack}
-            onNextPage={goNext}
-          >
-            <s-grid slot="filters" gap="small-200" gridTemplateColumns="1fr auto auto">
-              <s-text-field
-                label="Search returns"
-                labelAccessibilityVisibility="exclusive"
-                icon="search"
-                placeholder="Search and filter"
-                value={searchInput}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleSearchChange(e.target.value)}
-              ></s-text-field>
+          <div className="overflow-x-auto">
+            <s-table
+              variant="table"
+              paginate
+              hasPreviousPage={backStack.length > 0}
+              hasNextPage={state.status === "ready" ? state.hasNextPage : false}
+              loading={isLoading}
+              onPreviousPage={goBack}
+              onNextPage={goNext}
+            >
+              <s-grid slot="filters" gap="small-200" gridTemplateColumns="1fr auto">
+                <s-text-field
+                  label="Search returns"
+                  labelAccessibilityVisibility="exclusive"
+                  icon="search"
+                  placeholder="Search and filter"
+                  value={searchInput}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleSearchChange(e.target.value)}
+                ></s-text-field>
 
-              <s-button commandFor="status-popover" variant="secondary">{STATUS_LABELS[activeStatus]}</s-button>
-              <s-popover id="status-popover">
-                <s-box padding="small">
-                  <s-choice-list
-                    label="Status"
-                    labelAccessibilityVisibility="exclusive"
-                    value={activeStatus}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement> & { currentTarget: { value: string } }) =>
-                      selectStatus(e.currentTarget.value as ReturnStatusFilter)
-                    }
-                  >
-                    {RETURN_STATUS_FILTERS.map((value) => (
-                      <s-choice key={value} value={value}>{STATUS_LABELS[value]}</s-choice>
-                    ))}
-                  </s-choice-list>
-                </s-box>
-              </s-popover>
-
-              <s-button commandFor="display-popover" icon="sort" variant="secondary" accessibilityLabel="Display options"></s-button>
-              <s-popover id="display-popover">
-                <s-box padding="small">
-                  <s-stack direction="block" gap="base">
+                <s-button commandFor="display-popover" icon="grid" variant="secondary" accessibilityLabel="Display options"></s-button>
+                <s-popover id="display-popover">
+                  <s-box padding="small">
                     <s-choice-list
                       label="Sort by"
                       value={sortOption}
@@ -257,62 +298,141 @@ export function ReturnsList({ shop }: { shop: string }) {
                     </s-choice-list>
                     <s-divider></s-divider>
                     <s-stack direction="block" gap="small-300">
-                      <s-text color="subdued">Columns</s-text>
-                      {ALL_COLUMNS.map((col) => (
-                        <s-checkbox
-                          key={col.key}
-                          checked={isColumnVisible(col.key)}
-                          onChange={() => toggleColumn(col.key)}
+                      <s-text color="subdued">Columns (drag to reorder)</s-text>
+                      {columnOrder.map((key) => (
+                        <div
+                          key={key}
+                          draggable
+                          onDragStart={() => handleColumnDragStart(key)}
+                          onDragOver={(e) => handleColumnDragOver(e, key)}
+                          onDragEnd={handleColumnDragEnd}
+                          className="flex items-center gap-2 cursor-move py-0.5"
                         >
-                          {col.label}
-                        </s-checkbox>
+                          <span className="text-muted-foreground text-xs select-none">⠿</span>
+                          <s-checkbox checked={isColumnVisible(key)} onChange={() => toggleColumn(key)}>
+                            {COLUMN_LABELS[key]}
+                          </s-checkbox>
+                        </div>
                       ))}
                     </s-stack>
-                  </s-stack>
-                </s-box>
-              </s-popover>
-            </s-grid>
+                  </s-box>
+                </s-popover>
+              </s-grid>
 
-            <s-table-header-row>
-              <s-table-header listSlot="primary">Order</s-table-header>
-              {isColumnVisible("date") && <s-table-header>Date</s-table-header>}
-              {isColumnVisible("customer") && <s-table-header listSlot="secondary">Customer</s-table-header>}
-              {isColumnVisible("total") && <s-table-header format="currency">Total</s-table-header>}
-              {isColumnVisible("returnStatus") && <s-table-header listSlot="inline">Return status</s-table-header>}
-              {isColumnVisible("financialStatus") && <s-table-header>Payment status</s-table-header>}
-              {isColumnVisible("fulfillmentStatus") && <s-table-header>Fulfillment status</s-table-header>}
-              {isColumnVisible("items") && <s-table-header format="numeric">Items</s-table-header>}
-              {isColumnVisible("deliveryMethod") && <s-table-header>Delivery method</s-table-header>}
-            </s-table-header-row>
-            <s-table-body>
-              {orders.map((order) => {
-                const url = `https://${shop}/admin/orders/${order.numericId}`;
-                const linkId = `order-link-${order.id}`;
-                return (
-                  <s-table-row key={order.id} clickDelegate={linkId}>
-                    <s-table-cell>
-                      <s-link id={linkId} href={url} target="_blank">{order.name}</s-link>
-                    </s-table-cell>
-                    {isColumnVisible("date") && <s-table-cell>{new Date(order.createdAt).toLocaleDateString()}</s-table-cell>}
-                    {isColumnVisible("customer") && <s-table-cell>{order.customerName}</s-table-cell>}
-                    {isColumnVisible("total") && <s-table-cell>{formatMoney(order.totalAmount, order.totalCurrency)}</s-table-cell>}
-                    {isColumnVisible("returnStatus") && (
+              <s-table-header-row>
+                <s-table-header listSlot="primary">Order</s-table-header>
+                {visibleColumnOrder.map((key) => (
+                  <s-table-header key={key} format={key === "total" ? "currency" : key === "items" ? "numeric" : "base"}>
+                    {COLUMN_LABELS[key]}
+                  </s-table-header>
+                ))}
+              </s-table-header-row>
+              <s-table-body>
+                {orders.map((order) => {
+                  const url = `https://${shop}/admin/orders/${order.numericId}`;
+                  const linkId = `order-link-${order.id}`;
+                  const itemsPopoverId = `items-popover-${order.id}`;
+                  const itemsState = itemsCache[order.id];
+                  return (
+                    <s-table-row key={order.id} clickDelegate={linkId}>
                       <s-table-cell>
-                        <s-badge tone={returnStatusTone(order.returnStatus)}>{labelForGraphqlReturnStatus(order.returnStatus)}</s-badge>
+                        <s-link id={linkId} href={url} target="_blank">{order.name}</s-link>
                       </s-table-cell>
-                    )}
-                    {isColumnVisible("financialStatus") && <s-table-cell>{humanizeEnum(order.financialStatus)}</s-table-cell>}
-                    {isColumnVisible("fulfillmentStatus") && <s-table-cell>{humanizeEnum(order.fulfillmentStatus)}</s-table-cell>}
-                    {isColumnVisible("items") && <s-table-cell>{order.itemCount}</s-table-cell>}
-                    {isColumnVisible("deliveryMethod") && <s-table-cell>{order.deliveryMethod ?? "—"}</s-table-cell>}
-                  </s-table-row>
-                );
-              })}
-            </s-table-body>
-          </s-table>
+                      {visibleColumnOrder.map((key) => {
+                        switch (key) {
+                          case "date":
+                            return <s-table-cell key={key}>{new Date(order.createdAt).toLocaleDateString()}</s-table-cell>;
+                          case "customer":
+                            return <s-table-cell key={key}>{order.customerName}</s-table-cell>;
+                          case "total":
+                            return <s-table-cell key={key}>{formatMoney(order.totalAmount, order.totalCurrency)}</s-table-cell>;
+                          case "returnStatus":
+                            return (
+                              <s-table-cell key={key}>
+                                <s-badge tone={returnStatusTone()}>Return requested</s-badge>
+                              </s-table-cell>
+                            );
+                          case "financialStatus":
+                            return (
+                              <s-table-cell key={key}>
+                                {order.financialStatus ? (
+                                  <s-badge tone={financialStatusTone(order.financialStatus)}>{humanizeEnum(order.financialStatus)}</s-badge>
+                                ) : (
+                                  "—"
+                                )}
+                              </s-table-cell>
+                            );
+                          case "fulfillmentStatus":
+                            return (
+                              <s-table-cell key={key}>
+                                {order.fulfillmentStatus ? (
+                                  <s-badge tone={fulfillmentStatusTone(order.fulfillmentStatus)}>{humanizeEnum(order.fulfillmentStatus)}</s-badge>
+                                ) : (
+                                  "—"
+                                )}
+                              </s-table-cell>
+                            );
+                          case "items":
+                            return (
+                              <s-table-cell key={key}>
+                                <s-button
+                                  commandFor={itemsPopoverId}
+                                  variant="tertiary"
+                                  onClick={() => loadItemsFor(order.id)}
+                                >
+                                  {order.itemCount} items
+                                </s-button>
+                                <s-popover id={itemsPopoverId}>
+                                  <s-box padding="small" maxInlineSize="320px">
+                                    {(!itemsState || itemsState.status === "loading") && <s-paragraph>Loading…</s-paragraph>}
+                                    {itemsState?.status === "error" && <s-paragraph>{itemsState.message}</s-paragraph>}
+                                    {itemsState?.status === "ready" && (
+                                      <s-stack direction="block" gap="base">
+                                        {itemsState.items.map((item) => (
+                                          <s-stack key={item.id} direction="inline" gap="small">
+                                            {item.imageUrl && (
+                                              <s-image src={item.imageUrl} inlineSize="40px" blockSize="40px" objectFit="cover"></s-image>
+                                            )}
+                                            <s-stack direction="block" gap="small-300">
+                                              <s-text>
+                                                {item.title} × {item.quantity}
+                                              </s-text>
+                                              {item.variantTitle && <s-text color="subdued">{item.variantTitle}</s-text>}
+                                              {item.returnReason && <s-text color="subdued">Return reason: {item.returnReason}</s-text>}
+                                            </s-stack>
+                                          </s-stack>
+                                        ))}
+                                      </s-stack>
+                                    )}
+                                  </s-box>
+                                </s-popover>
+                              </s-table-cell>
+                            );
+                          case "deliveryMethod":
+                            return <s-table-cell key={key}>{order.deliveryMethod ?? "—"}</s-table-cell>;
+                          case "deliveryStatus":
+                            return (
+                              <s-table-cell key={key}>
+                                {order.deliveryStatus ? (
+                                  <s-badge tone={deliveryStatusTone(order.deliveryStatus)}>{humanizeEnum(order.deliveryStatus)}</s-badge>
+                                ) : (
+                                  "—"
+                                )}
+                              </s-table-cell>
+                            );
+                          default:
+                            return null;
+                        }
+                      })}
+                    </s-table-row>
+                  );
+                })}
+              </s-table-body>
+            </s-table>
+          </div>
           {state.status === "ready" && orders.length === 0 && (
             <s-box padding="base">
-              <s-paragraph>No returns in this status.</s-paragraph>
+              <s-paragraph>No return requests right now.</s-paragraph>
             </s-box>
           )}
         </s-section>

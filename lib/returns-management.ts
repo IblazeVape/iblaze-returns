@@ -1,39 +1,21 @@
-export const RETURN_STATUS_FILTERS = [
-  "all",
-  "return_requested",
-  "in_progress",
-  "inspection_complete",
-  "returned",
-  "return_failed",
-] as const;
-
-export type ReturnStatusFilter = (typeof RETURN_STATUS_FILTERS)[number];
-
-export function isReturnStatusFilter(value: unknown): value is ReturnStatusFilter {
-  return typeof value === "string" && (RETURN_STATUS_FILTERS as readonly string[]).includes(value);
-}
+/**
+ * This app only ever shows orders with an active return REQUEST — merchants
+ * come here to see what's new/needs attention, not a full return-history
+ * browser. So the query is always scoped to return_status:return_requested,
+ * with no status filter exposed in the UI.
+ */
+const RETURN_REQUESTED_QUERY = "return_status:return_requested";
 
 /**
- * "all" isn't a real Shopify return_status value — it means "any order with
- * some return activity", which Shopify expresses as excluding no_return
- * rather than matching a single status.
+ * Combines the fixed return-requested filter with an optional free-text
+ * search term (order number, customer name/email, etc. — Shopify's orders
+ * search matches all of these on an unprefixed term, same as typing into
+ * the search box in Shopify's own order list).
  */
-export function buildReturnStatusSearchQuery(status: ReturnStatusFilter): string {
-  if (status === "all") return "-return_status:no_return";
-  return `return_status:${status}`;
-}
-
-/**
- * Combines the return-status filter with an optional free-text search term
- * (order number, customer name/email, etc. — Shopify's orders search
- * matches all of these on an unprefixed term, same as typing into the
- * search box in Shopify's own order list).
- */
-export function buildReturnsSearchQuery(status: ReturnStatusFilter, searchText: string): string {
-  const statusQuery = buildReturnStatusSearchQuery(status);
+export function buildReturnsSearchQuery(searchText: string): string {
   const trimmed = searchText.trim();
-  if (!trimmed) return statusQuery;
-  return `${statusQuery} AND (${trimmed})`;
+  if (!trimmed) return RETURN_REQUESTED_QUERY;
+  return `${RETURN_REQUESTED_QUERY} AND (${trimmed})`;
 }
 
 export type ReturnManagementOrder = {
@@ -49,6 +31,7 @@ export type ReturnManagementOrder = {
   totalAmount: string;
   totalCurrency: string;
   deliveryMethod: string | null;
+  deliveryStatus: string | null;
 };
 
 type OrdersQueryNode = {
@@ -62,6 +45,7 @@ type OrdersQueryNode = {
   subtotalLineItemsQuantity: number;
   currentTotalPriceSet: { shopMoney: { amount: string; currencyCode: string } } | null;
   shippingLine: { title: string } | null;
+  fulfillments: { displayStatus: string }[];
 };
 
 export function shapeReturnsResponse(data: unknown): ReturnManagementOrder[] {
@@ -81,6 +65,7 @@ export function shapeReturnsResponse(data: unknown): ReturnManagementOrder[] {
     totalAmount: node.currentTotalPriceSet?.shopMoney.amount ?? "0.00",
     totalCurrency: node.currentTotalPriceSet?.shopMoney.currencyCode ?? "",
     deliveryMethod: node.shippingLine?.title ?? null,
+    deliveryStatus: Array.isArray(node.fulfillments) && node.fulfillments.length > 0 ? node.fulfillments[0].displayStatus : null,
   }));
 }
 
@@ -123,4 +108,54 @@ export function shapePageInfo(data: unknown): ReturnsPageInfo {
     hasNextPage: pageInfo?.hasNextPage === true,
     endCursor: typeof pageInfo?.endCursor === "string" ? pageInfo.endCursor : null,
   };
+}
+
+export type ReturnOrderLineItem = {
+  id: string;
+  title: string;
+  quantity: number;
+  variantTitle: string | null;
+  imageUrl: string | null;
+  returnReason: string | null;
+};
+
+type ReturnLineItemNode = {
+  quantity: number;
+  returnReasonNote: string;
+  returnReasonDefinition: { name: string } | null;
+  fulfillmentLineItem: { lineItem: { id: string } };
+};
+
+type OrderItemsQueryNode = {
+  lineItems: { edges: { node: { id: string; title: string; quantity: number; variantTitle: string | null; image: { url: string } | null } }[] };
+  returns: { edges: { node: { returnLineItems: { edges: { node: ReturnLineItemNode }[] } } }[] };
+};
+
+export function shapeOrderItemsResponse(data: unknown): ReturnOrderLineItem[] {
+  const order = (data as { order?: OrderItemsQueryNode } | null)?.order;
+  const lineItemEdges = order?.lineItems?.edges;
+  if (!Array.isArray(lineItemEdges)) return [];
+
+  // Flatten every return's line items into a lookup by the underlying order
+  // line item id, preferring the reason note (free text) and falling back
+  // to the standardized reason definition's name.
+  const reasonByLineItemId = new Map<string, string>();
+  const returnEdges = order?.returns?.edges ?? [];
+  for (const { node: ret } of returnEdges) {
+    for (const { node: rli } of ret.returnLineItems?.edges ?? []) {
+      const lineItemId = rli.fulfillmentLineItem?.lineItem?.id;
+      if (!lineItemId) continue;
+      const reason = rli.returnReasonNote?.trim() || rli.returnReasonDefinition?.name || null;
+      if (reason) reasonByLineItemId.set(lineItemId, reason);
+    }
+  }
+
+  return lineItemEdges.map(({ node }) => ({
+    id: node.id,
+    title: node.title,
+    quantity: node.quantity,
+    variantTitle: node.variantTitle ?? null,
+    imageUrl: node.image?.url ?? null,
+    returnReason: reasonByLineItemId.get(node.id) ?? null,
+  }));
 }
