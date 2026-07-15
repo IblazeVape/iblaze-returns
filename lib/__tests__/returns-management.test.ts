@@ -4,6 +4,7 @@ import {
   shapeReturnsResponse,
   shapePageInfo,
   shapeOrderItemsResponse,
+  shapeOrderDeliveryResponse,
   RETURN_SORT_OPTIONS,
   isReturnSortOption,
   shopifySortForOption,
@@ -129,31 +130,9 @@ describe("shapeReturnsResponse", () => {
 });
 
 describe("shapeOrderItemsResponse", () => {
-  it("maps line items and attaches the matching return reason from the order's returns", () => {
+  it("maps only the RETURNED line items (not all order line items), one row per return line item", () => {
     const data = {
       order: {
-        lineItems: {
-          edges: [
-            {
-              node: {
-                id: "gid://shopify/LineItem/1",
-                title: "Test 1 Sub Ohm kit",
-                quantity: 1,
-                variantTitle: "4tt",
-                image: { url: "https://example.com/img.jpg" },
-              },
-            },
-            {
-              node: {
-                id: "gid://shopify/LineItem/2",
-                title: "Widget",
-                quantity: 2,
-                variantTitle: null,
-                image: null,
-              },
-            },
-          ],
-        },
         returns: {
           edges: [
             {
@@ -162,10 +141,29 @@ describe("shapeOrderItemsResponse", () => {
                   edges: [
                     {
                       node: {
+                        id: "gid://shopify/ReturnLineItem/1",
                         quantity: 1,
                         returnReasonNote: "Received the wrong item",
                         returnReasonDefinition: { name: "Wrong item" },
-                        fulfillmentLineItem: { lineItem: { id: "gid://shopify/LineItem/1" } },
+                        fulfillmentLineItem: {
+                          lineItem: {
+                            title: "Test 1 Sub Ohm kit",
+                            sku: "ddmdddff",
+                            image: { url: "https://example.com/img.jpg" },
+                            product: { id: "gid://shopify/Product/1" },
+                          },
+                        },
+                      },
+                    },
+                    {
+                      node: {
+                        id: "gid://shopify/ReturnLineItem/2",
+                        quantity: 2,
+                        returnReasonNote: "",
+                        returnReasonDefinition: null,
+                        fulfillmentLineItem: {
+                          lineItem: { title: "Widget", sku: null, image: null, product: null },
+                        },
                       },
                     },
                   ],
@@ -178,20 +176,22 @@ describe("shapeOrderItemsResponse", () => {
     };
     expect(shapeOrderItemsResponse(data)).toEqual([
       {
-        id: "gid://shopify/LineItem/1",
+        id: "gid://shopify/ReturnLineItem/1",
         title: "Test 1 Sub Ohm kit",
+        sku: "ddmdddff",
         quantity: 1,
-        variantTitle: "4tt",
         imageUrl: "https://example.com/img.jpg",
         returnReason: "Received the wrong item",
+        productId: "gid://shopify/Product/1",
       },
       {
-        id: "gid://shopify/LineItem/2",
+        id: "gid://shopify/ReturnLineItem/2",
         title: "Widget",
+        sku: null,
         quantity: 2,
-        variantTitle: null,
         imageUrl: null,
         returnReason: null,
+        productId: null,
       },
     ]);
   });
@@ -199,11 +199,6 @@ describe("shapeOrderItemsResponse", () => {
   it("falls back to the standardized reason name when there's no free-text note", () => {
     const data = {
       order: {
-        lineItems: {
-          edges: [
-            { node: { id: "gid://shopify/LineItem/1", title: "Item", quantity: 1, variantTitle: null, image: null } },
-          ],
-        },
         returns: {
           edges: [
             {
@@ -212,10 +207,13 @@ describe("shapeOrderItemsResponse", () => {
                   edges: [
                     {
                       node: {
+                        id: "gid://shopify/ReturnLineItem/1",
                         quantity: 1,
                         returnReasonNote: "",
                         returnReasonDefinition: { name: "Other" },
-                        fulfillmentLineItem: { lineItem: { id: "gid://shopify/LineItem/1" } },
+                        fulfillmentLineItem: {
+                          lineItem: { title: "Item", sku: null, image: null, product: null },
+                        },
                       },
                     },
                   ],
@@ -233,6 +231,54 @@ describe("shapeOrderItemsResponse", () => {
     expect(shapeOrderItemsResponse(null)).toEqual([]);
     expect(shapeOrderItemsResponse({})).toEqual([]);
     expect(shapeOrderItemsResponse({ order: {} })).toEqual([]);
+  });
+});
+
+describe("shapeOrderDeliveryResponse", () => {
+  it("maps fulfillments with tracking info", () => {
+    const data = {
+      order: {
+        fulfillments: [
+          {
+            name: "#1017-F1",
+            displayStatus: "DELIVERED",
+            deliveredAt: "2026-05-03T10:00:00Z",
+            estimatedDeliveryAt: null,
+            trackingInfo: [{ company: "Royal Mail", number: "RN00000001GB", url: "https://track.example.com/RN00000001GB" }],
+          },
+        ],
+      },
+    };
+    expect(shapeOrderDeliveryResponse(data)).toEqual([
+      {
+        fulfillmentName: "#1017-F1",
+        displayStatus: "DELIVERED",
+        deliveredAt: "2026-05-03T10:00:00Z",
+        estimatedDeliveryAt: null,
+        trackingCompany: "Royal Mail",
+        trackingNumber: "RN00000001GB",
+        trackingUrl: "https://track.example.com/RN00000001GB",
+      },
+    ]);
+  });
+
+  it("defaults tracking fields to null when there's no tracking info", () => {
+    const data = {
+      order: {
+        fulfillments: [{ name: "#1017-F1", displayStatus: "IN_TRANSIT", deliveredAt: null, estimatedDeliveryAt: null, trackingInfo: [] }],
+      },
+    };
+    expect(shapeOrderDeliveryResponse(data)[0]).toMatchObject({
+      trackingCompany: null,
+      trackingNumber: null,
+      trackingUrl: null,
+    });
+  });
+
+  it("returns an empty array for malformed or missing data", () => {
+    expect(shapeOrderDeliveryResponse(null)).toEqual([]);
+    expect(shapeOrderDeliveryResponse({})).toEqual([]);
+    expect(shapeOrderDeliveryResponse({ order: {} })).toEqual([]);
   });
 });
 

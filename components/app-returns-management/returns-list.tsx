@@ -7,6 +7,7 @@ import {
   type ReturnSortOption,
   type ReturnManagementOrder,
   type ReturnOrderLineItem,
+  type ReturnDeliveryInfo,
 } from "@/lib/returns-management";
 
 /** `undefined` cursor means "first page" (no `after` param sent). */
@@ -69,6 +70,11 @@ type ItemsCacheEntry =
   | { status: "error"; message: string }
   | { status: "ready"; items: ReturnOrderLineItem[] };
 
+type DeliveryCacheEntry =
+  | { status: "loading" }
+  | { status: "error"; message: string }
+  | { status: "ready"; fulfillments: ReturnDeliveryInfo[] };
+
 async function authedFetch(input: string, init: RequestInit = {}) {
   const token = await shopify.idToken();
   return fetch(input, { ...init, headers: { ...init.headers, Authorization: `Bearer ${token}` } });
@@ -81,35 +87,26 @@ function humanizeEnum(value: string | null): string {
   return words[0].charAt(0).toUpperCase() + words[0].slice(1) + (words.length > 1 ? " " + words.slice(1).join(" ") : "");
 }
 
-function returnStatusTone(): string {
-  // This page only ever lists return_requested orders, so every badge is the same "needs attention" tone.
-  return "warning";
-}
-
-function financialStatusTone(value: string | null): string {
-  if (value === "PAID") return "success";
-  if (value === "PARTIALLY_REFUNDED" || value === "REFUNDED" || value === "PENDING") return "warning";
-  return "neutral";
-}
-
-function fulfillmentStatusTone(value: string | null): string {
-  if (value === "FULFILLED") return "success";
-  if (value === "PARTIALLY_FULFILLED") return "warning";
-  if (value === "UNFULFILLED") return "critical";
-  return "neutral";
-}
-
-function deliveryStatusTone(value: string | null): string {
-  if (value === "DELIVERED") return "success";
-  if (value === "IN_TRANSIT" || value === "OUT_FOR_DELIVERY" || value === "CONFIRMED") return "info";
-  if (value === "FAILURE" || value === "NOT_DELIVERED") return "critical";
-  return "neutral";
+/**
+ * Verified live against Shopify's own order list (badge tone/icon attrs
+ * read straight off the DOM): almost every status badge renders neutral
+ * (grey). Only "Return requested" and "Partially fulfilled" get the amber
+ * warning tone. Paid, Fulfilled, Delivered, Partially refunded are all
+ * plain neutral badges — no green/success tone anywhere in this table.
+ */
+function fulfillmentStatusTone(value: string | null): "warning" | "neutral" {
+  return value === "PARTIALLY_FULFILLED" ? "warning" : "neutral";
 }
 
 function formatMoney(amount: string, currency: string): string {
   const n = Number(amount);
   if (Number.isNaN(n)) return currency ? `${amount} ${currency}` : amount;
   return currency ? `${n.toFixed(2)} ${currency}` : n.toFixed(2);
+}
+
+function formatDateTime(value: string | null): string | null {
+  if (!value) return null;
+  return new Date(value).toLocaleString(undefined, { weekday: "long", month: "short", day: "numeric" });
 }
 
 export function ReturnsList({ shop }: { shop: string }) {
@@ -128,6 +125,7 @@ export function ReturnsList({ shop }: { shop: string }) {
   const [draggedColumn, setDraggedColumn] = useState<ColumnKey | null>(null);
 
   const [itemsCache, setItemsCache] = useState<Record<string, ItemsCacheEntry>>({});
+  const [deliveryCache, setDeliveryCache] = useState<Record<string, DeliveryCacheEntry>>({});
 
   function toggleColumn(key: ColumnKey) {
     setVisibleColumns((prev) => {
@@ -247,6 +245,24 @@ export function ReturnsList({ shop }: { shop: string }) {
       });
   }
 
+  function loadDeliveryFor(orderId: string) {
+    const existing = deliveryCache[orderId];
+    if (existing && (existing.status === "loading" || existing.status === "ready")) return;
+    setDeliveryCache((prev) => ({ ...prev, [orderId]: { status: "loading" } }));
+    authedFetch(`/api/app/returns/delivery?orderId=${encodeURIComponent(orderId)}`)
+      .then(async (res) => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || "Couldn't load delivery status.");
+        setDeliveryCache((prev) => ({ ...prev, [orderId]: { status: "ready", fulfillments: data.fulfillments } }));
+      })
+      .catch((err) => {
+        setDeliveryCache((prev) => ({
+          ...prev,
+          [orderId]: { status: "error", message: err instanceof Error ? err.message : "Something went wrong." },
+        }));
+      });
+  }
+
   const orders = state.status === "ready" ? state.orders : [];
   const isLoading = state.status === "loading";
   const visibleColumnOrder = columnOrder.filter((key) => isColumnVisible(key));
@@ -332,7 +348,9 @@ export function ReturnsList({ shop }: { shop: string }) {
                   const url = `https://${shop}/admin/orders/${order.numericId}`;
                   const linkId = `order-link-${order.id}`;
                   const itemsPopoverId = `items-popover-${order.id}`;
+                  const deliveryPopoverId = `delivery-popover-${order.id}`;
                   const itemsState = itemsCache[order.id];
+                  const deliveryState = deliveryCache[order.id];
                   return (
                     <s-table-row key={order.id} clickDelegate={linkId}>
                       <s-table-cell>
@@ -349,17 +367,13 @@ export function ReturnsList({ shop }: { shop: string }) {
                           case "returnStatus":
                             return (
                               <s-table-cell key={key}>
-                                <s-badge tone={returnStatusTone()}>Return requested</s-badge>
+                                <s-badge tone="warning">Return requested</s-badge>
                               </s-table-cell>
                             );
                           case "financialStatus":
                             return (
                               <s-table-cell key={key}>
-                                {order.financialStatus ? (
-                                  <s-badge tone={financialStatusTone(order.financialStatus)}>{humanizeEnum(order.financialStatus)}</s-badge>
-                                ) : (
-                                  "—"
-                                )}
+                                {order.financialStatus ? <s-badge>{humanizeEnum(order.financialStatus)}</s-badge> : "—"}
                               </s-table-cell>
                             );
                           case "fulfillmentStatus":
@@ -386,21 +400,34 @@ export function ReturnsList({ shop }: { shop: string }) {
                                   <s-box padding="small" maxInlineSize="320px">
                                     {(!itemsState || itemsState.status === "loading") && <s-paragraph>Loading…</s-paragraph>}
                                     {itemsState?.status === "error" && <s-paragraph>{itemsState.message}</s-paragraph>}
-                                    {itemsState?.status === "ready" && (
+                                    {itemsState?.status === "ready" && itemsState.items.length === 0 && (
+                                      <s-paragraph>No returned items found.</s-paragraph>
+                                    )}
+                                    {itemsState?.status === "ready" && itemsState.items.length > 0 && (
                                       <s-stack direction="block" gap="base">
+                                        <s-badge tone="warning">Return requested</s-badge>
                                         {itemsState.items.map((item) => (
-                                          <s-stack key={item.id} direction="inline" gap="small">
-                                            {item.imageUrl && (
-                                              <s-image src={item.imageUrl} inlineSize="40px" blockSize="40px" objectFit="cover"></s-image>
-                                            )}
-                                            <s-stack direction="block" gap="small-300">
-                                              <s-text>
-                                                {item.title} × {item.quantity}
-                                              </s-text>
-                                              {item.variantTitle && <s-text color="subdued">{item.variantTitle}</s-text>}
-                                              {item.returnReason && <s-text color="subdued">Return reason: {item.returnReason}</s-text>}
+                                          <s-box key={item.id} padding="small" border="base" borderRadius="base">
+                                            <s-stack direction="inline" gap="small" alignItems="start">
+                                              {item.imageUrl && (
+                                                <s-image src={item.imageUrl} inlineSize="40px" blockSize="40px" objectFit="cover"></s-image>
+                                              )}
+                                              <s-stack direction="block" gap="small-300">
+                                                <s-stack direction="inline" gap="small" alignItems="center">
+                                                  {item.productId ? (
+                                                    <s-link href={`https://${shop}/admin/products/${item.productId.split("/").pop()}`} target="_blank">
+                                                      {item.title}
+                                                    </s-link>
+                                                  ) : (
+                                                    <s-text>{item.title}</s-text>
+                                                  )}
+                                                  <s-text color="subdued">× {item.quantity}</s-text>
+                                                </s-stack>
+                                                {item.sku && <s-text color="subdued">{item.sku}</s-text>}
+                                                {item.returnReason && <s-text color="subdued">Return reason: {item.returnReason}</s-text>}
+                                              </s-stack>
                                             </s-stack>
-                                          </s-stack>
+                                          </s-box>
                                         ))}
                                       </s-stack>
                                     )}
@@ -414,7 +441,43 @@ export function ReturnsList({ shop }: { shop: string }) {
                             return (
                               <s-table-cell key={key}>
                                 {order.deliveryStatus ? (
-                                  <s-badge tone={deliveryStatusTone(order.deliveryStatus)}>{humanizeEnum(order.deliveryStatus)}</s-badge>
+                                  <>
+                                    <s-button
+                                      commandFor={deliveryPopoverId}
+                                      variant="tertiary"
+                                      onClick={() => loadDeliveryFor(order.id)}
+                                    >
+                                      <s-badge>{humanizeEnum(order.deliveryStatus)}</s-badge>
+                                    </s-button>
+                                    <s-popover id={deliveryPopoverId}>
+                                      <s-box padding="small" maxInlineSize="280px">
+                                        {(!deliveryState || deliveryState.status === "loading") && <s-paragraph>Loading…</s-paragraph>}
+                                        {deliveryState?.status === "error" && <s-paragraph>{deliveryState.message}</s-paragraph>}
+                                        {deliveryState?.status === "ready" &&
+                                          deliveryState.fulfillments.map((f, i) => (
+                                            <s-stack key={i} direction="block" gap="small">
+                                              <s-stack direction="inline" gap="small" alignItems="center">
+                                                <s-badge>{humanizeEnum(f.displayStatus)}</s-badge>
+                                                {f.fulfillmentName && <s-text color="subdued">{f.fulfillmentName}</s-text>}
+                                              </s-stack>
+                                              {formatDateTime(f.deliveredAt ?? f.estimatedDeliveryAt) && (
+                                                <s-text>{formatDateTime(f.deliveredAt ?? f.estimatedDeliveryAt)}</s-text>
+                                              )}
+                                              {f.trackingNumber && (
+                                                <s-text>
+                                                  {f.trackingCompany ? `${f.trackingCompany}: ` : ""}
+                                                  {f.trackingUrl ? (
+                                                    <s-link href={f.trackingUrl} target="_blank">{f.trackingNumber}</s-link>
+                                                  ) : (
+                                                    f.trackingNumber
+                                                  )}
+                                                </s-text>
+                                              )}
+                                            </s-stack>
+                                          ))}
+                                      </s-box>
+                                    </s-popover>
+                                  </>
                                 ) : (
                                   "—"
                                 )}

@@ -110,52 +110,91 @@ export function shapePageInfo(data: unknown): ReturnsPageInfo {
   };
 }
 
+/**
+ * One entry per RETURNED item (not every order line item) — matches
+ * Shopify's own "View items" popover, which only lists what's actually
+ * part of the return request, each with its own quantity and reason.
+ */
 export type ReturnOrderLineItem = {
   id: string;
   title: string;
+  sku: string | null;
   quantity: number;
-  variantTitle: string | null;
   imageUrl: string | null;
   returnReason: string | null;
+  productId: string | null;
 };
 
 type ReturnLineItemNode = {
+  id: string;
   quantity: number;
   returnReasonNote: string;
   returnReasonDefinition: { name: string } | null;
-  fulfillmentLineItem: { lineItem: { id: string } };
+  fulfillmentLineItem: {
+    lineItem: { title: string; sku: string | null; image: { url: string } | null; product: { id: string } | null };
+  };
 };
 
 type OrderItemsQueryNode = {
-  lineItems: { edges: { node: { id: string; title: string; quantity: number; variantTitle: string | null; image: { url: string } | null } }[] };
   returns: { edges: { node: { returnLineItems: { edges: { node: ReturnLineItemNode }[] } } }[] };
 };
 
 export function shapeOrderItemsResponse(data: unknown): ReturnOrderLineItem[] {
   const order = (data as { order?: OrderItemsQueryNode } | null)?.order;
-  const lineItemEdges = order?.lineItems?.edges;
-  if (!Array.isArray(lineItemEdges)) return [];
+  const returnEdges = order?.returns?.edges;
+  if (!Array.isArray(returnEdges)) return [];
 
-  // Flatten every return's line items into a lookup by the underlying order
-  // line item id, preferring the reason note (free text) and falling back
-  // to the standardized reason definition's name.
-  const reasonByLineItemId = new Map<string, string>();
-  const returnEdges = order?.returns?.edges ?? [];
+  const items: ReturnOrderLineItem[] = [];
   for (const { node: ret } of returnEdges) {
     for (const { node: rli } of ret.returnLineItems?.edges ?? []) {
-      const lineItemId = rli.fulfillmentLineItem?.lineItem?.id;
-      if (!lineItemId) continue;
-      const reason = rli.returnReasonNote?.trim() || rli.returnReasonDefinition?.name || null;
-      if (reason) reasonByLineItemId.set(lineItemId, reason);
+      const lineItem = rli.fulfillmentLineItem?.lineItem;
+      if (!lineItem) continue;
+      items.push({
+        id: rli.id,
+        title: lineItem.title,
+        sku: lineItem.sku ?? null,
+        quantity: rli.quantity,
+        imageUrl: lineItem.image?.url ?? null,
+        returnReason: rli.returnReasonNote?.trim() || rli.returnReasonDefinition?.name || null,
+        productId: lineItem.product?.id ?? null,
+      });
     }
   }
+  return items;
+}
 
-  return lineItemEdges.map(({ node }) => ({
-    id: node.id,
-    title: node.title,
-    quantity: node.quantity,
-    variantTitle: node.variantTitle ?? null,
-    imageUrl: node.image?.url ?? null,
-    returnReason: reasonByLineItemId.get(node.id) ?? null,
-  }));
+export type ReturnDeliveryInfo = {
+  fulfillmentName: string | null;
+  displayStatus: string | null;
+  deliveredAt: string | null;
+  estimatedDeliveryAt: string | null;
+  trackingCompany: string | null;
+  trackingNumber: string | null;
+  trackingUrl: string | null;
+};
+
+type FulfillmentNode = {
+  name: string;
+  displayStatus: string;
+  deliveredAt: string | null;
+  estimatedDeliveryAt: string | null;
+  trackingInfo: { company: string | null; number: string | null; url: string | null }[];
+};
+
+export function shapeOrderDeliveryResponse(data: unknown): ReturnDeliveryInfo[] {
+  const fulfillments = (data as { order?: { fulfillments?: FulfillmentNode[] } } | null)?.order?.fulfillments;
+  if (!Array.isArray(fulfillments)) return [];
+
+  return fulfillments.map((f) => {
+    const tracking = f.trackingInfo?.[0];
+    return {
+      fulfillmentName: f.name ?? null,
+      displayStatus: f.displayStatus ?? null,
+      deliveredAt: f.deliveredAt ?? null,
+      estimatedDeliveryAt: f.estimatedDeliveryAt ?? null,
+      trackingCompany: tracking?.company ?? null,
+      trackingNumber: tracking?.number ?? null,
+      trackingUrl: tracking?.url ?? null,
+    };
+  });
 }
