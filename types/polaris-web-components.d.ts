@@ -40,6 +40,17 @@ declare global {
         "s-tab-list": PolarisElementProps;
         "s-tab": PolarisElementProps;
         "s-tab-panel": PolarisElementProps;
+        "s-table": PolarisElementProps;
+        "s-table-header-row": PolarisElementProps;
+        "s-table-header": PolarisElementProps;
+        "s-table-body": PolarisElementProps;
+        "s-table-row": PolarisElementProps;
+        "s-table-cell": PolarisElementProps;
+        "s-badge": PolarisElementProps;
+        "s-grid": PolarisElementProps;
+        "s-popover": PolarisElementProps;
+        "s-choice-list": PolarisElementProps;
+        "s-choice": PolarisElementProps;
       }
     }
   }

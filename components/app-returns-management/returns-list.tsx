@@ -2,8 +2,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronDown, Check, Search, Columns3, Eye, EyeOff } from "lucide-react";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import {
   RETURN_STATUS_FILTERS,
   RETURN_SORT_OPTIONS,
@@ -11,7 +9,6 @@ import {
   type ReturnSortOption,
   type ReturnManagementOrder,
 } from "@/lib/returns-management";
-import { MorphingInfinity } from "@/components/loading-ui/morphing-infinity";
 
 /** `undefined` cursor means "first page" (no `after` param sent). */
 type Cursor = string | undefined;
@@ -39,14 +36,14 @@ const SORT_LABELS: Record<ReturnSortOption, string> = {
 /** "Order" is always shown (primary column, same as Shopify's own list where it isn't in the hide menu). */
 type ColumnKey = "date" | "customer" | "total" | "returnStatus" | "financialStatus" | "fulfillmentStatus" | "items" | "tags" | "channel";
 
-const ALL_COLUMNS: { key: ColumnKey; label: string }[] = [
+const ALL_COLUMNS: { key: ColumnKey; label: string; format?: "numeric" | "currency" }[] = [
   { key: "date", label: "Date" },
   { key: "customer", label: "Customer" },
-  { key: "total", label: "Total" },
+  { key: "total", label: "Total", format: "currency" },
   { key: "returnStatus", label: "Return status" },
   { key: "financialStatus", label: "Payment status" },
   { key: "fulfillmentStatus", label: "Fulfillment status" },
-  { key: "items", label: "Items" },
+  { key: "items", label: "Items", format: "numeric" },
   { key: "tags", label: "Tags" },
   { key: "channel", label: "Channel" },
 ];
@@ -82,12 +79,10 @@ function humanizeEnum(value: string | null): string {
   return words[0].charAt(0).toUpperCase() + words[0].slice(1) + (words.length > 1 ? " " + words.slice(1).join(" ") : "");
 }
 
-/** Return statuses needing action (requested/in-progress/failed) get an amber pill, matching Shopify's own "Return requested" badge color; resolved statuses get a neutral grey pill. */
-function returnStatusPillClass(value: string): string {
+/** Return statuses needing action (requested/in-progress/failed) get a warning badge, matching Shopify's own "Return requested" tone; resolved statuses are neutral. */
+function returnStatusTone(value: string): string {
   const needsAction = value === "RETURN_REQUESTED" || value === "IN_PROGRESS" || value === "RETURN_FAILED";
-  return needsAction
-    ? "bg-amber-100 text-amber-900 dark:bg-amber-500/20 dark:text-amber-300"
-    : "bg-muted text-muted-foreground";
+  return needsAction ? "warning" : "neutral";
 }
 
 function formatMoney(amount: string, currency: string): string {
@@ -108,8 +103,6 @@ export function ReturnsList({ shop }: { shop: string }) {
   const [cursor, setCursor] = useState<Cursor>(undefined);
   const [backStack, setBackStack] = useState<Cursor[]>([]);
 
-  const [statusOpen, setStatusOpen] = useState(false);
-  const [columnsOpen, setColumnsOpen] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState<Set<ColumnKey>>(new Set(DEFAULT_VISIBLE_COLUMNS));
 
   function toggleColumn(key: ColumnKey) {
@@ -131,7 +124,7 @@ export function ReturnsList({ shop }: { shop: string }) {
   }, [searchInput]);
 
   async function loadReturns(guard?: { cancelled: boolean }) {
-    setState({ status: "loading" });
+    setState((prev) => (prev.status === "ready" ? prev : { status: "loading" }));
     try {
       const params = new URLSearchParams({ status: activeStatus, sort: sortOption });
       if (debouncedSearch) params.set("search", debouncedSearch);
@@ -198,103 +191,11 @@ export function ReturnsList({ shop }: { shop: string }) {
     });
   }
 
+  const orders = state.status === "ready" ? state.orders : [];
+  const isLoading = state.status === "loading";
+
   return (
     <s-page heading="Returns" inlineSize="large">
-      <div className="flex items-center gap-3 border border-border rounded-lg px-3 py-2 mb-4 bg-background">
-        <Popover open={statusOpen} onOpenChange={setStatusOpen}>
-          <PopoverTrigger asChild>
-            <button type="button" className="flex items-center gap-1 text-sm font-medium shrink-0 hover:text-foreground/80">
-              {STATUS_LABELS[activeStatus]}
-              <ChevronDown className="size-4 text-muted-foreground" />
-            </button>
-          </PopoverTrigger>
-          <PopoverContent align="start" className="w-56 p-1">
-            {RETURN_STATUS_FILTERS.map((value) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => { selectStatus(value); setStatusOpen(false); }}
-                className="flex w-full items-center justify-between rounded px-2 py-1.5 text-sm hover:bg-muted text-left"
-              >
-                <span className={activeStatus === value ? "font-medium" : ""}>{STATUS_LABELS[value]}</span>
-                {activeStatus === value && <Check className="size-4 shrink-0" />}
-              </button>
-            ))}
-          </PopoverContent>
-        </Popover>
-
-        <div className="w-px self-stretch bg-border" />
-
-        <div className="flex items-center gap-2 flex-1 min-w-[140px]">
-          <Search className="size-4 text-muted-foreground shrink-0" />
-          <input
-            type="text"
-            value={searchInput}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            placeholder="Search and filter"
-            className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-          />
-        </div>
-
-        <Popover open={columnsOpen} onOpenChange={setColumnsOpen}>
-          <PopoverTrigger asChild>
-            <button type="button" className="p-1.5 rounded hover:bg-muted text-muted-foreground shrink-0" aria-label="Display options">
-              <Columns3 className="size-4" />
-            </button>
-          </PopoverTrigger>
-          <PopoverContent align="end" className="w-64 p-2">
-            <div className="px-2 pt-1 pb-2">
-              <span className="text-xs font-medium text-muted-foreground">Sort by</span>
-              <div className="mt-1 flex flex-col gap-0.5">
-                {RETURN_SORT_OPTIONS.map((value) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => selectSort(value)}
-                    className="flex w-full items-center justify-between rounded px-2 py-1.5 text-sm hover:bg-muted text-left"
-                  >
-                    <span className={sortOption === value ? "font-medium" : ""}>{SORT_LABELS[value]}</span>
-                    {sortOption === value && <Check className="size-4 shrink-0" />}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="border-t border-border px-2 pt-2">
-              <span className="text-xs font-medium text-muted-foreground">Columns</span>
-              <div className="mt-1 flex flex-col gap-0.5">
-                {ALL_COLUMNS.map((col) => (
-                  <button
-                    key={col.key}
-                    type="button"
-                    onClick={() => toggleColumn(col.key)}
-                    className="flex w-full items-center justify-between rounded px-2 py-1.5 text-sm hover:bg-muted text-left"
-                  >
-                    <span>{col.label}</span>
-                    {isColumnVisible(col.key) ? (
-                      <Eye className="size-4 text-muted-foreground shrink-0" />
-                    ) : (
-                      <EyeOff className="size-4 text-muted-foreground/50 shrink-0" />
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </PopoverContent>
-        </Popover>
-      </div>
-
-      <div className="mb-2">
-        <span className="text-sm font-semibold">Orders</span>
-      </div>
-
-      {state.status === "loading" && (
-        <s-box padding="large">
-          <s-stack direction="block" alignItems="center">
-            <MorphingInfinity className="size-8 text-muted-foreground" />
-          </s-stack>
-        </s-box>
-      )}
-
       {state.status === "error" && (
         <s-banner heading="Couldn't load returns" tone="critical">
           <s-paragraph>{state.message}</s-paragraph>
@@ -302,90 +203,122 @@ export function ReturnsList({ shop }: { shop: string }) {
         </s-banner>
       )}
 
-      {state.status === "ready" && state.orders.length === 0 && (
-        <s-paragraph>No returns in this status.</s-paragraph>
-      )}
+      {state.status !== "error" && (
+        <s-section padding="none" accessibilityLabel="Returns table">
+          <s-table
+            paginate
+            hasPreviousPage={backStack.length > 0}
+            hasNextPage={state.status === "ready" ? state.hasNextPage : false}
+            loading={isLoading}
+            onPreviousPage={goBack}
+            onNextPage={goNext}
+          >
+            <s-grid slot="filters" gap="small-200" gridTemplateColumns="1fr auto auto">
+              <s-text-field
+                label="Search returns"
+                labelAccessibilityVisibility="exclusive"
+                icon="search"
+                placeholder="Search and filter"
+                value={searchInput}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleSearchChange(e.target.value)}
+              ></s-text-field>
 
-      {state.status === "ready" && state.orders.length > 0 && (
-        <>
-          <div className="border border-border rounded-lg overflow-hidden overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border bg-muted/40 text-left text-muted-foreground">
-                  <th className="px-4 py-2 font-medium">Order</th>
-                  {isColumnVisible("date") && <th className="px-4 py-2 font-medium">Date</th>}
-                  {isColumnVisible("customer") && <th className="px-4 py-2 font-medium">Customer</th>}
-                  {isColumnVisible("total") && <th className="px-4 py-2 font-medium">Total</th>}
-                  {isColumnVisible("returnStatus") && <th className="px-4 py-2 font-medium">Return status</th>}
-                  {isColumnVisible("financialStatus") && <th className="px-4 py-2 font-medium">Payment status</th>}
-                  {isColumnVisible("fulfillmentStatus") && <th className="px-4 py-2 font-medium">Fulfillment status</th>}
-                  {isColumnVisible("items") && <th className="px-4 py-2 font-medium">Items</th>}
-                  {isColumnVisible("tags") && <th className="px-4 py-2 font-medium">Tags</th>}
-                  {isColumnVisible("channel") && <th className="px-4 py-2 font-medium">Channel</th>}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {state.orders.map((order) => {
-                  const url = `https://${shop}/admin/orders/${order.numericId}`;
-                  function open() {
-                    window.open(url, "_blank", "noopener,noreferrer");
-                  }
-                  return (
-                    <tr
-                      key={order.id}
-                      role="link"
-                      tabIndex={0}
-                      onClick={open}
-                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } }}
-                      className="cursor-pointer hover:bg-muted transition-colors"
+              <s-button commandFor="status-popover" variant="secondary">{STATUS_LABELS[activeStatus]}</s-button>
+              <s-popover id="status-popover">
+                <s-box padding="small">
+                  <s-choice-list
+                    label="Status"
+                    labelAccessibilityVisibility="exclusive"
+                    value={activeStatus}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement> & { currentTarget: { value: string } }) =>
+                      selectStatus(e.currentTarget.value as ReturnStatusFilter)
+                    }
+                  >
+                    {RETURN_STATUS_FILTERS.map((value) => (
+                      <s-choice key={value} value={value}>{STATUS_LABELS[value]}</s-choice>
+                    ))}
+                  </s-choice-list>
+                </s-box>
+              </s-popover>
+
+              <s-button commandFor="display-popover" icon="sort" variant="secondary" accessibilityLabel="Display options"></s-button>
+              <s-popover id="display-popover">
+                <s-box padding="small">
+                  <s-stack direction="block" gap="base">
+                    <s-choice-list
+                      label="Sort by"
+                      value={sortOption}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement> & { currentTarget: { value: string } }) =>
+                        selectSort(e.currentTarget.value as ReturnSortOption)
+                      }
                     >
-                      <td className="px-4 py-3 font-medium">{order.name}</td>
-                      {isColumnVisible("date") && (
-                        <td className="px-4 py-3 text-muted-foreground">{new Date(order.createdAt).toLocaleDateString()}</td>
-                      )}
-                      {isColumnVisible("customer") && <td className="px-4 py-3 text-muted-foreground">{order.customerName}</td>}
-                      {isColumnVisible("total") && (
-                        <td className="px-4 py-3 text-muted-foreground">{formatMoney(order.totalAmount, order.totalCurrency)}</td>
-                      )}
-                      {isColumnVisible("returnStatus") && (
-                        <td className="px-4 py-3">
-                          <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${returnStatusPillClass(order.returnStatus)}`}>
-                            {labelForGraphqlReturnStatus(order.returnStatus)}
-                          </span>
-                        </td>
-                      )}
-                      {isColumnVisible("financialStatus") && (
-                        <td className="px-4 py-3 text-muted-foreground">{humanizeEnum(order.financialStatus)}</td>
-                      )}
-                      {isColumnVisible("fulfillmentStatus") && (
-                        <td className="px-4 py-3 text-muted-foreground">{humanizeEnum(order.fulfillmentStatus)}</td>
-                      )}
-                      {isColumnVisible("items") && <td className="px-4 py-3 text-muted-foreground">{order.itemCount}</td>}
-                      {isColumnVisible("tags") && (
-                        <td className="px-4 py-3 text-muted-foreground">{order.tags.length > 0 ? order.tags.join(", ") : "—"}</td>
-                      )}
-                      {isColumnVisible("channel") && (
-                        <td className="px-4 py-3 text-muted-foreground">{order.channelName ?? "—"}</td>
-                      )}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          {(backStack.length > 0 || state.hasNextPage) && (
-            <div className="flex items-center justify-between gap-2 mt-4">
-              {backStack.length > 0 ? (
-                <s-button variant="secondary" onClick={goBack}>Back</s-button>
-              ) : (
-                <span />
-              )}
-              {state.hasNextPage && (
-                <s-button variant="secondary" onClick={goNext}>Next</s-button>
-              )}
-            </div>
+                      {RETURN_SORT_OPTIONS.map((value) => (
+                        <s-choice key={value} value={value}>{SORT_LABELS[value]}</s-choice>
+                      ))}
+                    </s-choice-list>
+                    <s-divider></s-divider>
+                    <s-stack direction="block" gap="small-300">
+                      <s-text color="subdued">Columns</s-text>
+                      {ALL_COLUMNS.map((col) => (
+                        <s-checkbox
+                          key={col.key}
+                          checked={isColumnVisible(col.key)}
+                          onChange={() => toggleColumn(col.key)}
+                        >
+                          {col.label}
+                        </s-checkbox>
+                      ))}
+                    </s-stack>
+                  </s-stack>
+                </s-box>
+              </s-popover>
+            </s-grid>
+
+            <s-table-header-row>
+              <s-table-header listSlot="primary">Order</s-table-header>
+              {isColumnVisible("date") && <s-table-header>Date</s-table-header>}
+              {isColumnVisible("customer") && <s-table-header listSlot="secondary">Customer</s-table-header>}
+              {isColumnVisible("total") && <s-table-header format="currency">Total</s-table-header>}
+              {isColumnVisible("returnStatus") && <s-table-header listSlot="inline">Return status</s-table-header>}
+              {isColumnVisible("financialStatus") && <s-table-header>Payment status</s-table-header>}
+              {isColumnVisible("fulfillmentStatus") && <s-table-header>Fulfillment status</s-table-header>}
+              {isColumnVisible("items") && <s-table-header format="numeric">Items</s-table-header>}
+              {isColumnVisible("tags") && <s-table-header>Tags</s-table-header>}
+              {isColumnVisible("channel") && <s-table-header>Channel</s-table-header>}
+            </s-table-header-row>
+            <s-table-body>
+              {orders.map((order) => {
+                const url = `https://${shop}/admin/orders/${order.numericId}`;
+                const linkId = `order-link-${order.id}`;
+                return (
+                  <s-table-row key={order.id} clickDelegate={linkId}>
+                    <s-table-cell>
+                      <s-link id={linkId} href={url} target="_blank">{order.name}</s-link>
+                    </s-table-cell>
+                    {isColumnVisible("date") && <s-table-cell>{new Date(order.createdAt).toLocaleDateString()}</s-table-cell>}
+                    {isColumnVisible("customer") && <s-table-cell>{order.customerName}</s-table-cell>}
+                    {isColumnVisible("total") && <s-table-cell>{formatMoney(order.totalAmount, order.totalCurrency)}</s-table-cell>}
+                    {isColumnVisible("returnStatus") && (
+                      <s-table-cell>
+                        <s-badge tone={returnStatusTone(order.returnStatus)}>{labelForGraphqlReturnStatus(order.returnStatus)}</s-badge>
+                      </s-table-cell>
+                    )}
+                    {isColumnVisible("financialStatus") && <s-table-cell>{humanizeEnum(order.financialStatus)}</s-table-cell>}
+                    {isColumnVisible("fulfillmentStatus") && <s-table-cell>{humanizeEnum(order.fulfillmentStatus)}</s-table-cell>}
+                    {isColumnVisible("items") && <s-table-cell>{order.itemCount}</s-table-cell>}
+                    {isColumnVisible("tags") && <s-table-cell>{order.tags.length > 0 ? order.tags.join(", ") : "—"}</s-table-cell>}
+                    {isColumnVisible("channel") && <s-table-cell>{order.channelName ?? "—"}</s-table-cell>}
+                  </s-table-row>
+                );
+              })}
+            </s-table-body>
+          </s-table>
+          {state.status === "ready" && orders.length === 0 && (
+            <s-box padding="base">
+              <s-paragraph>No returns in this status.</s-paragraph>
+            </s-box>
           )}
-        </>
+        </s-section>
       )}
     </s-page>
   );
