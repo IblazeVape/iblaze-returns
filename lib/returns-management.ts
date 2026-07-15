@@ -48,8 +48,7 @@ export type ReturnManagementOrder = {
   itemCount: number;
   totalAmount: string;
   totalCurrency: string;
-  tags: string[];
-  channelName: string | null;
+  deliveryMethod: string | null;
 };
 
 type OrdersQueryNode = {
@@ -62,8 +61,7 @@ type OrdersQueryNode = {
   displayFulfillmentStatus: string | null;
   subtotalLineItemsQuantity: number;
   currentTotalPriceSet: { shopMoney: { amount: string; currencyCode: string } } | null;
-  tags: string[];
-  channelInformation: { channelDefinition: { channelName: string } | null } | null;
+  shippingLine: { title: string } | null;
 };
 
 export function shapeReturnsResponse(data: unknown): ReturnManagementOrder[] {
@@ -82,8 +80,7 @@ export function shapeReturnsResponse(data: unknown): ReturnManagementOrder[] {
     itemCount: node.subtotalLineItemsQuantity ?? 0,
     totalAmount: node.currentTotalPriceSet?.shopMoney.amount ?? "0.00",
     totalCurrency: node.currentTotalPriceSet?.shopMoney.currencyCode ?? "",
-    tags: Array.isArray(node.tags) ? node.tags : [],
-    channelName: node.channelInformation?.channelDefinition?.channelName ?? null,
+    deliveryMethod: node.shippingLine?.title ?? null,
   }));
 }
 

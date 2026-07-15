@@ -74,8 +74,7 @@ describe("shapeReturnsResponse", () => {
               displayFulfillmentStatus: "FULFILLED",
               subtotalLineItemsQuantity: 18,
               currentTotalPriceSet: { shopMoney: { amount: "72.00", currencyCode: "GBP" } },
-              tags: ["VIP", "Priority"],
-              channelInformation: { channelDefinition: { channelName: "Online Store" } },
+              shippingLine: { title: "Standard Shipping" },
             },
           },
         ],
@@ -94,8 +93,7 @@ describe("shapeReturnsResponse", () => {
         itemCount: 18,
         totalAmount: "72.00",
         totalCurrency: "GBP",
-        tags: ["VIP", "Priority"],
-        channelName: "Online Store",
+        deliveryMethod: "Standard Shipping",
       },
     ]);
   });
@@ -115,8 +113,7 @@ describe("shapeReturnsResponse", () => {
               displayFulfillmentStatus: "FULFILLED",
               subtotalLineItemsQuantity: 1,
               currentTotalPriceSet: { shopMoney: { amount: "10.00", currencyCode: "GBP" } },
-              tags: [],
-              channelInformation: null,
+              shippingLine: null,
             },
           },
         ],
@@ -125,7 +122,7 @@ describe("shapeReturnsResponse", () => {
     expect(shapeReturnsResponse(data)[0].customerName).toBe("Guest");
   });
 
-  it("defaults financial/fulfillment status, item count, total, tags, and channel when fields are missing", () => {
+  it("defaults financial/fulfillment status, item count, total, and delivery method when fields are missing", () => {
     const data = {
       orders: {
         edges: [
@@ -140,8 +137,7 @@ describe("shapeReturnsResponse", () => {
               displayFulfillmentStatus: null,
               subtotalLineItemsQuantity: 0,
               currentTotalPriceSet: null,
-              tags: null,
-              channelInformation: null,
+              shippingLine: null,
             },
           },
         ],
@@ -153,8 +149,7 @@ describe("shapeReturnsResponse", () => {
       itemCount: 0,
       totalAmount: "0.00",
       totalCurrency: "",
-      tags: [],
-      channelName: null,
+      deliveryMethod: null,
     });
   });
 

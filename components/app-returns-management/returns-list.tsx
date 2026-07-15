@@ -34,7 +34,7 @@ const SORT_LABELS: Record<ReturnSortOption, string> = {
 };
 
 /** "Order" is always shown (primary column, same as Shopify's own list where it isn't in the hide menu). */
-type ColumnKey = "date" | "customer" | "total" | "returnStatus" | "financialStatus" | "fulfillmentStatus" | "items" | "tags" | "channel";
+type ColumnKey = "date" | "customer" | "total" | "returnStatus" | "financialStatus" | "fulfillmentStatus" | "items" | "deliveryMethod";
 
 const ALL_COLUMNS: { key: ColumnKey; label: string; format?: "numeric" | "currency" }[] = [
   { key: "date", label: "Date" },
@@ -44,12 +44,11 @@ const ALL_COLUMNS: { key: ColumnKey; label: string; format?: "numeric" | "curren
   { key: "financialStatus", label: "Payment status" },
   { key: "fulfillmentStatus", label: "Fulfillment status" },
   { key: "items", label: "Items", format: "numeric" },
-  { key: "tags", label: "Tags" },
-  { key: "channel", label: "Channel" },
+  { key: "deliveryMethod", label: "Delivery method" },
 ];
 
-/** Matches Shopify's own default: Date through Items are visible out of the box, Tags/Channel start hidden. */
-const DEFAULT_VISIBLE_COLUMNS: ColumnKey[] = ["date", "customer", "total", "returnStatus", "financialStatus", "fulfillmentStatus", "items"];
+/** All the columns this app needs are visible by default — no optional/hidden set here. */
+const DEFAULT_VISIBLE_COLUMNS: ColumnKey[] = ALL_COLUMNS.map((c) => c.key);
 
 type FetchState =
   | { status: "loading" }
@@ -283,8 +282,7 @@ export function ReturnsList({ shop }: { shop: string }) {
               {isColumnVisible("financialStatus") && <s-table-header>Payment status</s-table-header>}
               {isColumnVisible("fulfillmentStatus") && <s-table-header>Fulfillment status</s-table-header>}
               {isColumnVisible("items") && <s-table-header format="numeric">Items</s-table-header>}
-              {isColumnVisible("tags") && <s-table-header>Tags</s-table-header>}
-              {isColumnVisible("channel") && <s-table-header>Channel</s-table-header>}
+              {isColumnVisible("deliveryMethod") && <s-table-header>Delivery method</s-table-header>}
             </s-table-header-row>
             <s-table-body>
               {orders.map((order) => {
@@ -306,8 +304,7 @@ export function ReturnsList({ shop }: { shop: string }) {
                     {isColumnVisible("financialStatus") && <s-table-cell>{humanizeEnum(order.financialStatus)}</s-table-cell>}
                     {isColumnVisible("fulfillmentStatus") && <s-table-cell>{humanizeEnum(order.fulfillmentStatus)}</s-table-cell>}
                     {isColumnVisible("items") && <s-table-cell>{order.itemCount}</s-table-cell>}
-                    {isColumnVisible("tags") && <s-table-cell>{order.tags.length > 0 ? order.tags.join(", ") : "—"}</s-table-cell>}
-                    {isColumnVisible("channel") && <s-table-cell>{order.channelName ?? "—"}</s-table-cell>}
+                    {isColumnVisible("deliveryMethod") && <s-table-cell>{order.deliveryMethod ?? "—"}</s-table-cell>}
                   </s-table-row>
                 );
               })}

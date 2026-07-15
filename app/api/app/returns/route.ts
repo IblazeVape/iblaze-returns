@@ -28,8 +28,7 @@ const RETURNS_QUERY = `
           displayFulfillmentStatus
           subtotalLineItemsQuantity
           currentTotalPriceSet { shopMoney { amount currencyCode } }
-          tags
-          channelInformation { channelDefinition { channelName } }
+          shippingLine { title }
         }
       }
       pageInfo {
