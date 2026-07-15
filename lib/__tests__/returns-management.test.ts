@@ -1,323 +1,37 @@
 import { describe, it, expect } from "vitest";
-import {
-  buildReturnsSearchQuery,
-  shapeReturnsResponse,
-  shapePageInfo,
-  shapeOrderItemsResponse,
-  shapeOrderDeliveryResponse,
-  RETURN_SORT_OPTIONS,
-  isReturnSortOption,
-  shopifySortForOption,
-} from "@/lib/returns-management";
+import { shapeReturnsCountResponse, buildNativeReturnsUrl } from "@/lib/returns-management";
 
-describe("buildReturnsSearchQuery", () => {
-  it("returns just the fixed return-requested filter when there's no search text", () => {
-    expect(buildReturnsSearchQuery("")).toBe("return_status:return_requested");
-    expect(buildReturnsSearchQuery("   ")).toBe("return_status:return_requested");
+describe("shapeReturnsCountResponse", () => {
+  it("extracts the count from a valid response", () => {
+    expect(shapeReturnsCountResponse({ ordersCount: { count: 7 } })).toBe(7);
+    expect(shapeReturnsCountResponse({ ordersCount: { count: 0 } })).toBe(0);
   });
 
-  it("ANDs a trimmed free-text search term onto the fixed filter", () => {
-    expect(buildReturnsSearchQuery("  #1034  ")).toBe("return_status:return_requested AND (#1034)");
-    expect(buildReturnsSearchQuery("Jane Doe")).toBe("return_status:return_requested AND (Jane Doe)");
+  it("defaults to 0 for malformed or missing data", () => {
+    expect(shapeReturnsCountResponse(null)).toBe(0);
+    expect(shapeReturnsCountResponse({})).toBe(0);
+    expect(shapeReturnsCountResponse({ ordersCount: {} })).toBe(0);
+    expect(shapeReturnsCountResponse({ ordersCount: { count: "7" } })).toBe(0);
   });
 });
 
-describe("shapeReturnsResponse", () => {
-  it("maps GraphQL order edges into flat rows with numeric id extracted from the gid", () => {
-    const data = {
-      orders: {
-        edges: [
-          {
-            node: {
-              id: "gid://shopify/Order/123456789",
-              name: "#1001",
-              customer: { displayName: "Jane Doe" },
-              returnStatus: "RETURN_REQUESTED",
-              createdAt: "2026-07-01T12:00:00Z",
-              displayFinancialStatus: "PARTIALLY_REFUNDED",
-              displayFulfillmentStatus: "FULFILLED",
-              subtotalLineItemsQuantity: 18,
-              currentTotalPriceSet: { shopMoney: { amount: "72.00", currencyCode: "GBP" } },
-              shippingLine: { title: "Standard Shipping" },
-              fulfillments: [{ displayStatus: "DELIVERED" }],
-            },
-          },
-        ],
-      },
-    };
-    expect(shapeReturnsResponse(data)).toEqual([
-      {
-        id: "gid://shopify/Order/123456789",
-        numericId: "123456789",
-        name: "#1001",
-        customerName: "Jane Doe",
-        returnStatus: "RETURN_REQUESTED",
-        createdAt: "2026-07-01T12:00:00Z",
-        financialStatus: "PARTIALLY_REFUNDED",
-        fulfillmentStatus: "FULFILLED",
-        itemCount: 18,
-        totalAmount: "72.00",
-        totalCurrency: "GBP",
-        deliveryMethod: "Standard Shipping",
-        deliveryStatus: "DELIVERED",
-      },
-    ]);
+describe("buildNativeReturnsUrl", () => {
+  it("strips the .myshopify.com suffix to get the store handle", () => {
+    const url = buildNativeReturnsUrl("6jjpzt-jz.myshopify.com");
+    expect(url.startsWith("https://admin.shopify.com/store/6jjpzt-jz/orders?")).toBe(true);
   });
 
-  it("falls back to 'Guest' when the order has no customer", () => {
-    const data = {
-      orders: {
-        edges: [
-          {
-            node: {
-              id: "gid://shopify/Order/1",
-              name: "#1002",
-              customer: null,
-              returnStatus: "RETURN_REQUESTED",
-              createdAt: "2026-07-02T12:00:00Z",
-              displayFinancialStatus: "PAID",
-              displayFulfillmentStatus: "FULFILLED",
-              subtotalLineItemsQuantity: 1,
-              currentTotalPriceSet: { shopMoney: { amount: "10.00", currencyCode: "GBP" } },
-              shippingLine: null,
-              fulfillments: [],
-            },
-          },
-        ],
-      },
-    };
-    expect(shapeReturnsResponse(data)[0].customerName).toBe("Guest");
+  it("includes the return_status:return_requested query filter", () => {
+    const url = buildNativeReturnsUrl("example.myshopify.com");
+    const params = new URL(url).searchParams;
+    expect(params.get("query")).toBe('return_status:"return_requested"');
   });
 
-  it("defaults financial/fulfillment status, item count, total, delivery method, and delivery status when fields are missing", () => {
-    const data = {
-      orders: {
-        edges: [
-          {
-            node: {
-              id: "gid://shopify/Order/2",
-              name: "#1003",
-              customer: null,
-              returnStatus: "RETURN_REQUESTED",
-              createdAt: "2026-07-03T12:00:00Z",
-              displayFinancialStatus: null,
-              displayFulfillmentStatus: null,
-              subtotalLineItemsQuantity: 0,
-              currentTotalPriceSet: null,
-              shippingLine: null,
-              fulfillments: [],
-            },
-          },
-        ],
-      },
-    };
-    expect(shapeReturnsResponse(data)[0]).toMatchObject({
-      financialStatus: null,
-      fulfillmentStatus: null,
-      itemCount: 0,
-      totalAmount: "0.00",
-      totalCurrency: "",
-      deliveryMethod: null,
-      deliveryStatus: null,
-    });
-  });
-
-  it("returns an empty array for malformed or missing data", () => {
-    expect(shapeReturnsResponse(null)).toEqual([]);
-    expect(shapeReturnsResponse({})).toEqual([]);
-    expect(shapeReturnsResponse({ orders: {} })).toEqual([]);
-  });
-});
-
-describe("shapeOrderItemsResponse", () => {
-  it("maps only the RETURNED line items (not all order line items), one row per return line item", () => {
-    const data = {
-      order: {
-        returns: {
-          edges: [
-            {
-              node: {
-                returnLineItems: {
-                  edges: [
-                    {
-                      node: {
-                        id: "gid://shopify/ReturnLineItem/1",
-                        quantity: 1,
-                        returnReasonNote: "Received the wrong item",
-                        returnReasonDefinition: { name: "Wrong item" },
-                        fulfillmentLineItem: {
-                          lineItem: {
-                            title: "Test 1 Sub Ohm kit",
-                            sku: "ddmdddff",
-                            image: { url: "https://example.com/img.jpg" },
-                            product: { id: "gid://shopify/Product/1" },
-                          },
-                        },
-                      },
-                    },
-                    {
-                      node: {
-                        id: "gid://shopify/ReturnLineItem/2",
-                        quantity: 2,
-                        returnReasonNote: "",
-                        returnReasonDefinition: null,
-                        fulfillmentLineItem: {
-                          lineItem: { title: "Widget", sku: null, image: null, product: null },
-                        },
-                      },
-                    },
-                  ],
-                },
-              },
-            },
-          ],
-        },
-      },
-    };
-    expect(shapeOrderItemsResponse(data)).toEqual([
-      {
-        id: "gid://shopify/ReturnLineItem/1",
-        title: "Test 1 Sub Ohm kit",
-        sku: "ddmdddff",
-        quantity: 1,
-        imageUrl: "https://example.com/img.jpg",
-        returnReason: "Received the wrong item",
-        productId: "gid://shopify/Product/1",
-      },
-      {
-        id: "gid://shopify/ReturnLineItem/2",
-        title: "Widget",
-        sku: null,
-        quantity: 2,
-        imageUrl: null,
-        returnReason: null,
-        productId: null,
-      },
-    ]);
-  });
-
-  it("falls back to the standardized reason name when there's no free-text note", () => {
-    const data = {
-      order: {
-        returns: {
-          edges: [
-            {
-              node: {
-                returnLineItems: {
-                  edges: [
-                    {
-                      node: {
-                        id: "gid://shopify/ReturnLineItem/1",
-                        quantity: 1,
-                        returnReasonNote: "",
-                        returnReasonDefinition: { name: "Other" },
-                        fulfillmentLineItem: {
-                          lineItem: { title: "Item", sku: null, image: null, product: null },
-                        },
-                      },
-                    },
-                  ],
-                },
-              },
-            },
-          ],
-        },
-      },
-    };
-    expect(shapeOrderItemsResponse(data)[0].returnReason).toBe("Other");
-  });
-
-  it("returns an empty array for malformed or missing data", () => {
-    expect(shapeOrderItemsResponse(null)).toEqual([]);
-    expect(shapeOrderItemsResponse({})).toEqual([]);
-    expect(shapeOrderItemsResponse({ order: {} })).toEqual([]);
-  });
-});
-
-describe("shapeOrderDeliveryResponse", () => {
-  it("maps fulfillments with tracking info", () => {
-    const data = {
-      order: {
-        fulfillments: [
-          {
-            name: "#1017-F1",
-            displayStatus: "DELIVERED",
-            deliveredAt: "2026-05-03T10:00:00Z",
-            estimatedDeliveryAt: null,
-            trackingInfo: [{ company: "Royal Mail", number: "RN00000001GB", url: "https://track.example.com/RN00000001GB" }],
-          },
-        ],
-      },
-    };
-    expect(shapeOrderDeliveryResponse(data)).toEqual([
-      {
-        fulfillmentName: "#1017-F1",
-        displayStatus: "DELIVERED",
-        deliveredAt: "2026-05-03T10:00:00Z",
-        estimatedDeliveryAt: null,
-        trackingCompany: "Royal Mail",
-        trackingNumber: "RN00000001GB",
-        trackingUrl: "https://track.example.com/RN00000001GB",
-      },
-    ]);
-  });
-
-  it("defaults tracking fields to null when there's no tracking info", () => {
-    const data = {
-      order: {
-        fulfillments: [{ name: "#1017-F1", displayStatus: "IN_TRANSIT", deliveredAt: null, estimatedDeliveryAt: null, trackingInfo: [] }],
-      },
-    };
-    expect(shapeOrderDeliveryResponse(data)[0]).toMatchObject({
-      trackingCompany: null,
-      trackingNumber: null,
-      trackingUrl: null,
-    });
-  });
-
-  it("returns an empty array for malformed or missing data", () => {
-    expect(shapeOrderDeliveryResponse(null)).toEqual([]);
-    expect(shapeOrderDeliveryResponse({})).toEqual([]);
-    expect(shapeOrderDeliveryResponse({ order: {} })).toEqual([]);
-  });
-});
-
-describe("isReturnSortOption", () => {
-  it("accepts every value in RETURN_SORT_OPTIONS", () => {
-    for (const value of RETURN_SORT_OPTIONS) {
-      expect(isReturnSortOption(value)).toBe(true);
-    }
-  });
-
-  it("rejects unknown strings and non-string values", () => {
-    expect(isReturnSortOption("bogus")).toBe(false);
-    expect(isReturnSortOption(undefined)).toBe(false);
-    expect(isReturnSortOption(null)).toBe(false);
-  });
-});
-
-describe("shopifySortForOption", () => {
-  it("maps each sort option to the correct Shopify sortKey and direction", () => {
-    expect(shopifySortForOption("date_desc")).toEqual({ sortKey: "CREATED_AT", reverse: true });
-    expect(shopifySortForOption("date_asc")).toEqual({ sortKey: "CREATED_AT", reverse: false });
-    expect(shopifySortForOption("customer_asc")).toEqual({ sortKey: "CUSTOMER_NAME", reverse: false });
-    expect(shopifySortForOption("customer_desc")).toEqual({ sortKey: "CUSTOMER_NAME", reverse: true });
-  });
-});
-
-describe("shapePageInfo", () => {
-  it("extracts hasNextPage and endCursor when present", () => {
-    const data = { orders: { pageInfo: { hasNextPage: true, endCursor: "cursor-abc" } } };
-    expect(shapePageInfo(data)).toEqual({ hasNextPage: true, endCursor: "cursor-abc" });
-  });
-
-  it("defaults to no next page and a null cursor for malformed or missing data", () => {
-    expect(shapePageInfo(null)).toEqual({ hasNextPage: false, endCursor: null });
-    expect(shapePageInfo({})).toEqual({ hasNextPage: false, endCursor: null });
-    expect(shapePageInfo({ orders: {} })).toEqual({ hasNextPage: false, endCursor: null });
-    expect(shapePageInfo({ orders: { pageInfo: { hasNextPage: "yes", endCursor: 123 } } })).toEqual({
-      hasNextPage: false,
-      endCursor: null,
-    });
+  it("includes the exact requested column set", () => {
+    const url = buildNativeReturnsUrl("example.myshopify.com");
+    const params = new URL(url).searchParams;
+    expect(params.get("selectedColumns")).toBe(
+      "CUSTOMER_NAME,TOTAL_PRICE,RETURN_STATUS,FINANCIAL_STATUS,FULFILLMENT_STATUS,ITEM_COUNT,ORDER_DATE,DELIVERY_METHOD,DELIVERY_STATUS"
+    );
   });
 });

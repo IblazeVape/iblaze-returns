@@ -1,40 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyMerchantSessionToken } from "@/lib/merchant-session-token";
 import { shopifyAdmin } from "@/lib/shopify";
-import {
-  buildReturnsSearchQuery,
-  shapeReturnsResponse,
-  shapePageInfo,
-  isReturnSortOption,
-  shopifySortForOption,
-} from "@/lib/returns-management";
+import { RETURN_REQUESTED_QUERY, shapeReturnsCountResponse, buildNativeReturnsUrl } from "@/lib/returns-management";
 
 export const dynamic = "force-dynamic";
 
-const RETURNS_PAGE_SIZE = 20;
-
-const RETURNS_QUERY = `
-  query ReturnsManagementList($query: String!, $after: String, $sortKey: OrderSortKeys!, $reverse: Boolean!) {
-    orders(first: ${RETURNS_PAGE_SIZE}, after: $after, query: $query, sortKey: $sortKey, reverse: $reverse) {
-      edges {
-        node {
-          id
-          name
-          customer { displayName }
-          returnStatus
-          createdAt
-          displayFinancialStatus
-          displayFulfillmentStatus
-          subtotalLineItemsQuantity
-          currentTotalPriceSet { shopMoney { amount currencyCode } }
-          shippingLine { title }
-          fulfillments(first: 1) { displayStatus }
-        }
-      }
-      pageInfo {
-        hasNextPage
-        endCursor
-      }
+const RETURNS_COUNT_QUERY = `
+  query ReturnsManagementCount($query: String!) {
+    ordersCount(query: $query) {
+      count
     }
   }
 `;
@@ -47,29 +21,19 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const after = request.nextUrl.searchParams.get("after") || undefined;
-  const search = request.nextUrl.searchParams.get("search") ?? "";
-
-  const sortParam = request.nextUrl.searchParams.get("sort") ?? "date_desc";
-  if (!isReturnSortOption(sortParam)) {
-    return NextResponse.json({ error: "invalid sort" }, { status: 400 });
-  }
-  const { sortKey, reverse } = shopifySortForOption(sortParam);
-
   try {
     const data = await shopifyAdmin(
       claims.shop,
-      RETURNS_QUERY,
-      { query: buildReturnsSearchQuery(search), after, sortKey, reverse },
-      "ReturnsManagementList"
+      RETURNS_COUNT_QUERY,
+      { query: RETURN_REQUESTED_QUERY },
+      "ReturnsManagementCount"
     );
     return NextResponse.json({
-      shop: claims.shop,
-      orders: shapeReturnsResponse(data),
-      pageInfo: shapePageInfo(data),
+      count: shapeReturnsCountResponse(data),
+      nativeUrl: buildNativeReturnsUrl(claims.shop),
     });
   } catch (err) {
-    console.error("returns-management query error:", err instanceof Error ? err.message : String(err));
-    return NextResponse.json({ error: "failed to load returns" }, { status: 500 });
+    console.error("returns-management count query error:", err instanceof Error ? err.message : String(err));
+    return NextResponse.json({ error: "failed to load return count" }, { status: 500 });
   }
 }

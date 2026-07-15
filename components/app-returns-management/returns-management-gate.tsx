@@ -3,23 +3,14 @@
 
 import { useEffect, useState } from "react";
 import { AppNav } from "@/components/app-nav";
-import { ReturnsList } from "@/components/app-returns-management/returns-list";
+import { ReturnsSummary } from "@/components/app-returns-management/returns-summary";
 import { MorphingInfinity } from "@/components/loading-ui/morphing-infinity";
 
 declare const shopify: {
   idToken: () => Promise<string>;
 };
 
-function base64UrlToBase64(input: string): string {
-  const base64 = input.replace(/-/g, "+").replace(/_/g, "/");
-  const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
-  return padded;
-}
-
-type GateState =
-  | { status: "loading" }
-  | { status: "error"; message: string }
-  | { status: "ready"; shop: string };
+type GateState = "loading" | "error" | "ready";
 
 /**
  * Same App Bridge token-exchange bootstrap as MerchantAppGate
@@ -28,7 +19,8 @@ type GateState =
  * ran token-exchange first.
  */
 export function ReturnsManagementGate() {
-  const [state, setState] = useState<GateState>({ status: "loading" });
+  const [state, setState] = useState<GateState>("loading");
+  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -52,14 +44,11 @@ export function ReturnsManagementGate() {
         if (!res.ok || !data.ok) {
           throw new Error(data.error || "Could not verify this app installation.");
         }
-        if (!cancelled) {
-          const payload = JSON.parse(atob(base64UrlToBase64(token.split(".")[1])));
-          const shop = String(payload.dest || "").replace(/^https:\/\//, "");
-          setState({ status: "ready", shop });
-        }
+        if (!cancelled) setState("ready");
       } catch (err) {
         if (!cancelled) {
-          setState({ status: "error", message: err instanceof Error ? err.message : "Something went wrong." });
+          setErrorMessage(err instanceof Error ? err.message : "Something went wrong.");
+          setState("error");
         }
       }
     }
@@ -68,7 +57,7 @@ export function ReturnsManagementGate() {
     return () => { cancelled = true; };
   }, []);
 
-  if (state.status === "loading") {
+  if (state === "loading") {
     return (
       <>
         <AppNav />
@@ -82,13 +71,13 @@ export function ReturnsManagementGate() {
       </>
     );
   }
-  if (state.status === "error") {
+  if (state === "error") {
     return (
       <>
         <AppNav />
         <s-page heading="Returns" inlineSize="large">
           <s-banner heading="Couldn't load returns" tone="critical">
-            <s-paragraph>{state.message}</s-paragraph>
+            <s-paragraph>{errorMessage}</s-paragraph>
           </s-banner>
         </s-page>
       </>
@@ -97,7 +86,7 @@ export function ReturnsManagementGate() {
   return (
     <>
       <AppNav />
-      <ReturnsList shop={state.shop} />
+      <ReturnsSummary />
     </>
   );
 }
