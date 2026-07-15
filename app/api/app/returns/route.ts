@@ -6,6 +6,8 @@ import {
   buildReturnStatusSearchQuery,
   shapeReturnsResponse,
   shapePageInfo,
+  isReturnSortOption,
+  shopifySortForOption,
 } from "@/lib/returns-management";
 
 export const dynamic = "force-dynamic";
@@ -13,8 +15,8 @@ export const dynamic = "force-dynamic";
 const RETURNS_PAGE_SIZE = 20;
 
 const RETURNS_QUERY = `
-  query ReturnsManagementList($query: String!, $after: String) {
-    orders(first: ${RETURNS_PAGE_SIZE}, after: $after, query: $query, sortKey: CREATED_AT, reverse: true) {
+  query ReturnsManagementList($query: String!, $after: String, $sortKey: OrderSortKeys!, $reverse: Boolean!) {
+    orders(first: ${RETURNS_PAGE_SIZE}, after: $after, query: $query, sortKey: $sortKey, reverse: $reverse) {
       edges {
         node {
           id
@@ -46,11 +48,17 @@ export async function GET(request: NextRequest) {
   }
   const after = request.nextUrl.searchParams.get("after") || undefined;
 
+  const sortParam = request.nextUrl.searchParams.get("sort") ?? "date_desc";
+  if (!isReturnSortOption(sortParam)) {
+    return NextResponse.json({ error: "invalid sort" }, { status: 400 });
+  }
+  const { sortKey, reverse } = shopifySortForOption(sortParam);
+
   try {
     const data = await shopifyAdmin(
       claims.shop,
       RETURNS_QUERY,
-      { query: buildReturnStatusSearchQuery(statusParam), after },
+      { query: buildReturnStatusSearchQuery(statusParam), after, sortKey, reverse },
       "ReturnsManagementList"
     );
     return NextResponse.json({

@@ -2,7 +2,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { RETURN_STATUS_FILTERS, type ReturnStatusFilter, type ReturnManagementOrder } from "@/lib/returns-management";
+import {
+  RETURN_STATUS_FILTERS,
+  RETURN_SORT_OPTIONS,
+  type ReturnStatusFilter,
+  type ReturnSortOption,
+  type ReturnManagementOrder,
+} from "@/lib/returns-management";
 import { MorphingInfinity } from "@/components/loading-ui/morphing-infinity";
 
 /** `undefined` cursor means "first page" (no `after` param sent). */
@@ -19,6 +25,13 @@ const STATUS_LABELS: Record<ReturnStatusFilter, string> = {
   inspection_complete: "Inspection complete",
   returned: "Returned",
   return_failed: "Failed",
+};
+
+const SORT_LABELS: Record<ReturnSortOption, string> = {
+  date_desc: "Date: Newest first",
+  date_asc: "Date: Oldest first",
+  customer_asc: "Customer: A to Z",
+  customer_desc: "Customer: Z to A",
 };
 
 type FetchState =
@@ -44,6 +57,7 @@ function labelForGraphqlReturnStatus(value: string): string {
 
 export function ReturnsList({ shop }: { shop: string }) {
   const [activeStatus, setActiveStatus] = useState<ReturnStatusFilter>("all");
+  const [sortOption, setSortOption] = useState<ReturnSortOption>("date_desc");
   const [state, setState] = useState<FetchState>({ status: "loading" });
   // Shopify's cursor pagination only moves forward (`after`), so "Back" is
   // implemented by remembering the cursor used to reach each prior page
@@ -54,7 +68,7 @@ export function ReturnsList({ shop }: { shop: string }) {
   async function loadReturns(guard?: { cancelled: boolean }) {
     setState({ status: "loading" });
     try {
-      const params = new URLSearchParams({ status: activeStatus });
+      const params = new URLSearchParams({ status: activeStatus, sort: sortOption });
       if (cursor) params.set("after", cursor);
       const res = await authedFetch(`/api/app/returns?${params.toString()}`);
       const data = await res.json().catch(() => ({}));
@@ -79,7 +93,7 @@ export function ReturnsList({ shop }: { shop: string }) {
     loadReturns(guard);
     return () => { guard.cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeStatus, cursor]);
+  }, [activeStatus, sortOption, cursor]);
 
   function retry() {
     loadReturns();
@@ -87,6 +101,12 @@ export function ReturnsList({ shop }: { shop: string }) {
 
   function selectStatus(value: ReturnStatusFilter) {
     setActiveStatus(value);
+    setCursor(undefined);
+    setBackStack([]);
+  }
+
+  function selectSort(value: ReturnSortOption) {
+    setSortOption(value);
     setCursor(undefined);
     setBackStack([]);
   }
@@ -108,16 +128,25 @@ export function ReturnsList({ shop }: { shop: string }) {
 
   return (
     <s-page heading="Returns">
-      <div className="flex items-center gap-2 flex-wrap mb-4">
-        {RETURN_STATUS_FILTERS.map((value) => (
-          <s-button
-            key={value}
-            variant={activeStatus === value ? "primary" : "secondary"}
-            onClick={() => selectStatus(value)}
-          >
-            {STATUS_LABELS[value]}
-          </s-button>
-        ))}
+      <div className="flex items-center justify-between gap-2 flex-wrap mb-4">
+        <s-select
+          label="Status"
+          value={activeStatus}
+          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => selectStatus(e.target.value as ReturnStatusFilter)}
+        >
+          {RETURN_STATUS_FILTERS.map((value) => (
+            <s-option key={value} value={value}>{STATUS_LABELS[value]}</s-option>
+          ))}
+        </s-select>
+        <s-select
+          label="Sort by"
+          value={sortOption}
+          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => selectSort(e.target.value as ReturnSortOption)}
+        >
+          {RETURN_SORT_OPTIONS.map((value) => (
+            <s-option key={value} value={value}>{SORT_LABELS[value]}</s-option>
+          ))}
+        </s-select>
       </div>
 
       {state.status === "loading" && (
@@ -141,22 +170,40 @@ export function ReturnsList({ shop }: { shop: string }) {
 
       {state.status === "ready" && state.orders.length > 0 && (
         <>
-          <div className="border border-border rounded-lg divide-y divide-border overflow-hidden">
-            {state.orders.map((order) => (
-              <a
-                key={order.id}
-                href={`https://${shop}/admin/orders/${order.numericId}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-between px-4 py-3 hover:bg-muted transition-colors"
-              >
-                <div className="flex flex-col">
-                  <span className="font-medium">{order.name}</span>
-                  <span className="text-sm text-muted-foreground">{order.customerName}</span>
-                </div>
-                <span className="text-sm text-muted-foreground">{labelForGraphqlReturnStatus(order.returnStatus)}</span>
-              </a>
-            ))}
+          <div className="border border-border rounded-lg overflow-hidden overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-muted/40 text-left text-muted-foreground">
+                  <th className="px-4 py-2 font-medium">Order</th>
+                  <th className="px-4 py-2 font-medium">Customer</th>
+                  <th className="px-4 py-2 font-medium">Status</th>
+                  <th className="px-4 py-2 font-medium">Date</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {state.orders.map((order) => {
+                  const url = `https://${shop}/admin/orders/${order.numericId}`;
+                  function open() {
+                    window.open(url, "_blank", "noopener,noreferrer");
+                  }
+                  return (
+                    <tr
+                      key={order.id}
+                      role="link"
+                      tabIndex={0}
+                      onClick={open}
+                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } }}
+                      className="cursor-pointer hover:bg-muted transition-colors"
+                    >
+                      <td className="px-4 py-3 font-medium">{order.name}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{order.customerName}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{labelForGraphqlReturnStatus(order.returnStatus)}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{new Date(order.createdAt).toLocaleDateString()}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
           <div className="flex items-center justify-between gap-2 mt-4">
             <s-button variant="secondary" disabled={backStack.length === 0} onClick={goBack}>

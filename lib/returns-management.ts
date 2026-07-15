@@ -54,6 +54,33 @@ export function shapeReturnsResponse(data: unknown): ReturnManagementOrder[] {
   }));
 }
 
+export const RETURN_SORT_OPTIONS = ["date_desc", "date_asc", "customer_asc", "customer_desc"] as const;
+
+export type ReturnSortOption = (typeof RETURN_SORT_OPTIONS)[number];
+
+export function isReturnSortOption(value: unknown): value is ReturnSortOption {
+  return typeof value === "string" && (RETURN_SORT_OPTIONS as readonly string[]).includes(value);
+}
+
+/**
+ * Shopify's orders connection only sorts by a fixed set of GraphQL enum
+ * keys (OrderSortKeys) — "sort by return status" isn't one of them, so the
+ * UI's sort dropdown is limited to what the API actually supports.
+ */
+export function shopifySortForOption(option: ReturnSortOption): { sortKey: "CREATED_AT" | "CUSTOMER_NAME"; reverse: boolean } {
+  switch (option) {
+    case "date_asc":
+      return { sortKey: "CREATED_AT", reverse: false };
+    case "customer_asc":
+      return { sortKey: "CUSTOMER_NAME", reverse: false };
+    case "customer_desc":
+      return { sortKey: "CUSTOMER_NAME", reverse: true };
+    case "date_desc":
+    default:
+      return { sortKey: "CREATED_AT", reverse: true };
+  }
+}
+
 export type ReturnsPageInfo = {
   hasNextPage: boolean;
   endCursor: string | null;

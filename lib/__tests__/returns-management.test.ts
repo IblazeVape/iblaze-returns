@@ -5,6 +5,9 @@ import {
   buildReturnStatusSearchQuery,
   shapeReturnsResponse,
   shapePageInfo,
+  RETURN_SORT_OPTIONS,
+  isReturnSortOption,
+  shopifySortForOption,
 } from "@/lib/returns-management";
 
 describe("isReturnStatusFilter", () => {
@@ -92,6 +95,29 @@ describe("shapeReturnsResponse", () => {
     expect(shapeReturnsResponse(null)).toEqual([]);
     expect(shapeReturnsResponse({})).toEqual([]);
     expect(shapeReturnsResponse({ orders: {} })).toEqual([]);
+  });
+});
+
+describe("isReturnSortOption", () => {
+  it("accepts every value in RETURN_SORT_OPTIONS", () => {
+    for (const value of RETURN_SORT_OPTIONS) {
+      expect(isReturnSortOption(value)).toBe(true);
+    }
+  });
+
+  it("rejects unknown strings and non-string values", () => {
+    expect(isReturnSortOption("bogus")).toBe(false);
+    expect(isReturnSortOption(undefined)).toBe(false);
+    expect(isReturnSortOption(null)).toBe(false);
+  });
+});
+
+describe("shopifySortForOption", () => {
+  it("maps each sort option to the correct Shopify sortKey and direction", () => {
+    expect(shopifySortForOption("date_desc")).toEqual({ sortKey: "CREATED_AT", reverse: true });
+    expect(shopifySortForOption("date_asc")).toEqual({ sortKey: "CREATED_AT", reverse: false });
+    expect(shopifySortForOption("customer_asc")).toEqual({ sortKey: "CUSTOMER_NAME", reverse: false });
+    expect(shopifySortForOption("customer_desc")).toEqual({ sortKey: "CUSTOMER_NAME", reverse: true });
   });
 });
 
