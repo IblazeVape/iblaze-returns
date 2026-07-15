@@ -55,6 +55,10 @@ describe("shapeReturnsResponse", () => {
               customer: { displayName: "Jane Doe" },
               returnStatus: "RETURN_REQUESTED",
               createdAt: "2026-07-01T12:00:00Z",
+              displayFinancialStatus: "PARTIALLY_REFUNDED",
+              displayFulfillmentStatus: "FULFILLED",
+              subtotalLineItemsQuantity: 18,
+              currentTotalPriceSet: { shopMoney: { amount: "72.00", currencyCode: "GBP" } },
             },
           },
         ],
@@ -68,6 +72,11 @@ describe("shapeReturnsResponse", () => {
         customerName: "Jane Doe",
         returnStatus: "RETURN_REQUESTED",
         createdAt: "2026-07-01T12:00:00Z",
+        financialStatus: "PARTIALLY_REFUNDED",
+        fulfillmentStatus: "FULFILLED",
+        itemCount: 18,
+        totalAmount: "72.00",
+        totalCurrency: "GBP",
       },
     ]);
   });
@@ -83,12 +92,45 @@ describe("shapeReturnsResponse", () => {
               customer: null,
               returnStatus: "IN_PROGRESS",
               createdAt: "2026-07-02T12:00:00Z",
+              displayFinancialStatus: "PAID",
+              displayFulfillmentStatus: "FULFILLED",
+              subtotalLineItemsQuantity: 1,
+              currentTotalPriceSet: { shopMoney: { amount: "10.00", currencyCode: "GBP" } },
             },
           },
         ],
       },
     };
     expect(shapeReturnsResponse(data)[0].customerName).toBe("Guest");
+  });
+
+  it("defaults financial/fulfillment status, item count, and total when fields are missing", () => {
+    const data = {
+      orders: {
+        edges: [
+          {
+            node: {
+              id: "gid://shopify/Order/2",
+              name: "#1003",
+              customer: null,
+              returnStatus: "RETURNED",
+              createdAt: "2026-07-03T12:00:00Z",
+              displayFinancialStatus: null,
+              displayFulfillmentStatus: null,
+              subtotalLineItemsQuantity: 0,
+              currentTotalPriceSet: null,
+            },
+          },
+        ],
+      },
+    };
+    expect(shapeReturnsResponse(data)[0]).toMatchObject({
+      financialStatus: null,
+      fulfillmentStatus: null,
+      itemCount: 0,
+      totalAmount: "0.00",
+      totalCurrency: "",
+    });
   });
 
   it("returns an empty array for malformed or missing data", () => {

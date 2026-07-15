@@ -30,6 +30,11 @@ export type ReturnManagementOrder = {
   customerName: string;
   returnStatus: string;
   createdAt: string;
+  financialStatus: string | null;
+  fulfillmentStatus: string | null;
+  itemCount: number;
+  totalAmount: string;
+  totalCurrency: string;
 };
 
 type OrdersQueryNode = {
@@ -38,6 +43,10 @@ type OrdersQueryNode = {
   customer: { displayName: string } | null;
   returnStatus: string;
   createdAt: string;
+  displayFinancialStatus: string | null;
+  displayFulfillmentStatus: string | null;
+  subtotalLineItemsQuantity: number;
+  currentTotalPriceSet: { shopMoney: { amount: string; currencyCode: string } } | null;
 };
 
 export function shapeReturnsResponse(data: unknown): ReturnManagementOrder[] {
@@ -51,6 +60,11 @@ export function shapeReturnsResponse(data: unknown): ReturnManagementOrder[] {
     customerName: node.customer?.displayName ?? "Guest",
     returnStatus: node.returnStatus,
     createdAt: node.createdAt,
+    financialStatus: node.displayFinancialStatus ?? null,
+    fulfillmentStatus: node.displayFulfillmentStatus ?? null,
+    itemCount: node.subtotalLineItemsQuantity ?? 0,
+    totalAmount: node.currentTotalPriceSet?.shopMoney.amount ?? "0.00",
+    totalCurrency: node.currentTotalPriceSet?.shopMoney.currencyCode ?? "",
   }));
 }
 

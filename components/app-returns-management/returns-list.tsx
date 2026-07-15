@@ -55,6 +55,27 @@ function labelForGraphqlReturnStatus(value: string): string {
   return STATUS_LABELS[key] ?? value;
 }
 
+/** "PARTIALLY_REFUNDED" -> "Partially refunded". Used for the financial/fulfillment status enums, which don't have a fixed label map like return status does. */
+function humanizeEnum(value: string | null): string {
+  if (!value) return "—";
+  const words = value.toLowerCase().split("_");
+  return words[0].charAt(0).toUpperCase() + words[0].slice(1) + (words.length > 1 ? " " + words.slice(1).join(" ") : "");
+}
+
+/** Return statuses needing action (requested/in-progress/failed) get an amber pill, matching Shopify's own "Return requested" badge color; resolved statuses get a neutral grey pill. */
+function returnStatusPillClass(value: string): string {
+  const needsAction = value === "RETURN_REQUESTED" || value === "IN_PROGRESS" || value === "RETURN_FAILED";
+  return needsAction
+    ? "bg-amber-100 text-amber-900 dark:bg-amber-500/20 dark:text-amber-300"
+    : "bg-muted text-muted-foreground";
+}
+
+function formatMoney(amount: string, currency: string): string {
+  const n = Number(amount);
+  if (Number.isNaN(n)) return currency ? `${amount} ${currency}` : amount;
+  return currency ? `${n.toFixed(2)} ${currency}` : n.toFixed(2);
+}
+
 export function ReturnsList({ shop }: { shop: string }) {
   const [activeStatus, setActiveStatus] = useState<ReturnStatusFilter>("all");
   const [sortOption, setSortOption] = useState<ReturnSortOption>("date_desc");
@@ -175,9 +196,13 @@ export function ReturnsList({ shop }: { shop: string }) {
               <thead>
                 <tr className="border-b border-border bg-muted/40 text-left text-muted-foreground">
                   <th className="px-4 py-2 font-medium">Order</th>
-                  <th className="px-4 py-2 font-medium">Customer</th>
-                  <th className="px-4 py-2 font-medium">Status</th>
                   <th className="px-4 py-2 font-medium">Date</th>
+                  <th className="px-4 py-2 font-medium">Customer</th>
+                  <th className="px-4 py-2 font-medium">Total</th>
+                  <th className="px-4 py-2 font-medium">Return status</th>
+                  <th className="px-4 py-2 font-medium">Payment status</th>
+                  <th className="px-4 py-2 font-medium">Fulfillment status</th>
+                  <th className="px-4 py-2 font-medium">Items</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -196,23 +221,35 @@ export function ReturnsList({ shop }: { shop: string }) {
                       className="cursor-pointer hover:bg-muted transition-colors"
                     >
                       <td className="px-4 py-3 font-medium">{order.name}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{order.customerName}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{labelForGraphqlReturnStatus(order.returnStatus)}</td>
                       <td className="px-4 py-3 text-muted-foreground">{new Date(order.createdAt).toLocaleDateString()}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{order.customerName}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{formatMoney(order.totalAmount, order.totalCurrency)}</td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${returnStatusPillClass(order.returnStatus)}`}>
+                          {labelForGraphqlReturnStatus(order.returnStatus)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">{humanizeEnum(order.financialStatus)}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{humanizeEnum(order.fulfillmentStatus)}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{order.itemCount}</td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
           </div>
-          <div className="flex items-center justify-between gap-2 mt-4">
-            <s-button variant="secondary" disabled={backStack.length === 0} onClick={goBack}>
-              Back
-            </s-button>
-            <s-button variant="secondary" disabled={!state.hasNextPage} onClick={goNext}>
-              Next
-            </s-button>
-          </div>
+          {(backStack.length > 0 || state.hasNextPage) && (
+            <div className="flex items-center justify-between gap-2 mt-4">
+              {backStack.length > 0 ? (
+                <s-button variant="secondary" onClick={goBack}>Back</s-button>
+              ) : (
+                <span />
+              )}
+              {state.hasNextPage && (
+                <s-button variant="secondary" onClick={goNext}>Next</s-button>
+              )}
+            </div>
+          )}
         </>
       )}
     </s-page>

@@ -24,6 +24,10 @@ const RETURNS_QUERY = `
           customer { displayName }
           returnStatus
           createdAt
+          displayFinancialStatus
+          displayFulfillmentStatus
+          subtotalLineItemsQuantity
+          currentTotalPriceSet { shopMoney { amount currencyCode } }
         }
       }
       pageInfo {
