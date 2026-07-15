@@ -8,6 +8,12 @@ declare const shopify: {
   idToken: () => Promise<string>;
 };
 
+function base64UrlToBase64(input: string): string {
+  const base64 = input.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
+  return padded;
+}
+
 type GateState =
   | { status: "loading" }
   | { status: "error"; message: string }
@@ -45,7 +51,7 @@ export function ReturnsManagementGate() {
           throw new Error(data.error || "Could not verify this app installation.");
         }
         if (!cancelled) {
-          const payload = JSON.parse(atob(token.split(".")[1]));
+          const payload = JSON.parse(atob(base64UrlToBase64(token.split(".")[1])));
           const shop = String(payload.dest || "").replace(/^https:\/\//, "");
           setState({ status: "ready", shop });
         }
