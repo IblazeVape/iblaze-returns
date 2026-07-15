@@ -1,19 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { shapeReturnsCountResponse, buildNativeReturnsUrl } from "@/lib/returns-management";
-
-describe("shapeReturnsCountResponse", () => {
-  it("extracts the count from a valid response", () => {
-    expect(shapeReturnsCountResponse({ ordersCount: { count: 7 } })).toBe(7);
-    expect(shapeReturnsCountResponse({ ordersCount: { count: 0 } })).toBe(0);
-  });
-
-  it("defaults to 0 for malformed or missing data", () => {
-    expect(shapeReturnsCountResponse(null)).toBe(0);
-    expect(shapeReturnsCountResponse({})).toBe(0);
-    expect(shapeReturnsCountResponse({ ordersCount: {} })).toBe(0);
-    expect(shapeReturnsCountResponse({ ordersCount: { count: "7" } })).toBe(0);
-  });
-});
+import { buildNativeReturnsUrl } from "@/lib/returns-management";
 
 describe("buildNativeReturnsUrl", () => {
   it("strips the .myshopify.com suffix to get the store handle", () => {

@@ -1,14 +1,9 @@
 /**
  * This app only ever cares about orders with an active return REQUEST —
- * merchants come here to see how many need attention, not to browse a full
- * return history. The count query is always scoped to this filter.
+ * merchants come here to jump to those, not to browse a full return
+ * history. The deep-link is always scoped to this filter.
  */
 export const RETURN_REQUESTED_QUERY = 'return_status:"return_requested"';
-
-export function shapeReturnsCountResponse(data: unknown): number {
-  const count = (data as { ordersCount?: { count?: unknown } } | null)?.ordersCount?.count;
-  return typeof count === "number" ? count : 0;
-}
 
 /**
  * The exact column set requested for the deep-linked native view, matching

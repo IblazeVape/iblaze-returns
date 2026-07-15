@@ -1,18 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyMerchantSessionToken } from "@/lib/merchant-session-token";
-import { shopifyAdmin } from "@/lib/shopify";
-import { RETURN_REQUESTED_QUERY, shapeReturnsCountResponse, buildNativeReturnsUrl } from "@/lib/returns-management";
+import { buildNativeReturnsUrl } from "@/lib/returns-management";
 
 export const dynamic = "force-dynamic";
 
-const RETURNS_COUNT_QUERY = `
-  query ReturnsManagementCount($query: String!) {
-    ordersCount(query: $query) {
-      count
-    }
-  }
-`;
-
+/**
+ * No Shopify API call needed — the native Orders URL is derived purely
+ * from the shop domain, so this just verifies the merchant session and
+ * hands back the deep-link.
+ */
 export async function GET(request: NextRequest) {
   const auth = request.headers.get("authorization") || "";
   const sessionToken = auth.startsWith("Bearer ") ? auth.slice(7) : "";
@@ -21,19 +17,5 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  try {
-    const data = await shopifyAdmin(
-      claims.shop,
-      RETURNS_COUNT_QUERY,
-      { query: RETURN_REQUESTED_QUERY },
-      "ReturnsManagementCount"
-    );
-    return NextResponse.json({
-      count: shapeReturnsCountResponse(data),
-      nativeUrl: buildNativeReturnsUrl(claims.shop),
-    });
-  } catch (err) {
-    console.error("returns-management count query error:", err instanceof Error ? err.message : String(err));
-    return NextResponse.json({ error: "failed to load return count" }, { status: 500 });
-  }
+  return NextResponse.json({ nativeUrl: buildNativeReturnsUrl(claims.shop) });
 }
