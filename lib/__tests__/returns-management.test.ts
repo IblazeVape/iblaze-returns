@@ -4,6 +4,7 @@ import {
   isReturnStatusFilter,
   buildReturnStatusSearchQuery,
   shapeReturnsResponse,
+  shapePageInfo,
 } from "@/lib/returns-management";
 
 describe("isReturnStatusFilter", () => {
@@ -91,5 +92,22 @@ describe("shapeReturnsResponse", () => {
     expect(shapeReturnsResponse(null)).toEqual([]);
     expect(shapeReturnsResponse({})).toEqual([]);
     expect(shapeReturnsResponse({ orders: {} })).toEqual([]);
+  });
+});
+
+describe("shapePageInfo", () => {
+  it("extracts hasNextPage and endCursor when present", () => {
+    const data = { orders: { pageInfo: { hasNextPage: true, endCursor: "cursor-abc" } } };
+    expect(shapePageInfo(data)).toEqual({ hasNextPage: true, endCursor: "cursor-abc" });
+  });
+
+  it("defaults to no next page and a null cursor for malformed or missing data", () => {
+    expect(shapePageInfo(null)).toEqual({ hasNextPage: false, endCursor: null });
+    expect(shapePageInfo({})).toEqual({ hasNextPage: false, endCursor: null });
+    expect(shapePageInfo({ orders: {} })).toEqual({ hasNextPage: false, endCursor: null });
+    expect(shapePageInfo({ orders: { pageInfo: { hasNextPage: "yes", endCursor: 123 } } })).toEqual({
+      hasNextPage: false,
+      endCursor: null,
+    });
   });
 });

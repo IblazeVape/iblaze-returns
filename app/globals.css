@@ -237,29 +237,36 @@
   html:has(#marketing-root),
   html:has(#marketing-two-root),
   html:has(#marketing-three-root),
-  html:has(#merchant-app-root) {
+  html:has(#merchant-app-root),
+  html:has(#returns-management-root) {
     height: auto;
     overflow: auto;
   }
-  /* Merchant Settings page: thin scrollbar instead of the browser default,
-     matching .styled-scroll used elsewhere in the dashboard. */
-  html:has(#merchant-app-root)::-webkit-scrollbar {
+  /* Merchant Settings + Returns Management pages: thin scrollbar instead of
+     the browser default, matching .styled-scroll used elsewhere in the
+     dashboard. */
+  html:has(#merchant-app-root)::-webkit-scrollbar,
+  html:has(#returns-management-root)::-webkit-scrollbar {
     width: 10px;
     height: 10px;
   }
-  html:has(#merchant-app-root)::-webkit-scrollbar-track {
+  html:has(#merchant-app-root)::-webkit-scrollbar-track,
+  html:has(#returns-management-root)::-webkit-scrollbar-track {
     background: transparent;
   }
-  html:has(#merchant-app-root)::-webkit-scrollbar-thumb {
+  html:has(#merchant-app-root)::-webkit-scrollbar-thumb,
+  html:has(#returns-management-root)::-webkit-scrollbar-thumb {
     background-color: hsl(var(--border));
     border-radius: 9999px;
     border: 2px solid transparent;
     background-clip: content-box;
   }
-  html:has(#merchant-app-root)::-webkit-scrollbar-thumb:hover {
+  html:has(#merchant-app-root)::-webkit-scrollbar-thumb:hover,
+  html:has(#returns-management-root)::-webkit-scrollbar-thumb:hover {
     background-color: hsl(var(--muted-foreground));
   }
-  html:has(#merchant-app-root) {
+  html:has(#merchant-app-root),
+  html:has(#returns-management-root) {
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--border)) transparent;
   }
@@ -269,7 +276,8 @@
   body:has(#marketing-root),
   body:has(#marketing-two-root),
   body:has(#marketing-three-root),
-  body:has(#merchant-app-root) {
+  body:has(#merchant-app-root),
+  body:has(#returns-management-root) {
     height: auto;
     overflow: visible;
   }

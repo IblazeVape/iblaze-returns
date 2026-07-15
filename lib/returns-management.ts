@@ -53,3 +53,17 @@ export function shapeReturnsResponse(data: unknown): ReturnManagementOrder[] {
     createdAt: node.createdAt,
   }));
 }
+
+export type ReturnsPageInfo = {
+  hasNextPage: boolean;
+  endCursor: string | null;
+};
+
+export function shapePageInfo(data: unknown): ReturnsPageInfo {
+  const pageInfo = (data as { orders?: { pageInfo?: { hasNextPage?: unknown; endCursor?: unknown } } } | null)?.orders
+    ?.pageInfo;
+  return {
+    hasNextPage: pageInfo?.hasNextPage === true,
+    endCursor: typeof pageInfo?.endCursor === "string" ? pageInfo.endCursor : null,
+  };
+}

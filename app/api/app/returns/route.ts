@@ -5,13 +5,16 @@ import {
   isReturnStatusFilter,
   buildReturnStatusSearchQuery,
   shapeReturnsResponse,
+  shapePageInfo,
 } from "@/lib/returns-management";
 
 export const dynamic = "force-dynamic";
 
+const RETURNS_PAGE_SIZE = 20;
+
 const RETURNS_QUERY = `
-  query ReturnsManagementList($query: String!) {
-    orders(first: 50, query: $query, sortKey: CREATED_AT, reverse: true) {
+  query ReturnsManagementList($query: String!, $after: String) {
+    orders(first: ${RETURNS_PAGE_SIZE}, after: $after, query: $query, sortKey: CREATED_AT, reverse: true) {
       edges {
         node {
           id
@@ -20,6 +23,10 @@ const RETURNS_QUERY = `
           returnStatus
           createdAt
         }
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
       }
     }
   }
@@ -37,15 +44,20 @@ export async function GET(request: NextRequest) {
   if (!isReturnStatusFilter(statusParam)) {
     return NextResponse.json({ error: "invalid status" }, { status: 400 });
   }
+  const after = request.nextUrl.searchParams.get("after") || undefined;
 
   try {
     const data = await shopifyAdmin(
       claims.shop,
       RETURNS_QUERY,
-      { query: buildReturnStatusSearchQuery(statusParam) },
+      { query: buildReturnStatusSearchQuery(statusParam), after },
       "ReturnsManagementList"
     );
-    return NextResponse.json({ shop: claims.shop, orders: shapeReturnsResponse(data) });
+    return NextResponse.json({
+      shop: claims.shop,
+      orders: shapeReturnsResponse(data),
+      pageInfo: shapePageInfo(data),
+    });
   } catch (err) {
     console.error("returns-management query error:", err instanceof Error ? err.message : String(err));
     return NextResponse.json({ error: "failed to load returns" }, { status: 500 });

@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import { AppNav } from "@/components/app-nav";
 import { ReturnsList } from "@/components/app-returns-management/returns-list";
+import { MorphingInfinity } from "@/components/loading-ui/morphing-infinity";
 
 declare const shopify: {
   idToken: () => Promise<string>;
@@ -74,7 +75,7 @@ export function ReturnsManagementGate() {
         <s-page heading="Returns">
           <s-box padding="large">
             <s-stack direction="block" alignItems="center">
-              <s-spinner accessibilityLabel="Loading" />
+              <MorphingInfinity className="size-8 text-muted-foreground" />
             </s-stack>
           </s-box>
         </s-page>
