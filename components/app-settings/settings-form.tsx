@@ -314,7 +314,7 @@ export function SettingsForm({
   ]
 
   return (
-    <s-page heading="Returns Settings">
+    <s-page heading="Returns Settings" inlineSize="large">
       <s-section padding="none">
         <s-box padding="base" borderBlockEndWidth="base" borderColor="subdued">
           <s-stack direction="block" gap="small-300">

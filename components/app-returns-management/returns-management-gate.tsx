@@ -72,7 +72,7 @@ export function ReturnsManagementGate() {
     return (
       <>
         <AppNav />
-        <s-page heading="Returns">
+        <s-page heading="Returns" inlineSize="large">
           <s-box padding="large">
             <s-stack direction="block" alignItems="center">
               <MorphingInfinity className="size-8 text-muted-foreground" />
@@ -86,7 +86,7 @@ export function ReturnsManagementGate() {
     return (
       <>
         <AppNav />
-        <s-page heading="Returns">
+        <s-page heading="Returns" inlineSize="large">
           <s-banner heading="Couldn't load returns" tone="critical">
             <s-paragraph>{state.message}</s-paragraph>
           </s-banner>

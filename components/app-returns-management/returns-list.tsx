@@ -51,6 +51,9 @@ const ALL_COLUMNS: { key: ColumnKey; label: string }[] = [
   { key: "channel", label: "Channel" },
 ];
 
+/** Matches Shopify's own default: Date through Items are visible out of the box, Tags/Channel start hidden. */
+const DEFAULT_VISIBLE_COLUMNS: ColumnKey[] = ["date", "customer", "total", "returnStatus", "financialStatus", "fulfillmentStatus", "items"];
+
 type FetchState =
   | { status: "loading" }
   | { status: "error"; message: string }
@@ -107,7 +110,7 @@ export function ReturnsList({ shop }: { shop: string }) {
 
   const [statusOpen, setStatusOpen] = useState(false);
   const [columnsOpen, setColumnsOpen] = useState(false);
-  const [visibleColumns, setVisibleColumns] = useState<Set<ColumnKey>>(new Set(ALL_COLUMNS.map((c) => c.key)));
+  const [visibleColumns, setVisibleColumns] = useState<Set<ColumnKey>>(new Set(DEFAULT_VISIBLE_COLUMNS));
 
   function toggleColumn(key: ColumnKey) {
     setVisibleColumns((prev) => {
@@ -196,7 +199,7 @@ export function ReturnsList({ shop }: { shop: string }) {
   }
 
   return (
-    <s-page heading="Returns">
+    <s-page heading="Returns" inlineSize="large">
       <div className="flex items-center gap-3 border border-border rounded-lg px-3 py-2 mb-4 bg-background">
         <Popover open={statusOpen} onOpenChange={setStatusOpen}>
           <PopoverTrigger asChild>
@@ -235,7 +238,7 @@ export function ReturnsList({ shop }: { shop: string }) {
 
         <Popover open={columnsOpen} onOpenChange={setColumnsOpen}>
           <PopoverTrigger asChild>
-            <button type="button" className="p-1.5 rounded hover:bg-muted text-muted-foreground shrink-0" aria-label="Sort and columns">
+            <button type="button" className="p-1.5 rounded hover:bg-muted text-muted-foreground shrink-0" aria-label="Display options">
               <Columns3 className="size-4" />
             </button>
           </PopoverTrigger>
