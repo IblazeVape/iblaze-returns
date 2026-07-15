@@ -23,6 +23,19 @@ export function buildReturnStatusSearchQuery(status: ReturnStatusFilter): string
   return `return_status:${status}`;
 }
 
+/**
+ * Combines the return-status filter with an optional free-text search term
+ * (order number, customer name/email, etc. — Shopify's orders search
+ * matches all of these on an unprefixed term, same as typing into the
+ * search box in Shopify's own order list).
+ */
+export function buildReturnsSearchQuery(status: ReturnStatusFilter, searchText: string): string {
+  const statusQuery = buildReturnStatusSearchQuery(status);
+  const trimmed = searchText.trim();
+  if (!trimmed) return statusQuery;
+  return `${statusQuery} AND (${trimmed})`;
+}
+
 export type ReturnManagementOrder = {
   id: string;
   numericId: string;
@@ -35,6 +48,8 @@ export type ReturnManagementOrder = {
   itemCount: number;
   totalAmount: string;
   totalCurrency: string;
+  tags: string[];
+  channelName: string | null;
 };
 
 type OrdersQueryNode = {
@@ -47,6 +62,8 @@ type OrdersQueryNode = {
   displayFulfillmentStatus: string | null;
   subtotalLineItemsQuantity: number;
   currentTotalPriceSet: { shopMoney: { amount: string; currencyCode: string } } | null;
+  tags: string[];
+  channelInformation: { channelDefinition: { channelName: string } | null } | null;
 };
 
 export function shapeReturnsResponse(data: unknown): ReturnManagementOrder[] {
@@ -65,6 +82,8 @@ export function shapeReturnsResponse(data: unknown): ReturnManagementOrder[] {
     itemCount: node.subtotalLineItemsQuantity ?? 0,
     totalAmount: node.currentTotalPriceSet?.shopMoney.amount ?? "0.00",
     totalCurrency: node.currentTotalPriceSet?.shopMoney.currencyCode ?? "",
+    tags: Array.isArray(node.tags) ? node.tags : [],
+    channelName: node.channelInformation?.channelDefinition?.channelName ?? null,
   }));
 }
 

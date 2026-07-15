@@ -3,6 +3,7 @@ import {
   RETURN_STATUS_FILTERS,
   isReturnStatusFilter,
   buildReturnStatusSearchQuery,
+  buildReturnsSearchQuery,
   shapeReturnsResponse,
   shapePageInfo,
   RETURN_SORT_OPTIONS,
@@ -43,6 +44,20 @@ describe("buildReturnStatusSearchQuery", () => {
   });
 });
 
+describe("buildReturnsSearchQuery", () => {
+  it("returns just the status filter when there's no search text", () => {
+    expect(buildReturnsSearchQuery("all", "")).toBe("-return_status:no_return");
+    expect(buildReturnsSearchQuery("all", "   ")).toBe("-return_status:no_return");
+  });
+
+  it("ANDs a trimmed free-text search term onto the status filter", () => {
+    expect(buildReturnsSearchQuery("return_requested", "  #1034  ")).toBe(
+      "return_status:return_requested AND (#1034)"
+    );
+    expect(buildReturnsSearchQuery("all", "Jane Doe")).toBe("-return_status:no_return AND (Jane Doe)");
+  });
+});
+
 describe("shapeReturnsResponse", () => {
   it("maps GraphQL order edges into flat rows with numeric id extracted from the gid", () => {
     const data = {
@@ -59,6 +74,8 @@ describe("shapeReturnsResponse", () => {
               displayFulfillmentStatus: "FULFILLED",
               subtotalLineItemsQuantity: 18,
               currentTotalPriceSet: { shopMoney: { amount: "72.00", currencyCode: "GBP" } },
+              tags: ["VIP", "Priority"],
+              channelInformation: { channelDefinition: { channelName: "Online Store" } },
             },
           },
         ],
@@ -77,6 +94,8 @@ describe("shapeReturnsResponse", () => {
         itemCount: 18,
         totalAmount: "72.00",
         totalCurrency: "GBP",
+        tags: ["VIP", "Priority"],
+        channelName: "Online Store",
       },
     ]);
   });
@@ -96,6 +115,8 @@ describe("shapeReturnsResponse", () => {
               displayFulfillmentStatus: "FULFILLED",
               subtotalLineItemsQuantity: 1,
               currentTotalPriceSet: { shopMoney: { amount: "10.00", currencyCode: "GBP" } },
+              tags: [],
+              channelInformation: null,
             },
           },
         ],
@@ -104,7 +125,7 @@ describe("shapeReturnsResponse", () => {
     expect(shapeReturnsResponse(data)[0].customerName).toBe("Guest");
   });
 
-  it("defaults financial/fulfillment status, item count, and total when fields are missing", () => {
+  it("defaults financial/fulfillment status, item count, total, tags, and channel when fields are missing", () => {
     const data = {
       orders: {
         edges: [
@@ -119,6 +140,8 @@ describe("shapeReturnsResponse", () => {
               displayFulfillmentStatus: null,
               subtotalLineItemsQuantity: 0,
               currentTotalPriceSet: null,
+              tags: null,
+              channelInformation: null,
             },
           },
         ],
@@ -130,6 +153,8 @@ describe("shapeReturnsResponse", () => {
       itemCount: 0,
       totalAmount: "0.00",
       totalCurrency: "",
+      tags: [],
+      channelName: null,
     });
   });
 

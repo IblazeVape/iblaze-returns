@@ -3,7 +3,7 @@ import { verifyMerchantSessionToken } from "@/lib/merchant-session-token";
 import { shopifyAdmin } from "@/lib/shopify";
 import {
   isReturnStatusFilter,
-  buildReturnStatusSearchQuery,
+  buildReturnsSearchQuery,
   shapeReturnsResponse,
   shapePageInfo,
   isReturnSortOption,
@@ -28,6 +28,8 @@ const RETURNS_QUERY = `
           displayFulfillmentStatus
           subtotalLineItemsQuantity
           currentTotalPriceSet { shopMoney { amount currencyCode } }
+          tags
+          channelInformation { channelDefinition { channelName } }
         }
       }
       pageInfo {
@@ -51,6 +53,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "invalid status" }, { status: 400 });
   }
   const after = request.nextUrl.searchParams.get("after") || undefined;
+  const search = request.nextUrl.searchParams.get("search") ?? "";
 
   const sortParam = request.nextUrl.searchParams.get("sort") ?? "date_desc";
   if (!isReturnSortOption(sortParam)) {
@@ -62,7 +65,7 @@ export async function GET(request: NextRequest) {
     const data = await shopifyAdmin(
       claims.shop,
       RETURNS_QUERY,
-      { query: buildReturnStatusSearchQuery(statusParam), after, sortKey, reverse },
+      { query: buildReturnsSearchQuery(statusParam, search), after, sortKey, reverse },
       "ReturnsManagementList"
     );
     return NextResponse.json({
