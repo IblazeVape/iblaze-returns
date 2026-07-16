@@ -4,6 +4,7 @@ import { useState } from "react"
 import { validateBrandingInput, type BrandingInput, type PolicyCategoryInput, type SidebarLinkInput, type SidebarSubLinkInput } from "@/lib/branding-validation"
 import type { TenantBranding } from "@/lib/tenant"
 import { SIDEBAR_ICON_NAMES } from "@/lib/sidebar-icons"
+import { MarkdownToolbarTextarea } from "@/components/app-settings/markdown-toolbar-textarea"
 
 declare const shopify: {
   idToken: () => Promise<string>;
@@ -543,15 +544,14 @@ export function SettingsForm({
                 </s-stack>
               ) : (
                 <>
-                  <s-text-area
-                    label="Policy body text"
-                    name="policyBodyText"
+                  <s-text color="subdued">Policy body text</s-text>
+                  <MarkdownToolbarTextarea
                     value={form.policyBodyText}
+                    onChange={(value) => set("policyBodyText", value)}
                     maxLength={20000}
                     rows={12}
-                    placeholder="Write your full returns policy here instead of using category cards. Supports Markdown: **bold**, ### headings, and - bullet lists."
-                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("policyBodyText", e.target.value)}
-                  ></s-text-area>
+                    placeholder="Write your full returns policy here instead of using category cards."
+                  />
                   {errors.policyBodyText && <s-paragraph tone="critical">{errors.policyBodyText}</s-paragraph>}
                 </>
               )}
