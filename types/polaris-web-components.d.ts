@@ -58,6 +58,7 @@ declare global {
         "s-ordered-list": PolarisElementProps;
         "s-list-item": PolarisElementProps;
         "s-skeleton-paragraph": PolarisElementProps;
+        "ui-save-bar": PolarisElementProps;
       }
     }
   }

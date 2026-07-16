@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { validateBrandingInput, type BrandingInput, type PolicyCategoryInput, type SidebarLinkInput, type SidebarSubLinkInput } from "@/lib/branding-validation"
 import type { TenantBranding } from "@/lib/tenant"
 import { SIDEBAR_ICON_NAMES } from "@/lib/sidebar-icons"
@@ -18,7 +18,13 @@ declare const shopify: {
     heading: string;
     items: { id: string; heading: string; thumbnail?: { url: string } }[];
   }) => Promise<{ selected: Promise<string[] | undefined> }>;
+  saveBar: {
+    show: (id: string) => Promise<void>;
+    hide: (id: string) => Promise<void>;
+  };
 };
+
+const SAVE_BAR_ID = "settings-save-bar";
 
 type MediaLibraryFile = { id: string; url: string; alt: string | null; width: number; height: number };
 type SettingsTab = "branding" | "returns" | "navigation" | "table";
@@ -57,10 +63,23 @@ export function SettingsForm({
   initialBranding: TenantBranding
   initialReturnWindowDays: number
 }) {
-  const [form, setForm] = useState<BrandingInput>({
+  const initialForm = useRef<BrandingInput>({
     ...initialBranding,
     returnWindowDays: initialReturnWindowDays,
   })
+  const [form, setForm] = useState<BrandingInput>(initialForm.current)
+
+  // Native App Bridge save bar (shopify.saveBar.show/hide) instead of an
+  // inline Save button only — this form isn't a plain HTML <form> Shopify's
+  // automatic data-save-bar attribute can track (fields are React-controlled
+  // s-* components), so this drives it programmatically off dirty state.
+  useEffect(() => {
+    const dirty = JSON.stringify(form) !== JSON.stringify(initialForm.current)
+    if (typeof shopify === "undefined") return
+    if (dirty) shopify.saveBar.show(SAVE_BAR_ID)
+    else shopify.saveBar.hide(SAVE_BAR_ID)
+  }, [form])
+
   const [errors, setErrors] = useState<Partial<Record<keyof BrandingInput, string>>>({})
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error" | "invalid">("idle")
   const [uploading, setUploading] = useState(false)
@@ -279,7 +298,7 @@ export function SettingsForm({
     }))
   }
 
-  async function handleSave(e: React.FormEvent) {
+  async function handleSave(e: React.SyntheticEvent) {
     e.preventDefault()
     const { valid, errors: validationErrors } = validateBrandingInput(form)
     setErrors(validationErrors)
@@ -307,10 +326,19 @@ export function SettingsForm({
         setStatus("error")
         return
       }
+      initialForm.current = form
+      if (typeof shopify !== "undefined") shopify.saveBar.hide(SAVE_BAR_ID)
       setStatus("saved")
     } catch {
       setStatus("error")
     }
+  }
+
+  function handleDiscard() {
+    setForm(initialForm.current)
+    setErrors({})
+    setStatus("idle")
+    if (typeof shopify !== "undefined") shopify.saveBar.hide(SAVE_BAR_ID)
   }
 
   const TABS: { id: SettingsTab; label: string }[] = [
@@ -322,6 +350,15 @@ export function SettingsForm({
 
   return (
     <s-page heading="Returns Settings" inlineSize="base">
+      <ui-save-bar id={SAVE_BAR_ID}>
+        <button
+          {...({ variant: "primary", ...(status === "saving" ? { loading: "" } : {}) } as Record<string, unknown>)}
+          onClick={handleSave}
+        >
+          Save
+        </button>
+        <button onClick={handleDiscard}>Discard</button>
+      </ui-save-bar>
       <s-section padding="none">
         <s-box padding="base" borderBlockEndWidth="base" borderColor="subdued">
           <s-stack direction="block" gap="small-300">
