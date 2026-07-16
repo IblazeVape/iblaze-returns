@@ -8,11 +8,7 @@ declare const shopify: {
   idToken: () => Promise<string>;
 };
 
-type FetchState =
-  | { status: "loading" }
-  | { status: "error"; message: string }
-  | { status: "opened" }
-  | { status: "blocked"; url: string };
+type FetchState = { status: "loading" } | { status: "error"; message: string } | { status: "ready"; url: string };
 
 async function authedFetch(input: string, init: RequestInit = {}) {
   const token = await shopify.idToken();
@@ -23,19 +19,18 @@ async function authedFetch(input: string, init: RequestInit = {}) {
  * No table here — Shopify's own internal table components (used to render
  * the native Orders list) aren't exposed to third-party apps, so a
  * hand-built copy could only ever approximate their real design. Instead,
- * as soon as this page loads it opens Shopify's own native Orders page in a
- * new tab, pre-filtered to return-requested orders with the columns the
- * merchant wants: the actual native UI, not a copy.
+ * this page deep-links straight to Shopify's own native Orders page,
+ * pre-filtered to return-requested orders with the columns the merchant
+ * wants: the actual native UI, not a copy.
  *
- * A tab opened this way (from a useEffect, after an async token exchange +
- * fetch — no direct click in the call chain) is a coin flip: browsers only
- * guarantee window.open() succeeds when it's called synchronously inside a
- * real user-gesture handler. Here it often still works (many browsers keep
- * a window of leeway after the "Returns" nav click), but when a browser's
- * popup blocker does kick in, window.open() returns null/undefined instead
- * of throwing — so that return value is exactly the signal to fall back to
- * a real, always-reliable click-to-open link instead of leaving the
- * merchant looking at nothing.
+ * Opening a new tab automatically (no direct click) isn't reliable —
+ * confirmed both by MDN's user-activation rules and independently by
+ * Shopify's own Sidekick: window.open() only reliably opens a new tab
+ * when it's the direct, synchronous result of a user gesture (a click).
+ * Called from a useEffect after an async token exchange + fetch, it has
+ * no such gesture to point to and gets silently blocked in most browsers.
+ * So this renders a real <a target="_blank"> the merchant clicks — the
+ * only combination that's actually guaranteed to open a new tab.
  */
 export function ReturnsSummary() {
   const [state, setState] = useState<FetchState>({ status: "loading" });
@@ -46,9 +41,7 @@ export function ReturnsSummary() {
       .then(async (res) => {
         const data = await res.json().catch(() => ({}));
         if (!res.ok || !data.nativeUrl) throw new Error(data.error || "Couldn't open returns.");
-        if (cancelled) return;
-        const win = window.open(data.nativeUrl, "_blank", "noopener,noreferrer");
-        setState(win ? { status: "opened" } : { status: "blocked", url: data.nativeUrl });
+        if (!cancelled) setState({ status: "ready", url: data.nativeUrl });
       })
       .catch((err) => {
         if (!cancelled) setState({ status: "error", message: err instanceof Error ? err.message : "Something went wrong." });
@@ -67,15 +60,10 @@ export function ReturnsSummary() {
           </s-box>
         )}
 
-        {state.status === "opened" && <s-paragraph>Return requests opened in a new tab.</s-paragraph>}
-
-        {state.status === "blocked" && (
-          <s-stack direction="block" gap="base">
-            <s-paragraph>Your browser blocked the new tab.</s-paragraph>
-            <s-button href={state.url} target="_blank" variant="primary">
-              Open return requests
-            </s-button>
-          </s-stack>
+        {state.status === "ready" && (
+          <s-button href={state.url} target="_blank" variant="primary">
+            Open return requests
+          </s-button>
         )}
 
         {state.status === "error" && (
