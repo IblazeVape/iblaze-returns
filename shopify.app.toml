@@ -27,6 +27,10 @@ api_version = "2025-07"
   topics = [ "returns/request" ]
   uri = "https://iblaze-returns.vercel.app/api/webhooks/returns-request"
 
+  [[webhooks.subscriptions]]
+  topics = [ "refunds/create" ]
+  uri = "https://iblaze-returns.vercel.app/api/webhooks/refunds-create"
+
 [pos]
 embedded = false
 
