@@ -68,7 +68,13 @@ export function SettingsForm({
   // register/render correctly in this app's embedded runtime (confirmed live
   // — they fell back to unstyled inline text with no panel switching), so
   // tab navigation is done manually here with plain state instead.
-  const [activeTab, setActiveTab] = useState<SettingsTab>("branding")
+  // Lets Dashboard's quick-access cards deep-link straight to a tab
+  // (/app?tab=returns) instead of always landing on Branding.
+  const [activeTab, setActiveTab] = useState<SettingsTab>(() => {
+    if (typeof window === "undefined") return "branding"
+    const tab = new URLSearchParams(window.location.search).get("tab")
+    return tab === "returns" || tab === "navigation" || tab === "table" ? tab : "branding"
+  })
   // Which sidebar-link rows are expanded — collapsed by default (existing
   // links show a one-line summary) so the list stays scannable once a
   // merchant has several links with sub-links. A newly added link opens

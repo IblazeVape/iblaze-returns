@@ -33,6 +33,14 @@ function humanizeReason(reason: string): string {
   return words[0].charAt(0).toUpperCase() + words[0].slice(1) + (words.length > 1 ? " " + words.slice(1).join(" ") : "");
 }
 
+/** Mirrors settings-form.tsx's TABS list — tab ids must match SettingsTab exactly. */
+const SETTINGS_QUICK_LINKS = [
+  { tab: "branding", label: "Branding", description: "Logo, accent color, storefront and support links." },
+  { tab: "returns", label: "Returns policy", description: "Return window, policy dialog, confirmation messages." },
+  { tab: "navigation", label: "Navigation", description: "Store link, order status link, sidebar links and layout." },
+  { tab: "table", label: "Table & search", description: "Header search, table search, columns and filters." },
+] as const;
+
 /** Bold card title with a dashed underline, matching the native admin app card header style. */
 function CardLabel({ children }: { children: string }) {
   return (
@@ -152,6 +160,22 @@ export function DashboardSummary() {
               </s-stack>
             </s-box>
           </s-grid-item>
+
+          <s-grid-item gridColumn="span 12">
+            <s-heading>Quick settings access</s-heading>
+          </s-grid-item>
+          {SETTINGS_QUICK_LINKS.map((link) => (
+            <s-grid-item key={link.tab} gridColumn="span 3">
+              <s-clickable href={`/app?tab=${link.tab}`} accessibilityLabel={`Open ${link.label} settings`}>
+                <s-box padding="base" background="base" border="base" borderRadius="base">
+                  <s-stack direction="block" gap="small-300">
+                    <CardLabel>{link.label}</CardLabel>
+                    <s-paragraph tone="subdued">{link.description}</s-paragraph>
+                  </s-stack>
+                </s-box>
+              </s-clickable>
+            </s-grid-item>
+          ))}
         </s-grid>
       )}
     </s-page>
