@@ -4257,16 +4257,35 @@ function DashboardClientInner() {
   }, [endCursor])
 
   useEffect(() => {
-    fetch(DEMO_MODE ? "/api/demo-orders" : "/api/get-orders", { cache: "no-store" })
-      .then(r => r.json())
-      .then(d => {
+    let cancelled = false
+    const url = DEMO_MODE ? "/api/demo-orders" : "/api/get-orders"
+
+    // A rapid page reload can catch the backend mid-throttle (Shopify Admin
+    // API rate limiting under repeated requests) or a slow upstream call
+    // timing out — both transient. One quiet retry clears most of these
+    // before showing the customer an error.
+    async function load(attempt: number): Promise<void> {
+      try {
+        const res = await fetch(url, { cache: "no-store" })
+        const d = await res.json()
+        if (cancelled) return
         if (d.error) { setError(d.error); return }
         setData(d)
         setHasNextPage(d.hasNextPage ?? false)
         setEndCursor(d.endCursor ?? null)
-      })
-      .catch(() => setError("Failed to load orders."))
-      .finally(() => setLoading(false))
+      } catch {
+        if (cancelled) return
+        if (attempt === 0) {
+          await new Promise(r => setTimeout(r, 1000))
+          if (!cancelled) return load(1)
+          return
+        }
+        setError("Failed to load orders.")
+      }
+    }
+
+    load(0).finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
   }, [])
 
   useEffect(() => {
