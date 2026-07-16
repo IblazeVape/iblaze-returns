@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyMerchantSessionToken } from "@/lib/merchant-session-token";
 import { validateBrandingInput, type BrandingInput, type PolicyCategoryInput, type SidebarLinkInput } from "@/lib/branding-validation";
 import { getTenant, setTenant } from "@/lib/tenant";
+import { sanitizePolicyHtml } from "@/lib/sanitize-policy-html";
 
 export const dynamic = "force-dynamic";
 
@@ -52,7 +53,8 @@ export async function PUT(request: NextRequest) {
     policyBodyMode:
       body.policyBodyMode === "categories" || body.policyBodyMode === "text" ? body.policyBodyMode : existing.branding.policyBodyMode,
     policyCategories: isPolicyCategoryArray(body.policyCategories) ? body.policyCategories : existing.branding.policyCategories,
-    policyBodyText: typeof body.policyBodyText === "string" ? body.policyBodyText : existing.branding.policyBodyText,
+    policyBodyText:
+      typeof body.policyBodyText === "string" ? sanitizePolicyHtml(body.policyBodyText) : existing.branding.policyBodyText,
     policyFooterNoteEnabled:
       typeof body.policyFooterNoteEnabled === "boolean" ? body.policyFooterNoteEnabled : existing.branding.policyFooterNoteEnabled,
     policyFooterNote: typeof body.policyFooterNote === "string" ? body.policyFooterNote : existing.branding.policyFooterNote,

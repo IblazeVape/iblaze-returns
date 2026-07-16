@@ -28,7 +28,7 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, Di
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer"
 import { useMediaQuery } from "@/hooks/use-media-query"
-import { PolicyMarkdown } from "@/components/policy-markdown"
+import { PolicyHtml } from "@/components/policy-html"
 import { getCachedAccentColor, setCachedAccentColor } from "@/lib/accent-color-cache"
 import type { TenantBranding } from "@/lib/tenant"
 import { cn } from "@/lib/utils"
@@ -2845,7 +2845,7 @@ function HygienePolicyList({
   return (
     <div className={cn("divide-y divide-border", className)}>
       {bodyMode === "text" ? (
-        <PolicyMarkdown text={bodyText ?? ""} className={cn("py-3", itemPx)} />
+        <PolicyHtml html={bodyText ?? ""} className={cn("py-3", itemPx)} />
       ) : (
         categories.map(p => (
           <div key={p.title} className={cn("py-3", itemPx)}>
