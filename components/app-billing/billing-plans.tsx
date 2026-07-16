@@ -10,24 +10,24 @@ import { PricingCard } from "@/components/app-billing/pricing-card";
  */
 const PLANS = [
   {
-    title: "Starter",
-    description: "For stores just getting their returns process set up.",
-    features: ["Up to 100 returns/mo", "Branded returns portal", "Email notifications"],
+    title: "Standard",
+    description: "This is a great plan for stores that are just starting out",
+    features: ["Process up to 1,000 orders/mo", "Amazing feature", "Another really cool feature", "24/7 Customer Support"],
     price: "$19",
     frequency: "month",
   },
   {
-    title: "Growth",
-    description: "For stores with a steady flow of returns to manage.",
-    features: ["Up to 1,000 returns/mo", "Everything in Starter", "Dashboard analytics", "Priority support"],
+    title: "Advanced",
+    description: "For stores that are growing and need a reliable solution to scale with them",
+    features: ["Process up to 10,000 orders/mo", "Amazing feature", "Another really cool feature", "24/7 Customer Support"],
     price: "$49",
     frequency: "month",
-    featuredText: "Most popular",
+    featuredText: "Most Popular",
   },
   {
-    title: "Pro",
-    description: "For high-volume stores that need it all.",
-    features: ["Unlimited returns", "Everything in Growth", "Custom return reasons", "Dedicated support"],
+    title: "Premium",
+    description: "The best of the best, for stores that have the highest order processing needs",
+    features: ["Process up to 100,000 orders/mo", "Amazing feature", "Another really cool feature", "24/7 Customer Support"],
     price: "$99",
     frequency: "month",
   },
@@ -35,13 +35,13 @@ const PLANS = [
 
 export function BillingPlans() {
   return (
-    <s-page heading="Billing" inlineSize="base">
+    <s-page heading="Billing" inlineSize="large">
       <s-section>
         <s-stack direction="block" gap="base">
           <s-paragraph tone="subdued">
             Choose the plan that fits your store. This is a preview of upcoming plans — nothing is charged yet.
           </s-paragraph>
-          <s-stack direction="inline" gap="base" wrap>
+          <s-stack direction="inline" gap="large" wrap justifyContent="center">
             {PLANS.map((plan) => (
               <PricingCard
                 key={plan.title}
@@ -51,7 +51,7 @@ export function BillingPlans() {
                 price={plan.price}
                 frequency={plan.frequency}
                 featuredText={"featuredText" in plan ? plan.featuredText : undefined}
-                buttonLabel="Coming soon"
+                buttonLabel="Select Plan"
                 onSelect={() => {}}
               />
             ))}

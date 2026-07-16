@@ -14,39 +14,39 @@ type PricingCardProps = {
 
 export function PricingCard({ title, description, features, price, frequency, featuredText, buttonLabel, onSelect }: PricingCardProps) {
   return (
-    <s-box
-      padding="large"
-      background="base"
-      border="base"
-      borderRadius="base"
-      borderWidth={featuredText ? "large" : "base"}
-      borderColor={featuredText ? "emphasis" : "base"}
-      minInlineSize="240px"
-    >
-      <s-stack direction="block" gap="base">
-        <s-stack direction="block" gap="small-200">
-          <s-stack direction="inline" gap="small-300" alignItems="center">
+    <div style={{ position: "relative", width: "18rem" }}>
+      {featuredText && (
+        <div style={{ position: "absolute", top: -14, right: 10, zIndex: 1 }}>
+          <s-badge tone="success" size="large">
+            {featuredText}
+          </s-badge>
+        </div>
+      )}
+      <s-box padding="large" background="base" borderRadius="large" border="base">
+        <s-stack direction="block" gap="base">
+          <s-stack direction="block" gap="small-200">
             <s-heading>{title}</s-heading>
-            {featuredText && <s-badge tone="success">{featuredText}</s-badge>}
+            <s-text color="subdued">{description}</s-text>
           </s-stack>
-          <s-paragraph tone="subdued">{description}</s-paragraph>
+
+          <s-stack direction="inline" gap="small-100" alignItems="end">
+            <s-heading>{price}</s-heading>
+            <s-text color="subdued">/ {frequency}</s-text>
+          </s-stack>
+
+          <s-stack direction="block" gap="small-200">
+            {features.map((feature) => (
+              <s-text key={feature} color="subdued">{feature}</s-text>
+            ))}
+          </s-stack>
+
+          <s-stack direction="inline" alignItems="center" justifyContent="end">
+            <s-button variant="primary" onClick={onSelect}>
+              {buttonLabel}
+            </s-button>
+          </s-stack>
         </s-stack>
-
-        <s-stack direction="inline" gap="small-100" alignItems="end">
-          <s-heading>{price}</s-heading>
-          <s-text color="subdued">/{frequency}</s-text>
-        </s-stack>
-
-        <s-unordered-list>
-          {features.map((feature) => (
-            <s-list-item key={feature}>{feature}</s-list-item>
-          ))}
-        </s-unordered-list>
-
-        <s-button variant="primary" onClick={onSelect}>
-          {buttonLabel}
-        </s-button>
-      </s-stack>
-    </s-box>
+      </s-box>
+    </div>
   );
 }
