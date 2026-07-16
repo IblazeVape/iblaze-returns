@@ -23,6 +23,10 @@ api_version = "2025-07"
   topics = [ "orders/create" ]
   uri = "https://iblaze-returns.vercel.app/api/webhooks/orders-create"
 
+  [[webhooks.subscriptions]]
+  topics = [ "returns/request" ]
+  uri = "https://iblaze-returns.vercel.app/api/webhooks/returns-request"
+
 [pos]
 embedded = false
 
