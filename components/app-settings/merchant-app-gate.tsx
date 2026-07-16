@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { AppNav } from "@/components/app-nav";
 import { SettingsForm } from "@/components/app-settings/settings-form";
-import { MorphingInfinity } from "@/components/loading-ui/morphing-infinity";
+import { PageSkeleton } from "@/components/loading-ui/page-skeleton";
 import type { TenantBranding } from "@/lib/tenant";
 
 declare const shopify: {
@@ -63,11 +63,7 @@ export function MerchantAppGate() {
       <>
         <AppNav />
         <s-page heading="Returns Settings" inlineSize="base">
-          <s-box padding="large">
-            <s-stack direction="block" alignItems="center">
-              <MorphingInfinity className="size-8 text-muted-foreground" />
-            </s-stack>
-          </s-box>
+          <PageSkeleton cardCount={4} />
         </s-page>
       </>
     );

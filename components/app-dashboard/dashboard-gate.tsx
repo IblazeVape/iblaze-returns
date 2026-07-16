@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { AppNav } from "@/components/app-nav";
 import { DashboardSummary } from "@/components/app-dashboard/dashboard-summary";
-import { MorphingInfinity } from "@/components/loading-ui/morphing-infinity";
+import { PageSkeleton } from "@/components/loading-ui/page-skeleton";
 import type { TenantBranding } from "@/lib/tenant";
 
 declare const shopify: {
@@ -66,11 +66,7 @@ export function DashboardGate() {
       <>
         <AppNav />
         <s-page heading="Dashboard" inlineSize="base">
-          <s-box padding="large">
-            <s-stack direction="block" alignItems="center">
-              <MorphingInfinity className="size-8 text-muted-foreground" />
-            </s-stack>
-          </s-box>
+          <PageSkeleton cardCount={3} />
         </s-page>
       </>
     );

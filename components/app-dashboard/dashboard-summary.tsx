@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MorphingInfinity } from "@/components/loading-ui/morphing-infinity";
+import { PageSkeleton } from "@/components/loading-ui/page-skeleton";
 import { SetupGuide } from "@/components/app-dashboard/setup-guide";
 import { StatBox } from "@/components/app-dashboard/stat-box";
 import type { TenantBranding } from "@/lib/tenant";
@@ -81,13 +81,7 @@ export function DashboardSummary({ shop, branding, returnWindowDays }: Dashboard
 
   return (
     <s-page heading="Dashboard" inlineSize="base">
-      {state.status === "loading" && (
-        <s-box padding="large">
-          <s-stack direction="block" alignItems="center">
-            <MorphingInfinity className="size-8 text-muted-foreground" />
-          </s-stack>
-        </s-box>
-      )}
+      {state.status === "loading" && <PageSkeleton cardCount={3} />}
 
       {state.status === "error" && (
         <s-banner heading="Couldn't load dashboard" tone="critical">

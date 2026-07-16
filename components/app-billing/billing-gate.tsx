@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { AppNav } from "@/components/app-nav";
 import { BillingPlans } from "@/components/app-billing/billing-plans";
-import { MorphingInfinity } from "@/components/loading-ui/morphing-infinity";
+import { PageSkeleton } from "@/components/loading-ui/page-skeleton";
 
 declare const shopify: {
   idToken: () => Promise<string>;
@@ -55,11 +55,7 @@ export function BillingGate() {
       <>
         <AppNav />
         <s-page heading="Billing" inlineSize="base">
-          <s-box padding="large">
-            <s-stack direction="block" alignItems="center">
-              <MorphingInfinity className="size-8 text-muted-foreground" />
-            </s-stack>
-          </s-box>
+          <PageSkeleton cardCount={3} />
         </s-page>
       </>
     );
