@@ -1,9 +1,9 @@
-// components/app-returns-management/returns-management-gate.tsx
+// components/app-dashboard/dashboard-gate.tsx
 "use client";
 
 import { useEffect, useState } from "react";
 import { AppNav } from "@/components/app-nav";
-import { ReturnsSummary } from "@/components/app-returns-management/returns-summary";
+import { DashboardSummary } from "@/components/app-dashboard/dashboard-summary";
 import { MorphingInfinity } from "@/components/loading-ui/morphing-infinity";
 
 declare const shopify: {
@@ -18,7 +18,7 @@ type GateState = "loading" | "error" | "ready";
  * its own fresh JS context on load, so this can't assume Settings already
  * ran token-exchange first.
  */
-export function ReturnsManagementGate() {
+export function DashboardGate() {
   const [state, setState] = useState<GateState>("loading");
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -61,7 +61,7 @@ export function ReturnsManagementGate() {
     return (
       <>
         <AppNav />
-        <s-page heading="Returns" inlineSize="large">
+        <s-page heading="Dashboard" inlineSize="large">
           <s-box padding="large">
             <s-stack direction="block" alignItems="center">
               <MorphingInfinity className="size-8 text-muted-foreground" />
@@ -75,8 +75,8 @@ export function ReturnsManagementGate() {
     return (
       <>
         <AppNav />
-        <s-page heading="Returns" inlineSize="large">
-          <s-banner heading="Couldn't load returns" tone="critical">
+        <s-page heading="Dashboard" inlineSize="large">
+          <s-banner heading="Couldn't load dashboard" tone="critical">
             <s-paragraph>{errorMessage}</s-paragraph>
           </s-banner>
         </s-page>
@@ -86,7 +86,7 @@ export function ReturnsManagementGate() {
   return (
     <>
       <AppNav />
-      <ReturnsSummary />
+      <DashboardSummary />
     </>
   );
 }
