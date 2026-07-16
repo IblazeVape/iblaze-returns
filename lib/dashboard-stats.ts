@@ -30,6 +30,21 @@ export function productsKey(shop: string, dateKey: string): string {
   return `stats:${shop}:products:${dateKey}`;
 }
 
+/**
+ * Not date-scoped — holds the latest known title/image for each product GID
+ * seen in a return, refreshed on every resolution. Looked up by ID after
+ * the 30-day products hashes are merged and topN'd.
+ */
+export function productInfoKey(shop: string): string {
+  return `stats:${shop}:productInfo`;
+}
+
+/** "gid://shopify/Product/123456789" -> "123456789", for building admin URLs. */
+export function numericIdFromGid(gid: string): string {
+  const match = gid.match(/(\d+)$/);
+  return match ? match[1] : gid;
+}
+
 export function computeReturnRate(returns: number, orders: number): number {
   if (orders <= 0) return 0;
   return returns / orders;

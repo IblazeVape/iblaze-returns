@@ -44,7 +44,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <script src="https://cdn.shopify.com/shopifycloud/polaris.js"></script>
         </head>
       )}
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        // Matches Shopify admin's own page background so our embedded pages
+        // blend with native pages instead of showing a white seam.
+        style={isEmbeddedApp ? { backgroundColor: "#F1F1F1" } : undefined}
+      >
         <ThemeProvider>
           {children}
           <div id="portal-root" />

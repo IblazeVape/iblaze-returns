@@ -62,7 +62,7 @@ export function MerchantAppGate() {
     return (
       <>
         <AppNav />
-        <s-page heading="Returns Settings" inlineSize="large">
+        <s-page heading="Returns Settings" inlineSize="base">
           <s-box padding="large">
             <s-stack direction="block" alignItems="center">
               <MorphingInfinity className="size-8 text-muted-foreground" />
@@ -76,7 +76,7 @@ export function MerchantAppGate() {
     return (
       <>
         <AppNav />
-        <s-page heading="Returns Settings" inlineSize="large">
+        <s-page heading="Returns Settings" inlineSize="base">
           <s-banner heading="Couldn't load settings" tone="critical">
             <s-paragraph>{state.message}</s-paragraph>
           </s-banner>

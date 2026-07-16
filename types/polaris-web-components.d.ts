@@ -48,6 +48,8 @@ declare global {
         "s-table-cell": PolarisElementProps;
         "s-badge": PolarisElementProps;
         "s-grid": PolarisElementProps;
+        "s-grid-item": PolarisElementProps;
+        "s-clickable": PolarisElementProps;
         "s-popover": PolarisElementProps;
         "s-choice-list": PolarisElementProps;
         "s-choice": PolarisElementProps;

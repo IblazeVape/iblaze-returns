@@ -8,6 +8,8 @@ import {
   refundValueKey,
   reasonsKey,
   productsKey,
+  productInfoKey,
+  numericIdFromGid,
   computeReturnRate,
   sumCounts,
   mergeHashCounts,
@@ -44,6 +46,20 @@ describe("redis key builders", () => {
     expect(refundValueKey("shop1.myshopify.com", "2026-07-16")).toBe("stats:shop1.myshopify.com:refundValue:2026-07-16");
     expect(reasonsKey("shop1.myshopify.com", "2026-07-16")).toBe("stats:shop1.myshopify.com:reasons:2026-07-16");
     expect(productsKey("shop1.myshopify.com", "2026-07-16")).toBe("stats:shop1.myshopify.com:products:2026-07-16");
+  });
+
+  it("namespaces productInfoKey by shop only, no date", () => {
+    expect(productInfoKey("shop1.myshopify.com")).toBe("stats:shop1.myshopify.com:productInfo");
+  });
+});
+
+describe("numericIdFromGid", () => {
+  it("extracts the trailing numeric id from a Shopify GID", () => {
+    expect(numericIdFromGid("gid://shopify/Product/123456789")).toBe("123456789");
+  });
+
+  it("returns the input unchanged when it has no trailing digits", () => {
+    expect(numericIdFromGid("not-a-gid")).toBe("not-a-gid");
   });
 });
 

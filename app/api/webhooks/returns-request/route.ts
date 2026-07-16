@@ -7,6 +7,7 @@ import {
   returnsKey,
   reasonsKey,
   productsKey,
+  productInfoKey,
   DASHBOARD_STATS_TTL_SECONDS,
 } from "@/lib/dashboard-stats";
 
@@ -18,12 +19,25 @@ type ReturnLineItemPayload = {
   fulfillment_line_item?: { line_item?: { admin_graphql_api_id?: string } };
 };
 
+type LineItemProductNode = {
+  id: string;
+  product: { id: string; title: string; featuredMedia: { preview: { image: { url: string } | null } | null } | null } | null;
+};
+
 const LINE_ITEM_PRODUCT_QUERY = `
   query DashboardStatsLineItemProducts($ids: [ID!]!) {
     nodes(ids: $ids) {
       ... on LineItem {
         id
-        product { title }
+        product {
+          id
+          title
+          featuredMedia {
+            preview {
+              image { url }
+            }
+          }
+        }
       }
     }
   }
@@ -87,20 +101,32 @@ export async function POST(request: NextRequest) {
         { ids: lineItemIds },
         "DashboardStatsLineItemProducts"
       );
-      const nodes = (data?.nodes ?? []) as ({ id: string; product: { title: string } | null } | null)[];
-      const titleByLineItemId = new Map(nodes.filter((n): n is NonNullable<typeof n> => n !== null).map((n) => [n.id, n.product?.title]));
+      const nodes = (data?.nodes ?? []) as (LineItemProductNode | null)[];
+      const productByLineItemId = new Map(
+        nodes.filter((n): n is LineItemProductNode => n !== null).map((n) => [n.id, n.product])
+      );
 
       const pKey = productsKey(shop, dateKey);
+      const infoKey = productInfoKey(shop);
       let wroteAny = false;
       for (const item of lineItems) {
         const lineItemId = item.fulfillment_line_item?.line_item?.admin_graphql_api_id;
-        const title = lineItemId ? titleByLineItemId.get(lineItemId) : undefined;
-        if (title) {
-          await redis.hincrby(pKey, title, item.quantity ?? 1);
+        const product = lineItemId ? productByLineItemId.get(lineItemId) : undefined;
+        if (product) {
+          await redis.hincrby(pKey, product.id, item.quantity ?? 1);
+          await redis.hset(infoKey, {
+            [product.id]: JSON.stringify({
+              title: product.title,
+              image: product.featuredMedia?.preview?.image?.url ?? null,
+            }),
+          });
           wroteAny = true;
         }
       }
-      if (wroteAny) await redis.expire(pKey, DASHBOARD_STATS_TTL_SECONDS);
+      if (wroteAny) {
+        await redis.expire(pKey, DASHBOARD_STATS_TTL_SECONDS);
+        await redis.expire(infoKey, DASHBOARD_STATS_TTL_SECONDS);
+      }
     }
   } catch (err) {
     console.error(

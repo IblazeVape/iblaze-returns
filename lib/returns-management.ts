@@ -36,3 +36,9 @@ export function buildNativeReturnsUrl(shop: string): string {
   });
   return `https://admin.shopify.com/store/${storeHandle}/orders?${params.toString()}`;
 }
+
+/** Deep-links straight to a product's own admin page, same store-handle pattern as buildNativeReturnsUrl. */
+export function buildAdminProductUrl(shop: string, numericProductId: string): string {
+  const storeHandle = shop.replace(/\.myshopify\.com$/, "");
+  return `https://admin.shopify.com/store/${storeHandle}/products/${numericProductId}`;
+}

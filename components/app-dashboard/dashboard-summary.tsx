@@ -13,7 +13,7 @@ type DashboardStats = {
   returnVolume: number;
   refundValue: number;
   topReasons: { reason: string; count: number }[];
-  topProducts: { title: string; count: number }[];
+  topProducts: { title: string; image: string | null; count: number; url: string }[];
   nativeReturnsUrl: string;
 };
 
@@ -67,30 +67,34 @@ export function DashboardSummary() {
       )}
 
       {state.status === "ready" && (
-        <s-stack direction="block" gap="base">
-          <s-stack direction="inline" gap="base" wrap>
-            <s-box padding="base" border="base" borderRadius="base" minInlineSize="180px">
+        <s-grid gridTemplateColumns="repeat(12, 1fr)" gap="base">
+          <s-grid-item gridColumn="span 4">
+            <s-box padding="base" background="base" border="base" borderRadius="base">
               <s-stack direction="block" gap="small-300">
                 <s-text color="subdued">Return rate (30 days)</s-text>
                 <s-heading>{(state.stats.returnRate * 100).toFixed(1)}%</s-heading>
               </s-stack>
             </s-box>
-            <s-box padding="base" border="base" borderRadius="base" minInlineSize="180px">
+          </s-grid-item>
+          <s-grid-item gridColumn="span 4">
+            <s-box padding="base" background="base" border="base" borderRadius="base">
               <s-stack direction="block" gap="small-300">
                 <s-text color="subdued">Return volume (30 days)</s-text>
                 <s-heading>{state.stats.returnVolume}</s-heading>
               </s-stack>
             </s-box>
-            <s-box padding="base" border="base" borderRadius="base" minInlineSize="180px">
+          </s-grid-item>
+          <s-grid-item gridColumn="span 4">
+            <s-box padding="base" background="base" border="base" borderRadius="base">
               <s-stack direction="block" gap="small-300">
                 <s-text color="subdued">Refund value (30 days)</s-text>
                 <s-heading>£{state.stats.refundValue.toFixed(2)}</s-heading>
               </s-stack>
             </s-box>
-          </s-stack>
+          </s-grid-item>
 
-          <s-stack direction="inline" gap="base" wrap>
-            <s-box padding="base" border="base" borderRadius="base" minInlineSize="220px">
+          <s-grid-item gridColumn="span 6">
+            <s-box padding="base" background="base" border="base" borderRadius="base">
               <s-stack direction="block" gap="small-300">
                 <s-text color="subdued">Top return reasons</s-text>
                 {state.stats.topReasons.length === 0 && <s-paragraph>No returns yet.</s-paragraph>}
@@ -102,32 +106,44 @@ export function DashboardSummary() {
                 ))}
               </s-stack>
             </s-box>
-            <s-box padding="base" border="base" borderRadius="base" minInlineSize="220px">
+          </s-grid-item>
+          <s-grid-item gridColumn="span 6">
+            <s-box padding="base" background="base" border="base" borderRadius="base">
               <s-stack direction="block" gap="small-300">
                 <s-text color="subdued">Most-returned products</s-text>
                 {state.stats.topProducts.length === 0 && <s-paragraph>No returns yet.</s-paragraph>}
                 {state.stats.topProducts.map((p) => (
-                  <s-stack key={p.title} direction="inline" gap="small-300">
-                    <s-text>{p.title}</s-text>
-                    <s-text color="subdued">{p.count}</s-text>
-                  </s-stack>
+                  <s-clickable
+                    key={p.url}
+                    href={p.url}
+                    target="_blank"
+                    accessibilityLabel={`Open ${p.title} in Shopify admin`}
+                  >
+                    <s-stack direction="inline" gap="small-300" alignItems="center">
+                      {p.image && <s-thumbnail src={p.image} alt={p.title} size="small" />}
+                      <s-text>{p.title}</s-text>
+                      <s-text color="subdued">{p.count}</s-text>
+                    </s-stack>
+                  </s-clickable>
                 ))}
               </s-stack>
             </s-box>
-          </s-stack>
+          </s-grid-item>
 
-          <s-box padding="base" border="base" borderRadius="base">
-            <s-stack direction="block" gap="small">
-              <s-text color="subdued">Return requests</s-text>
-              <s-paragraph>
-                Orders with an active return request, filtered and columned in Shopify's own Orders page.
-              </s-paragraph>
-              <s-button href={state.stats.nativeReturnsUrl} target="_blank" variant="primary">
-                Open return requests
-              </s-button>
-            </s-stack>
-          </s-box>
-        </s-stack>
+          <s-grid-item gridColumn="span 12">
+            <s-box padding="base" background="base" border="base" borderRadius="base">
+              <s-stack direction="block" gap="small">
+                <s-text color="subdued">Return requests</s-text>
+                <s-paragraph>
+                  Orders with an active return request, filtered and columned in Shopify's own Orders page.
+                </s-paragraph>
+                <s-button href={state.stats.nativeReturnsUrl} target="_blank" variant="primary">
+                  Open return requests
+                </s-button>
+              </s-stack>
+            </s-box>
+          </s-grid-item>
+        </s-grid>
       )}
     </s-page>
   );

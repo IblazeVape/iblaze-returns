@@ -1,6 +1,6 @@
 name = "iBlaze Returns"
 client_id = "699e9ffee4fd5d72b8126884d37584be"
-application_url = "https://iblaze-returns.vercel.app/app"
+application_url = "https://iblaze-returns.vercel.app/app/returns"
 embedded = true
 
 [access_scopes]
