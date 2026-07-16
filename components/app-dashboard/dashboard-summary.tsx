@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import { MorphingInfinity } from "@/components/loading-ui/morphing-infinity";
 import { SetupGuide } from "@/components/app-dashboard/setup-guide";
+import { StatBox } from "@/components/app-dashboard/stat-box";
 import type { TenantBranding } from "@/lib/tenant";
 
 declare const shopify: {
@@ -17,6 +18,9 @@ type DashboardStats = {
   topReasons: { reason: string; count: number }[];
   topProducts: { title: string; image: string | null; count: number; url: string }[];
   nativeReturnsUrl: string;
+  dailyOrders: number[];
+  dailyReturns: number[];
+  dailyRefundValue: number[];
 };
 
 type FetchState =
@@ -118,6 +122,19 @@ export function DashboardSummary({ shop, branding, returnWindowDays }: Dashboard
                 <s-heading>£{state.stats.refundValue.toFixed(2)}</s-heading>
               </s-stack>
             </s-box>
+          </s-grid-item>
+
+          <s-grid-item gridColumn="span 12">
+            <s-heading>Daily trends (7 days)</s-heading>
+          </s-grid-item>
+          <s-grid-item gridColumn="span 4">
+            <StatBox title="Orders" value={String(state.stats.dailyOrders.at(-1) ?? 0)} data={state.stats.dailyOrders} />
+          </s-grid-item>
+          <s-grid-item gridColumn="span 4">
+            <StatBox title="Returns" value={String(state.stats.dailyReturns.at(-1) ?? 0)} data={state.stats.dailyReturns} />
+          </s-grid-item>
+          <s-grid-item gridColumn="span 4">
+            <StatBox title="Refund value" value={`£${(state.stats.dailyRefundValue.at(-1) ?? 0).toFixed(2)}`} data={state.stats.dailyRefundValue} />
           </s-grid-item>
 
           <s-grid-item gridColumn="span 4">

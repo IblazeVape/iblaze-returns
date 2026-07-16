@@ -10,6 +10,7 @@ import {
   productsKey,
   productInfoKey,
   numericIdFromGid,
+  last7,
   computeReturnRate,
   sumCounts,
   mergeHashCounts,
@@ -80,6 +81,21 @@ describe("sumCounts", () => {
     expect(sumCounts([1, 2, null, 3])).toBe(6);
     expect(sumCounts([])).toBe(0);
     expect(sumCounts([null, null])).toBe(0);
+  });
+});
+
+describe("last7", () => {
+  it("takes the last 7 entries of a 30-day series", () => {
+    const thirty = Array.from({ length: 30 }, (_, i) => i);
+    expect(last7(thirty)).toEqual([23, 24, 25, 26, 27, 28, 29]);
+  });
+
+  it("treats null as 0", () => {
+    expect(last7([1, 2, 3, null, 5, null, 7])).toEqual([1, 2, 3, 0, 5, 0, 7]);
+  });
+
+  it("returns everything when there are fewer than 7 entries", () => {
+    expect(last7([1, 2])).toEqual([1, 2]);
   });
 });
 

@@ -54,6 +54,11 @@ export function sumCounts(values: (number | null)[]): number {
   return values.reduce<number>((sum, v) => sum + (typeof v === "number" ? v : 0), 0);
 }
 
+/** Last 7 entries of a 30-day series (oldest first), with null treated as 0 — for sparkline trends. */
+export function last7(values: (number | null)[]): number[] {
+  return values.slice(-7).map((v) => (typeof v === "number" ? v : 0));
+}
+
 export function mergeHashCounts(hashes: (Record<string, string> | null)[]): Record<string, number> {
   const merged: Record<string, number> = {};
   for (const hash of hashes) {

@@ -16,6 +16,7 @@ import {
   topN,
   minorUnitsToMajor,
   numericIdFromGid,
+  last7,
 } from "@/lib/dashboard-stats";
 
 export const dynamic = "force-dynamic";
@@ -80,6 +81,9 @@ export async function GET(request: NextRequest) {
       topReasons: topN(mergedReasons, 5).map(({ key, count }) => ({ reason: key, count })),
       topProducts,
       nativeReturnsUrl: buildNativeReturnsUrl(shop),
+      dailyOrders: last7(orderCounts),
+      dailyReturns: last7(returnCounts),
+      dailyRefundValue: last7(refundValues).map(minorUnitsToMajor),
     });
   } catch (err) {
     console.error("dashboard stats read error:", err instanceof Error ? err.message : String(err));
