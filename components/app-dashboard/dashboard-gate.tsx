@@ -5,12 +5,16 @@ import { useEffect, useState } from "react";
 import { AppNav } from "@/components/app-nav";
 import { DashboardSummary } from "@/components/app-dashboard/dashboard-summary";
 import { MorphingInfinity } from "@/components/loading-ui/morphing-infinity";
+import type { TenantBranding } from "@/lib/tenant";
 
 declare const shopify: {
   idToken: () => Promise<string>;
 };
 
-type GateState = "loading" | "error" | "ready";
+type GateState =
+  | { status: "loading" }
+  | { status: "error"; message: string }
+  | { status: "ready"; shop: string; branding: TenantBranding; returnWindowDays: number };
 
 /**
  * Same App Bridge token-exchange bootstrap as MerchantAppGate
@@ -19,8 +23,7 @@ type GateState = "loading" | "error" | "ready";
  * ran token-exchange first.
  */
 export function DashboardGate() {
-  const [state, setState] = useState<GateState>("loading");
-  const [errorMessage, setErrorMessage] = useState("");
+  const [state, setState] = useState<GateState>({ status: "loading" });
 
   useEffect(() => {
     let cancelled = false;
@@ -44,11 +47,12 @@ export function DashboardGate() {
         if (!res.ok || !data.ok) {
           throw new Error(data.error || "Could not verify this app installation.");
         }
-        if (!cancelled) setState("ready");
+        if (!cancelled) {
+          setState({ status: "ready", shop: data.shop, branding: data.branding, returnWindowDays: data.returnWindowDays });
+        }
       } catch (err) {
         if (!cancelled) {
-          setErrorMessage(err instanceof Error ? err.message : "Something went wrong.");
-          setState("error");
+          setState({ status: "error", message: err instanceof Error ? err.message : "Something went wrong." });
         }
       }
     }
@@ -57,7 +61,7 @@ export function DashboardGate() {
     return () => { cancelled = true; };
   }, []);
 
-  if (state === "loading") {
+  if (state.status === "loading") {
     return (
       <>
         <AppNav />
@@ -71,13 +75,13 @@ export function DashboardGate() {
       </>
     );
   }
-  if (state === "error") {
+  if (state.status === "error") {
     return (
       <>
         <AppNav />
         <s-page heading="Dashboard" inlineSize="base">
           <s-banner heading="Couldn't load dashboard" tone="critical">
-            <s-paragraph>{errorMessage}</s-paragraph>
+            <s-paragraph>{state.message}</s-paragraph>
           </s-banner>
         </s-page>
       </>
@@ -86,7 +90,7 @@ export function DashboardGate() {
   return (
     <>
       <AppNav />
-      <DashboardSummary />
+      <DashboardSummary shop={state.shop} branding={state.branding} returnWindowDays={state.returnWindowDays} />
     </>
   );
 }

@@ -3,6 +3,8 @@
 
 import { useEffect, useState } from "react";
 import { MorphingInfinity } from "@/components/loading-ui/morphing-infinity";
+import { SetupGuide } from "@/components/app-dashboard/setup-guide";
+import type { TenantBranding } from "@/lib/tenant";
 
 declare const shopify: {
   idToken: () => Promise<string>;
@@ -50,7 +52,13 @@ function CardLabel({ children }: { children: string }) {
   );
 }
 
-export function DashboardSummary() {
+type DashboardSummaryProps = {
+  shop: string;
+  branding: TenantBranding;
+  returnWindowDays: number;
+};
+
+export function DashboardSummary({ shop, branding, returnWindowDays }: DashboardSummaryProps) {
   const [state, setState] = useState<FetchState>({ status: "loading" });
 
   useEffect(() => {
@@ -84,6 +92,8 @@ export function DashboardSummary() {
       )}
 
       {state.status === "ready" && (
+        <s-stack direction="block" gap="base">
+        <SetupGuide shop={shop} branding={branding} returnWindowDays={returnWindowDays} returnVolume={state.stats.returnVolume} />
         <s-grid gridTemplateColumns="repeat(12, 1fr)" gap="base">
           <s-grid-item gridColumn="span 4">
             <s-box padding="base" background="base" border="base" borderRadius="base">
@@ -177,6 +187,7 @@ export function DashboardSummary() {
             </s-grid-item>
           ))}
         </s-grid>
+        </s-stack>
       )}
     </s-page>
   );

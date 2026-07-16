@@ -20,6 +20,7 @@ export async function POST(request: NextRequest) {
     const tenant = await getTenant(claims.shop);
     return NextResponse.json({
       ok: true,
+      shop: claims.shop,
       branding: tenant?.branding ?? DEFAULT_TENANT_FIELDS.branding,
       returnWindowDays: tenant?.returnWindowDays ?? DEFAULT_TENANT_FIELDS.returnWindowDays,
     });
