@@ -33,6 +33,15 @@ function humanizeReason(reason: string): string {
   return words[0].charAt(0).toUpperCase() + words[0].slice(1) + (words.length > 1 ? " " + words.slice(1).join(" ") : "");
 }
 
+/** Bold card title with a dashed underline, matching the native admin app card header style. */
+function CardLabel({ children }: { children: string }) {
+  return (
+    <div style={{ borderBottom: "1px dashed #d1d5db", paddingBottom: 8, marginBottom: 4 }}>
+      <s-text type="strong">{children}</s-text>
+    </div>
+  );
+}
+
 export function DashboardSummary() {
   const [state, setState] = useState<FetchState>({ status: "loading" });
 
@@ -71,7 +80,7 @@ export function DashboardSummary() {
           <s-grid-item gridColumn="span 4">
             <s-box padding="base" background="base" border="base" borderRadius="base">
               <s-stack direction="block" gap="small-300">
-                <s-text color="subdued">Return rate (30 days)</s-text>
+                <CardLabel>Return rate (30 days)</CardLabel>
                 <s-heading>{(state.stats.returnRate * 100).toFixed(1)}%</s-heading>
               </s-stack>
             </s-box>
@@ -79,7 +88,7 @@ export function DashboardSummary() {
           <s-grid-item gridColumn="span 4">
             <s-box padding="base" background="base" border="base" borderRadius="base">
               <s-stack direction="block" gap="small-300">
-                <s-text color="subdued">Return volume (30 days)</s-text>
+                <CardLabel>Return volume (30 days)</CardLabel>
                 <s-heading>{state.stats.returnVolume}</s-heading>
               </s-stack>
             </s-box>
@@ -87,16 +96,16 @@ export function DashboardSummary() {
           <s-grid-item gridColumn="span 4">
             <s-box padding="base" background="base" border="base" borderRadius="base">
               <s-stack direction="block" gap="small-300">
-                <s-text color="subdued">Refund value (30 days)</s-text>
+                <CardLabel>Refund value (30 days)</CardLabel>
                 <s-heading>£{state.stats.refundValue.toFixed(2)}</s-heading>
               </s-stack>
             </s-box>
           </s-grid-item>
 
-          <s-grid-item gridColumn="span 6">
+          <s-grid-item gridColumn="span 4">
             <s-box padding="base" background="base" border="base" borderRadius="base">
               <s-stack direction="block" gap="small-300">
-                <s-text color="subdued">Top return reasons</s-text>
+                <CardLabel>Top return reasons</CardLabel>
                 {state.stats.topReasons.length === 0 && <s-paragraph>No returns yet.</s-paragraph>}
                 {state.stats.topReasons.map((r) => (
                   <s-stack key={r.reason} direction="inline" gap="small-300">
@@ -107,10 +116,10 @@ export function DashboardSummary() {
               </s-stack>
             </s-box>
           </s-grid-item>
-          <s-grid-item gridColumn="span 6">
+          <s-grid-item gridColumn="span 4">
             <s-box padding="base" background="base" border="base" borderRadius="base">
               <s-stack direction="block" gap="small-300">
-                <s-text color="subdued">Most-returned products</s-text>
+                <CardLabel>Most-returned products</CardLabel>
                 {state.stats.topProducts.length === 0 && <s-paragraph>No returns yet.</s-paragraph>}
                 {state.stats.topProducts.map((p) => (
                   <s-clickable
@@ -130,10 +139,10 @@ export function DashboardSummary() {
             </s-box>
           </s-grid-item>
 
-          <s-grid-item gridColumn="span 12">
+          <s-grid-item gridColumn="span 4">
             <s-box padding="base" background="base" border="base" borderRadius="base">
               <s-stack direction="block" gap="small">
-                <s-text color="subdued">Return requests</s-text>
+                <CardLabel>Return requests</CardLabel>
                 <s-paragraph>
                   Orders with an active return request, filtered and columned in Shopify's own Orders page.
                 </s-paragraph>
