@@ -359,10 +359,7 @@ export function SettingsForm({
         </button>
         <button onClick={handleDiscard}>Discard</button>
       </ui-save-bar>
-      {/* One continuous white card — tab bar directly connected to its
-          content (no gap/separate-card look) — instead of the tab bar and
-          each tab's content living in their own separate <s-section> cards. */}
-      <s-box background="base" border="base" borderRadius="large">
+      <s-section padding="none">
         <s-box padding="base" borderBlockEndWidth="base" borderColor="subdued">
           <s-stack direction="block" gap="small-300">
             <s-paragraph tone="subdued">Customize branding, returns policy, navigation, and table behavior for your customer returns portal.</s-paragraph>
@@ -371,7 +368,7 @@ export function SettingsForm({
                 restyles the same manual button+state approach to look like
                 real Polaris tabs (underline on the active one) instead of
                 trying the broken component again. */}
-            <div style={{ display: "flex", gap: 20 }}>
+            <div style={{ display: "flex", gap: 20, borderBottom: "1px solid #e1e3e5" }}>
               {TABS.map((tab) => (
                 <button
                   key={tab.id}
@@ -396,12 +393,11 @@ export function SettingsForm({
             </div>
           </s-stack>
         </s-box>
-
-        <s-box padding="base">
+      </s-section>
 
       {activeTab === "branding" && (
+        <s-section heading="Branding">
           <s-stack direction="block" gap="base">
-            <s-heading>Branding</s-heading>
             <s-text-field
               label="Brand name"
               name="name"
@@ -490,12 +486,13 @@ export function SettingsForm({
             </s-select>
             <s-paragraph tone="subdued">An animated background behind the "Find your order" guest lookup screen, before a customer signs in.</s-paragraph>
           </s-stack>
+        </s-section>
       )}
 
       {activeTab === "returns" && (
-        <s-stack direction="block" gap="large">
+        <>
+          <s-section heading="Return window">
             <s-stack direction="block" gap="base">
-              <s-heading>Return window</s-heading>
               <s-number-field
                 label="Return window (days)"
                 name="returnWindowDays"
@@ -513,11 +510,10 @@ export function SettingsForm({
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("requirePolicyAcceptance", e.target.checked)}
               ></s-checkbox>
             </s-stack>
+          </s-section>
 
-            <s-divider></s-divider>
-
+          <s-section heading="Returns policy dialog">
             <s-stack direction="block" gap="base">
-              <s-heading>Returns policy dialog</s-heading>
               <s-paragraph tone="subdued">Controls the "Review & Accept" dialog customers see before selecting items to return.</s-paragraph>
 
               <s-text-field
@@ -629,11 +625,10 @@ export function SettingsForm({
               ></s-text-area>
               {errors.policyFooterNote && <s-paragraph tone="critical">{errors.policyFooterNote}</s-paragraph>}
             </s-stack>
+          </s-section>
 
-            <s-divider></s-divider>
-
+          <s-section heading="Confirmation messages">
             <s-stack direction="block" gap="base">
-              <s-heading>Confirmation messages</s-heading>
               <s-paragraph tone="subdued">Shown briefly as a toast after a customer accepts or declines the policy.</s-paragraph>
               <s-text-field
                 label="Accepted message"
@@ -652,13 +647,14 @@ export function SettingsForm({
               ></s-text-field>
               {errors.policyDeclinedMessage && <s-paragraph tone="critical">{errors.policyDeclinedMessage}</s-paragraph>}
             </s-stack>
-        </s-stack>
+          </s-section>
+        </>
       )}
 
       {activeTab === "navigation" && (
-        <s-stack direction="block" gap="large">
+        <>
+          <s-section heading="Store link">
             <s-stack direction="block" gap="base">
-              <s-heading>Store link</s-heading>
               <s-checkbox
                 label="Show a link back to the storefront in the header"
                 name="storeLinkEnabled"
@@ -675,11 +671,10 @@ export function SettingsForm({
               ></s-text-field>
               {errors.storeLinkLabel && <s-paragraph tone="critical">{errors.storeLinkLabel}</s-paragraph>}
             </s-stack>
+          </s-section>
 
-            <s-divider></s-divider>
-
+          <s-section heading="Order status link">
             <s-stack direction="block" gap="base">
-              <s-heading>Order status link</s-heading>
               <s-checkbox
                 label="Show an order status link in the header (when an order is open)"
                 name="orderStatusLinkEnabled"
@@ -696,11 +691,10 @@ export function SettingsForm({
               ></s-text-field>
               {errors.orderStatusLinkLabel && <s-paragraph tone="critical">{errors.orderStatusLinkLabel}</s-paragraph>}
             </s-stack>
+          </s-section>
 
-            <s-divider></s-divider>
-
+          <s-section heading="Sidebar links">
             <s-stack direction="block" gap="base">
-              <s-heading>Sidebar links</s-heading>
               <s-paragraph tone="subdued">Extra links shown in the customer portal's sidebar, alongside Home and Orders. Open in a new tab. Each link can optionally have its own sub-links (a one-level submenu).</s-paragraph>
               {form.sidebarLinks.map((link, i) => {
                 const isOpen = openLinkIndices.has(i)
@@ -792,11 +786,10 @@ export function SettingsForm({
               ></s-text-area>
               {errors.sidebarNote && <s-paragraph tone="critical">{errors.sidebarNote}</s-paragraph>}
             </s-stack>
+          </s-section>
 
-            <s-divider></s-divider>
-
+          <s-section heading="Sidebar layout">
             <s-stack direction="block" gap="base">
-              <s-heading>Sidebar layout</s-heading>
               <s-checkbox
                 label="Let customers switch between sidebar and inset layouts"
                 name="sidebarLayoutSwitcherEnabled"
@@ -813,13 +806,14 @@ export function SettingsForm({
                 <s-option value="sidebar">Sidebar</s-option>
               </s-select>
             </s-stack>
-        </s-stack>
+          </s-section>
+        </>
       )}
 
       {activeTab === "table" && (
-        <s-stack direction="block" gap="large">
+        <>
+          <s-section heading="Header search">
             <s-stack direction="block" gap="base">
-              <s-heading>Header search</s-heading>
               <s-checkbox
                 label="Show the order search bar in the header"
                 name="headerSearchEnabled"
@@ -836,11 +830,10 @@ export function SettingsForm({
               ></s-text-field>
               {errors.headerSearchPlaceholder && <s-paragraph tone="critical">{errors.headerSearchPlaceholder}</s-paragraph>}
             </s-stack>
+          </s-section>
 
-            <s-divider></s-divider>
-
+          <s-section heading="Order item table">
             <s-stack direction="block" gap="base">
-              <s-heading>Order item table</s-heading>
               <s-checkbox
                 label="Show the product/variant search bar"
                 name="tableSearchEnabled"
@@ -888,10 +881,9 @@ export function SettingsForm({
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("productImageLinksEnabled", e.target.checked)}
               ></s-checkbox>
             </s-stack>
-        </s-stack>
+          </s-section>
+        </>
       )}
-        </s-box>
-      </s-box>
 
       <s-section>
         <form onSubmit={handleSave}>
