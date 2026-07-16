@@ -54,6 +54,10 @@ declare global {
         "s-choice-list": PolarisElementProps;
         "s-choice": PolarisElementProps;
         "s-image": PolarisElementProps;
+        "s-unordered-list": PolarisElementProps;
+        "s-ordered-list": PolarisElementProps;
+        "s-list-item": PolarisElementProps;
+        "s-skeleton-paragraph": PolarisElementProps;
       }
     }
   }

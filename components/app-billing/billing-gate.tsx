@@ -1,0 +1,85 @@
+// components/app-billing/billing-gate.tsx
+"use client";
+
+import { useEffect, useState } from "react";
+import { AppNav } from "@/components/app-nav";
+import { BillingPlans } from "@/components/app-billing/billing-plans";
+import { MorphingInfinity } from "@/components/loading-ui/morphing-infinity";
+
+declare const shopify: {
+  idToken: () => Promise<string>;
+};
+
+type GateState = { status: "loading" } | { status: "error"; message: string } | { status: "ready" };
+
+/** Same App Bridge token-exchange bootstrap as DashboardGate/MerchantAppGate. */
+export function BillingGate() {
+  const [state, setState] = useState<GateState>({ status: "loading" });
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function bootstrap() {
+      try {
+        const deadline = Date.now() + 5000;
+        while (typeof shopify === "undefined" && Date.now() < deadline) {
+          await new Promise((r) => setTimeout(r, 50));
+        }
+        if (typeof shopify === "undefined") {
+          throw new Error("Shopify App Bridge did not load.");
+        }
+
+        const token = await shopify.idToken();
+        const res = await fetch("/api/app/token-exchange", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.ok) {
+          throw new Error(data.error || "Could not verify this app installation.");
+        }
+        if (!cancelled) setState({ status: "ready" });
+      } catch (err) {
+        if (!cancelled) {
+          setState({ status: "error", message: err instanceof Error ? err.message : "Something went wrong." });
+        }
+      }
+    }
+
+    bootstrap();
+    return () => { cancelled = true; };
+  }, []);
+
+  if (state.status === "loading") {
+    return (
+      <>
+        <AppNav />
+        <s-page heading="Billing" inlineSize="base">
+          <s-box padding="large">
+            <s-stack direction="block" alignItems="center">
+              <MorphingInfinity className="size-8 text-muted-foreground" />
+            </s-stack>
+          </s-box>
+        </s-page>
+      </>
+    );
+  }
+  if (state.status === "error") {
+    return (
+      <>
+        <AppNav />
+        <s-page heading="Billing" inlineSize="base">
+          <s-banner heading="Couldn't load billing" tone="critical">
+            <s-paragraph>{state.message}</s-paragraph>
+          </s-banner>
+        </s-page>
+      </>
+    );
+  }
+  return (
+    <>
+      <AppNav />
+      <BillingPlans />
+    </>
+  );
+}
