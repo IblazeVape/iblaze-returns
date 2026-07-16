@@ -61,7 +61,7 @@ export function DashboardGate() {
     return (
       <>
         <AppNav />
-        <s-page heading="Dashboard" inlineSize="large">
+        <s-page heading="Dashboard" inlineSize="base">
           <s-box padding="large">
             <s-stack direction="block" alignItems="center">
               <MorphingInfinity className="size-8 text-muted-foreground" />
@@ -75,7 +75,7 @@ export function DashboardGate() {
     return (
       <>
         <AppNav />
-        <s-page heading="Dashboard" inlineSize="large">
+        <s-page heading="Dashboard" inlineSize="base">
           <s-banner heading="Couldn't load dashboard" tone="critical">
             <s-paragraph>{errorMessage}</s-paragraph>
           </s-banner>

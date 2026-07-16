@@ -51,7 +51,7 @@ export function DashboardSummary() {
   }, []);
 
   return (
-    <s-page heading="Dashboard" inlineSize="large">
+    <s-page heading="Dashboard" inlineSize="base">
       {state.status === "loading" && (
         <s-box padding="large">
           <s-stack direction="block" alignItems="center">
