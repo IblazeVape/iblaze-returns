@@ -326,17 +326,34 @@ export function SettingsForm({
         <s-box padding="base" borderBlockEndWidth="base" borderColor="subdued">
           <s-stack direction="block" gap="small-300">
             <s-paragraph tone="subdued">Customize branding, returns policy, navigation, and table behavior for your customer returns portal.</s-paragraph>
-            <s-stack direction="inline" gap="small-300">
+            {/* s-tabs/s-tab-list/s-tab don't render correctly in this app's
+                embedded runtime (see activeTab's own comment below) — this
+                restyles the same manual button+state approach to look like
+                real Polaris tabs (underline on the active one) instead of
+                trying the broken component again. */}
+            <div style={{ display: "flex", gap: 20, borderBottom: "1px solid #e1e3e5" }}>
               {TABS.map((tab) => (
-                <s-button
+                <button
                   key={tab.id}
-                  variant={activeTab === tab.id ? "primary" : "secondary"}
+                  type="button"
                   onClick={() => setActiveTab(tab.id)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: "0 0 10px 0",
+                    fontFamily: "inherit",
+                    fontSize: "0.8125rem",
+                    fontWeight: activeTab === tab.id ? 600 : 400,
+                    color: activeTab === tab.id ? "#1a1a1a" : "#6b6b6b",
+                    borderBottom: activeTab === tab.id ? "2px solid #1a1a1a" : "2px solid transparent",
+                    marginBottom: -1,
+                  }}
                 >
                   {tab.label}
-                </s-button>
+                </button>
               ))}
-            </s-stack>
+            </div>
           </s-stack>
         </s-box>
       </s-section>
