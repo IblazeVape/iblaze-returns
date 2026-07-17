@@ -35,29 +35,27 @@ const PLANS = [
 
 export function BillingPlans() {
   return (
-    <s-page heading="Billing" inlineSize="large">
-      <s-box background="base" border="base" borderRadius="large" padding="large">
-        <s-stack direction="block" gap="base">
-          <s-paragraph tone="subdued">
-            Choose the plan that fits your store. This is a preview of upcoming plans — nothing is charged yet.
-          </s-paragraph>
-          <s-stack direction="inline" gap="large" wrap justifyContent="center">
-            {PLANS.map((plan) => (
-              <PricingCard
-                key={plan.title}
-                title={plan.title}
-                description={plan.description}
-                features={[...plan.features]}
-                price={plan.price}
-                frequency={plan.frequency}
-                featuredText={"featuredText" in plan ? plan.featuredText : undefined}
-                buttonLabel="Select Plan"
-                onSelect={() => {}}
-              />
-            ))}
-          </s-stack>
+    <s-page heading="Pricing" inlineSize="large">
+      <s-stack direction="block" gap="base">
+        <s-paragraph tone="subdued">
+          Choose the plan that fits your store. This is a preview of upcoming plans — nothing is charged yet.
+        </s-paragraph>
+        <s-stack direction="inline" gap="large" wrap justifyContent="center">
+          {PLANS.map((plan) => (
+            <PricingCard
+              key={plan.title}
+              title={plan.title}
+              description={plan.description}
+              features={[...plan.features]}
+              price={plan.price}
+              frequency={plan.frequency}
+              featuredText={"featuredText" in plan ? plan.featuredText : undefined}
+              buttonLabel="Select Plan"
+              onSelect={() => {}}
+            />
+          ))}
         </s-stack>
-      </s-box>
+      </s-stack>
     </s-page>
   );
 }

@@ -54,7 +54,7 @@ export function BillingGate() {
     return (
       <>
         <AppNav />
-        <s-page heading="Billing" inlineSize="large">
+        <s-page heading="Pricing" inlineSize="large">
           <PageSkeleton cardCount={3} />
         </s-page>
       </>
@@ -64,8 +64,8 @@ export function BillingGate() {
     return (
       <>
         <AppNav />
-        <s-page heading="Billing" inlineSize="large">
-          <s-banner heading="Couldn't load billing" tone="critical">
+        <s-page heading="Pricing" inlineSize="large">
+          <s-banner heading="Couldn't load pricing" tone="critical">
             <s-paragraph>{state.message}</s-paragraph>
           </s-banner>
         </s-page>
