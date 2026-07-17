@@ -56,6 +56,24 @@ function filenameFromUrl(url: string): string {
   }
 }
 
+/** Moves the item at `from` to `to`, shifting everything between them — used by drag-and-drop reordering (a drag can move an item several positions at once, unlike the adjacent-only Move up/down buttons). */
+function reorderArray<T>(list: T[], from: number, to: number): T[] {
+  if (from === to) return list
+  const next = [...list]
+  const [item] = next.splice(from, 1)
+  next.splice(to, 0, item)
+  return next
+}
+
+/** Old-index -> new-index mapping for the same move, so a Set of "open" row indices can be remapped to follow their rows after a drag reorder. */
+function reorderIndexMap(length: number, from: number, to: number): number[] {
+  const indices = Array.from({ length }, (_, i) => i)
+  const reordered = reorderArray(indices, from, to)
+  const map = new Array<number>(length)
+  reordered.forEach((oldIndex, newIndex) => { map[oldIndex] = newIndex })
+  return map
+}
+
 export function SettingsForm({
   initialBranding,
   initialReturnWindowDays,
@@ -82,7 +100,6 @@ export function SettingsForm({
 
   const [errors, setErrors] = useState<Partial<Record<keyof BrandingInput, string>>>({})
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error" | "invalid">("idle")
-  const [uploading, setUploading] = useState(false)
   const [loadingLibrary, setLoadingLibrary] = useState(false)
   // Polaris's s-tabs/s-tab-list/s-tab/s-tab-panel custom elements don't
   // register/render correctly in this app's embedded runtime (confirmed live
@@ -128,29 +145,6 @@ export function SettingsForm({
   async function authedFetch(input: string, init: RequestInit = {}) {
     const token = await shopify.idToken()
     return fetch(input, { ...init, headers: { ...init.headers, Authorization: `Bearer ${token}` } })
-  }
-
-  async function handleLogoFile(file: File) {
-    setUploading(true)
-    try {
-      const body = new FormData()
-      body.append("file", file)
-      const res = await authedFetch("/api/app/logo-upload", { method: "POST", body })
-      const data = await res.json()
-      if (res.ok && data.url) {
-        set("logoUrl", data.url)
-        setErrors((e) => {
-          const { logoUrl, ...rest } = e
-          return rest
-        })
-      } else {
-        setErrors((e) => ({ ...e, logoUrl: "Upload failed. Try a different file or paste a URL instead." }))
-      }
-    } catch {
-      setErrors((e) => ({ ...e, logoUrl: "Upload failed. Try a different file or paste a URL instead." }))
-    } finally {
-      setUploading(false)
-    }
   }
 
   async function handleChooseFromLibrary() {
@@ -423,19 +417,9 @@ export function SettingsForm({
                   }}
                 />
               )}
-              <s-button onClick={() => document.getElementById("logo-file-input")?.click()} disabled={uploading}>
-                {uploading ? "Uploading…" : "Upload logo"}
-              </s-button>
               <s-button onClick={handleChooseFromLibrary} disabled={loadingLibrary}>
                 {loadingLibrary ? "Loading…" : "Choose from Shopify"}
               </s-button>
-              <input
-                id="logo-file-input"
-                type="file"
-                accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                style={{ display: "none" }}
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleLogoFile(f) }}
-              />
             </s-stack>
             <s-url-field
               label="Or paste a logo URL"
