@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils"
 import { sanitizePolicyHtml } from "@/lib/sanitize-policy-html"
+import { migrateMarkdownIfNeeded } from "@/lib/markdown-to-html"
 
 /**
  * Renders merchant-authored policy/note text (returns policy body) as
@@ -11,7 +12,7 @@ import { sanitizePolicyHtml } from "@/lib/sanitize-policy-html"
  * data or future write path that skips that step.
  */
 export function PolicyHtml({ html, className }: { html: string; className?: string }) {
-  const clean = sanitizePolicyHtml(html)
+  const clean = sanitizePolicyHtml(migrateMarkdownIfNeeded(html))
   return (
     <div
       className={cn(

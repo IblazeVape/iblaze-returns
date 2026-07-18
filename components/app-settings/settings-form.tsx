@@ -5,6 +5,8 @@ import { validateBrandingInput, type BrandingInput, type PolicyCategoryInput, ty
 import type { TenantBranding } from "@/lib/tenant"
 import { SIDEBAR_ICON_NAMES } from "@/lib/sidebar-icons"
 import { RichTextEditor } from "@/components/app-settings/rich-text-editor"
+import { DEFAULT_TENANT_FIELDS } from "@/lib/tenant-defaults"
+import { migrateMarkdownIfNeeded } from "@/lib/markdown-to-html"
 
 declare const shopify: {
   idToken: () => Promise<string>;
@@ -86,6 +88,10 @@ export function SettingsForm({
 }) {
   const initialForm = useRef<BrandingInput>({
     ...initialBranding,
+    // Self-heals data saved under the old Markdown toolbar editor (removed)
+    // so the Quill editor shows real formatting instead of raw "**"/"###"
+    // syntax — persists as proper HTML the next time the merchant saves.
+    policyBodyText: migrateMarkdownIfNeeded(initialBranding.policyBodyText),
     returnWindowDays: initialReturnWindowDays,
   })
   const [form, setForm] = useState<BrandingInput>(initialForm.current)

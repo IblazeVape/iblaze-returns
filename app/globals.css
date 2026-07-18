@@ -238,35 +238,41 @@
   html:has(#marketing-two-root),
   html:has(#marketing-three-root),
   html:has(#merchant-app-root),
-  html:has(#returns-management-root) {
+  html:has(#dashboard-root),
+  html:has(#billing-root) {
     height: auto;
     overflow: auto;
   }
-  /* Merchant Settings + Returns Management pages: thin scrollbar instead of
-     the browser default, matching .styled-scroll used elsewhere in the
+  /* Merchant Settings, Dashboard, and Pricing pages: thin scrollbar instead
+     of the browser default, matching .styled-scroll used elsewhere in the
      dashboard. */
   html:has(#merchant-app-root)::-webkit-scrollbar,
-  html:has(#returns-management-root)::-webkit-scrollbar {
+  html:has(#dashboard-root)::-webkit-scrollbar,
+  html:has(#billing-root)::-webkit-scrollbar {
     width: 10px;
     height: 10px;
   }
   html:has(#merchant-app-root)::-webkit-scrollbar-track,
-  html:has(#returns-management-root)::-webkit-scrollbar-track {
+  html:has(#dashboard-root)::-webkit-scrollbar-track,
+  html:has(#billing-root)::-webkit-scrollbar-track {
     background: transparent;
   }
   html:has(#merchant-app-root)::-webkit-scrollbar-thumb,
-  html:has(#returns-management-root)::-webkit-scrollbar-thumb {
+  html:has(#dashboard-root)::-webkit-scrollbar-thumb,
+  html:has(#billing-root)::-webkit-scrollbar-thumb {
     background-color: hsl(var(--border));
     border-radius: 9999px;
     border: 2px solid transparent;
     background-clip: content-box;
   }
   html:has(#merchant-app-root)::-webkit-scrollbar-thumb:hover,
-  html:has(#returns-management-root)::-webkit-scrollbar-thumb:hover {
+  html:has(#dashboard-root)::-webkit-scrollbar-thumb:hover,
+  html:has(#billing-root)::-webkit-scrollbar-thumb:hover {
     background-color: hsl(var(--muted-foreground));
   }
   html:has(#merchant-app-root),
-  html:has(#returns-management-root) {
+  html:has(#dashboard-root),
+  html:has(#billing-root) {
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--border)) transparent;
   }
@@ -277,7 +283,8 @@
   body:has(#marketing-two-root),
   body:has(#marketing-three-root),
   body:has(#merchant-app-root),
-  body:has(#returns-management-root) {
+  body:has(#dashboard-root),
+  body:has(#billing-root) {
     height: auto;
     overflow: visible;
   }

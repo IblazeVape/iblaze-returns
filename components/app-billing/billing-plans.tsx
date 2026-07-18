@@ -36,7 +36,7 @@ const PLANS = [
 export function BillingPlans() {
   return (
     <s-page heading="Pricing" inlineSize="large">
-      <s-stack direction="block" gap="base">
+      <s-stack direction="block" gap="base" alignItems="center">
         <s-paragraph tone="subdued">
           Choose the plan that fits your store. This is a preview of upcoming plans — nothing is charged yet.
         </s-paragraph>
