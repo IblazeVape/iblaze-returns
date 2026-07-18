@@ -31,7 +31,19 @@ export function SetupGuide({ shop, branding, returnWindowDays, returnVolume }: S
     setDismissed(window.localStorage.getItem(dismissedStorageKey(shop)) === "1");
   }, [shop]);
 
-  if (dismissed) return null;
+  function reopen() {
+    window.localStorage.removeItem(dismissedStorageKey(shop));
+    setDismissed(false);
+    setExpanded(true);
+  }
+
+  if (dismissed) {
+    return (
+      <s-clickable onClick={reopen} accessibilityLabel="Show setup guide">
+        <s-text color="subdued">Show setup guide</s-text>
+      </s-clickable>
+    );
+  }
 
   const steps = [
     {

@@ -22,6 +22,9 @@ declare const shopify: {
     show: (id: string) => Promise<void>;
     hide: (id: string) => Promise<void>;
   };
+  toast: {
+    show: (message: string, options?: { isError?: boolean; duration?: number }) => void;
+  };
 };
 
 const SAVE_BAR_ID = "settings-save-bar";
@@ -306,6 +309,7 @@ export function SettingsForm({
       )
       if (tabWithError) setActiveTab(tabWithError)
       setStatus("invalid")
+      if (typeof shopify !== "undefined") shopify.toast.show("Fix the highlighted error and try again.", { isError: true })
       return
     }
 
@@ -318,13 +322,18 @@ export function SettingsForm({
       })
       if (!res.ok) {
         setStatus("error")
+        if (typeof shopify !== "undefined") shopify.toast.show("Something went wrong. Try again.", { isError: true })
         return
       }
       initialForm.current = form
-      if (typeof shopify !== "undefined") shopify.saveBar.hide(SAVE_BAR_ID)
+      if (typeof shopify !== "undefined") {
+        shopify.saveBar.hide(SAVE_BAR_ID)
+        shopify.toast.show("Settings saved")
+      }
       setStatus("saved")
     } catch {
       setStatus("error")
+      if (typeof shopify !== "undefined") shopify.toast.show("Something went wrong. Try again.", { isError: true })
     }
   }
 
@@ -868,19 +877,6 @@ export function SettingsForm({
           </s-section>
         </>
       )}
-
-      <s-section>
-        <form onSubmit={handleSave}>
-          <s-stack direction="inline" gap="base" alignItems="center">
-            <s-button type="submit" variant="primary" disabled={status === "saving"}>
-              {status === "saving" ? "Saving…" : "Save"}
-            </s-button>
-            {status === "saved" && <s-text tone="success">Saved.</s-text>}
-            {status === "error" && <s-paragraph tone="critical">Something went wrong. Try again.</s-paragraph>}
-            {status === "invalid" && <s-paragraph tone="critical">Fix the highlighted error and try again.</s-paragraph>}
-          </s-stack>
-        </form>
-      </s-section>
     </s-page>
   )
 }
