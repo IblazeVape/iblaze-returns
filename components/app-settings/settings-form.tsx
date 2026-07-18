@@ -719,6 +719,24 @@ export function SettingsForm({
                 <s-option value="inset">Inset</s-option>
                 <s-option value="sidebar">Sidebar</s-option>
               </s-select>
+              <s-checkbox
+                label="Sidebar starts open on desktop"
+                name="sidebarDefaultOpenOnDesktop"
+                checked={form.sidebarDefaultOpenOnDesktop}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("sidebarDefaultOpenOnDesktop", e.target.checked)}
+              ></s-checkbox>
+              <s-checkbox
+                label="Show the customer avatar in the sidebar"
+                name="sidebarAvatarEnabled"
+                checked={form.sidebarAvatarEnabled}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("sidebarAvatarEnabled", e.target.checked)}
+              ></s-checkbox>
+              <s-checkbox
+                label="Show the customer avatar/account menu in the header"
+                name="headerAvatarEnabled"
+                checked={form.headerAvatarEnabled}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("headerAvatarEnabled", e.target.checked)}
+              ></s-checkbox>
             </s-stack>
           </s-section>
 
@@ -903,6 +921,27 @@ export function SettingsForm({
                 checked={form.tableFilterButtonEnabled}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("tableFilterButtonEnabled", e.target.checked)}
               ></s-checkbox>
+              <s-checkbox
+                label="Show the Eligible/Ineligible status filter"
+                name="statusFilterEnabled"
+                checked={form.statusFilterEnabled}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("statusFilterEnabled", e.target.checked)}
+              ></s-checkbox>
+              <s-checkbox
+                label={'Show the "These items can’t be selected here" message on the Ineligible tab'}
+                name="ineligibleMessageEnabled"
+                checked={form.ineligibleMessageEnabled}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("ineligibleMessageEnabled", e.target.checked)}
+              ></s-checkbox>
+              <s-select
+                label="Default order view"
+                name="defaultOrderView"
+                value={form.defaultOrderView}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => set("defaultOrderView", e.target.value as "list" | "grid")}
+              >
+                <s-option value="grid">Grid</s-option>
+                <s-option value="list">List</s-option>
+              </s-select>
               <s-checkbox
                 label="Show the Columns button"
                 name="tableColumnsButtonEnabled"

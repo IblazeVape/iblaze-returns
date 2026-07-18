@@ -31,6 +31,8 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   onNavigate?: (section: string) => void
   activeSection?: string
   branding?: SidebarBranding
+  /** Hides the NavUser avatar row in the sidebar footer entirely (not just the image) when false. */
+  avatarEnabled?: boolean
 }
 
 /** Renders **double-asterisk** spans as <strong> — the only formatting the
@@ -179,7 +181,7 @@ const LOOKUP_ANOTHER_ORDER_URL = "#lookup-another-order"
  * instead of an initial letter. */
 const GUEST_PENDING_USER = { name: "Login to see all orders", email: "" }
 
-export function AppSidebar({ user, onNavigate, activeSection, branding, ...props }: AppSidebarProps) {
+export function AppSidebar({ user, onNavigate, activeSection, branding, avatarEnabled = true, ...props }: AppSidebarProps) {
   // Guest hasn't verified an order yet (still on the lookup form) — nothing
   // to navigate to yet.
   const isGuestPending = getAppsReturnsIdentityKind() === "guest-or-login" && !isGuestOrderContext()
@@ -211,14 +213,16 @@ export function AppSidebar({ user, onNavigate, activeSection, branding, ...props
           />
         </div>
       </SidebarContent>
-      <SidebarFooter className="overflow-visible group-data-[collapsible=icon]:pb-3">
-        <div className="w-full group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
-          <NavUser
-            user={isGuestPending ? GUEST_PENDING_USER : user || { name: "Customer", email: "" }}
-            avatarIcon={isGuestPending}
-          />
-        </div>
-      </SidebarFooter>
+      {avatarEnabled && (
+        <SidebarFooter className="overflow-visible group-data-[collapsible=icon]:pb-3">
+          <div className="w-full group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
+            <NavUser
+              user={isGuestPending ? GUEST_PENDING_USER : user || { name: "Customer", email: "" }}
+              avatarIcon={isGuestPending}
+            />
+          </div>
+        </SidebarFooter>
+      )}
     </Sidebar>
   )
 }

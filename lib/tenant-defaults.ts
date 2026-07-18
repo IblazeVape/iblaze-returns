@@ -52,6 +52,12 @@ export type TenantBranding = {
   productImageLinksEnabled: boolean;
   sidebarSubmenusExpandedByDefault: boolean;
   guestBackgroundStyle: "none" | "shapeGrid" | "dotField";
+  defaultOrderView: "list" | "grid";
+  sidebarDefaultOpenOnDesktop: boolean;
+  statusFilterEnabled: boolean;
+  ineligibleMessageEnabled: boolean;
+  sidebarAvatarEnabled: boolean;
+  headerAvatarEnabled: boolean;
 };
 
 export const DEFAULT_TENANT_FIELDS = {
@@ -98,5 +104,11 @@ export const DEFAULT_TENANT_FIELDS = {
     productImageLinksEnabled: true,
     sidebarSubmenusExpandedByDefault: true,
     guestBackgroundStyle: "none",
+    defaultOrderView: "grid",
+    sidebarDefaultOpenOnDesktop: true,
+    statusFilterEnabled: true,
+    ineligibleMessageEnabled: true,
+    sidebarAvatarEnabled: true,
+    headerAvatarEnabled: true,
   } satisfies TenantBranding,
 };

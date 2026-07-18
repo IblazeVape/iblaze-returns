@@ -114,6 +114,12 @@ describe("tenant store", () => {
         productImageLinksEnabled: false,
         sidebarSubmenusExpandedByDefault: false,
         guestBackgroundStyle: "dotField",
+        defaultOrderView: "list",
+        sidebarDefaultOpenOnDesktop: false,
+        statusFilterEnabled: false,
+        ineligibleMessageEnabled: false,
+        sidebarAvatarEnabled: false,
+        headerAvatarEnabled: false,
       },
     });
     const t = await getTenant("d.myshopify.com");

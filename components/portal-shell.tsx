@@ -20,6 +20,9 @@ export function PortalShell({
   hideIdentity = false,
   accentColor,
   branding,
+  sidebarAvatarEnabled = true,
+  headerAvatarEnabled = true,
+  sidebarDefaultOpenOnDesktop = true,
   headerProps,
   children,
 }: {
@@ -30,7 +33,8 @@ export function PortalShell({
    * identity to represent before an order is verified. The sidebar itself
    * still opens/collapses normally (merchants will be able to add their
    * own menu items there via a future settings page, so it shouldn't be
-   * locked shut). */
+   * locked shut). Takes precedence over headerAvatarEnabled — pre-auth
+   * state always hides identity regardless of the merchant's setting. */
   hideIdentity?: boolean
   /** Sets the --brand CSS variable every accent-colored element in the
    * portal reads from — the ONE place a tenant's color enters the render
@@ -49,6 +53,12 @@ export function PortalShell({
     sidebarNote?: string
     sidebarSubmenusExpandedByDefault?: boolean
   }
+  /** Hides the customer avatar in the sidebar footer (NavUser). */
+  sidebarAvatarEnabled?: boolean
+  /** Hides the customer avatar/account menu in the top header. Overridden to false whenever hideIdentity is true. */
+  headerAvatarEnabled?: boolean
+  /** Whether the sidebar starts open or collapsed on desktop. */
+  sidebarDefaultOpenOnDesktop?: boolean
   headerProps: React.ComponentProps<typeof SiteHeader>
   children?: React.ReactNode
 }) {
@@ -73,7 +83,7 @@ export function PortalShell({
 
   return (
     <SidebarProvider
-      defaultOpen={true}
+      defaultOpen={sidebarDefaultOpenOnDesktop}
       style={
         {
           "--sidebar-width": "18rem",
@@ -83,9 +93,9 @@ export function PortalShell({
         } as React.CSSProperties
       }
     >
-      <AppSidebar variant={layout} user={user} onNavigate={onNavigate} activeSection={activeSection} branding={branding} />
+      <AppSidebar variant={layout} user={user} onNavigate={onNavigate} activeSection={activeSection} branding={branding} avatarEnabled={sidebarAvatarEnabled} />
       <SidebarInset className="min-w-0">
-        <SiteHeader {...(hideIdentity ? { showAccountMenu: false } : {})} {...headerProps} />
+        <SiteHeader {...headerProps} showAccountMenu={hideIdentity ? false : headerAvatarEnabled} />
         {children}
       </SidebarInset>
     </SidebarProvider>

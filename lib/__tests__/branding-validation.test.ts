@@ -38,6 +38,12 @@ const VALID: BrandingInput = {
   productImageLinksEnabled: true,
   sidebarSubmenusExpandedByDefault: true,
   guestBackgroundStyle: "none",
+  defaultOrderView: "grid",
+  sidebarDefaultOpenOnDesktop: true,
+  statusFilterEnabled: true,
+  ineligibleMessageEnabled: true,
+  sidebarAvatarEnabled: true,
+  headerAvatarEnabled: true,
 };
 
 describe("validateBrandingInput", () => {

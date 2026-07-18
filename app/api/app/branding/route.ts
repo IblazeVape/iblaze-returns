@@ -95,6 +95,18 @@ export async function PUT(request: NextRequest) {
       body.guestBackgroundStyle === "none" || body.guestBackgroundStyle === "shapeGrid" || body.guestBackgroundStyle === "dotField"
         ? body.guestBackgroundStyle
         : existing.branding.guestBackgroundStyle,
+    defaultOrderView:
+      body.defaultOrderView === "list" || body.defaultOrderView === "grid" ? body.defaultOrderView : existing.branding.defaultOrderView,
+    sidebarDefaultOpenOnDesktop:
+      typeof body.sidebarDefaultOpenOnDesktop === "boolean" ? body.sidebarDefaultOpenOnDesktop : existing.branding.sidebarDefaultOpenOnDesktop,
+    statusFilterEnabled:
+      typeof body.statusFilterEnabled === "boolean" ? body.statusFilterEnabled : existing.branding.statusFilterEnabled,
+    ineligibleMessageEnabled:
+      typeof body.ineligibleMessageEnabled === "boolean" ? body.ineligibleMessageEnabled : existing.branding.ineligibleMessageEnabled,
+    sidebarAvatarEnabled:
+      typeof body.sidebarAvatarEnabled === "boolean" ? body.sidebarAvatarEnabled : existing.branding.sidebarAvatarEnabled,
+    headerAvatarEnabled:
+      typeof body.headerAvatarEnabled === "boolean" ? body.headerAvatarEnabled : existing.branding.headerAvatarEnabled,
   };
 
   const { valid, errors } = validateBrandingInput(input);
@@ -140,6 +152,12 @@ export async function PUT(request: NextRequest) {
       productImageLinksEnabled: input.productImageLinksEnabled,
       sidebarSubmenusExpandedByDefault: input.sidebarSubmenusExpandedByDefault,
       guestBackgroundStyle: input.guestBackgroundStyle,
+      defaultOrderView: input.defaultOrderView,
+      sidebarDefaultOpenOnDesktop: input.sidebarDefaultOpenOnDesktop,
+      statusFilterEnabled: input.statusFilterEnabled,
+      ineligibleMessageEnabled: input.ineligibleMessageEnabled,
+      sidebarAvatarEnabled: input.sidebarAvatarEnabled,
+      headerAvatarEnabled: input.headerAvatarEnabled,
     },
   });
 

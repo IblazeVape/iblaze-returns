@@ -3212,6 +3212,8 @@ type OrderDetailBranding = {
   tablePageSizeEnabled: boolean
   shipmentCardsEnabled: boolean
   productImageLinksEnabled: boolean
+  statusFilterEnabled: boolean
+  ineligibleMessageEnabled: boolean
 }
 
 function OrderDetail({
@@ -3230,7 +3232,7 @@ function OrderDetail({
     policyBodyMode, policyCategories, policyBodyText, policyFooterNoteEnabled, policyFooterNote,
     policyAcceptedMessage, policyDeclinedMessage, tableSearchEnabled, tableSearchPlaceholder,
     tableColumnsButtonEnabled, tableFilterButtonEnabled, tablePageSizeEnabled, shipmentCardsEnabled,
-    productImageLinksEnabled,
+    productImageLinksEnabled, statusFilterEnabled, ineligibleMessageEnabled,
   } = branding
   const [policyAccepted, setPolicyAccepted] = useState(!requirePolicyAcceptance)
   const [selectedItems, setSelectedItems]   = useState<Record<string, { selected: boolean; quantity: number; reason: string; description: string }>>({})
@@ -3335,7 +3337,7 @@ function OrderDetail({
   // piece inside it (tab selector, search, filter, columns, page size) is
   // independently conditional, and with everything disabled/hidden the bar
   // itself must not render at all (it was showing as an empty bordered strip).
-  const showToolbarTabSelector = (hasBothTabs && HEADER_STAT_DESIGN !== 4)
+  const showToolbarTabSelector = (statusFilterEnabled && hasBothTabs && HEADER_STAT_DESIGN !== 4)
     || (!fullyIneligible && HEADER_STAT_DESIGN !== 4 && HEADER_STAT_DESIGN !== 6)
   const showToolbarFilter = tableFilterButtonEnabled && activeTab === "ineligible" && showIneligibleFilter
   const hasAnyToolbarControl = showToolbarTabSelector || tableSearchEnabled || showToolbarFilter || tableColumnsButtonEnabled || tablePageSizeEnabled
@@ -3673,9 +3675,9 @@ function OrderDetail({
             <div className="border-b bg-background px-3 py-2.5">
               {/* Desktop: single row — tab + search + filter + columns + show */}
               <div className="hidden min-[1025px]:flex items-center gap-2">
-                {hasBothTabs && HEADER_STAT_DESIGN !== 4 ? (
+                {statusFilterEnabled && hasBothTabs && HEADER_STAT_DESIGN !== 4 ? (
                   <Select value={activeTab} onValueChange={(v) => { setActiveTab(v as "eligible" | "ineligible"); setCurrentPage(1) }}>
-                    <SelectTrigger className="w-[160px] h-8 bg-transparent text-sm"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="w-[160px] h-8 bg-card text-sm"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="eligible">Eligible ({totalEligibleUnits})</SelectItem>
                       <SelectItem value="ineligible">Ineligible ({totalIneligibleUnits})</SelectItem>
@@ -3843,7 +3845,7 @@ function OrderDetail({
             )}
 
             {/* ── Mobile tab bar — edge-to-edge, flush separator ── */}
-            {hasBothTabs && HEADER_STAT_DESIGN !== 4 && (
+            {statusFilterEnabled && hasBothTabs && HEADER_STAT_DESIGN !== 4 && (
               <div className="min-[1025px]:hidden flex border-b">
                 <button
                   type="button"
@@ -3871,7 +3873,7 @@ function OrderDetail({
               </div>
             )}
 
-            {activeTab === "ineligible" && (
+            {activeTab === "ineligible" && ineligibleMessageEnabled && (
               <div className="border-b px-5 py-2.5 text-[11px] leading-snug text-muted-foreground bg-muted/10">
                 These items can&apos;t be selected here.{" "}
                 <a
@@ -4215,6 +4217,8 @@ function DashboardClientInner() {
     tableColumnsButtonEnabled: true, tableFilterButtonEnabled: true, tablePageSizeEnabled: true,
     shipmentCardsEnabled: true, productImageLinksEnabled: true, sidebarSubmenusExpandedByDefault: true,
     guestBackgroundStyle: "none",
+    defaultOrderView: "grid", sidebarDefaultOpenOnDesktop: true, statusFilterEnabled: true,
+    ineligibleMessageEnabled: true, sidebarAvatarEnabled: true, headerAvatarEnabled: true,
   })
   // False until accentColor holds a real (cached or fetched) tenant value —
   // the "#000000" placeholder above is a type-safe default, not a real
@@ -4290,6 +4294,7 @@ function DashboardClientInner() {
         if (d.branding) {
           setBranding(d.branding)
           applyMerchantDefault(d.branding.defaultSidebarLayout, d.branding.sidebarLayoutSwitcherEnabled)
+          if (d.branding.defaultOrderView) setView(d.branding.defaultOrderView)
           if (d.branding.accentColor) {
             setCachedAccentColor(d.branding.accentColor)
             setAccentColorReady(true)
@@ -4421,6 +4426,9 @@ function DashboardClientInner() {
         sidebarLinks: branding.sidebarLinks, sidebarNote: branding.sidebarNote,
         sidebarSubmenusExpandedByDefault: branding.sidebarSubmenusExpandedByDefault,
       }}
+      sidebarAvatarEnabled={branding.sidebarAvatarEnabled}
+      headerAvatarEnabled={branding.headerAvatarEnabled}
+      sidebarDefaultOpenOnDesktop={branding.sidebarDefaultOpenOnDesktop}
       headerProps={{
         title: selectedOrder ? getOrderPageHeaderTitle(selectedOrder) : "My Orders",
         titleIcon: orderHeaderStatus ? { icon: orderHeaderStatus.icon } : undefined,

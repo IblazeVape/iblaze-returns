@@ -4,7 +4,7 @@ import { type LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
   SidebarGroup, SidebarGroupContent, SidebarMenu,
-  SidebarMenuButton, SidebarMenuItem,
+  SidebarMenuButton, SidebarMenuItem, useSidebar,
 } from "@/components/ui/sidebar"
 
 export function NavMain({
@@ -16,6 +16,7 @@ export function NavMain({
   onNavigate?: (section: string) => void
   activeSection?: string
 }) {
+  const { isMobile, setOpenMobile } = useSidebar()
   return (
     <SidebarGroup>
       <SidebarGroupContent className="flex flex-col gap-1">
@@ -28,6 +29,10 @@ export function NavMain({
                   tooltip={item.title}
                   isActive={activeSection === item.url}
                   onClick={() => {
+                    // The mobile sidebar is an overlay (Sheet) — navigating
+                    // should close it, same as tapping any other link would.
+                    // Desktop's persistent sidebar is untouched.
+                    if (isMobile) setOpenMobile(false)
                     if (isExternal) {
                       window.location.href = item.url
                     } else if (onNavigate) {

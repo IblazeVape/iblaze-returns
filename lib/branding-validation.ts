@@ -39,6 +39,12 @@ export type BrandingInput = {
   productImageLinksEnabled: boolean;
   sidebarSubmenusExpandedByDefault: boolean;
   guestBackgroundStyle: "none" | "shapeGrid" | "dotField";
+  defaultOrderView: "list" | "grid";
+  sidebarDefaultOpenOnDesktop: boolean;
+  statusFilterEnabled: boolean;
+  ineligibleMessageEnabled: boolean;
+  sidebarAvatarEnabled: boolean;
+  headerAvatarEnabled: boolean;
 };
 
 const HEX_COLOR_RE = /^#[0-9a-fA-F]{6}$/;
