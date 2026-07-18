@@ -2903,14 +2903,9 @@ function ShipmentItemsModal({ shipment, order, idx }: { shipment: Shipment; orde
           <DrawerDescription>{subtitle}</DrawerDescription>
         </DrawerHeader>
         <Separator />
-        <div className="overflow-y-auto max-h-[60vh]">
+        <div className="overflow-y-auto max-h-[60vh] pb-4">
           <ShipmentItemList shipment={shipment} order={order} className="px-4" />
         </div>
-        <DrawerFooter className="pt-2">
-          <DrawerClose asChild>
-            <Button variant="outline" className="w-full">Close</Button>
-          </DrawerClose>
-        </DrawerFooter>
       </DrawerContent>
     </Drawer>
   )
