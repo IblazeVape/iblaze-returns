@@ -17,7 +17,6 @@ import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -2884,11 +2883,11 @@ function ShipmentItemsModal({ shipment, order, idx }: { shipment: Shipment; orde
             <DialogTitle className="flex items-center gap-2"><Truck className="size-4" /> {title}</DialogTitle>
             <DialogDescription>{subtitle}</DialogDescription>
           </DialogHeader>
-          <ScrollArea className="max-h-[60vh]">
+          <div className="overflow-y-auto max-h-[60vh]">
             <div className="pb-4">
               <ShipmentItemList shipment={shipment} order={order} className="px-6" />
             </div>
-          </ScrollArea>
+          </div>
         </DialogContent>
       </Dialog>
     )
@@ -2970,9 +2969,9 @@ function HygienePolicy({
             <DialogDescription>{subheading}</DialogDescription>
             {lastUpdated && <p className="text-xs text-muted-foreground">Last updated: {lastUpdated}</p>}
           </DialogHeader>
-          <ScrollArea className="max-h-[50vh]">
+          <div className="overflow-y-auto max-h-[50vh]">
             <HygienePolicyList itemPx="px-6" bodyMode={bodyMode} categories={categories} bodyText={bodyText} footerNoteEnabled={footerNoteEnabled} footerNote={footerNote} />
-          </ScrollArea>
+          </div>
           <div className="flex gap-2 px-6 pb-6 pt-4">
             <DialogClose asChild>
               <Button className="flex-1 bg-[var(--brand)] hover:bg-[var(--brand)]/90 text-white" onClick={() => { onAccept(); toast.success(acceptedMessage) }}><CheckCircle2 className="size-4" /> I Accept</Button>
