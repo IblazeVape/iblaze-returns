@@ -1,6 +1,6 @@
 import { getTenantToken } from "@/lib/tenant";
 
-const SHOPIFY_API_VERSION = "2025-04";
+export const SHOPIFY_API_VERSION = "2025-04";
 
 interface GraphQLCost {
   requestedQueryCost: number;

@@ -2883,7 +2883,7 @@ function ShipmentItemsModal({ shipment, order, idx }: { shipment: Shipment; orde
             <DialogTitle className="flex items-center gap-2"><Truck className="size-4" /> {title}</DialogTitle>
             <DialogDescription>{subtitle}</DialogDescription>
           </DialogHeader>
-          <div className="overflow-y-auto max-h-[60vh]">
+          <div className="overflow-y-auto overflow-x-hidden max-h-[60vh] styled-scroll">
             <div className="pb-4">
               <ShipmentItemList shipment={shipment} order={order} className="px-6" />
             </div>
@@ -2902,7 +2902,7 @@ function ShipmentItemsModal({ shipment, order, idx }: { shipment: Shipment; orde
           <DrawerDescription>{subtitle}</DrawerDescription>
         </DrawerHeader>
         <Separator />
-        <div className="overflow-y-auto max-h-[60vh] pb-4">
+        <div className="overflow-y-auto overflow-x-hidden max-h-[60vh] pb-4 styled-scroll">
           <ShipmentItemList shipment={shipment} order={order} className="px-4" />
         </div>
       </DrawerContent>
@@ -2969,7 +2969,7 @@ function HygienePolicy({
             <DialogDescription>{subheading}</DialogDescription>
             {lastUpdated && <p className="text-xs text-muted-foreground">Last updated: {lastUpdated}</p>}
           </DialogHeader>
-          <div className="overflow-y-auto overflow-x-hidden max-h-[50vh]">
+          <div className="overflow-y-auto overflow-x-hidden max-h-[50vh] styled-scroll">
             <HygienePolicyList itemPx="px-6" bodyMode={bodyMode} categories={categories} bodyText={bodyText} footerNoteEnabled={footerNoteEnabled} footerNote={footerNote} />
           </div>
           <div className="flex gap-2 px-6 pb-6 pt-4">
@@ -2995,7 +2995,7 @@ function HygienePolicy({
           {lastUpdated && <p className="text-xs text-muted-foreground">Last updated: {lastUpdated}</p>}
         </DrawerHeader>
         <Separator />
-        <div className="overflow-y-auto overflow-x-hidden max-h-[45vh]">
+        <div className="overflow-y-auto overflow-x-hidden max-h-[45vh] styled-scroll">
           <HygienePolicyList itemPx="px-4" bodyMode={bodyMode} categories={categories} bodyText={bodyText} footerNoteEnabled={footerNoteEnabled} footerNote={footerNote} />
         </div>
         <DrawerFooter className="pt-2">

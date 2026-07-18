@@ -702,43 +702,23 @@ export function SettingsForm({
 
       {activeTab === "navigation" && (
         <>
-          <s-section heading="Store link">
+          <s-section heading="Sidebar layout">
             <s-stack direction="block" gap="base">
               <s-checkbox
-                label="Show a link back to the storefront in the header"
-                name="storeLinkEnabled"
-                checked={form.storeLinkEnabled}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("storeLinkEnabled", e.target.checked)}
+                label="Let customers switch between sidebar and inset layouts"
+                name="sidebarLayoutSwitcherEnabled"
+                checked={form.sidebarLayoutSwitcherEnabled}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("sidebarLayoutSwitcherEnabled", e.target.checked)}
               ></s-checkbox>
-              <s-text-field
-                label="Store link label"
-                name="storeLinkLabel"
-                value={form.storeLinkLabel}
-                placeholder="Store"
-                disabled={!form.storeLinkEnabled}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("storeLinkLabel", e.target.value)}
-              ></s-text-field>
-              {errors.storeLinkLabel && <s-paragraph tone="critical">{errors.storeLinkLabel}</s-paragraph>}
-            </s-stack>
-          </s-section>
-
-          <s-section heading="Order status link">
-            <s-stack direction="block" gap="base">
-              <s-checkbox
-                label="Show an order status link in the header (when an order is open)"
-                name="orderStatusLinkEnabled"
-                checked={form.orderStatusLinkEnabled}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("orderStatusLinkEnabled", e.target.checked)}
-              ></s-checkbox>
-              <s-text-field
-                label="Order status link label"
-                name="orderStatusLinkLabel"
-                value={form.orderStatusLinkLabel}
-                placeholder="Order Status"
-                disabled={!form.orderStatusLinkEnabled}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("orderStatusLinkLabel", e.target.value)}
-              ></s-text-field>
-              {errors.orderStatusLinkLabel && <s-paragraph tone="critical">{errors.orderStatusLinkLabel}</s-paragraph>}
+              <s-select
+                label={form.sidebarLayoutSwitcherEnabled ? "Default layout" : "Layout (fixed — switcher is off)"}
+                name="defaultSidebarLayout"
+                value={form.defaultSidebarLayout}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => set("defaultSidebarLayout", e.target.value as "inset" | "sidebar")}
+              >
+                <s-option value="inset">Inset</s-option>
+                <s-option value="sidebar">Sidebar</s-option>
+              </s-select>
             </s-stack>
           </s-section>
 
@@ -837,23 +817,41 @@ export function SettingsForm({
             </s-stack>
           </s-section>
 
-          <s-section heading="Sidebar layout">
+          <s-section heading="Store & order status links">
             <s-stack direction="block" gap="base">
               <s-checkbox
-                label="Let customers switch between sidebar and inset layouts"
-                name="sidebarLayoutSwitcherEnabled"
-                checked={form.sidebarLayoutSwitcherEnabled}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("sidebarLayoutSwitcherEnabled", e.target.checked)}
+                label="Show a link back to the storefront in the header"
+                name="storeLinkEnabled"
+                checked={form.storeLinkEnabled}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("storeLinkEnabled", e.target.checked)}
               ></s-checkbox>
-              <s-select
-                label={form.sidebarLayoutSwitcherEnabled ? "Default layout" : "Layout (fixed — switcher is off)"}
-                name="defaultSidebarLayout"
-                value={form.defaultSidebarLayout}
-                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => set("defaultSidebarLayout", e.target.value as "inset" | "sidebar")}
-              >
-                <s-option value="inset">Inset</s-option>
-                <s-option value="sidebar">Sidebar</s-option>
-              </s-select>
+              <s-text-field
+                label="Store link label"
+                name="storeLinkLabel"
+                value={form.storeLinkLabel}
+                placeholder="Store"
+                disabled={!form.storeLinkEnabled}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("storeLinkLabel", e.target.value)}
+              ></s-text-field>
+              {errors.storeLinkLabel && <s-paragraph tone="critical">{errors.storeLinkLabel}</s-paragraph>}
+
+              <s-divider></s-divider>
+
+              <s-checkbox
+                label="Show an order status link in the header (when an order is open)"
+                name="orderStatusLinkEnabled"
+                checked={form.orderStatusLinkEnabled}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("orderStatusLinkEnabled", e.target.checked)}
+              ></s-checkbox>
+              <s-text-field
+                label="Order status link label"
+                name="orderStatusLinkLabel"
+                value={form.orderStatusLinkLabel}
+                placeholder="Order Status"
+                disabled={!form.orderStatusLinkEnabled}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("orderStatusLinkLabel", e.target.value)}
+              ></s-text-field>
+              {errors.orderStatusLinkLabel && <s-paragraph tone="critical">{errors.orderStatusLinkLabel}</s-paragraph>}
             </s-stack>
           </s-section>
         </>
@@ -935,29 +933,29 @@ export function SettingsForm({
       )}
 
       {activeTab === "danger" && (
-        <s-section heading="Danger zone">
-          <s-stack direction="block" gap="base">
+        <>
+          <s-section heading="Reset to defaults">
             <s-stack direction="inline" gap="base" alignItems="center">
               <s-stack direction="block" gap="small-100">
-                <s-text type="strong">Reset to defaults</s-text>
                 <s-text color="subdued">Clears every field on this form back to its default value. Nothing is saved until you click Save.</s-text>
               </s-stack>
               <s-button tone="critical" onClick={handleResetToDefaults}>
                 {confirming === "defaults" ? "Click again to confirm" : "Reset to defaults"}
               </s-button>
             </s-stack>
-            <s-divider></s-divider>
+          </s-section>
+
+          <s-section heading="Reset all app data">
             <s-stack direction="inline" gap="base" alignItems="center">
               <s-stack direction="block" gap="small-100">
-                <s-text type="strong">Reset all app data</s-text>
                 <s-text color="subdued">Wipes every Dashboard stat (orders, returns, refund value) and resets these settings to defaults immediately — as if the app were freshly installed. This can't be undone.</s-text>
               </s-stack>
               <s-button tone="critical" onClick={handleFullReset} disabled={resetting}>
                 {resetting ? "Resetting…" : confirming === "full" ? "Click again to confirm" : "Reset all app data"}
               </s-button>
             </s-stack>
-          </s-stack>
-        </s-section>
+          </s-section>
+        </>
       )}
     </s-page>
   )
