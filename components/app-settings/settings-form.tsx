@@ -32,7 +32,7 @@ declare const shopify: {
 const SAVE_BAR_ID = "settings-save-bar";
 
 type MediaLibraryFile = { id: string; url: string; alt: string | null; width: number; height: number };
-type SettingsTab = "branding" | "returns" | "navigation" | "table";
+type SettingsTab = "branding" | "returns" | "navigation" | "table" | "danger";
 
 const TAB_FIELDS: Record<SettingsTab, (keyof BrandingInput)[]> = {
   branding: ["name", "logoUrl", "accentColor", "storefrontUrl", "supportEmail", "guestBackgroundStyle"],
@@ -50,6 +50,10 @@ const TAB_FIELDS: Record<SettingsTab, (keyof BrandingInput)[]> = {
     "tableColumnsButtonEnabled", "tableFilterButtonEnabled", "tablePageSizeEnabled", "shipmentCardsEnabled",
     "productImageLinksEnabled",
   ],
+  // No fields of its own — Reset actions act on the whole form/tenant record,
+  // not a validated field subset, so there's nothing for the Save-error tab
+  // jump (see handleSave) to ever match here.
+  danger: [],
 };
 
 function filenameFromUrl(url: string): string {
@@ -119,7 +123,7 @@ export function SettingsForm({
   const [activeTab, setActiveTab] = useState<SettingsTab>(() => {
     if (typeof window === "undefined") return "branding"
     const tab = new URLSearchParams(window.location.search).get("tab")
-    return tab === "returns" || tab === "navigation" || tab === "table" ? tab : "branding"
+    return tab === "returns" || tab === "navigation" || tab === "table" || tab === "danger" ? tab : "branding"
   })
   // Which sidebar-link rows are expanded — collapsed by default (existing
   // links show a one-line summary) so the list stays scannable once a
@@ -400,6 +404,7 @@ export function SettingsForm({
     { id: "returns", label: "Returns policy" },
     { id: "navigation", label: "Navigation" },
     { id: "table", label: "Table & search" },
+    { id: "danger", label: "Danger zone" },
   ]
 
   return (
@@ -929,29 +934,31 @@ export function SettingsForm({
         </>
       )}
 
-      <s-section heading="Danger zone">
-        <s-stack direction="block" gap="base">
-          <s-stack direction="inline" gap="base" alignItems="center">
-            <s-stack direction="block" gap="small-100">
-              <s-text type="strong">Reset to defaults</s-text>
-              <s-text color="subdued">Clears every field on this form back to its default value. Nothing is saved until you click Save.</s-text>
+      {activeTab === "danger" && (
+        <s-section heading="Danger zone">
+          <s-stack direction="block" gap="base">
+            <s-stack direction="inline" gap="base" alignItems="center">
+              <s-stack direction="block" gap="small-100">
+                <s-text type="strong">Reset to defaults</s-text>
+                <s-text color="subdued">Clears every field on this form back to its default value. Nothing is saved until you click Save.</s-text>
+              </s-stack>
+              <s-button tone="critical" onClick={handleResetToDefaults}>
+                {confirming === "defaults" ? "Click again to confirm" : "Reset to defaults"}
+              </s-button>
             </s-stack>
-            <s-button tone="critical" onClick={handleResetToDefaults}>
-              {confirming === "defaults" ? "Click again to confirm" : "Reset to defaults"}
-            </s-button>
-          </s-stack>
-          <s-divider></s-divider>
-          <s-stack direction="inline" gap="base" alignItems="center">
-            <s-stack direction="block" gap="small-100">
-              <s-text type="strong">Reset all app data</s-text>
-              <s-text color="subdued">Wipes every Dashboard stat (orders, returns, refund value) and resets these settings to defaults immediately — as if the app were freshly installed. This can't be undone.</s-text>
+            <s-divider></s-divider>
+            <s-stack direction="inline" gap="base" alignItems="center">
+              <s-stack direction="block" gap="small-100">
+                <s-text type="strong">Reset all app data</s-text>
+                <s-text color="subdued">Wipes every Dashboard stat (orders, returns, refund value) and resets these settings to defaults immediately — as if the app were freshly installed. This can't be undone.</s-text>
+              </s-stack>
+              <s-button tone="critical" onClick={handleFullReset} disabled={resetting}>
+                {resetting ? "Resetting…" : confirming === "full" ? "Click again to confirm" : "Reset all app data"}
+              </s-button>
             </s-stack>
-            <s-button tone="critical" onClick={handleFullReset} disabled={resetting}>
-              {resetting ? "Resetting…" : confirming === "full" ? "Click again to confirm" : "Reset all app data"}
-            </s-button>
           </s-stack>
-        </s-stack>
-      </s-section>
+        </s-section>
+      )}
     </s-page>
   )
 }

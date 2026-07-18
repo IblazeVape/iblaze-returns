@@ -16,7 +16,7 @@ export function PolicyHtml({ html, className }: { html: string; className?: stri
   return (
     <div
       className={cn(
-        "text-sm",
+        "text-sm break-words [overflow-wrap:anywhere]",
         "[&_p]:mt-2 [&_p:first-child]:mt-0",
         "[&_strong]:font-semibold",
         "[&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mt-2 [&_ul]:space-y-1",

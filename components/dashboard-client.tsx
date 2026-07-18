@@ -2969,7 +2969,7 @@ function HygienePolicy({
             <DialogDescription>{subheading}</DialogDescription>
             {lastUpdated && <p className="text-xs text-muted-foreground">Last updated: {lastUpdated}</p>}
           </DialogHeader>
-          <div className="overflow-y-auto max-h-[50vh]">
+          <div className="overflow-y-auto overflow-x-hidden max-h-[50vh]">
             <HygienePolicyList itemPx="px-6" bodyMode={bodyMode} categories={categories} bodyText={bodyText} footerNoteEnabled={footerNoteEnabled} footerNote={footerNote} />
           </div>
           <div className="flex gap-2 px-6 pb-6 pt-4">
@@ -2995,7 +2995,7 @@ function HygienePolicy({
           {lastUpdated && <p className="text-xs text-muted-foreground">Last updated: {lastUpdated}</p>}
         </DrawerHeader>
         <Separator />
-        <div className="overflow-y-auto max-h-[45vh]">
+        <div className="overflow-y-auto overflow-x-hidden max-h-[45vh]">
           <HygienePolicyList itemPx="px-4" bodyMode={bodyMode} categories={categories} bodyText={bodyText} footerNoteEnabled={footerNoteEnabled} footerNote={footerNote} />
         </div>
         <DrawerFooter className="pt-2">
