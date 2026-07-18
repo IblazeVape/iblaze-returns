@@ -350,6 +350,51 @@ export function SettingsForm({
     if (typeof shopify !== "undefined") shopify.saveBar.hide(SAVE_BAR_ID)
   }
 
+  // Two-step confirm (not window.confirm() — unreliable inside an embedded
+  // iframe): first click arms the action, a second click within the window
+  // actually runs it. Click anything else and it disarms itself.
+  const [confirming, setConfirming] = useState<"defaults" | "full" | null>(null)
+  const [resetting, setResetting] = useState(false)
+
+  function handleResetToDefaults() {
+    if (confirming !== "defaults") {
+      setConfirming("defaults")
+      return
+    }
+    setConfirming(null)
+    setForm({ ...DEFAULT_TENANT_FIELDS.branding, returnWindowDays: DEFAULT_TENANT_FIELDS.returnWindowDays })
+    setErrors({})
+    // Not saved yet — the save bar's own dirty-check (comparing against
+    // initialForm.current) picks this up and shows Save/Discard as normal.
+  }
+
+  async function handleFullReset() {
+    if (confirming !== "full") {
+      setConfirming("full")
+      return
+    }
+    setConfirming(null)
+    setResetting(true)
+    try {
+      const res = await authedFetch("/api/app/reset", { method: "POST" })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || !data.ok) throw new Error(data.error || "Reset failed")
+      const next: BrandingInput = { ...data.branding, returnWindowDays: data.returnWindowDays }
+      initialForm.current = next
+      setForm(next)
+      setErrors({})
+      setStatus("idle")
+      if (typeof shopify !== "undefined") {
+        shopify.saveBar.hide(SAVE_BAR_ID)
+        shopify.toast.show("App data reset")
+      }
+    } catch {
+      if (typeof shopify !== "undefined") shopify.toast.show("Reset failed. Try again.", { isError: true })
+    } finally {
+      setResetting(false)
+    }
+  }
+
   const TABS: { id: SettingsTab; label: string }[] = [
     { id: "branding", label: "Branding" },
     { id: "returns", label: "Returns policy" },
@@ -883,6 +928,30 @@ export function SettingsForm({
           </s-section>
         </>
       )}
+
+      <s-section heading="Danger zone">
+        <s-stack direction="block" gap="base">
+          <s-stack direction="inline" gap="base" alignItems="center">
+            <s-stack direction="block" gap="small-100">
+              <s-text type="strong">Reset to defaults</s-text>
+              <s-text color="subdued">Clears every field on this form back to its default value. Nothing is saved until you click Save.</s-text>
+            </s-stack>
+            <s-button tone="critical" onClick={handleResetToDefaults}>
+              {confirming === "defaults" ? "Click again to confirm" : "Reset to defaults"}
+            </s-button>
+          </s-stack>
+          <s-divider></s-divider>
+          <s-stack direction="inline" gap="base" alignItems="center">
+            <s-stack direction="block" gap="small-100">
+              <s-text type="strong">Reset all app data</s-text>
+              <s-text color="subdued">Wipes every Dashboard stat (orders, returns, refund value) and resets these settings to defaults immediately — as if the app were freshly installed. This can't be undone.</s-text>
+            </s-stack>
+            <s-button tone="critical" onClick={handleFullReset} disabled={resetting}>
+              {resetting ? "Resetting…" : confirming === "full" ? "Click again to confirm" : "Reset all app data"}
+            </s-button>
+          </s-stack>
+        </s-stack>
+      </s-section>
     </s-page>
   )
 }
