@@ -427,7 +427,15 @@ export function SettingsForm({
                 restyles the same manual button+state approach to look like
                 real Polaris tabs (underline on the active one) instead of
                 trying the broken component again. */}
-            <div style={{ display: "flex", gap: 20, borderBottom: "1px solid #e1e3e5" }}>
+            <div
+              style={{
+                display: "flex",
+                gap: 20,
+                borderBottom: "1px solid #e1e3e5",
+                overflowX: "auto",
+                WebkitOverflowScrolling: "touch",
+              }}
+            >
               {TABS.map((tab) => (
                 <button
                   key={tab.id}
@@ -444,6 +452,8 @@ export function SettingsForm({
                     color: activeTab === tab.id ? "#1a1a1a" : "#6b6b6b",
                     borderBottom: activeTab === tab.id ? "2px solid #1a1a1a" : "2px solid transparent",
                     marginBottom: -1,
+                    whiteSpace: "nowrap",
+                    flexShrink: 0,
                   }}
                 >
                   {tab.label}
