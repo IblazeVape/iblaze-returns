@@ -12,7 +12,6 @@ export type IneligibleStatusMessagesInput = {
   returnInProgress: string;
   returned: string;
   refunded: string;
-  declined: string;
   returnCancelled: string;
   cancelled: string;
   notEligible: string;

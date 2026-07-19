@@ -2278,6 +2278,16 @@ function OutlineBadge({ className, children }: { className: string; children: Re
   )
 }
 
+// Shopify sometimes appends its own placeholder text ("Decline reason") one
+// or more times onto the END of an otherwise-real decline note — e.g.
+// "because we don't accept returns of final sale items. Decline
+// reasonDecline reasonDecline reason." Strip that trailing junk so the real
+// sentence in front of it survives intact, instead of showing the raw
+// concatenated mess to customers.
+function stripTrailingDeclineReasonJunk(note: string): string {
+  return note.replace(/(\s*decline\s*reason\.?\s*)+$/i, "").trim()
+}
+
 function isGenericDeclineNote(note: string): boolean {
   const t = note.trim()
   if (!t || /^decline reason\.?$/i.test(t)) return true
@@ -2291,8 +2301,9 @@ function isGenericDeclineNote(note: string): boolean {
 
 const DEFAULT_DECLINE_FALLBACK = "Your return request was declined."
 
-function resolveDeclineMessage(message: string, fallback: string = DEFAULT_DECLINE_FALLBACK): string {
-  return isGenericDeclineNote(message) ? fallback : message.trim()
+function resolveDeclineMessage(message: string): string {
+  const cleaned = stripTrailingDeclineReasonJunk(message)
+  return isGenericDeclineNote(cleaned) ? DEFAULT_DECLINE_FALLBACK : cleaned
 }
 
 function isPermanentDeclineReason(reason?: string): boolean {
@@ -2303,16 +2314,16 @@ function hasRetryableDecline(entries: { declineReason?: string }[]): boolean {
   return entries.some(e => !isPermanentDeclineReason(e.declineReason))
 }
 
-function groupDeclinedEntries(entries: { quantity: number; message: string }[], fallback: string = DEFAULT_DECLINE_FALLBACK) {
+function groupDeclinedEntries(entries: { quantity: number; message: string }[]) {
   const map = new Map<string, number>()
   for (const e of entries) {
-    const msg = resolveDeclineMessage(e.message, fallback)
+    const msg = resolveDeclineMessage(e.message)
     map.set(msg, (map.get(msg) || 0) + e.quantity)
   }
   return [...map.entries()].map(([message, quantity]) => ({ message, quantity }))
 }
 
-function buildIneligibleDisplayItems(order: Order, declinedFallback: string = DEFAULT_DECLINE_FALLBACK): DisplayItem[] {
+function buildIneligibleDisplayItems(order: Order): DisplayItem[] {
   const result: DisplayItem[] = []
 
   for (const item of order.processedItems) {
@@ -2371,7 +2382,7 @@ function buildIneligibleDisplayItems(order: Order, declinedFallback: string = DE
       const declinedToShow = isPartiallyEligible
         ? item.declinedReturnEntries.filter(e => isPermanentDeclineReason(e.declineReason))
         : item.declinedReturnEntries
-      const grouped = groupDeclinedEntries(declinedToShow, declinedFallback)
+      const grouped = groupDeclinedEntries(declinedToShow)
       grouped.forEach((entry, i) => {
         const declinedQty = take(entry.quantity)
         if (declinedQty <= 0) return
@@ -2664,7 +2675,7 @@ function getIneligibleGroupMessage(item: LineItem, order: Order, returnWindowDay
       // Already resolved by buildIneligibleDisplayItems (real Shopify
       // reason, or the merchant's declined fallback below) — item.returnReason
       // is only falsy here if this item somehow bypassed that path.
-      return item.returnReason || messages.declined
+      return item.returnReason || DEFAULT_DECLINE_FALLBACK
     case "Return cancelled":
       return messages.returnCancelled
     case "Cancelled":
@@ -3286,10 +3297,7 @@ function OrderDetail({
     [order]
   )
 
-  const ineligibleItems = useMemo(
-    () => buildIneligibleDisplayItems(order, ineligibleStatusMessages.declined),
-    [order, ineligibleStatusMessages.declined],
-  )
+  const ineligibleItems = useMemo(() => buildIneligibleDisplayItems(order), [order])
 
   const hasEligible          = eligibleItems.length > 0 && !order.cancelledAt
   const totalEligibleUnits   = eligibleItems.reduce((s, i) => s + i.eligibleQuantity, 0)

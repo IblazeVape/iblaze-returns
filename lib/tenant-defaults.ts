@@ -31,13 +31,6 @@ export type IneligibleStatusMessages = {
   returnInProgress: string;
   returned: string;
   refunded: string;
-  /** Fallback shown for a "Return declined" item when Shopify has no
-   * specific decline reason on file (or an unusably generic one, e.g.
-   * "Decline reason", "N/A") — see isGenericDeclineNote in
-   * components/dashboard-client.tsx. When Shopify DOES have a real reason,
-   * that full reason is shown instead, verbatim — this only covers the
-   * empty/generic case. */
-  declined: string;
   returnCancelled: string;
   cancelled: string;
   notEligible: string;
@@ -184,7 +177,6 @@ export const DEFAULT_TENANT_FIELDS = {
       returnInProgress: "Your return is in progress.",
       returned: "These items have already been returned.",
       refunded: "These items have already been refunded.",
-      declined: "Your return request was declined.",
       returnCancelled: "This return request was cancelled.",
       cancelled: "These items were cancelled.",
       notEligible: "These items aren't eligible for return.",

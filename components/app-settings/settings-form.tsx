@@ -1166,19 +1166,10 @@ export function SettingsForm({
                             ></s-text-area>
                           )}
                           {key === "returnDeclined" && (
-                            <>
-                              <s-paragraph tone="subdued">
-                                When Shopify has a specific decline reason on file, that full reason is shown to the
-                                customer verbatim. This fallback only applies when there's no reason on file, or an
-                                unusable one (e.g. "N/A").
-                              </s-paragraph>
-                              <s-text-area
-                                label="Fallback sentence"
-                                value={form.ineligibleStatusMessages.declined}
-                                rows={2}
-                                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setIneligibleMessage("declined", e.target.value)}
-                              ></s-text-area>
-                            </>
+                            <s-paragraph tone="subdued">
+                              This status shows the actual decline reason from Shopify, verbatim — not a fixed
+                              sentence, so there's no message to edit here.
+                            </s-paragraph>
                           )}
                           {key === "returnCancelled" && (
                             <s-text-area

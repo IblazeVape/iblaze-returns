@@ -57,7 +57,6 @@ const VALID: BrandingInput = {
     returnInProgress: "Your return is in progress.",
     returned: "These items have already been returned.",
     refunded: "These items have already been refunded.",
-    declined: "Your return request was declined.",
     returnCancelled: "This return request was cancelled.",
     cancelled: "These items were cancelled.",
     notEligible: "These items aren't eligible for return.",

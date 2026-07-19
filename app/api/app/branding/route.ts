@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 
 const INELIGIBLE_STATUS_MESSAGE_KEYS = [
   "confirmed", "onItsWay", "outForDelivery", "attemptedDelivery", "windowExpired", "windowExpiredNoDate",
-  "returnRequested", "returnInProgress", "returned", "refunded", "declined", "returnCancelled", "cancelled", "notEligible",
+  "returnRequested", "returnInProgress", "returned", "refunded", "returnCancelled", "cancelled", "notEligible",
 ] as const;
 
 function isPolicyCategoryArray(value: unknown): value is PolicyCategoryInput[] {

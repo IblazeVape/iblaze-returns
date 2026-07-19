@@ -136,7 +136,6 @@ describe("tenant store", () => {
           returnInProgress: "Return in progress.",
           returned: "Already returned.",
           refunded: "Already refunded.",
-          declined: "Declined.",
           returnCancelled: "Return cancelled.",
           cancelled: "Cancelled.",
           notEligible: "Not eligible.",
