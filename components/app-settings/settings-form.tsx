@@ -156,38 +156,27 @@ export function SettingsForm({
   // links show a one-line summary) so the list stays scannable once a
   // merchant has several links with sub-links. A newly added link opens
   // automatically so it's immediately editable.
-  const [openLinkIndices, setOpenLinkIndices] = useState<Set<number>>(new Set())
+  // Accordion, not independent toggles: opening one closes whichever else
+  // was open, for each of the three collapsible lists below (sidebar links,
+  // statuses, policy categories) — a merchant asked for this explicitly
+  // after finding it disorienting to have several long cards open at once.
+  const [openLinkIndex, setOpenLinkIndex] = useState<number | null>(null)
   function toggleLinkOpen(index: number) {
-    setOpenLinkIndices((prev) => {
-      const next = new Set(prev)
-      if (next.has(index)) next.delete(index)
-      else next.add(index)
-      return next
-    })
+    setOpenLinkIndex((prev) => (prev === index ? null : index))
   }
 
   // Same collapsed-by-default pattern, applied to the per-status label/
   // heading/icon/color/message cards — keeps the 14-status list scannable.
-  const [openStatusKeys, setOpenStatusKeys] = useState<Set<IneligibleStatusKeyInput>>(new Set())
+  const [openStatusKey, setOpenStatusKey] = useState<IneligibleStatusKeyInput | null>(null)
   function toggleStatusOpen(key: IneligibleStatusKeyInput) {
-    setOpenStatusKeys((prev) => {
-      const next = new Set(prev)
-      if (next.has(key)) next.delete(key)
-      else next.add(key)
-      return next
-    })
+    setOpenStatusKey((prev) => (prev === key ? null : key))
   }
 
   // Same collapsed-by-default pattern as sidebar links above, applied to
   // the returns-policy category list — keeps a long category list scannable.
-  const [openCategoryIndices, setOpenCategoryIndices] = useState<Set<number>>(new Set())
+  const [openCategoryIndex, setOpenCategoryIndex] = useState<number | null>(null)
   function toggleCategoryOpen(index: number) {
-    setOpenCategoryIndices((prev) => {
-      const next = new Set(prev)
-      if (next.has(index)) next.delete(index)
-      else next.add(index)
-      return next
-    })
+    setOpenCategoryIndex((prev) => (prev === index ? null : index))
   }
 
   function set<K extends keyof BrandingInput>(key: K, value: BrandingInput[K]) {
@@ -255,20 +244,15 @@ export function SettingsForm({
   function addCategory() {
     setForm((f) => {
       const newIndex = f.policyCategories.length
-      setOpenCategoryIndices((prev) => new Set(prev).add(newIndex))
+      setOpenCategoryIndex(newIndex)
       return { ...f, policyCategories: [...f.policyCategories, { title: "", desc: "" }] }
     })
   }
   function removeCategory(index: number) {
     setForm((f) => ({ ...f, policyCategories: f.policyCategories.filter((_, i) => i !== index) }))
-    setOpenCategoryIndices((prev) => {
-      const next = new Set<number>()
-      for (const i of prev) {
-        if (i < index) next.add(i)
-        else if (i > index) next.add(i - 1)
-        // i === index: dropped along with the removed category
-      }
-      return next
+    setOpenCategoryIndex((prev) => {
+      if (prev === null || prev === index) return null
+      return prev > index ? prev - 1 : prev
     })
   }
   function moveCategory(index: number, direction: -1 | 1) {
@@ -279,14 +263,11 @@ export function SettingsForm({
       ;[next[index], next[target]] = [next[target], next[index]]
       return { ...f, policyCategories: next }
     })
-    setOpenCategoryIndices((prev) => {
+    setOpenCategoryIndex((prev) => {
       if (target < 0 || target >= form.policyCategories.length) return prev
-      const hadIndex = prev.has(index)
-      const hadTarget = prev.has(target)
-      const next = new Set(prev)
-      if (hadIndex) next.add(target); else next.delete(target)
-      if (hadTarget) next.add(index); else next.delete(index)
-      return next
+      if (prev === index) return target
+      if (prev === target) return index
+      return prev
     })
   }
 
@@ -296,20 +277,15 @@ export function SettingsForm({
   function addSidebarLink() {
     setForm((f) => {
       const newIndex = f.sidebarLinks.length
-      setOpenLinkIndices((prev) => new Set(prev).add(newIndex))
+      setOpenLinkIndex(newIndex)
       return { ...f, sidebarLinks: [...f.sidebarLinks, { label: "", url: "" }] }
     })
   }
   function removeSidebarLink(index: number) {
     setForm((f) => ({ ...f, sidebarLinks: f.sidebarLinks.filter((_, i) => i !== index) }))
-    setOpenLinkIndices((prev) => {
-      const next = new Set<number>()
-      for (const i of prev) {
-        if (i < index) next.add(i)
-        else if (i > index) next.add(i - 1)
-        // i === index: dropped along with the removed link
-      }
-      return next
+    setOpenLinkIndex((prev) => {
+      if (prev === null || prev === index) return null
+      return prev > index ? prev - 1 : prev
     })
   }
   function moveSidebarLink(index: number, direction: -1 | 1) {
@@ -320,14 +296,11 @@ export function SettingsForm({
       ;[next[index], next[target]] = [next[target], next[index]]
       return { ...f, sidebarLinks: next }
     })
-    setOpenLinkIndices((prev) => {
+    setOpenLinkIndex((prev) => {
       if (target < 0 || target >= form.sidebarLinks.length) return prev
-      const hadIndex = prev.has(index)
-      const hadTarget = prev.has(target)
-      const next = new Set(prev)
-      if (hadIndex) next.add(target); else next.delete(target)
-      if (hadTarget) next.add(index); else next.delete(index)
-      return next
+      if (prev === index) return target
+      if (prev === target) return index
+      return prev
     })
   }
 
@@ -692,7 +665,7 @@ export function SettingsForm({
               {form.policyBodyMode === "categories" ? (
                 <s-stack direction="block" gap="base">
                   {form.policyCategories.map((cat, i) => {
-                    const isOpen = openCategoryIndices.has(i)
+                    const isOpen = openCategoryIndex === i
                     return (
                       <s-box key={i} padding="base" border="base" borderRadius="base">
                         <s-stack direction="block" gap="small">
@@ -825,7 +798,7 @@ export function SettingsForm({
             <s-stack direction="block" gap="base">
               <s-paragraph tone="subdued">Extra links shown in the customer portal's sidebar, alongside Home and Orders. Open in a new tab. Each link can optionally have its own sub-links (a one-level submenu).</s-paragraph>
               {form.sidebarLinks.map((link, i) => {
-                const isOpen = openLinkIndices.has(i)
+                const isOpen = openLinkIndex === i
                 const subCount = link.children?.length ?? 0
                 return (
                   <s-box key={i} padding="base" border="base" borderRadius="base">
@@ -1075,7 +1048,7 @@ export function SettingsForm({
                 window only) for the date it closed.
               </s-text>
               {STATUS_CARDS.map(({ key, name }) => {
-                const isOpen = openStatusKeys.has(key)
+                const isOpen = openStatusKey === key
                 const style = form.ineligibleStatusStyles[key]
                 return (
                   <s-box key={key} padding="base" border="base" borderRadius="base">
