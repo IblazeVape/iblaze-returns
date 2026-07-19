@@ -1,35 +1,35 @@
 export type PolicyCategoryInput = { title: string; desc: string };
 export type SidebarSubLinkInput = { label: string; url: string; icon?: string };
 export type SidebarLinkInput = { label: string; url: string; icon?: string; children?: SidebarSubLinkInput[] };
-export type IneligibleStatusMessagesInput = {
-  confirmed: string;
-  onItsWay: string;
-  outForDelivery: string;
-  attemptedDelivery: string;
-  windowExpired: string;
-  windowExpiredNoDate: string;
+export type ReturnLifecycleStatusInput =
+  | "notReturnable" | "returnRequested" | "returnInProgress"
+  | "returnDeclined" | "returnCanceled" | "returnCompleted";
+
+export const RETURN_LIFECYCLE_STATUSES: ReturnLifecycleStatusInput[] = [
+  "notReturnable", "returnRequested", "returnInProgress",
+  "returnDeclined", "returnCanceled", "returnCompleted",
+];
+
+export type ReturnLifecycleStyleInput = { label: string; heading: string; icon: string; color: string };
+export type ReturnLifecycleStylesInput = Record<ReturnLifecycleStatusInput, ReturnLifecycleStyleInput>;
+
+export type ReturnLifecycleMessagesInput = {
+  shippingConfirmed: string;
+  shippingOnItsWay: string;
+  shippingOutForDelivery: string;
+  shippingAttemptedDelivery: string;
+  outsideWindow: string;
+  outsideWindowNoDate: string;
+  finalSale: string;
+  otherNotReturnable: string;
   returnRequested: string;
   returnInProgress: string;
-  returned: string;
-  refunded: string;
-  returnCancelled: string;
-  cancelled: string;
-  notEligible: string;
+  returnCanceled: string;
+  returnCompleted: string;
 };
 
-export type IneligibleStatusKeyInput =
-  | "confirmed" | "onItsWay" | "outForDelivery" | "attemptedDelivery" | "passedReturnWindow"
-  | "returnRequested" | "returnInProgress" | "returned" | "refunded" | "returnDeclined"
-  | "returnCancelled" | "cancelled" | "finalSale" | "notEligible";
-
-export type IneligibleStatusStyleInput = { label: string; heading: string; icon: string; color: string };
-export type IneligibleStatusStylesInput = Record<IneligibleStatusKeyInput, IneligibleStatusStyleInput>;
-
-export const INELIGIBLE_STATUS_KEYS: IneligibleStatusKeyInput[] = [
-  "confirmed", "onItsWay", "outForDelivery", "attemptedDelivery", "passedReturnWindow",
-  "returnRequested", "returnInProgress", "returned", "refunded", "returnDeclined",
-  "returnCancelled", "cancelled", "finalSale", "notEligible",
-];
+export type RefundStatusInput = "notRefunded" | "partiallyRefunded" | "refunded";
+export type RefundStatusLabelsInput = Record<RefundStatusInput, string>;
 
 export type BrandingInput = {
   name: string;
@@ -76,8 +76,9 @@ export type BrandingInput = {
   headerAvatarEnabled: boolean;
   eligibleLabel: string;
   ineligibleLabel: string;
-  ineligibleStatusMessages: IneligibleStatusMessagesInput;
-  ineligibleStatusStyles: IneligibleStatusStylesInput;
+  returnLifecycleStyles: ReturnLifecycleStylesInput;
+  returnLifecycleMessages: ReturnLifecycleMessagesInput;
+  refundStatusLabels: RefundStatusLabelsInput;
   alwaysShowGuestLookup: boolean;
 };
 
@@ -144,21 +145,29 @@ export function validateBrandingInput(
     errors.ineligibleLabel = `Must be ${STORE_LINK_LABEL_MAX_LENGTH} characters or fewer.`;
   }
   {
-    const messages = Object.values(input.ineligibleStatusMessages);
+    const messages = Object.values(input.returnLifecycleMessages);
     if (messages.some((m) => !m.trim())) {
-      errors.ineligibleStatusMessages = "Every message must have some text — none can be empty.";
+      errors.returnLifecycleMessages = "Every message must have some text — none can be empty.";
     } else if (messages.some((m) => m.length > POLICY_FOOTER_NOTE_MAX_LENGTH)) {
-      errors.ineligibleStatusMessages = `Each message must be ${POLICY_FOOTER_NOTE_MAX_LENGTH} characters or fewer.`;
+      errors.returnLifecycleMessages = `Each message must be ${POLICY_FOOTER_NOTE_MAX_LENGTH} characters or fewer.`;
     }
   }
   {
-    const styles = INELIGIBLE_STATUS_KEYS.map((k) => input.ineligibleStatusStyles[k]);
+    const styles = RETURN_LIFECYCLE_STATUSES.map((k) => input.returnLifecycleStyles[k]);
     if (styles.some((s) => !s.label.trim() || !s.heading.trim())) {
-      errors.ineligibleStatusStyles = "Every status needs both a label and a heading.";
+      errors.returnLifecycleStyles = "Every status needs both a label and a heading.";
     } else if (styles.some((s) => s.label.length > STORE_LINK_LABEL_MAX_LENGTH || s.heading.length > POLICY_HEADING_MAX_LENGTH)) {
-      errors.ineligibleStatusStyles = `Labels must be ${STORE_LINK_LABEL_MAX_LENGTH} characters or fewer, headings ${POLICY_HEADING_MAX_LENGTH} or fewer.`;
+      errors.returnLifecycleStyles = `Labels must be ${STORE_LINK_LABEL_MAX_LENGTH} characters or fewer, headings ${POLICY_HEADING_MAX_LENGTH} or fewer.`;
     } else if (styles.some((s) => s.color && !HEX_COLOR_RE.test(s.color))) {
-      errors.ineligibleStatusStyles = "Each color must be blank or a hex color like #4F46E5.";
+      errors.returnLifecycleStyles = "Each color must be blank or a hex color like #4F46E5.";
+    }
+  }
+  {
+    const { partiallyRefunded, refunded } = input.refundStatusLabels;
+    if (!partiallyRefunded.trim() || !refunded.trim()) {
+      errors.refundStatusLabels = "The 'partially refunded' and 'refunded' labels can't be empty.";
+    } else if (partiallyRefunded.length > STORE_LINK_LABEL_MAX_LENGTH || refunded.length > STORE_LINK_LABEL_MAX_LENGTH) {
+      errors.refundStatusLabels = `Labels must be ${STORE_LINK_LABEL_MAX_LENGTH} characters or fewer.`;
     }
   }
   if (input.policyHeading.length > POLICY_HEADING_MAX_LENGTH) {
