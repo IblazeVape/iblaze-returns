@@ -1,12 +1,39 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { validateBrandingInput, type BrandingInput, type PolicyCategoryInput, type SidebarLinkInput, type SidebarSubLinkInput, type IneligibleStatusMessagesInput } from "@/lib/branding-validation"
+import { validateBrandingInput, type BrandingInput, type PolicyCategoryInput, type SidebarLinkInput, type SidebarSubLinkInput, type IneligibleStatusMessagesInput, type IneligibleStatusKeyInput, type IneligibleStatusStyleInput } from "@/lib/branding-validation"
 import type { TenantBranding } from "@/lib/tenant"
 import { SIDEBAR_ICON_NAMES } from "@/lib/sidebar-icons"
+import { STATUS_ICON_NAMES } from "@/lib/status-icons"
 import { RichTextEditor } from "@/components/app-settings/rich-text-editor"
 import { DEFAULT_TENANT_FIELDS } from "@/lib/tenant-defaults"
 import { migrateMarkdownIfNeeded } from "@/lib/markdown-to-html"
+
+/** Each status card's optional sentence field(s) — sourced from the
+ * existing (differently-keyed) ineligibleStatusMessages, since that field
+ * set shipped separately and isn't worth re-keying. finalSale and
+ * notEligible intentionally share one message field (messages.notEligible)
+ * — they're separate statuses for label/heading/icon purposes but the
+ * underlying sentence hasn't been split. returnDeclined has no field here:
+ * its text comes from the actual Shopify decline reason, not a static
+ * template.
+ */
+const STATUS_CARDS: { key: IneligibleStatusKeyInput; name: string }[] = [
+  { key: "confirmed", name: "Confirmed" },
+  { key: "onItsWay", name: "On its way" },
+  { key: "outForDelivery", name: "Out for delivery" },
+  { key: "attemptedDelivery", name: "Attempted delivery" },
+  { key: "passedReturnWindow", name: "Passed the return window" },
+  { key: "returnRequested", name: "Return requested" },
+  { key: "returnInProgress", name: "Return in progress" },
+  { key: "returned", name: "Returned" },
+  { key: "refunded", name: "Refunded" },
+  { key: "returnDeclined", name: "Return declined" },
+  { key: "returnCancelled", name: "Return cancelled" },
+  { key: "cancelled", name: "Cancelled" },
+  { key: "finalSale", name: "Final sale" },
+  { key: "notEligible", name: "Not eligible" },
+]
 
 declare const shopify: {
   idToken: () => Promise<string>;
@@ -48,7 +75,7 @@ const TAB_FIELDS: Record<SettingsTab, (keyof BrandingInput)[]> = {
   table: [
     "headerSearchEnabled", "headerSearchPlaceholder", "tableSearchEnabled", "tableSearchPlaceholder",
     "tableColumnsButtonEnabled", "tableFilterButtonEnabled", "tablePageSizeEnabled", "shipmentCardsEnabled",
-    "productImageLinksEnabled", "ineligibleStatusMessages",
+    "productImageLinksEnabled", "ineligibleStatusMessages", "ineligibleStatusStyles",
   ],
   // No fields of its own — Reset actions act on the whole form/tenant record,
   // not a validated field subset, so there's nothing for the Save-error tab
@@ -139,6 +166,18 @@ export function SettingsForm({
     })
   }
 
+  // Same collapsed-by-default pattern, applied to the per-status label/
+  // heading/icon/color/message cards — keeps the 14-status list scannable.
+  const [openStatusKeys, setOpenStatusKeys] = useState<Set<IneligibleStatusKeyInput>>(new Set())
+  function toggleStatusOpen(key: IneligibleStatusKeyInput) {
+    setOpenStatusKeys((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
+
   // Same collapsed-by-default pattern as sidebar links above, applied to
   // the returns-policy category list — keeps a long category list scannable.
   const [openCategoryIndices, setOpenCategoryIndices] = useState<Set<number>>(new Set())
@@ -157,6 +196,16 @@ export function SettingsForm({
 
   function setIneligibleMessage<K extends keyof IneligibleStatusMessagesInput>(key: K, value: string) {
     setForm((f) => ({ ...f, ineligibleStatusMessages: { ...f.ineligibleStatusMessages, [key]: value } }))
+  }
+
+  function setStatusStyle<K extends keyof IneligibleStatusStyleInput>(statusKey: IneligibleStatusKeyInput, field: K, value: IneligibleStatusStyleInput[K]) {
+    setForm((f) => ({
+      ...f,
+      ineligibleStatusStyles: {
+        ...f.ineligibleStatusStyles,
+        [statusKey]: { ...f.ineligibleStatusStyles[statusKey], [field]: value },
+      },
+    }))
   }
 
   async function authedFetch(input: string, init: RequestInit = {}) {
@@ -1017,38 +1066,176 @@ export function SettingsForm({
             </s-stack>
           </s-section>
 
-          <s-section heading="Status messages">
+          <s-section heading="Statuses">
             <s-stack direction="block" gap="base">
               <s-text color="subdued">
-                Customize the sentences shown to customers for each ineligible status. Use {"{days}"} for the return
-                window length and {"{closedDate}"} (expired window only) for the date it closed.
+                Everything about how each return status displays to customers: the short label (shown in the filter
+                button and badges), the mobile accordion heading, the icon and color, and — where the status has one
+                — its full sentence. Use {"{days}"} for the return window length and {"{closedDate}"} (expired
+                window only) for the date it closed.
               </s-text>
-              {([
-                ["confirmed", "Confirmed", "We're preparing these items for shipping. Your return window starts on delivery and closes {days} days later."],
-                ["onItsWay", "On its way", "These items are on their way. Your return window starts on delivery and closes {days} days later."],
-                ["outForDelivery", "Out for delivery", "These items are out for delivery today. Your return window starts on delivery and closes {days} days later."],
-                ["attemptedDelivery", "Attempted delivery", "A delivery attempt was made for these items. Please rebook or collect — your return window starts once delivered."],
-                ["windowExpired", "Window expired (with date)", "The return window has expired for these items. It closed on {closedDate}."],
-                ["windowExpiredNoDate", "Window expired (no date)", "The return window has expired for these items."],
-                ["returnRequested", "Return requested", "We've received your return request."],
-                ["returnInProgress", "Return in progress", "Your return is in progress."],
-                ["returned", "Returned", "These items have already been returned."],
-                ["refunded", "Refunded", "These items have already been refunded."],
-                ["returnCancelled", "Return cancelled", "This return request was cancelled."],
-                ["cancelled", "Cancelled", "These items were cancelled."],
-                ["notEligible", "Not eligible", "These items aren't eligible for return."],
-              ] as [keyof IneligibleStatusMessagesInput, string, string][]).map(([key, label, placeholder]) => (
-                <s-text-area
-                  key={key}
-                  label={label}
-                  name={`ineligibleStatusMessages.${key}`}
-                  value={form.ineligibleStatusMessages[key]}
-                  placeholder={placeholder}
-                  rows={2}
-                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setIneligibleMessage(key, e.target.value)}
-                ></s-text-area>
-              ))}
+              {STATUS_CARDS.map(({ key, name }) => {
+                const isOpen = openStatusKeys.has(key)
+                const style = form.ineligibleStatusStyles[key]
+                return (
+                  <s-box key={key} padding="base" border="base" borderRadius="base">
+                    <s-stack direction="block" gap="small">
+                      <s-stack direction="inline" gap="small-300" alignItems="center">
+                        <s-button onClick={() => toggleStatusOpen(key)}>{isOpen ? "Collapse" : "Expand"}</s-button>
+                        <s-text>{name} — "{style.label}"</s-text>
+                      </s-stack>
+                      {isOpen && (
+                        <>
+                          <s-text-field
+                            label="Filter/badge label"
+                            value={style.label}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setStatusStyle(key, "label", e.target.value)}
+                          ></s-text-field>
+                          <s-text-field
+                            label="Mobile accordion heading"
+                            value={style.heading}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setStatusStyle(key, "heading", e.target.value)}
+                          ></s-text-field>
+                          <s-select
+                            label="Icon"
+                            value={style.icon}
+                            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setStatusStyle(key, "icon", e.target.value)}
+                          >
+                            {STATUS_ICON_NAMES.map((iconName) => (
+                              <s-option key={iconName} value={iconName}>{iconName}</s-option>
+                            ))}
+                          </s-select>
+                          <s-text-field
+                            label="Color (optional — leave blank for the portal's default color)"
+                            value={style.color}
+                            placeholder="#4F46E5"
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setStatusStyle(key, "color", e.target.value)}
+                          ></s-text-field>
+
+                          {key === "confirmed" && (
+                            <s-text-area
+                              label="Sentence"
+                              value={form.ineligibleStatusMessages.confirmed}
+                              rows={2}
+                              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setIneligibleMessage("confirmed", e.target.value)}
+                            ></s-text-area>
+                          )}
+                          {key === "onItsWay" && (
+                            <s-text-area
+                              label="Sentence"
+                              value={form.ineligibleStatusMessages.onItsWay}
+                              rows={2}
+                              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setIneligibleMessage("onItsWay", e.target.value)}
+                            ></s-text-area>
+                          )}
+                          {key === "outForDelivery" && (
+                            <s-text-area
+                              label="Sentence"
+                              value={form.ineligibleStatusMessages.outForDelivery}
+                              rows={2}
+                              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setIneligibleMessage("outForDelivery", e.target.value)}
+                            ></s-text-area>
+                          )}
+                          {key === "attemptedDelivery" && (
+                            <s-text-area
+                              label="Sentence"
+                              value={form.ineligibleStatusMessages.attemptedDelivery}
+                              rows={2}
+                              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setIneligibleMessage("attemptedDelivery", e.target.value)}
+                            ></s-text-area>
+                          )}
+                          {key === "passedReturnWindow" && (
+                            <>
+                              <s-text-area
+                                label="Sentence — with a closed date"
+                                value={form.ineligibleStatusMessages.windowExpired}
+                                rows={2}
+                                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setIneligibleMessage("windowExpired", e.target.value)}
+                              ></s-text-area>
+                              <s-text-area
+                                label="Sentence — no closed date available"
+                                value={form.ineligibleStatusMessages.windowExpiredNoDate}
+                                rows={2}
+                                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setIneligibleMessage("windowExpiredNoDate", e.target.value)}
+                              ></s-text-area>
+                            </>
+                          )}
+                          {key === "returnRequested" && (
+                            <s-text-area
+                              label="Sentence"
+                              value={form.ineligibleStatusMessages.returnRequested}
+                              rows={2}
+                              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setIneligibleMessage("returnRequested", e.target.value)}
+                            ></s-text-area>
+                          )}
+                          {key === "returnInProgress" && (
+                            <s-text-area
+                              label="Sentence"
+                              value={form.ineligibleStatusMessages.returnInProgress}
+                              rows={2}
+                              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setIneligibleMessage("returnInProgress", e.target.value)}
+                            ></s-text-area>
+                          )}
+                          {key === "returned" && (
+                            <s-text-area
+                              label="Sentence"
+                              value={form.ineligibleStatusMessages.returned}
+                              rows={2}
+                              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setIneligibleMessage("returned", e.target.value)}
+                            ></s-text-area>
+                          )}
+                          {key === "refunded" && (
+                            <s-text-area
+                              label="Sentence"
+                              value={form.ineligibleStatusMessages.refunded}
+                              rows={2}
+                              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setIneligibleMessage("refunded", e.target.value)}
+                            ></s-text-area>
+                          )}
+                          {key === "returnDeclined" && (
+                            <s-paragraph tone="subdued">
+                              This status shows the actual decline reason from Shopify, not a fixed sentence — not
+                              editable here yet.
+                            </s-paragraph>
+                          )}
+                          {key === "returnCancelled" && (
+                            <s-text-area
+                              label="Sentence"
+                              value={form.ineligibleStatusMessages.returnCancelled}
+                              rows={2}
+                              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setIneligibleMessage("returnCancelled", e.target.value)}
+                            ></s-text-area>
+                          )}
+                          {key === "cancelled" && (
+                            <s-text-area
+                              label="Sentence"
+                              value={form.ineligibleStatusMessages.cancelled}
+                              rows={2}
+                              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setIneligibleMessage("cancelled", e.target.value)}
+                            ></s-text-area>
+                          )}
+                          {(key === "finalSale" || key === "notEligible") && (
+                            <>
+                              <s-paragraph tone="subdued">
+                                Final sale and Not eligible currently share one sentence — editing it here updates
+                                both statuses' text.
+                              </s-paragraph>
+                              <s-text-area
+                                label="Sentence (shared)"
+                                value={form.ineligibleStatusMessages.notEligible}
+                                rows={2}
+                                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setIneligibleMessage("notEligible", e.target.value)}
+                              ></s-text-area>
+                            </>
+                          )}
+                        </>
+                      )}
+                    </s-stack>
+                  </s-box>
+                )
+              })}
               {errors.ineligibleStatusMessages && <s-paragraph tone="critical">{errors.ineligibleStatusMessages}</s-paragraph>}
+              {errors.ineligibleStatusStyles && <s-paragraph tone="critical">{errors.ineligibleStatusStyles}</s-paragraph>}
             </s-stack>
           </s-section>
         </>

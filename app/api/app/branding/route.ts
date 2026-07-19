@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyMerchantSessionToken } from "@/lib/merchant-session-token";
 import {
   validateBrandingInput,
+  INELIGIBLE_STATUS_KEYS,
   type BrandingInput,
   type PolicyCategoryInput,
   type SidebarLinkInput,
   type IneligibleStatusMessagesInput,
+  type IneligibleStatusStylesInput,
 } from "@/lib/branding-validation";
 import { getTenant, setTenant } from "@/lib/tenant";
 import { sanitizePolicyHtml } from "@/lib/sanitize-policy-html";
@@ -29,6 +31,17 @@ function isIneligibleStatusMessages(value: unknown): value is IneligibleStatusMe
   if (!value || typeof value !== "object") return false;
   const v = value as Record<string, unknown>;
   return INELIGIBLE_STATUS_MESSAGE_KEYS.every((key) => typeof v[key] === "string");
+}
+
+function isIneligibleStatusStyles(value: unknown): value is IneligibleStatusStylesInput {
+  if (!value || typeof value !== "object") return false;
+  const v = value as Record<string, unknown>;
+  return INELIGIBLE_STATUS_KEYS.every((key) => {
+    const s = v[key] as Record<string, unknown> | undefined;
+    return s && typeof s === "object"
+      && typeof s.label === "string" && typeof s.heading === "string"
+      && typeof s.icon === "string" && typeof s.color === "string";
+  });
 }
 
 export async function PUT(request: NextRequest) {
@@ -129,6 +142,9 @@ export async function PUT(request: NextRequest) {
     ineligibleStatusMessages: isIneligibleStatusMessages(body.ineligibleStatusMessages)
       ? body.ineligibleStatusMessages
       : existing.branding.ineligibleStatusMessages,
+    ineligibleStatusStyles: isIneligibleStatusStyles(body.ineligibleStatusStyles)
+      ? body.ineligibleStatusStyles
+      : existing.branding.ineligibleStatusStyles,
     alwaysShowGuestLookup:
       typeof body.alwaysShowGuestLookup === "boolean" ? body.alwaysShowGuestLookup : existing.branding.alwaysShowGuestLookup,
   };
@@ -185,6 +201,7 @@ export async function PUT(request: NextRequest) {
       eligibleLabel: input.eligibleLabel,
       ineligibleLabel: input.ineligibleLabel,
       ineligibleStatusMessages: input.ineligibleStatusMessages,
+      ineligibleStatusStyles: input.ineligibleStatusStyles,
       alwaysShowGuestLookup: input.alwaysShowGuestLookup,
     },
   });

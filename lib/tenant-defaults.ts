@@ -36,6 +36,32 @@ export type IneligibleStatusMessages = {
   notEligible: string;
 };
 
+/** One key per non-Eligible line-item ReturnStatus (see ReturnStatus in
+ * components/dashboard-client.tsx) — the canonical set every other
+ * per-status customization (labels, icons) is keyed by. finalSale and
+ * notEligible are separate statuses here even though they currently share a
+ * message (ineligibleStatusMessages.notEligible) and, by default, styling —
+ * each can still be given its own label/heading/icon/color. */
+export type IneligibleStatusKey =
+  | "confirmed" | "onItsWay" | "outForDelivery" | "attemptedDelivery" | "passedReturnWindow"
+  | "returnRequested" | "returnInProgress" | "returned" | "refunded" | "returnDeclined"
+  | "returnCancelled" | "cancelled" | "finalSale" | "notEligible";
+
+/**
+ * Filter/badge label, mobile accordion heading, and icon/color for one
+ * ineligible status. `color` is a hex value or "" (empty = the portal's
+ * default theme-aware text color, not a fixed color — keeps dark mode
+ * working out of the box for merchants who never touch this).
+ */
+export type IneligibleStatusStyle = {
+  label: string;
+  heading: string;
+  icon: string;
+  color: string;
+};
+
+export type IneligibleStatusStyles = Record<IneligibleStatusKey, IneligibleStatusStyle>;
+
 export type TenantBranding = {
   name: string;
   logoUrl: string;
@@ -84,6 +110,7 @@ export type TenantBranding = {
   eligibleLabel: string;
   ineligibleLabel: string;
   ineligibleStatusMessages: IneligibleStatusMessages;
+  ineligibleStatusStyles: IneligibleStatusStyles;
   alwaysShowGuestLookup: boolean;
 };
 
@@ -153,6 +180,22 @@ export const DEFAULT_TENANT_FIELDS = {
       returnCancelled: "This return request was cancelled.",
       cancelled: "These items were cancelled.",
       notEligible: "These items aren't eligible for return.",
+    },
+    ineligibleStatusStyles: {
+      confirmed: { label: "Not yet shipped", heading: "We're preparing these items for shipping", icon: "Clock", color: "" },
+      onItsWay: { label: "In transit", heading: "These items are on their way", icon: "Package", color: "" },
+      outForDelivery: { label: "Out for delivery", heading: "Out for delivery", icon: "Truck", color: "" },
+      attemptedDelivery: { label: "Attempted delivery", heading: "Attempted delivery", icon: "Truck", color: "" },
+      passedReturnWindow: { label: "Outside return window", heading: "The return window has expired for these items", icon: "Lock", color: "" },
+      returnRequested: { label: "Return requested", heading: "We've received your return request", icon: "Eye", color: "" },
+      returnInProgress: { label: "Return in progress", heading: "Your return is in progress", icon: "RotateCcw", color: "" },
+      returned: { label: "Returned", heading: "These items have already been returned", icon: "CheckCircle2", color: "" },
+      refunded: { label: "Refunded", heading: "Refunded", icon: "BadgeCheck", color: "" },
+      returnDeclined: { label: "Return declined", heading: "Your return request was declined", icon: "CircleX", color: "" },
+      returnCancelled: { label: "Not eligible", heading: "Not eligible", icon: "XCircle", color: "" },
+      cancelled: { label: "Not eligible", heading: "Not eligible", icon: "XCircle", color: "" },
+      finalSale: { label: "Not eligible", heading: "Not eligible", icon: "HelpCircle", color: "" },
+      notEligible: { label: "Not eligible", heading: "Not eligible", icon: "HelpCircle", color: "" },
     },
     alwaysShowGuestLookup: false,
   } satisfies TenantBranding,

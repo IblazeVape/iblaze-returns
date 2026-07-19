@@ -1,8 +1,8 @@
 // lib/tenant.ts
 import { redis } from "@/lib/redis";
-import { DEFAULT_TENANT_FIELDS, type PolicyCategory, type SidebarLink, type SidebarLayout, type TenantBranding, type IneligibleStatusMessages } from "@/lib/tenant-defaults";
+import { DEFAULT_TENANT_FIELDS, type PolicyCategory, type SidebarLink, type SidebarLayout, type TenantBranding, type IneligibleStatusMessages, type IneligibleStatusKey, type IneligibleStatusStyle, type IneligibleStatusStyles } from "@/lib/tenant-defaults";
 
-export type { PolicyCategory, SidebarLink, SidebarLayout, TenantBranding, IneligibleStatusMessages };
+export type { PolicyCategory, SidebarLink, SidebarLayout, TenantBranding, IneligibleStatusMessages, IneligibleStatusKey, IneligibleStatusStyle, IneligibleStatusStyles };
 export { DEFAULT_TENANT_FIELDS };
 
 export type Tenant = {

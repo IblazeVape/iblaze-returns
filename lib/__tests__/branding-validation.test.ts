@@ -61,6 +61,22 @@ const VALID: BrandingInput = {
     cancelled: "These items were cancelled.",
     notEligible: "These items aren't eligible for return.",
   },
+  ineligibleStatusStyles: {
+    confirmed: { label: "Not yet shipped", heading: "We're preparing these items for shipping", icon: "Clock", color: "" },
+    onItsWay: { label: "In transit", heading: "These items are on their way", icon: "Package", color: "" },
+    outForDelivery: { label: "Out for delivery", heading: "Out for delivery", icon: "Truck", color: "" },
+    attemptedDelivery: { label: "Attempted delivery", heading: "Attempted delivery", icon: "Truck", color: "" },
+    passedReturnWindow: { label: "Outside return window", heading: "The return window has expired for these items", icon: "Lock", color: "" },
+    returnRequested: { label: "Return requested", heading: "We've received your return request", icon: "Eye", color: "" },
+    returnInProgress: { label: "Return in progress", heading: "Your return is in progress", icon: "RotateCcw", color: "" },
+    returned: { label: "Returned", heading: "These items have already been returned", icon: "CheckCircle2", color: "" },
+    refunded: { label: "Refunded", heading: "Refunded", icon: "BadgeCheck", color: "" },
+    returnDeclined: { label: "Return declined", heading: "Your return request was declined", icon: "CircleX", color: "" },
+    returnCancelled: { label: "Not eligible", heading: "Not eligible", icon: "XCircle", color: "" },
+    cancelled: { label: "Not eligible", heading: "Not eligible", icon: "XCircle", color: "" },
+    finalSale: { label: "Not eligible", heading: "Not eligible", icon: "HelpCircle", color: "" },
+    notEligible: { label: "Not eligible", heading: "Not eligible", icon: "HelpCircle", color: "" },
+  },
   alwaysShowGuestLookup: false,
 };
 
@@ -215,5 +231,46 @@ describe("validateBrandingInput", () => {
     });
     expect(result.valid).toBe(false);
     expect(result.errors.ineligibleStatusMessages).toBeDefined();
+  });
+
+  it("rejects a status style with an empty label or heading", () => {
+    const withEmptyLabel = validateBrandingInput({
+      ...VALID,
+      ineligibleStatusStyles: { ...VALID.ineligibleStatusStyles, returned: { ...VALID.ineligibleStatusStyles.returned, label: "" } },
+    });
+    expect(withEmptyLabel.valid).toBe(false);
+    expect(withEmptyLabel.errors.ineligibleStatusStyles).toBeDefined();
+
+    const withEmptyHeading = validateBrandingInput({
+      ...VALID,
+      ineligibleStatusStyles: { ...VALID.ineligibleStatusStyles, returned: { ...VALID.ineligibleStatusStyles.returned, heading: "" } },
+    });
+    expect(withEmptyHeading.valid).toBe(false);
+    expect(withEmptyHeading.errors.ineligibleStatusStyles).toBeDefined();
+  });
+
+  it("rejects a status style color that isn't a valid hex", () => {
+    const result = validateBrandingInput({
+      ...VALID,
+      ineligibleStatusStyles: { ...VALID.ineligibleStatusStyles, returned: { ...VALID.ineligibleStatusStyles.returned, color: "red" } },
+    });
+    expect(result.valid).toBe(false);
+    expect(result.errors.ineligibleStatusStyles).toBeDefined();
+  });
+
+  it("accepts a status style with a blank color (theme default)", () => {
+    const result = validateBrandingInput({
+      ...VALID,
+      ineligibleStatusStyles: { ...VALID.ineligibleStatusStyles, returned: { ...VALID.ineligibleStatusStyles.returned, color: "" } },
+    });
+    expect(result.valid).toBe(true);
+  });
+
+  it("accepts a status style with a valid hex color", () => {
+    const result = validateBrandingInput({
+      ...VALID,
+      ineligibleStatusStyles: { ...VALID.ineligibleStatusStyles, returned: { ...VALID.ineligibleStatusStyles.returned, color: "#4F46E5" } },
+    });
+    expect(result.valid).toBe(true);
   });
 });

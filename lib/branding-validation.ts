@@ -17,6 +17,20 @@ export type IneligibleStatusMessagesInput = {
   notEligible: string;
 };
 
+export type IneligibleStatusKeyInput =
+  | "confirmed" | "onItsWay" | "outForDelivery" | "attemptedDelivery" | "passedReturnWindow"
+  | "returnRequested" | "returnInProgress" | "returned" | "refunded" | "returnDeclined"
+  | "returnCancelled" | "cancelled" | "finalSale" | "notEligible";
+
+export type IneligibleStatusStyleInput = { label: string; heading: string; icon: string; color: string };
+export type IneligibleStatusStylesInput = Record<IneligibleStatusKeyInput, IneligibleStatusStyleInput>;
+
+export const INELIGIBLE_STATUS_KEYS: IneligibleStatusKeyInput[] = [
+  "confirmed", "onItsWay", "outForDelivery", "attemptedDelivery", "passedReturnWindow",
+  "returnRequested", "returnInProgress", "returned", "refunded", "returnDeclined",
+  "returnCancelled", "cancelled", "finalSale", "notEligible",
+];
+
 export type BrandingInput = {
   name: string;
   logoUrl: string;
@@ -63,6 +77,7 @@ export type BrandingInput = {
   eligibleLabel: string;
   ineligibleLabel: string;
   ineligibleStatusMessages: IneligibleStatusMessagesInput;
+  ineligibleStatusStyles: IneligibleStatusStylesInput;
   alwaysShowGuestLookup: boolean;
 };
 
@@ -134,6 +149,16 @@ export function validateBrandingInput(
       errors.ineligibleStatusMessages = "Every message must have some text — none can be empty.";
     } else if (messages.some((m) => m.length > POLICY_FOOTER_NOTE_MAX_LENGTH)) {
       errors.ineligibleStatusMessages = `Each message must be ${POLICY_FOOTER_NOTE_MAX_LENGTH} characters or fewer.`;
+    }
+  }
+  {
+    const styles = INELIGIBLE_STATUS_KEYS.map((k) => input.ineligibleStatusStyles[k]);
+    if (styles.some((s) => !s.label.trim() || !s.heading.trim())) {
+      errors.ineligibleStatusStyles = "Every status needs both a label and a heading.";
+    } else if (styles.some((s) => s.label.length > STORE_LINK_LABEL_MAX_LENGTH || s.heading.length > POLICY_HEADING_MAX_LENGTH)) {
+      errors.ineligibleStatusStyles = `Labels must be ${STORE_LINK_LABEL_MAX_LENGTH} characters or fewer, headings ${POLICY_HEADING_MAX_LENGTH} or fewer.`;
+    } else if (styles.some((s) => s.color && !HEX_COLOR_RE.test(s.color))) {
+      errors.ineligibleStatusStyles = "Each color must be blank or a hex color like #4F46E5.";
     }
   }
   if (input.policyHeading.length > POLICY_HEADING_MAX_LENGTH) {
