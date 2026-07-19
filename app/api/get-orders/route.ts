@@ -626,6 +626,8 @@ async function handleGet(request: NextRequest): Promise<NextResponse> {
 
         let returnStatus: string;
         let returnReason: string;
+        let notReturnableReason: string | null = null;
+        let shippingStage: ShippingStage | null = null;
         let effectiveEligibleQty = effectiveEligibleWindowed;
 
         if (order.cancelledAt) {
@@ -637,21 +639,21 @@ async function handleGet(request: NextRequest): Promise<NextResponse> {
           returnReason = "";
 
         } else if (shopifySlotEligible > 0 && delivery.attemptedDeliveryQty > 0) {
-          returnStatus = "Attempted delivery";
-          returnReason = "A delivery attempt was made. Please rebook or collect your parcel — your return window starts once it's delivered.";
+          returnStatus = "notReturnable"; notReturnableReason = "notDelivered"; shippingStage = "attemptedDelivery";
+          returnReason = SHIPPING_STAGE_REASON.attemptedDelivery;
         } else if (shopifySlotEligible > 0 && delivery.outForDeliveryQty > 0) {
-          returnStatus = "Out for delivery";
-          returnReason = "Your parcel is out for delivery today. Your return window starts once it's delivered.";
+          returnStatus = "notReturnable"; notReturnableReason = "notDelivered"; shippingStage = "outForDelivery";
+          returnReason = SHIPPING_STAGE_REASON.outForDelivery;
         } else if (shopifySlotEligible > 0 && delivery.inTransitQty > 0) {
-          returnStatus = "On its way";
-          returnReason = "Your parcel is on its way. Your return window starts once it's delivered.";
+          returnStatus = "notReturnable"; notReturnableReason = "notDelivered"; shippingStage = "onItsWay";
+          returnReason = SHIPPING_STAGE_REASON.onItsWay;
 
         } else if (bestReturn && Math.max(0, item.quantity - reservedQty) <= 0) {
           // ── Priority 2: Return record covers all units ─────────────────────
           const statusMap: Record<string, string> = {
-            REQUESTED: "Return requested", OPEN: "Return in progress", CLOSED: "Returned", DECLINED: "Return declined", CANCELED: "Return cancelled — please contact us",
+            REQUESTED: "returnRequested", OPEN: "returnInProgress", CLOSED: "returnCompleted", DECLINED: "returnDeclined", CANCELED: "returnCanceled",
           };
-          returnStatus = statusMap[bestReturn.status] || "Return in progress";
+          returnStatus = statusMap[bestReturn.status] || "returnInProgress";
           if (bestReturn.status === "DECLINED") {
             const note = (bestReturn.declineNote || "").trim();
             if (note && !/^decline reason\.?$/i.test(note)) returnReason = note;
@@ -688,28 +690,32 @@ async function handleGet(request: NextRequest): Promise<NextResponse> {
               // Item confirmed as unfulfilled — delivery state takes precedence
               const undelivered = statusFromUndeliveredDelivery(delivery, now, returnWindowDays);
               returnStatus = undelivered.returnStatus;
+              notReturnableReason = undelivered.notReturnableReason;
+              shippingStage = undelivered.shippingStage;
               returnReason = undelivered.returnReason;
             } else if (reasonCodes.includes("RETURN_WINDOW_EXPIRED")) {
               // Window can't be expired before delivery — guard against Shopify API edge cases
               if (delivery.deliveredQty <= 0) {
                 const undelivered = statusFromUndeliveredDelivery(delivery, now, returnWindowDays);
                 returnStatus = undelivered.returnStatus;
+                notReturnableReason = undelivered.notReturnableReason;
+                shippingStage = undelivered.shippingStage;
                 returnReason = undelivered.returnReason;
               } else {
-                returnStatus = "Passed the return window";
+                returnStatus = "notReturnable"; notReturnableReason = "outsideWindow";
                 returnReason = formatReturnWindowExpiredReason(delivery.latestDeliveredAt, returnWindowDays);
               }
             } else if (reasonCodes.includes("FINAL_SALE")) {
-              returnStatus = "Final sale";
+              returnStatus = "notReturnable"; notReturnableReason = "finalSale";
               returnReason = "This item is marked as final sale and cannot be returned.";
             } else if (reasonCodes.includes("RETURNED")) {
               // Sidekick guidance: RETURNED ≠ refunded.
               // This is an eligibility signal only — quantity splits use Return records.
-              returnStatus = "Returned";
+              returnStatus = "returnCompleted";
               returnReason = "This item has already been returned.";
             } else {
               // Unknown reason code — generic copy; logged above
-              returnStatus = "Not eligible";
+              returnStatus = "notReturnable"; notReturnableReason = "other";
               returnReason = "This item is not eligible for return.";
             }
           } else {
@@ -717,9 +723,14 @@ async function handleGet(request: NextRequest): Promise<NextResponse> {
             // (currentQuantity=0 after refund/return removes it from both lists).
             // Check if it was delivered and fully covered before falling to transit state.
             if (delivery.deliveredQty > 0 && slotAvailable <= 0) {
-              // Delivered but all quantity accounted for by refunds or return records
+              // Delivered but all quantity accounted for by refunds or return records.
+              // This is a DIRECT refund with no Return record — the lifecycle status
+              // itself is "not applicable" (see get-orders API contract note below);
+              // returnCompleted is used as the closest-fit lifecycle status when a
+              // refund happened but no return record exists, with refundStatus (set
+              // below, outside this if-chain) carrying the actual refund fact.
               const isDirectRefund = refQty > 0 && completedQty === 0 && openQty === 0;
-              returnStatus = isDirectRefund ? "Refunded" : "Returned";
+              returnStatus = isDirectRefund ? "returnCompleted" : "returnCompleted";
               returnReason = isDirectRefund
                 ? "This item has already been refunded."
                 : "This item has already been returned.";
@@ -732,7 +743,7 @@ async function handleGet(request: NextRequest): Promise<NextResponse> {
                 ? (now.getTime() - delivery.latestDeliveredAt.getTime()) / (1000 * 60 * 60 * 24)
                 : Infinity;
               if (daysSince > returnWindowDays) {
-                returnStatus = "Passed the return window";
+                returnStatus = "notReturnable"; notReturnableReason = "outsideWindow";
                 returnReason = formatReturnWindowExpiredReason(delivery.latestDeliveredAt, returnWindowDays);
               } else {
                 returnStatus = "Eligible";
@@ -742,6 +753,8 @@ async function handleGet(request: NextRequest): Promise<NextResponse> {
             } else {
               const undelivered2 = statusFromUndeliveredDelivery(delivery, now, returnWindowDays);
               returnStatus = undelivered2.returnStatus;
+              notReturnableReason = undelivered2.notReturnableReason;
+              shippingStage = undelivered2.shippingStage;
               returnReason = undelivered2.returnReason;
             }
           }
@@ -750,18 +763,18 @@ async function handleGet(request: NextRequest): Promise<NextResponse> {
           // ── Priority 4: Manual fallback (Customer Account API unavailable) ─
           if (bestReturn) {
             const statusMap: Record<string, string> = {
-              REQUESTED: "Return requested", OPEN: "Return in progress", CLOSED: "Returned", DECLINED: "Return declined", CANCELED: "Return cancelled — please contact us",
+              REQUESTED: "returnRequested", OPEN: "returnInProgress", CLOSED: "returnCompleted", DECLINED: "returnDeclined", CANCELED: "returnCanceled",
             };
-            returnStatus = statusMap[bestReturn.status] || "Return in progress";
+            returnStatus = statusMap[bestReturn.status] || "returnInProgress";
             returnReason = "You have an active or completed return for this item.";
           } else if (Math.max(0, item.quantity - reservedQty) <= 0) {
-            returnStatus = "Refunded";
+            returnStatus = "returnCompleted";
             returnReason = "This item has already been fully refunded.";
           } else if (effectiveEligible > 0) {
             if (delivery.latestDeliveredAt) {
               const daysSince = (now.getTime() - delivery.latestDeliveredAt.getTime()) / (1000 * 60 * 60 * 24);
               if (daysSince > returnWindowDays) {
-                returnStatus = "Passed the return window";
+                returnStatus = "notReturnable"; notReturnableReason = "outsideWindow";
                 returnReason = formatReturnWindowExpiredReason(delivery.latestDeliveredAt, returnWindowDays);
               } else {
                 returnStatus = "Eligible";
@@ -774,9 +787,16 @@ async function handleGet(request: NextRequest): Promise<NextResponse> {
           } else {
             const undelivered3 = statusFromUndeliveredDelivery(delivery, now, returnWindowDays);
             returnStatus = undelivered3.returnStatus;
+            notReturnableReason = undelivered3.notReturnableReason;
+            shippingStage = undelivered3.shippingStage;
             returnReason = undelivered3.returnReason;
           }
         }
+
+        const refundStatus: string =
+          refQty <= 0 ? "notRefunded"
+          : refQty >= item.quantity ? "refunded"
+          : "partiallyRefunded";
 
         return {
           ...item,
@@ -797,6 +817,9 @@ async function handleGet(request: NextRequest): Promise<NextResponse> {
           pendingQuantity: Math.max(0, item.quantity - delivery.deliveredQty - delivery.inTransitQty - delivery.outForDeliveryQty - delivery.attemptedDeliveryQty - delivery.confirmedQty),
           returnStatus,
           returnReason,
+          notReturnableReason,
+          shippingStage,
+          refundStatus,
           lineDeliveredAt: delivery.latestDeliveredAt
             ? delivery.latestDeliveredAt.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
             : null,
@@ -899,6 +922,15 @@ function capDeclinedEntries(
   return result;
 }
 
+type ShippingStage = "confirmed" | "onItsWay" | "outForDelivery" | "attemptedDelivery";
+
+const SHIPPING_STAGE_REASON: Record<ShippingStage, string> = {
+  confirmed: "We're preparing your items for shipping.",
+  onItsWay: "Your parcel is on its way. Your return window starts once it's delivered.",
+  outForDelivery: "Your parcel is out for delivery today. Your return window starts once it's delivered.",
+  attemptedDelivery: "A delivery attempt was made for your parcel. You'll be able to request a return once it's been delivered.",
+};
+
 function statusFromUndeliveredDelivery(
   delivery: {
     inTransitQty: number;
@@ -909,48 +941,32 @@ function statusFromUndeliveredDelivery(
   },
   now: Date,
   returnWindowDays: number,
-): { returnStatus: string; returnReason: string } {
+): { returnStatus: string; notReturnableReason: string; shippingStage: ShippingStage | null; returnReason: string } {
   const isInTransit = delivery.attemptedDeliveryQty > 0 || delivery.outForDeliveryQty > 0 || delivery.inTransitQty > 0;
 
-  // Fallback window check: if shipped more than returnWindowDays ago and still not delivered,
-  // treat as past return window rather than showing "On its way" indefinitely.
   if (isInTransit && delivery.earliestShippedAt) {
     const daysSinceShipped = (now.getTime() - delivery.earliestShippedAt.getTime()) / (1000 * 60 * 60 * 24);
     if (daysSinceShipped > returnWindowDays) {
       return {
-        returnStatus: "Passed the return window",
+        returnStatus: "notReturnable",
+        notReturnableReason: "outsideWindow",
+        shippingStage: null,
         returnReason: formatReturnWindowExpiredReason(delivery.earliestShippedAt, returnWindowDays),
       };
     }
   }
 
-  if (delivery.attemptedDeliveryQty > 0) {
-    return {
-      returnStatus: "Attempted delivery",
-      returnReason: "A delivery attempt was made. Please rebook or collect your parcel — your return window starts once it's delivered.",
-    };
-  }
-  if (delivery.outForDeliveryQty > 0) {
-    return {
-      returnStatus: "Out for delivery",
-      returnReason: "Your parcel is out for delivery today. Your return window starts once it's delivered.",
-    };
-  }
-  if (delivery.inTransitQty > 0) {
-    return {
-      returnStatus: "On its way",
-      returnReason: "Your parcel is on its way. Your return window starts once it's delivered.",
-    };
-  }
-  if (delivery.confirmedQty > 0) {
-    return {
-      returnStatus: "Confirmed",
-      returnReason: "We're preparing your items for shipping.",
-    };
-  }
+  const stage: ShippingStage =
+    delivery.attemptedDeliveryQty > 0 ? "attemptedDelivery"
+    : delivery.outForDeliveryQty > 0 ? "outForDelivery"
+    : delivery.inTransitQty > 0 ? "onItsWay"
+    : "confirmed";
+
   return {
-    returnStatus: "Confirmed",
-    returnReason: "We're preparing your items for shipping.",
+    returnStatus: "notReturnable",
+    notReturnableReason: "notDelivered",
+    shippingStage: stage,
+    returnReason: SHIPPING_STAGE_REASON[stage],
   };
 }
 
