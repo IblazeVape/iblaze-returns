@@ -2709,10 +2709,30 @@ function getIneligibleFilterOptions(items: DisplayItem[]): { label: string; stat
   return Array.from(groups.entries()).map(([label, statuses]) => ({ label, statuses }))
 }
 
+/**
+ * The mobile accordion's header is a fixed descriptive title
+ * (getIneligibleAccordionTitle) while the body is a merchant-editable
+ * message (Settings > Table & search > Status messages) — the two are
+ * independent strings that often say the same thing. Detected dynamically
+ * (not hardcoded per-status) so it keeps working if a merchant edits a
+ * message to newly overlap with, or diverge from, its title.
+ * Returns null when the message adds nothing beyond the title.
+ */
+function dedupeAccordionContent(title: string, message: string): string | null {
+  const normalize = (s: string) => s.trim().replace(/[.!]+$/, "").toLowerCase()
+  if (normalize(message) === normalize(title)) return null
+  if (message.toLowerCase().startsWith(title.toLowerCase())) {
+    const rest = message.slice(title.length).replace(/^[.!]+\s*/, "")
+    return rest.length > 0 ? rest : null
+  }
+  return message
+}
+
 function IneligibleGroupSummary({ item, order, groupItems, count, returnWindowDays, ineligibleStatusMessages }: { item: LineItem; order: Order; groupItems?: LineItem[]; count: string; returnWindowDays: number; ineligibleStatusMessages: IneligibleStatusMessages }) {
   const { icon: Icon, color } = getReturnStatusIcon(item.returnStatus)
   const message = getIneligibleGroupMessage(item, order, returnWindowDays, ineligibleStatusMessages, groupItems)
   const title = getIneligibleAccordionTitle(item.returnStatus)
+  const content = dedupeAccordionContent(title, message)
   const [open, setOpen] = useState(false)
 
   return (
@@ -2728,31 +2748,43 @@ function IneligibleGroupSummary({ item, order, groupItems, count, returnWindowDa
       </div>
 
       {/* Mobile: collapsible — descriptive title + count far right (muted title row);
-          expanded message is a full-width edge-to-edge white panel */}
+          expanded message is a full-width edge-to-edge white panel. When the
+          message adds nothing beyond the title (content === null), it's a
+          static row instead — no chevron, nothing to expand. */}
       <div className="min-[1025px]:hidden">
-        <button
-          type="button"
-          onClick={() => setOpen(o => !o)}
-          aria-expanded={open}
-          className="flex items-center gap-1.5 text-left w-full py-3 pl-5 pr-4"
-        >
-          <Icon className={cn("inline size-3 shrink-0", color)} aria-hidden />
-          <span className="min-w-0 truncate text-[11px] font-medium text-muted-foreground">{title}</span>
-          <ChevronDown className={cn("size-3 shrink-0 text-muted-foreground transition-transform duration-200", open && "rotate-180")} aria-hidden />
-          <span className="ml-auto text-[10px] font-medium text-muted-foreground shrink-0 tabular-nums">{count}</span>
-        </button>
-        <div
-          className={cn(
-            "grid overflow-hidden transition-[grid-template-rows] duration-250 ease-in-out",
-            open ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
-          )}
-        >
-          <div className="min-h-0">
-            <p className="border-t border-border bg-card px-5 py-2.5 text-[11px] leading-snug text-muted-foreground wrap-break-word">
-              {message}
-            </p>
+        {content === null ? (
+          <div className="flex items-center gap-1.5 w-full py-3 pl-5 pr-4">
+            <Icon className={cn("inline size-3 shrink-0", color)} aria-hidden />
+            <span className="min-w-0 truncate text-[11px] font-medium text-muted-foreground">{title}</span>
+            <span className="ml-auto text-[10px] font-medium text-muted-foreground shrink-0 tabular-nums">{count}</span>
           </div>
-        </div>
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={() => setOpen(o => !o)}
+              aria-expanded={open}
+              className="flex items-center gap-1.5 text-left w-full py-3 pl-5 pr-4"
+            >
+              <Icon className={cn("inline size-3 shrink-0", color)} aria-hidden />
+              <span className="min-w-0 truncate text-[11px] font-medium text-muted-foreground">{title}</span>
+              <ChevronDown className={cn("size-3 shrink-0 text-muted-foreground transition-transform duration-200", open && "rotate-180")} aria-hidden />
+              <span className="ml-auto text-[10px] font-medium text-muted-foreground shrink-0 tabular-nums">{count}</span>
+            </button>
+            <div
+              className={cn(
+                "grid overflow-hidden transition-[grid-template-rows] duration-250 ease-in-out",
+                open ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+              )}
+            >
+              <div className="min-h-0">
+                <p className="border-t border-border bg-card px-5 py-2.5 text-[11px] leading-snug text-muted-foreground wrap-break-word">
+                  {content}
+                </p>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </>
   )
@@ -4229,6 +4261,7 @@ function DashboardClientInner() {
     ineligibleMessageEnabled: true, sidebarAvatarEnabled: true, headerAvatarEnabled: true,
     eligibleLabel: "Eligible", ineligibleLabel: "Ineligible",
     ineligibleStatusMessages: DEFAULT_TENANT_FIELDS.branding.ineligibleStatusMessages,
+    alwaysShowGuestLookup: false, guestLookupRequirePostcode: true,
   })
   // False until accentColor holds a real (cached or fetched) tenant value —
   // the "#000000" placeholder above is a type-safe default, not a real

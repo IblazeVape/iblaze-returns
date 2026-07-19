@@ -1,9 +1,15 @@
 import { describe, it, expect } from "vitest";
-import { guestOrderMatches, normalizePostcode } from "@/lib/guest-order-match";
+import { guestOrderMatches, loggedInOrderMatches, normalizePostcode } from "@/lib/guest-order-match";
 
 const realOrder = {
   email: "Jane.Doe@Example.com",
   shippingAddress: { zip: "SW1A 1AA" },
+};
+
+const realOrderWithCustomer = {
+  email: "Jane.Doe@Example.com",
+  shippingAddress: { zip: "SW1A 1AA" },
+  customer: { id: "gid://shopify/Customer/999" },
 };
 
 describe("normalizePostcode", () => {
@@ -46,5 +52,41 @@ describe("guestOrderMatches — the second factor beyond email", () => {
 
   it("rejects a null order (no matching order number found)", () => {
     expect(guestOrderMatches(null, "jane.doe@example.com", "SW1A 1AA")).toBe(false);
+  });
+});
+
+describe("guestOrderMatches — requirePostcode: false (guestLookupRequirePostcode off)", () => {
+  it("matches on email alone, ignoring a blank postcode", () => {
+    expect(guestOrderMatches(realOrder, "jane.doe@example.com", "", false)).toBe(true);
+  });
+
+  it("still rejects a wrong email", () => {
+    expect(guestOrderMatches(realOrder, "someone-else@example.com", "", false)).toBe(false);
+  });
+
+  it("matches even when the order has no shipping postcode on file", () => {
+    expect(guestOrderMatches({ email: "jane.doe@example.com", shippingAddress: null }, "jane.doe@example.com", "", false)).toBe(true);
+  });
+});
+
+describe("loggedInOrderMatches", () => {
+  it("matches when email and logged-in customer ID both match, no postcode needed", () => {
+    expect(loggedInOrderMatches(realOrderWithCustomer, "jane.doe@example.com", "999")).toBe(true);
+  });
+
+  it("rejects a mismatched customer ID (someone else's order)", () => {
+    expect(loggedInOrderMatches(realOrderWithCustomer, "jane.doe@example.com", "111")).toBe(false);
+  });
+
+  it("rejects a mismatched email even with the right customer ID", () => {
+    expect(loggedInOrderMatches(realOrderWithCustomer, "someone-else@example.com", "999")).toBe(false);
+  });
+
+  it("rejects an order with no customer attached (e.g. a guest checkout order)", () => {
+    expect(loggedInOrderMatches(realOrder, "jane.doe@example.com", "999")).toBe(false);
+  });
+
+  it("rejects a null order", () => {
+    expect(loggedInOrderMatches(null, "jane.doe@example.com", "999")).toBe(false);
   });
 });

@@ -47,7 +47,7 @@ export default async function AppProxyReturnsPage({
     const tenant = await getTenant(shop);
     if (!tenant?.accessToken) {
       initial = { kind: "not-set-up", shop };
-    } else if (loggedInCustomerId) {
+    } else if (loggedInCustomerId && !tenant.branding.alwaysShowGuestLookup) {
       initial = { kind: "logged-in" };
     } else {
       const branding: InitialBranding = {
@@ -64,7 +64,9 @@ export default async function AppProxyReturnsPage({
         sidebarSubmenusExpandedByDefault: tenant.branding.sidebarSubmenusExpandedByDefault,
         guestBackgroundStyle: tenant.branding.guestBackgroundStyle,
       };
-      initial = { kind: "guest-or-login", branding };
+      initial = loggedInCustomerId
+        ? { kind: "logged-in-lookup", branding }
+        : { kind: "guest-or-login", branding };
     }
   }
 

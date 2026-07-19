@@ -34,8 +34,15 @@ type GuestOrder = {
 
 export function GuestLookupForm({
   onVerified,
+  requirePostcode = true,
+  description,
 }: {
   onVerified: (token: string, order: GuestOrder) => void;
+  /** Off for logged-in customers (their store login is the 3rd factor
+   * instead) and, per the guestLookupRequirePostcode Settings toggle, for
+   * guests too — see app/apps/returns/guest-lookup/route.ts. */
+  requirePostcode?: boolean;
+  description?: string;
 }) {
   const [orderNumber, setOrderNumber] = useState("");
   const [email, setEmail] = useState("");
@@ -55,7 +62,7 @@ export function GuestLookupForm({
       const res = await fetch("/apps/returns/guest-lookup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderNumber, email, postcode }),
+        body: JSON.stringify(requirePostcode ? { orderNumber, email, postcode } : { orderNumber, email }),
       });
       const data = await res.json();
       if (!res.ok || !data.session || !data.order) {
@@ -75,7 +82,10 @@ export function GuestLookupForm({
       <CardHeader>
         <CardTitle className="text-lg text-center">Find your order</CardTitle>
         <CardDescription className="text-center">
-          Enter your order number, the email used at checkout, and your delivery postcode.
+          {description ??
+            (requirePostcode
+              ? "Enter your order number, the email used at checkout, and your delivery postcode."
+              : "Enter your order number and the email used at checkout.")}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -101,16 +111,18 @@ export function GuestLookupForm({
               required
             />
           </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="guest-postcode">Postcode</Label>
-            <Input
-              id="guest-postcode"
-              value={postcode}
-              onChange={(e) => setPostcode(e.target.value)}
-              placeholder="SW1A 1AA"
-              required
-            />
-          </div>
+          {requirePostcode && (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="guest-postcode">Postcode</Label>
+              <Input
+                id="guest-postcode"
+                value={postcode}
+                onChange={(e) => setPostcode(e.target.value)}
+                placeholder="SW1A 1AA"
+                required
+              />
+            </div>
+          )}
 
           {status === "error" && (
             <p className="text-sm text-destructive">{error}</p>

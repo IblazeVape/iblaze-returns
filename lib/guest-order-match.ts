@@ -1,6 +1,7 @@
 export type ShopifyOrderForMatch = {
   email?: string | null;
   shippingAddress?: { zip?: string | null } | null;
+  customer?: { id?: string | null } | null;
 };
 
 /**
@@ -17,25 +18,51 @@ function normalizeEmail(v: string): string {
 }
 
 /**
- * Two-factor guest-order match: email (case-insensitive) AND postcode
- * (whitespace/case-insensitive) must both match the order's real Shopify
- * data. Either factor missing/mismatched fails the whole match — this is the
- * hardening beyond email-only lookup.
+ * Guest-order match: email (case-insensitive) always required. Postcode
+ * (whitespace/case-insensitive) is required too unless `requirePostcode` is
+ * false (a merchant Settings toggle — see guestLookupRequirePostcode) — in
+ * which case email alone is the match. Either required factor
+ * missing/mismatched fails the whole match.
  */
 export function guestOrderMatches(
   order: ShopifyOrderForMatch | null | undefined,
   candidateEmail: string,
-  candidatePostcode: string
+  candidatePostcode: string,
+  requirePostcode: boolean = true
 ): boolean {
   if (!order) return false;
 
   const orderEmail = order.email ? normalizeEmail(order.email) : null;
-  const orderZip = order.shippingAddress?.zip ? normalizePostcode(order.shippingAddress.zip) : null;
+  if (!orderEmail) return false;
+  if (orderEmail !== normalizeEmail(candidateEmail)) return false;
 
-  if (!orderEmail || !orderZip) return false;
+  if (requirePostcode) {
+    const orderZip = order.shippingAddress?.zip ? normalizePostcode(order.shippingAddress.zip) : null;
+    if (!orderZip || orderZip !== normalizePostcode(candidatePostcode)) return false;
+  }
 
-  const emailMatches = orderEmail === normalizeEmail(candidateEmail);
-  const postcodeMatches = orderZip === normalizePostcode(candidatePostcode);
+  return true;
+}
 
-  return emailMatches && postcodeMatches;
+/**
+ * Stronger check for customers already logged into the store (Shopify's
+ * signed App Proxy request tells us their customer ID): the order must
+ * belong to that exact customer AND the email must match — proves ownership
+ * without needing a postcode at all, since the login itself is the third
+ * factor guests don't have.
+ */
+export function loggedInOrderMatches(
+  order: ShopifyOrderForMatch | null | undefined,
+  candidateEmail: string,
+  loggedInCustomerId: string
+): boolean {
+  if (!order) return false;
+
+  const orderEmail = order.email ? normalizeEmail(order.email) : null;
+  if (!orderEmail || orderEmail !== normalizeEmail(candidateEmail)) return false;
+
+  const orderCustomerGid = order.customer?.id ?? null;
+  if (!orderCustomerGid) return false;
+  const orderCustomerId = orderCustomerGid.split("/").pop();
+  return orderCustomerId === loggedInCustomerId;
 }

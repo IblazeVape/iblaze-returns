@@ -138,6 +138,8 @@ describe("tenant store", () => {
           cancelled: "Cancelled.",
           notEligible: "Not eligible.",
         },
+        alwaysShowGuestLookup: true,
+        guestLookupRequirePostcode: false,
       },
     });
     const t = await getTenant("d.myshopify.com");
@@ -169,6 +171,8 @@ describe("tenant store", () => {
     expect(t?.branding.guestBackgroundStyle).toBe("dotField");
     expect(t?.branding.policyFooterNoteEnabled).toBe(false);
     expect(t?.branding.ineligibleStatusMessages.returned).toBe("Already returned.");
+    expect(t?.branding.alwaysShowGuestLookup).toBe(true);
+    expect(t?.branding.guestLookupRequirePostcode).toBe(false);
   });
 
   it("merges old branding JSON with new field defaults", async () => {

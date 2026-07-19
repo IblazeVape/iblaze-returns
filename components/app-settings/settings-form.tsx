@@ -37,7 +37,7 @@ type SettingsTab = "branding" | "returns" | "navigation" | "table" | "danger";
 const TAB_FIELDS: Record<SettingsTab, (keyof BrandingInput)[]> = {
   branding: ["name", "logoUrl", "accentColor", "storefrontUrl", "supportEmail", "guestBackgroundStyle"],
   returns: [
-    "returnWindowDays", "requirePolicyAcceptance",
+    "returnWindowDays", "requirePolicyAcceptance", "alwaysShowGuestLookup", "guestLookupRequirePostcode",
     "policyHeading", "policySubheading", "policyLastUpdated", "policyBodyMode", "policyCategories", "policyBodyText",
     "policyFooterNoteEnabled", "policyFooterNote", "policyAcceptedMessage", "policyDeclinedMessage",
   ],
@@ -573,6 +573,32 @@ export function SettingsForm({
                 checked={form.requirePolicyAcceptance}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("requirePolicyAcceptance", e.target.checked)}
               ></s-checkbox>
+            </s-stack>
+          </s-section>
+
+          <s-section heading="Guest lookup">
+            <s-stack direction="block" gap="base">
+              <s-checkbox
+                label="Always show the order lookup form, even for logged-in customers"
+                name="alwaysShowGuestLookup"
+                checked={form.alwaysShowGuestLookup}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("alwaysShowGuestLookup", e.target.checked)}
+              ></s-checkbox>
+              <s-paragraph tone="subdued">
+                When on, a logged-in customer visiting the returns portal directly sees the order lookup form (order
+                number + email — no postcode needed, since we already know they're logged in) instead of their full
+                order history. When off, logged-in customers see their full order list as normal.
+              </s-paragraph>
+              <s-checkbox
+                label="Require a postcode for guest (not logged-in) order lookup"
+                name="guestLookupRequirePostcode"
+                checked={form.guestLookupRequirePostcode}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("guestLookupRequirePostcode", e.target.checked)}
+              ></s-checkbox>
+              <s-paragraph tone="subdued">
+                When off, guests only need their order number and email to look up an order — no postcode. Doesn't
+                affect logged-in customers, who never need a postcode.
+              </s-paragraph>
             </s-stack>
           </s-section>
 

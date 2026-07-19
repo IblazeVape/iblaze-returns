@@ -33,6 +33,7 @@ export type GateInitial =
   | { kind: "unsigned" }
   | { kind: "not-set-up"; shop: string }
   | { kind: "logged-in" }
+  | { kind: "logged-in-lookup"; branding: InitialBranding }
   | { kind: "guest-or-login"; branding: InitialBranding };
 
 /**
@@ -74,7 +75,15 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
   // idempotent — same pattern as DEMO_MODE elsewhere in this codebase.
   setHideLegacySignOut(true);
   setAppsReturnsPortal(true);
-  setAppsReturnsIdentityKind(initial.kind === "logged-in" || initial.kind === "guest-or-login" ? initial.kind : null);
+  // "logged-in-lookup" maps to the "guest-or-login" identity kind: from the
+  // sidebar's perspective (see isGuestPending in app-sidebar.tsx) it behaves
+  // identically — no verified order yet, so no "My Orders" nav target —
+  // regardless of why the lookup form is showing.
+  setAppsReturnsIdentityKind(
+    initial.kind === "logged-in" ? "logged-in"
+    : initial.kind === "guest-or-login" || initial.kind === "logged-in-lookup" ? "guest-or-login"
+    : null
+  );
 
   useEffect(() => {
     installAppsReturnsFetchPatch();
@@ -96,7 +105,7 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
       return;
     }
 
-    if (initial.kind === "guest-or-login") {
+    if (initial.kind === "guest-or-login" || initial.kind === "logged-in-lookup") {
       clearStoredAppsReturnsSession();
       setGuestOrderContext(null, null);
     }
@@ -167,6 +176,27 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
         </GuestPortalShell>
       );
     }
+    case "logged-in-lookup":
+      // Merchant has alwaysShowGuestLookup on: even though the App Proxy
+      // confirms this browser IS logged in, skip the auto full-history
+      // session and show the lookup form instead — scoped to one order
+      // (like a guest), but no postcode needed since the store login itself
+      // is verified server-side against the looked-up order's customer ID
+      // (see loggedInOrderMatches in lib/guest-order-match.ts).
+      return (
+        <GuestPortalShell branding={initial.branding}>
+          <GuestLookupForm
+            requirePostcode={false}
+            onVerified={(token, order) => {
+              storeAppsReturnsSession(token);
+              setCachedAccentColor(initial.branding.accentColor);
+              const numericOrderId = order.id.split("/").pop() ?? null;
+              setGuestOrderContext(numericOrderId, handleLookupAnother);
+              setReady(true);
+            }}
+          />
+        </GuestPortalShell>
+      );
   }
 }
 

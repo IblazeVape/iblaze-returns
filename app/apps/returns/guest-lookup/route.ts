@@ -3,7 +3,7 @@ import { verifyAppProxySignature, parseProxyRequest } from "@/lib/app-proxy";
 import { getTenant } from "@/lib/tenant";
 import { shopifyAdmin } from "@/lib/shopify";
 import { redis } from "@/lib/redis";
-import { guestOrderMatches } from "@/lib/guest-order-match";
+import { guestOrderMatches, loggedInOrderMatches } from "@/lib/guest-order-match";
 import { buildAppsReturnsSession } from "@/lib/apps-returns-session";
 
 export const dynamic = "force-dynamic";
@@ -12,19 +12,25 @@ const RATE_LIMIT_MAX_ATTEMPTS = 8;
 const RATE_LIMIT_WINDOW_SECONDS = 15 * 60;
 
 /**
- * Guest order lookup — served under the App Proxy path (theirstore.com/apps/
+ * Order lookup — served under the App Proxy path (theirstore.com/apps/
  * returns/guest-lookup), NOT /api/*: the browser is on the storefront domain
  * (via the proxied page), so a client fetch to a relative path re-enters
  * Shopify's App Proxy, which appends its own signed query params to this
  * request too (GET or POST). We verify that signature here and take `shop`
- * from it — not from the request body — so shop can't be spoofed by the
- * client.
+ * (and, if present, `logged_in_customer_id`) from it — not from the request
+ * body — so neither can be spoofed by the client.
  *
- * For customers who checked out WITHOUT a Shopify account (no
- * logged_in_customer_id available at all). Verifies order number + email +
- * shipping postcode (three factors) against the tenant's own Shopify data via
- * the merchant's admin token — no account/login required. Rate-limited per
- * shop+IP to prevent brute-forcing order numbers.
+ * Two verification paths, both requiring order number + email:
+ *  - Logged into the store (logged_in_customer_id present — only reachable
+ *    when the merchant's alwaysShowGuestLookup Settings toggle is on, see
+ *    app/apps/returns/[[...slug]]/page.tsx): the order must belong to that
+ *    exact customer AND the email must match. No postcode needed — the
+ *    login itself is the third factor a guest doesn't have.
+ *  - Guest checkout (no logged_in_customer_id): email always required, plus
+ *    shipping postcode too unless the merchant's guestLookupRequirePostcode
+ *    Settings toggle is off.
+ *
+ * Rate-limited per shop+IP to prevent brute-forcing order numbers.
  */
 export async function POST(request: NextRequest) {
   const secret = process.env.SHOPIFY_CLIENT_SECRET;
@@ -32,7 +38,7 @@ export async function POST(request: NextRequest) {
   if (!signedOk) {
     return NextResponse.json({ error: "invalid proxy request" }, { status: 401 });
   }
-  const { shop } = parseProxyRequest(request.nextUrl.searchParams);
+  const { shop, loggedInCustomerId } = parseProxyRequest(request.nextUrl.searchParams);
   if (!shop) return NextResponse.json({ error: "unknown store" }, { status: 400 });
 
   const body = await request.json().catch(() => null);
@@ -40,16 +46,18 @@ export async function POST(request: NextRequest) {
   const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
   const postcode = typeof body?.postcode === "string" ? body.postcode : "";
 
-  if (!orderNumber || !email || !postcode) {
-    return NextResponse.json(
-      { error: "orderNumber, email and postcode are required" },
-      { status: 400 }
-    );
+  if (!orderNumber || !email) {
+    return NextResponse.json({ error: "orderNumber and email are required" }, { status: 400 });
   }
 
   const tenant = await getTenant(shop);
   if (!tenant?.accessToken) {
     return NextResponse.json({ error: "unknown store" }, { status: 404 });
+  }
+
+  const requirePostcode = !loggedInCustomerId && tenant.branding.guestLookupRequirePostcode;
+  if (requirePostcode && !postcode) {
+    return NextResponse.json({ error: "orderNumber, email and postcode are required" }, { status: 400 });
   }
 
   // Rate limit: N attempts per shop+IP per window.
@@ -76,6 +84,7 @@ export async function POST(request: NextRequest) {
               id name email createdAt displayFulfillmentStatus displayFinancialStatus
               statusPageUrl
               shippingAddress { zip }
+              customer { id }
             }
           }
         }
@@ -86,9 +95,19 @@ export async function POST(request: NextRequest) {
 
     const order = data?.orders?.edges?.[0]?.node;
 
-    if (!guestOrderMatches(order, email, postcode)) {
+    const matched = loggedInCustomerId
+      ? loggedInOrderMatches(order, email, loggedInCustomerId)
+      : guestOrderMatches(order, email, postcode, requirePostcode);
+
+    if (!matched) {
       return NextResponse.json(
-        { error: "No order found matching that order number, email and postcode." },
+        {
+          error: loggedInCustomerId
+            ? "No order found matching that order number and email on your account."
+            : requirePostcode
+              ? "No order found matching that order number, email and postcode."
+              : "No order found matching that order number and email.",
+        },
         { status: 404 }
       );
     }

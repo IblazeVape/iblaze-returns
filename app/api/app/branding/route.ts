@@ -129,6 +129,10 @@ export async function PUT(request: NextRequest) {
     ineligibleStatusMessages: isIneligibleStatusMessages(body.ineligibleStatusMessages)
       ? body.ineligibleStatusMessages
       : existing.branding.ineligibleStatusMessages,
+    alwaysShowGuestLookup:
+      typeof body.alwaysShowGuestLookup === "boolean" ? body.alwaysShowGuestLookup : existing.branding.alwaysShowGuestLookup,
+    guestLookupRequirePostcode:
+      typeof body.guestLookupRequirePostcode === "boolean" ? body.guestLookupRequirePostcode : existing.branding.guestLookupRequirePostcode,
   };
 
   const { valid, errors } = validateBrandingInput(input);
@@ -183,6 +187,8 @@ export async function PUT(request: NextRequest) {
       eligibleLabel: input.eligibleLabel,
       ineligibleLabel: input.ineligibleLabel,
       ineligibleStatusMessages: input.ineligibleStatusMessages,
+      alwaysShowGuestLookup: input.alwaysShowGuestLookup,
+      guestLookupRequirePostcode: input.guestLookupRequirePostcode,
     },
   });
 
