@@ -13,54 +13,75 @@ export type PolicyCategory = { title: string; desc: string };
 export type SidebarLink = { label: string; url: string; icon?: string; children?: { label: string; url: string; icon?: string }[] };
 export type SidebarLayout = "inset" | "sidebar";
 
+/** The 6-value return lifecycle status for a non-Eligible line item — maps
+ * directly onto Shopify's own Return.status values (REQUESTED, OPEN,
+ * DECLINED, CANCELED, CLOSED), plus "notReturnable" for items that never
+ * reached the Return object at all (not yet delivered, final sale, past
+ * the window, or any other ineligibility reason Shopify reports). */
+export type ReturnLifecycleStatus =
+  | "notReturnable"
+  | "returnRequested"
+  | "returnInProgress"
+  | "returnDeclined"
+  | "returnCanceled"
+  | "returnCompleted";
+
+export const RETURN_LIFECYCLE_STATUSES: ReturnLifecycleStatus[] = [
+  "notReturnable", "returnRequested", "returnInProgress",
+  "returnDeclined", "returnCanceled", "returnCompleted",
+];
+
+/** Why a "notReturnable" item can't be returned — maps onto Shopify's
+ * NonReturnableReason enum (UNFULFILLED, RETURN_WINDOW_EXPIRED, FINAL_SALE,
+ * OTHER — RETURNED is excluded here because that case maps directly to
+ * returnCompleted, not to a "not returnable" reason). */
+export type NotReturnableReason = "notDelivered" | "outsideWindow" | "finalSale" | "other";
+
+export const NOT_RETURNABLE_REASONS: NotReturnableReason[] = [
+  "notDelivered", "outsideWindow", "finalSale", "other",
+];
+
+/** Independent refund fact — can coexist with ANY return lifecycle status,
+ * including a line item refunded directly with no return ever created. */
+export type RefundStatus = "notRefunded" | "partiallyRefunded" | "refunded";
+
+/** Filter/badge label, mobile accordion heading, icon, and color for one
+ * return lifecycle status. `color` is a hex value or "" (empty = the
+ * portal's default theme-aware text color). */
+export type ReturnLifecycleStyle = { label: string; heading: string; icon: string; color: string };
+export type ReturnLifecycleStyles = Record<ReturnLifecycleStatus, ReturnLifecycleStyle>;
+
 /**
- * One customer-facing sentence per line-item return status, shown in the
- * order detail's ineligible-items list. Supports {days} (the merchant's
- * return window, from returnWindowDays) and {closedDate} (windowExpired
- * only — the formatted date the window closed) placeholder tokens,
- * replaced at render time in components/dashboard-client.tsx.
+ * Customer-facing sentences. shipping* fields apply when status is
+ * "notReturnable" and reason is "notDelivered" — the lifecycle status and
+ * reason are the same for all four, but the sentence still needs to say
+ * which shipping stage it's at. outsideWindow/finalSale/otherNotReturnable
+ * apply when reason is outsideWindow/finalSale/other respectively.
+ * returnDeclined has no field here — it uses the real Shopify decline
+ * reason text, resolved dynamically in components/dashboard-client.tsx.
+ * Supports {days} (merchant's return window) and {closedDate}
+ * (outsideWindow only) placeholder tokens.
  */
-export type IneligibleStatusMessages = {
-  confirmed: string;
-  onItsWay: string;
-  outForDelivery: string;
-  attemptedDelivery: string;
-  windowExpired: string;
-  windowExpiredNoDate: string;
+export type ReturnLifecycleMessages = {
+  shippingConfirmed: string;
+  shippingOnItsWay: string;
+  shippingOutForDelivery: string;
+  shippingAttemptedDelivery: string;
+  outsideWindow: string;
+  outsideWindowNoDate: string;
+  finalSale: string;
+  otherNotReturnable: string;
   returnRequested: string;
   returnInProgress: string;
-  returned: string;
-  refunded: string;
-  returnCancelled: string;
-  cancelled: string;
-  notEligible: string;
+  returnCanceled: string;
+  returnCompleted: string;
 };
 
-/** One key per non-Eligible line-item ReturnStatus (see ReturnStatus in
- * components/dashboard-client.tsx) — the canonical set every other
- * per-status customization (labels, icons) is keyed by. finalSale and
- * notEligible are separate statuses here even though they currently share a
- * message (ineligibleStatusMessages.notEligible) and, by default, styling —
- * each can still be given its own label/heading/icon/color. */
-export type IneligibleStatusKey =
-  | "confirmed" | "onItsWay" | "outForDelivery" | "attemptedDelivery" | "passedReturnWindow"
-  | "returnRequested" | "returnInProgress" | "returned" | "refunded" | "returnDeclined"
-  | "returnCancelled" | "cancelled" | "finalSale" | "notEligible";
-
-/**
- * Filter/badge label, mobile accordion heading, and icon/color for one
- * ineligible status. `color` is a hex value or "" (empty = the portal's
- * default theme-aware text color, not a fixed color — keeps dark mode
- * working out of the box for merchants who never touch this).
- */
-export type IneligibleStatusStyle = {
-  label: string;
-  heading: string;
-  icon: string;
-  color: string;
-};
-
-export type IneligibleStatusStyles = Record<IneligibleStatusKey, IneligibleStatusStyle>;
+/** No icon/color/heading — refund is always shown as a small supporting
+ * fact next to the lifecycle status, never as its own badge.
+ * notRefunded's label is deliberately blank in the defaults below: a line
+ * item that hasn't been refunded shows no refund fact at all. */
+export type RefundStatusLabels = Record<RefundStatus, string>;
 
 export type TenantBranding = {
   name: string;
@@ -109,8 +130,9 @@ export type TenantBranding = {
   headerAvatarEnabled: boolean;
   eligibleLabel: string;
   ineligibleLabel: string;
-  ineligibleStatusMessages: IneligibleStatusMessages;
-  ineligibleStatusStyles: IneligibleStatusStyles;
+  returnLifecycleStyles: ReturnLifecycleStyles;
+  returnLifecycleMessages: ReturnLifecycleMessages;
+  refundStatusLabels: RefundStatusLabels;
   alwaysShowGuestLookup: boolean;
 };
 
@@ -166,36 +188,32 @@ export const DEFAULT_TENANT_FIELDS = {
     headerAvatarEnabled: true,
     eligibleLabel: "Eligible",
     ineligibleLabel: "Ineligible",
-    ineligibleStatusMessages: {
-      confirmed: "We're preparing these items for shipping. Your return window starts on delivery and closes {days} days later.",
-      onItsWay: "These items are on their way. Your return window starts on delivery and closes {days} days later.",
-      outForDelivery: "These items are out for delivery today. Your return window starts on delivery and closes {days} days later.",
-      attemptedDelivery: "A delivery attempt was made for these items. Please rebook or collect — your return window starts once delivered.",
-      windowExpired: "The return window has expired for these items. It closed on {closedDate}.",
-      windowExpiredNoDate: "The return window has expired for these items.",
-      returnRequested: "We've received your return request.",
-      returnInProgress: "Your return is in progress.",
-      returned: "These items have already been returned.",
-      refunded: "These items have already been refunded.",
-      returnCancelled: "This return request was cancelled.",
-      cancelled: "These items were cancelled.",
-      notEligible: "These items aren't eligible for return.",
+    returnLifecycleStyles: {
+      notReturnable:    { label: "Not returnable",     heading: "Not returnable",                       icon: "Lock",         color: "" },
+      returnRequested:  { label: "Return requested",   heading: "We've received your return request",   icon: "Eye",          color: "" },
+      returnInProgress: { label: "Return in progress", heading: "Your return is in progress",            icon: "RotateCcw",    color: "" },
+      returnDeclined:   { label: "Return declined",    heading: "Your return request was declined",      icon: "CircleX",      color: "" },
+      returnCanceled:   { label: "Return canceled",    heading: "This return was canceled",              icon: "XCircle",      color: "" },
+      returnCompleted:  { label: "Return completed",   heading: "This return is complete",               icon: "CheckCircle2", color: "" },
     },
-    ineligibleStatusStyles: {
-      confirmed: { label: "Not yet shipped", heading: "We're preparing these items for shipping", icon: "Clock", color: "" },
-      onItsWay: { label: "In transit", heading: "These items are on their way", icon: "Package", color: "" },
-      outForDelivery: { label: "Out for delivery", heading: "Out for delivery", icon: "Truck", color: "" },
-      attemptedDelivery: { label: "Attempted delivery", heading: "Attempted delivery", icon: "Truck", color: "" },
-      passedReturnWindow: { label: "Outside return window", heading: "The return window has expired for these items", icon: "Lock", color: "" },
-      returnRequested: { label: "Return requested", heading: "We've received your return request", icon: "Eye", color: "" },
-      returnInProgress: { label: "Return in progress", heading: "Your return is in progress", icon: "RotateCcw", color: "" },
-      returned: { label: "Returned", heading: "These items have already been returned", icon: "CheckCircle2", color: "" },
-      refunded: { label: "Refunded", heading: "Refunded", icon: "BadgeCheck", color: "" },
-      returnDeclined: { label: "Return declined", heading: "Your return request was declined", icon: "CircleX", color: "" },
-      returnCancelled: { label: "Not eligible", heading: "Not eligible", icon: "XCircle", color: "" },
-      cancelled: { label: "Not eligible", heading: "Not eligible", icon: "XCircle", color: "" },
-      finalSale: { label: "Not eligible", heading: "Not eligible", icon: "HelpCircle", color: "" },
-      notEligible: { label: "Not eligible", heading: "Not eligible", icon: "HelpCircle", color: "" },
+    returnLifecycleMessages: {
+      shippingConfirmed:         "We're preparing these items for shipping. Your return window starts on delivery and closes {days} days later.",
+      shippingOnItsWay:          "These items are on their way. Your return window starts on delivery and closes {days} days later.",
+      shippingOutForDelivery:    "These items are out for delivery today. Your return window starts on delivery and closes {days} days later.",
+      shippingAttemptedDelivery: "A delivery attempt was made for these items. You'll be able to request a return once they've been delivered.",
+      outsideWindow:             "The return window has expired for these items. It closed on {closedDate}.",
+      outsideWindowNoDate:       "The return window has expired for these items.",
+      finalSale:                 "This item is marked as final sale and cannot be returned.",
+      otherNotReturnable:        "These items aren't eligible for return.",
+      returnRequested:           "We've received your return request.",
+      returnInProgress:          "Your return is in progress.",
+      returnCanceled:            "This return request was canceled.",
+      returnCompleted:           "These items have already been returned.",
+    },
+    refundStatusLabels: {
+      notRefunded: "",
+      partiallyRefunded: "Partially refunded",
+      refunded: "Refunded",
     },
     alwaysShowGuestLookup: false,
   } satisfies TenantBranding,
