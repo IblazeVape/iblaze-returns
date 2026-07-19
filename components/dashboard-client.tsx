@@ -2289,8 +2289,10 @@ function isGenericDeclineNote(note: string): boolean {
   return false
 }
 
-function resolveDeclineMessage(message: string): string {
-  return isGenericDeclineNote(message) ? "Your return request was declined." : message.trim()
+const DEFAULT_DECLINE_FALLBACK = "Your return request was declined."
+
+function resolveDeclineMessage(message: string, fallback: string = DEFAULT_DECLINE_FALLBACK): string {
+  return isGenericDeclineNote(message) ? fallback : message.trim()
 }
 
 function isPermanentDeclineReason(reason?: string): boolean {
@@ -2301,16 +2303,16 @@ function hasRetryableDecline(entries: { declineReason?: string }[]): boolean {
   return entries.some(e => !isPermanentDeclineReason(e.declineReason))
 }
 
-function groupDeclinedEntries(entries: { quantity: number; message: string }[]) {
+function groupDeclinedEntries(entries: { quantity: number; message: string }[], fallback: string = DEFAULT_DECLINE_FALLBACK) {
   const map = new Map<string, number>()
   for (const e of entries) {
-    const msg = resolveDeclineMessage(e.message)
+    const msg = resolveDeclineMessage(e.message, fallback)
     map.set(msg, (map.get(msg) || 0) + e.quantity)
   }
   return [...map.entries()].map(([message, quantity]) => ({ message, quantity }))
 }
 
-function buildIneligibleDisplayItems(order: Order): DisplayItem[] {
+function buildIneligibleDisplayItems(order: Order, declinedFallback: string = DEFAULT_DECLINE_FALLBACK): DisplayItem[] {
   const result: DisplayItem[] = []
 
   for (const item of order.processedItems) {
@@ -2369,7 +2371,7 @@ function buildIneligibleDisplayItems(order: Order): DisplayItem[] {
       const declinedToShow = isPartiallyEligible
         ? item.declinedReturnEntries.filter(e => isPermanentDeclineReason(e.declineReason))
         : item.declinedReturnEntries
-      const grouped = groupDeclinedEntries(declinedToShow)
+      const grouped = groupDeclinedEntries(declinedToShow, declinedFallback)
       grouped.forEach((entry, i) => {
         const declinedQty = take(entry.quantity)
         if (declinedQty <= 0) return
@@ -2537,7 +2539,10 @@ function ItemReasonText({ item, align = "start" }: { item: LineItem; align?: "st
 
 function getIneligibleGroupKey(item: LineItem, order: Order, returnWindowDays: number): string {
   if (item.returnStatus === "Return declined") {
-    return `declined:${resolveDeclineMessage(item.returnReason || "")}`
+    // item.returnReason is already resolved (real Shopify reason, or the
+    // merchant's declined fallback) by buildIneligibleDisplayItems — no
+    // need to re-resolve it here.
+    return `declined:${item.returnReason || ""}`
   }
   if (item.returnStatus === "Passed the return window") {
     const closed = formatReturnWindowClosedForItem(item, order, returnWindowDays) ?? "unknown"
@@ -2656,7 +2661,10 @@ function getIneligibleGroupMessage(item: LineItem, order: Order, returnWindowDay
     case "Refunded":
       return messages.refunded
     case "Return declined":
-      return resolveDeclineMessage(item.returnReason || "Your return request was declined.")
+      // Already resolved by buildIneligibleDisplayItems (real Shopify
+      // reason, or the merchant's declined fallback below) — item.returnReason
+      // is only falsy here if this item somehow bypassed that path.
+      return item.returnReason || messages.declined
     case "Return cancelled":
       return messages.returnCancelled
     case "Cancelled":
@@ -3278,7 +3286,10 @@ function OrderDetail({
     [order]
   )
 
-  const ineligibleItems = useMemo(() => buildIneligibleDisplayItems(order), [order])
+  const ineligibleItems = useMemo(
+    () => buildIneligibleDisplayItems(order, ineligibleStatusMessages.declined),
+    [order, ineligibleStatusMessages.declined],
+  )
 
   const hasEligible          = eligibleItems.length > 0 && !order.cancelledAt
   const totalEligibleUnits   = eligibleItems.reduce((s, i) => s + i.eligibleQuantity, 0)
