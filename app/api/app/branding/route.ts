@@ -107,6 +107,8 @@ export async function PUT(request: NextRequest) {
       typeof body.sidebarAvatarEnabled === "boolean" ? body.sidebarAvatarEnabled : existing.branding.sidebarAvatarEnabled,
     headerAvatarEnabled:
       typeof body.headerAvatarEnabled === "boolean" ? body.headerAvatarEnabled : existing.branding.headerAvatarEnabled,
+    eligibleLabel: typeof body.eligibleLabel === "string" ? body.eligibleLabel : existing.branding.eligibleLabel,
+    ineligibleLabel: typeof body.ineligibleLabel === "string" ? body.ineligibleLabel : existing.branding.ineligibleLabel,
   };
 
   const { valid, errors } = validateBrandingInput(input);
@@ -158,6 +160,8 @@ export async function PUT(request: NextRequest) {
       ineligibleMessageEnabled: input.ineligibleMessageEnabled,
       sidebarAvatarEnabled: input.sidebarAvatarEnabled,
       headerAvatarEnabled: input.headerAvatarEnabled,
+      eligibleLabel: input.eligibleLabel,
+      ineligibleLabel: input.ineligibleLabel,
     },
   });
 

@@ -428,6 +428,7 @@ export function SettingsForm({
                 real Polaris tabs (underline on the active one) instead of
                 trying the broken component again. */}
             <div
+              className="styled-scroll"
               style={{
                 display: "flex",
                 gap: 20,
@@ -937,6 +938,22 @@ export function SettingsForm({
                 checked={form.statusFilterEnabled}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("statusFilterEnabled", e.target.checked)}
               ></s-checkbox>
+              <s-text-field
+                label="Eligible tab label"
+                name="eligibleLabel"
+                value={form.eligibleLabel}
+                placeholder="Eligible"
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("eligibleLabel", e.target.value)}
+              ></s-text-field>
+              {errors.eligibleLabel && <s-paragraph tone="critical">{errors.eligibleLabel}</s-paragraph>}
+              <s-text-field
+                label="Ineligible tab label"
+                name="ineligibleLabel"
+                value={form.ineligibleLabel}
+                placeholder="Ineligible"
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("ineligibleLabel", e.target.value)}
+              ></s-text-field>
+              {errors.ineligibleLabel && <s-paragraph tone="critical">{errors.ineligibleLabel}</s-paragraph>}
               <s-checkbox
                 label={'Show the "These items can’t be selected here" message on the Ineligible tab'}
                 name="ineligibleMessageEnabled"

@@ -3214,6 +3214,8 @@ type OrderDetailBranding = {
   productImageLinksEnabled: boolean
   statusFilterEnabled: boolean
   ineligibleMessageEnabled: boolean
+  eligibleLabel: string
+  ineligibleLabel: string
 }
 
 function OrderDetail({
@@ -3233,6 +3235,7 @@ function OrderDetail({
     policyAcceptedMessage, policyDeclinedMessage, tableSearchEnabled, tableSearchPlaceholder,
     tableColumnsButtonEnabled, tableFilterButtonEnabled, tablePageSizeEnabled, shipmentCardsEnabled,
     productImageLinksEnabled, statusFilterEnabled, ineligibleMessageEnabled,
+    eligibleLabel, ineligibleLabel,
   } = branding
   const [policyAccepted, setPolicyAccepted] = useState(!requirePolicyAcceptance)
   const [selectedItems, setSelectedItems]   = useState<Record<string, { selected: boolean; quantity: number; reason: string; description: string }>>({})
@@ -3679,13 +3682,13 @@ function OrderDetail({
                   <Select value={activeTab} onValueChange={(v) => { setActiveTab(v as "eligible" | "ineligible"); setCurrentPage(1) }}>
                     <SelectTrigger className="w-[160px] h-8 bg-transparent text-sm"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="eligible">Eligible ({totalEligibleUnits})</SelectItem>
-                      <SelectItem value="ineligible">Ineligible ({totalIneligibleUnits})</SelectItem>
+                      <SelectItem value="eligible">{eligibleLabel} ({totalEligibleUnits})</SelectItem>
+                      <SelectItem value="ineligible">{ineligibleLabel} ({totalIneligibleUnits})</SelectItem>
                     </SelectContent>
                   </Select>
                 ) : !fullyIneligible && HEADER_STAT_DESIGN !== 4 && HEADER_STAT_DESIGN !== 6 ? (
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-foreground">Eligible</span>
+                    <span className="text-sm font-semibold text-foreground">{eligibleLabel}</span>
                     <CountBadge value={totalEligibleUnits} variant="green" />
                   </div>
                 ) : null}
@@ -3839,7 +3842,7 @@ function OrderDetail({
             {/* ── Mobile: label when only one tab (no tab bar needed) ── */}
             {!hasBothTabs && !fullyIneligible && HEADER_STAT_DESIGN !== 4 && HEADER_STAT_DESIGN !== 6 && (
               <div className="min-[1025px]:hidden px-4 py-2.5 border-b flex items-center justify-between">
-                <span className="text-sm font-semibold text-foreground">Eligible</span>
+                <span className="text-sm font-semibold text-foreground">{eligibleLabel}</span>
                 <CountBadge value={totalEligibleUnits} variant="green" />
               </div>
             )}
@@ -3855,7 +3858,7 @@ function OrderDetail({
                   )}
                   onClick={() => { setActiveTab("eligible"); setCurrentPage(1) }}
                 >
-                  Eligible ({totalEligibleUnits})
+                  {eligibleLabel} ({totalEligibleUnits})
                   {activeTab === "eligible" && <span className="absolute bottom-0 left-0 right-0 h-px bg-foreground" />}
                 </button>
                 <div className="w-px bg-border self-stretch" />
@@ -3867,7 +3870,7 @@ function OrderDetail({
                   )}
                   onClick={() => { setActiveTab("ineligible"); setCurrentPage(1) }}
                 >
-                  Ineligible ({totalIneligibleUnits})
+                  {ineligibleLabel} ({totalIneligibleUnits})
                   {activeTab === "ineligible" && <span className="absolute bottom-0 left-0 right-0 h-px bg-foreground" />}
                 </button>
               </div>
@@ -4219,6 +4222,7 @@ function DashboardClientInner() {
     guestBackgroundStyle: "none",
     defaultOrderView: "grid", sidebarDefaultOpenOnDesktop: true, statusFilterEnabled: true,
     ineligibleMessageEnabled: true, sidebarAvatarEnabled: true, headerAvatarEnabled: true,
+    eligibleLabel: "Eligible", ineligibleLabel: "Ineligible",
   })
   // False until accentColor holds a real (cached or fetched) tenant value —
   // the "#000000" placeholder above is a type-safe default, not a real

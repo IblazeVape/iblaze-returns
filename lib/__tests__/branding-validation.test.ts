@@ -44,6 +44,8 @@ const VALID: BrandingInput = {
   ineligibleMessageEnabled: true,
   sidebarAvatarEnabled: true,
   headerAvatarEnabled: true,
+  eligibleLabel: "Eligible",
+  ineligibleLabel: "Ineligible",
 };
 
 describe("validateBrandingInput", () => {

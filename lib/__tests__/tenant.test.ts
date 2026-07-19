@@ -120,6 +120,8 @@ describe("tenant store", () => {
         ineligibleMessageEnabled: false,
         sidebarAvatarEnabled: false,
         headerAvatarEnabled: false,
+        eligibleLabel: "Ready to return",
+        ineligibleLabel: "Not eligible",
       },
     });
     const t = await getTenant("d.myshopify.com");

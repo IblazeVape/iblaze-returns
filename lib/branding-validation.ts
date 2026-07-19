@@ -45,6 +45,8 @@ export type BrandingInput = {
   ineligibleMessageEnabled: boolean;
   sidebarAvatarEnabled: boolean;
   headerAvatarEnabled: boolean;
+  eligibleLabel: string;
+  ineligibleLabel: string;
 };
 
 const HEX_COLOR_RE = /^#[0-9a-fA-F]{6}$/;
@@ -98,6 +100,16 @@ export function validateBrandingInput(
   }
   if (input.orderStatusLinkLabel.length > STORE_LINK_LABEL_MAX_LENGTH) {
     errors.orderStatusLinkLabel = `Must be ${STORE_LINK_LABEL_MAX_LENGTH} characters or fewer.`;
+  }
+  if (!input.eligibleLabel.trim()) {
+    errors.eligibleLabel = "Can't be empty.";
+  } else if (input.eligibleLabel.length > STORE_LINK_LABEL_MAX_LENGTH) {
+    errors.eligibleLabel = `Must be ${STORE_LINK_LABEL_MAX_LENGTH} characters or fewer.`;
+  }
+  if (!input.ineligibleLabel.trim()) {
+    errors.ineligibleLabel = "Can't be empty.";
+  } else if (input.ineligibleLabel.length > STORE_LINK_LABEL_MAX_LENGTH) {
+    errors.ineligibleLabel = `Must be ${STORE_LINK_LABEL_MAX_LENGTH} characters or fewer.`;
   }
   if (input.policyHeading.length > POLICY_HEADING_MAX_LENGTH) {
     errors.policyHeading = `Must be ${POLICY_HEADING_MAX_LENGTH} characters or fewer.`;

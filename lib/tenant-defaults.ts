@@ -58,6 +58,8 @@ export type TenantBranding = {
   ineligibleMessageEnabled: boolean;
   sidebarAvatarEnabled: boolean;
   headerAvatarEnabled: boolean;
+  eligibleLabel: string;
+  ineligibleLabel: string;
 };
 
 export const DEFAULT_TENANT_FIELDS = {
@@ -110,5 +112,7 @@ export const DEFAULT_TENANT_FIELDS = {
     ineligibleMessageEnabled: true,
     sidebarAvatarEnabled: true,
     headerAvatarEnabled: true,
+    eligibleLabel: "Eligible",
+    ineligibleLabel: "Ineligible",
   } satisfies TenantBranding,
 };
