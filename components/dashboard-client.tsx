@@ -3672,12 +3672,12 @@ function OrderDetail({
               </div>
             )}
             {hasAnyToolbarControl && (
-            <div className="border-b bg-background px-3 py-2.5">
+            <div className="border-b bg-card px-3 py-2.5">
               {/* Desktop: single row — tab + search + filter + columns + show */}
               <div className="hidden min-[1025px]:flex items-center gap-2">
                 {statusFilterEnabled && hasBothTabs && HEADER_STAT_DESIGN !== 4 ? (
                   <Select value={activeTab} onValueChange={(v) => { setActiveTab(v as "eligible" | "ineligible"); setCurrentPage(1) }}>
-                    <SelectTrigger className="w-[160px] h-8 !bg-white dark:!bg-zinc-900 text-sm"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="w-[160px] h-8 bg-transparent text-sm"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="eligible">Eligible ({totalEligibleUnits})</SelectItem>
                       <SelectItem value="ineligible">Ineligible ({totalIneligibleUnits})</SelectItem>
