@@ -26,9 +26,8 @@ const RATE_LIMIT_WINDOW_SECONDS = 15 * 60;
  *    app/apps/returns/[[...slug]]/page.tsx): the order must belong to that
  *    exact customer AND the email must match. No postcode needed — the
  *    login itself is the third factor a guest doesn't have.
- *  - Guest checkout (no logged_in_customer_id): email always required, plus
- *    shipping postcode too unless the merchant's guestLookupRequirePostcode
- *    Settings toggle is off.
+ *  - Guest checkout (no logged_in_customer_id): order number + email +
+ *    shipping postcode, always — not merchant-configurable.
  *
  * Rate-limited per shop+IP to prevent brute-forcing order numbers.
  */
@@ -55,8 +54,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "unknown store" }, { status: 404 });
   }
 
-  const requirePostcode = !loggedInCustomerId && tenant.branding.guestLookupRequirePostcode;
-  if (requirePostcode && !postcode) {
+  if (!loggedInCustomerId && !postcode) {
     return NextResponse.json({ error: "orderNumber, email and postcode are required" }, { status: 400 });
   }
 
@@ -97,16 +95,14 @@ export async function POST(request: NextRequest) {
 
     const matched = loggedInCustomerId
       ? loggedInOrderMatches(order, email, loggedInCustomerId)
-      : guestOrderMatches(order, email, postcode, requirePostcode);
+      : guestOrderMatches(order, email, postcode);
 
     if (!matched) {
       return NextResponse.json(
         {
           error: loggedInCustomerId
             ? "No order found matching that order number and email on your account."
-            : requirePostcode
-              ? "No order found matching that order number, email and postcode."
-              : "No order found matching that order number and email.",
+            : "No order found matching that order number, email and postcode.",
         },
         { status: 404 }
       );

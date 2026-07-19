@@ -37,7 +37,7 @@ type SettingsTab = "branding" | "returns" | "navigation" | "table" | "danger";
 const TAB_FIELDS: Record<SettingsTab, (keyof BrandingInput)[]> = {
   branding: ["name", "logoUrl", "accentColor", "storefrontUrl", "supportEmail", "guestBackgroundStyle"],
   returns: [
-    "returnWindowDays", "requirePolicyAcceptance", "alwaysShowGuestLookup", "guestLookupRequirePostcode",
+    "returnWindowDays", "requirePolicyAcceptance", "alwaysShowGuestLookup",
     "policyHeading", "policySubheading", "policyLastUpdated", "policyBodyMode", "policyCategories", "policyBodyText",
     "policyFooterNoteEnabled", "policyFooterNote", "policyAcceptedMessage", "policyDeclinedMessage",
   ],
@@ -587,17 +587,8 @@ export function SettingsForm({
               <s-paragraph tone="subdued">
                 When on, a logged-in customer visiting the returns portal directly sees the order lookup form (order
                 number + email — no postcode needed, since we already know they're logged in) instead of their full
-                order history. When off, logged-in customers see their full order list as normal.
-              </s-paragraph>
-              <s-checkbox
-                label="Require a postcode for guest (not logged-in) order lookup"
-                name="guestLookupRequirePostcode"
-                checked={form.guestLookupRequirePostcode}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("guestLookupRequirePostcode", e.target.checked)}
-              ></s-checkbox>
-              <s-paragraph tone="subdued">
-                When off, guests only need their order number and email to look up an order — no postcode. Doesn't
-                affect logged-in customers, who never need a postcode.
+                order history. When off, logged-in customers see their full order list as normal. Guests (not logged
+                in) always need order number, email and postcode — that isn't configurable.
               </s-paragraph>
             </s-stack>
           </s-section>

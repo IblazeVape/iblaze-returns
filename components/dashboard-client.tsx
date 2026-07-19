@@ -4261,7 +4261,7 @@ function DashboardClientInner() {
     ineligibleMessageEnabled: true, sidebarAvatarEnabled: true, headerAvatarEnabled: true,
     eligibleLabel: "Eligible", ineligibleLabel: "Ineligible",
     ineligibleStatusMessages: DEFAULT_TENANT_FIELDS.branding.ineligibleStatusMessages,
-    alwaysShowGuestLookup: false, guestLookupRequirePostcode: true,
+    alwaysShowGuestLookup: false,
   })
   // False until accentColor holds a real (cached or fetched) tenant value —
   // the "#000000" placeholder above is a type-safe default, not a real

@@ -85,7 +85,6 @@ export type TenantBranding = {
   ineligibleLabel: string;
   ineligibleStatusMessages: IneligibleStatusMessages;
   alwaysShowGuestLookup: boolean;
-  guestLookupRequirePostcode: boolean;
 };
 
 export const DEFAULT_TENANT_FIELDS = {
@@ -156,6 +155,5 @@ export const DEFAULT_TENANT_FIELDS = {
       notEligible: "These items aren't eligible for return.",
     },
     alwaysShowGuestLookup: false,
-    guestLookupRequirePostcode: true,
   } satisfies TenantBranding,
 };

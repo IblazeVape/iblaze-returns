@@ -62,7 +62,6 @@ const VALID: BrandingInput = {
     notEligible: "These items aren't eligible for return.",
   },
   alwaysShowGuestLookup: false,
-  guestLookupRequirePostcode: true,
 };
 
 describe("validateBrandingInput", () => {

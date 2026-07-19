@@ -55,20 +55,6 @@ describe("guestOrderMatches — the second factor beyond email", () => {
   });
 });
 
-describe("guestOrderMatches — requirePostcode: false (guestLookupRequirePostcode off)", () => {
-  it("matches on email alone, ignoring a blank postcode", () => {
-    expect(guestOrderMatches(realOrder, "jane.doe@example.com", "", false)).toBe(true);
-  });
-
-  it("still rejects a wrong email", () => {
-    expect(guestOrderMatches(realOrder, "someone-else@example.com", "", false)).toBe(false);
-  });
-
-  it("matches even when the order has no shipping postcode on file", () => {
-    expect(guestOrderMatches({ email: "jane.doe@example.com", shippingAddress: null }, "jane.doe@example.com", "", false)).toBe(true);
-  });
-});
-
 describe("loggedInOrderMatches", () => {
   it("matches when email and logged-in customer ID both match, no postcode needed", () => {
     expect(loggedInOrderMatches(realOrderWithCustomer, "jane.doe@example.com", "999")).toBe(true);

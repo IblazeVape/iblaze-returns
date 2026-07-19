@@ -64,7 +64,6 @@ export type BrandingInput = {
   ineligibleLabel: string;
   ineligibleStatusMessages: IneligibleStatusMessagesInput;
   alwaysShowGuestLookup: boolean;
-  guestLookupRequirePostcode: boolean;
 };
 
 const HEX_COLOR_RE = /^#[0-9a-fA-F]{6}$/;
