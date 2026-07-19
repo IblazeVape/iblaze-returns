@@ -2,22 +2,26 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyMerchantSessionToken } from "@/lib/merchant-session-token";
 import {
   validateBrandingInput,
-  INELIGIBLE_STATUS_KEYS,
+  RETURN_LIFECYCLE_STATUSES,
   type BrandingInput,
   type PolicyCategoryInput,
   type SidebarLinkInput,
-  type IneligibleStatusMessagesInput,
-  type IneligibleStatusStylesInput,
+  type ReturnLifecycleMessagesInput,
+  type ReturnLifecycleStylesInput,
+  type RefundStatusLabelsInput,
 } from "@/lib/branding-validation";
 import { getTenant, setTenant } from "@/lib/tenant";
 import { sanitizePolicyHtml } from "@/lib/sanitize-policy-html";
 
 export const dynamic = "force-dynamic";
 
-const INELIGIBLE_STATUS_MESSAGE_KEYS = [
-  "confirmed", "onItsWay", "outForDelivery", "attemptedDelivery", "windowExpired", "windowExpiredNoDate",
-  "returnRequested", "returnInProgress", "returned", "refunded", "returnCancelled", "cancelled", "notEligible",
+const RETURN_LIFECYCLE_MESSAGE_KEYS = [
+  "shippingConfirmed", "shippingOnItsWay", "shippingOutForDelivery", "shippingAttemptedDelivery",
+  "outsideWindow", "outsideWindowNoDate", "finalSale", "otherNotReturnable",
+  "returnRequested", "returnInProgress", "returnCanceled", "returnCompleted",
 ] as const;
+
+const REFUND_STATUS_KEYS = ["notRefunded", "partiallyRefunded", "refunded"] as const;
 
 function isPolicyCategoryArray(value: unknown): value is PolicyCategoryInput[] {
   return Array.isArray(value) && value.every((v) => v && typeof v.title === "string" && typeof v.desc === "string");
@@ -27,21 +31,27 @@ function isSidebarLinkArray(value: unknown): value is SidebarLinkInput[] {
   return Array.isArray(value) && value.every((v) => v && typeof v.label === "string" && typeof v.url === "string");
 }
 
-function isIneligibleStatusMessages(value: unknown): value is IneligibleStatusMessagesInput {
+function isReturnLifecycleMessages(value: unknown): value is ReturnLifecycleMessagesInput {
   if (!value || typeof value !== "object") return false;
   const v = value as Record<string, unknown>;
-  return INELIGIBLE_STATUS_MESSAGE_KEYS.every((key) => typeof v[key] === "string");
+  return RETURN_LIFECYCLE_MESSAGE_KEYS.every((key) => typeof v[key] === "string");
 }
 
-function isIneligibleStatusStyles(value: unknown): value is IneligibleStatusStylesInput {
+function isReturnLifecycleStyles(value: unknown): value is ReturnLifecycleStylesInput {
   if (!value || typeof value !== "object") return false;
   const v = value as Record<string, unknown>;
-  return INELIGIBLE_STATUS_KEYS.every((key) => {
+  return RETURN_LIFECYCLE_STATUSES.every((key) => {
     const s = v[key] as Record<string, unknown> | undefined;
     return s && typeof s === "object"
       && typeof s.label === "string" && typeof s.heading === "string"
       && typeof s.icon === "string" && typeof s.color === "string";
   });
+}
+
+function isRefundStatusLabels(value: unknown): value is RefundStatusLabelsInput {
+  if (!value || typeof value !== "object") return false;
+  const v = value as Record<string, unknown>;
+  return REFUND_STATUS_KEYS.every((key) => typeof v[key] === "string");
 }
 
 export async function PUT(request: NextRequest) {
@@ -139,12 +149,15 @@ export async function PUT(request: NextRequest) {
       typeof body.headerAvatarEnabled === "boolean" ? body.headerAvatarEnabled : existing.branding.headerAvatarEnabled,
     eligibleLabel: typeof body.eligibleLabel === "string" ? body.eligibleLabel : existing.branding.eligibleLabel,
     ineligibleLabel: typeof body.ineligibleLabel === "string" ? body.ineligibleLabel : existing.branding.ineligibleLabel,
-    ineligibleStatusMessages: isIneligibleStatusMessages(body.ineligibleStatusMessages)
-      ? body.ineligibleStatusMessages
-      : existing.branding.ineligibleStatusMessages,
-    ineligibleStatusStyles: isIneligibleStatusStyles(body.ineligibleStatusStyles)
-      ? body.ineligibleStatusStyles
-      : existing.branding.ineligibleStatusStyles,
+    returnLifecycleMessages: isReturnLifecycleMessages(body.returnLifecycleMessages)
+      ? body.returnLifecycleMessages
+      : existing.branding.returnLifecycleMessages,
+    returnLifecycleStyles: isReturnLifecycleStyles(body.returnLifecycleStyles)
+      ? body.returnLifecycleStyles
+      : existing.branding.returnLifecycleStyles,
+    refundStatusLabels: isRefundStatusLabels(body.refundStatusLabels)
+      ? body.refundStatusLabels
+      : existing.branding.refundStatusLabels,
     alwaysShowGuestLookup:
       typeof body.alwaysShowGuestLookup === "boolean" ? body.alwaysShowGuestLookup : existing.branding.alwaysShowGuestLookup,
   };
@@ -200,8 +213,9 @@ export async function PUT(request: NextRequest) {
       headerAvatarEnabled: input.headerAvatarEnabled,
       eligibleLabel: input.eligibleLabel,
       ineligibleLabel: input.ineligibleLabel,
-      ineligibleStatusMessages: input.ineligibleStatusMessages,
-      ineligibleStatusStyles: input.ineligibleStatusStyles,
+      returnLifecycleMessages: input.returnLifecycleMessages,
+      returnLifecycleStyles: input.returnLifecycleStyles,
+      refundStatusLabels: input.refundStatusLabels,
       alwaysShowGuestLookup: input.alwaysShowGuestLookup,
     },
   });
