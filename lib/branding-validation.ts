@@ -1,6 +1,21 @@
 export type PolicyCategoryInput = { title: string; desc: string };
 export type SidebarSubLinkInput = { label: string; url: string; icon?: string };
 export type SidebarLinkInput = { label: string; url: string; icon?: string; children?: SidebarSubLinkInput[] };
+export type IneligibleStatusMessagesInput = {
+  confirmed: string;
+  onItsWay: string;
+  outForDelivery: string;
+  attemptedDelivery: string;
+  windowExpired: string;
+  windowExpiredNoDate: string;
+  returnRequested: string;
+  returnInProgress: string;
+  returned: string;
+  refunded: string;
+  returnCancelled: string;
+  cancelled: string;
+  notEligible: string;
+};
 
 export type BrandingInput = {
   name: string;
@@ -47,6 +62,7 @@ export type BrandingInput = {
   headerAvatarEnabled: boolean;
   eligibleLabel: string;
   ineligibleLabel: string;
+  ineligibleStatusMessages: IneligibleStatusMessagesInput;
 };
 
 const HEX_COLOR_RE = /^#[0-9a-fA-F]{6}$/;
@@ -110,6 +126,14 @@ export function validateBrandingInput(
     errors.ineligibleLabel = "Can't be empty.";
   } else if (input.ineligibleLabel.length > STORE_LINK_LABEL_MAX_LENGTH) {
     errors.ineligibleLabel = `Must be ${STORE_LINK_LABEL_MAX_LENGTH} characters or fewer.`;
+  }
+  {
+    const messages = Object.values(input.ineligibleStatusMessages);
+    if (messages.some((m) => !m.trim())) {
+      errors.ineligibleStatusMessages = "Every message must have some text — none can be empty.";
+    } else if (messages.some((m) => m.length > POLICY_FOOTER_NOTE_MAX_LENGTH)) {
+      errors.ineligibleStatusMessages = `Each message must be ${POLICY_FOOTER_NOTE_MAX_LENGTH} characters or fewer.`;
+    }
   }
   if (input.policyHeading.length > POLICY_HEADING_MAX_LENGTH) {
     errors.policyHeading = `Must be ${POLICY_HEADING_MAX_LENGTH} characters or fewer.`;

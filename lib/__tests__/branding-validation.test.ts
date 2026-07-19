@@ -46,6 +46,21 @@ const VALID: BrandingInput = {
   headerAvatarEnabled: true,
   eligibleLabel: "Eligible",
   ineligibleLabel: "Ineligible",
+  ineligibleStatusMessages: {
+    confirmed: "We're preparing these items for shipping. Your return window starts on delivery and closes {days} days later.",
+    onItsWay: "These items are on their way. Your return window starts on delivery and closes {days} days later.",
+    outForDelivery: "These items are out for delivery today. Your return window starts on delivery and closes {days} days later.",
+    attemptedDelivery: "A delivery attempt was made for these items. Please rebook or collect — your return window starts once delivered.",
+    windowExpired: "The return window has expired for these items. It closed on {closedDate}.",
+    windowExpiredNoDate: "The return window has expired for these items.",
+    returnRequested: "We've received your return request.",
+    returnInProgress: "Your return is in progress.",
+    returned: "These items have already been returned.",
+    refunded: "These items have already been refunded.",
+    returnCancelled: "This return request was cancelled.",
+    cancelled: "These items were cancelled.",
+    notEligible: "These items aren't eligible for return.",
+  },
 };
 
 describe("validateBrandingInput", () => {
@@ -181,5 +196,23 @@ describe("validateBrandingInput", () => {
   it("rejects search placeholders over 100 characters", () => {
     expect(validateBrandingInput({ ...VALID, headerSearchPlaceholder: "x".repeat(101) }).valid).toBe(false);
     expect(validateBrandingInput({ ...VALID, tableSearchPlaceholder: "x".repeat(101) }).valid).toBe(false);
+  });
+
+  it("rejects an empty ineligible status message", () => {
+    const result = validateBrandingInput({
+      ...VALID,
+      ineligibleStatusMessages: { ...VALID.ineligibleStatusMessages, returned: "" },
+    });
+    expect(result.valid).toBe(false);
+    expect(result.errors.ineligibleStatusMessages).toBeDefined();
+  });
+
+  it("rejects an ineligible status message over 300 characters", () => {
+    const result = validateBrandingInput({
+      ...VALID,
+      ineligibleStatusMessages: { ...VALID.ineligibleStatusMessages, returned: "x".repeat(301) },
+    });
+    expect(result.valid).toBe(false);
+    expect(result.errors.ineligibleStatusMessages).toBeDefined();
   });
 });

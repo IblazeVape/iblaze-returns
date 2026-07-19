@@ -1,10 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyMerchantSessionToken } from "@/lib/merchant-session-token";
-import { validateBrandingInput, type BrandingInput, type PolicyCategoryInput, type SidebarLinkInput } from "@/lib/branding-validation";
+import {
+  validateBrandingInput,
+  type BrandingInput,
+  type PolicyCategoryInput,
+  type SidebarLinkInput,
+  type IneligibleStatusMessagesInput,
+} from "@/lib/branding-validation";
 import { getTenant, setTenant } from "@/lib/tenant";
 import { sanitizePolicyHtml } from "@/lib/sanitize-policy-html";
 
 export const dynamic = "force-dynamic";
+
+const INELIGIBLE_STATUS_MESSAGE_KEYS = [
+  "confirmed", "onItsWay", "outForDelivery", "attemptedDelivery", "windowExpired", "windowExpiredNoDate",
+  "returnRequested", "returnInProgress", "returned", "refunded", "returnCancelled", "cancelled", "notEligible",
+] as const;
 
 function isPolicyCategoryArray(value: unknown): value is PolicyCategoryInput[] {
   return Array.isArray(value) && value.every((v) => v && typeof v.title === "string" && typeof v.desc === "string");
@@ -12,6 +23,12 @@ function isPolicyCategoryArray(value: unknown): value is PolicyCategoryInput[] {
 
 function isSidebarLinkArray(value: unknown): value is SidebarLinkInput[] {
   return Array.isArray(value) && value.every((v) => v && typeof v.label === "string" && typeof v.url === "string");
+}
+
+function isIneligibleStatusMessages(value: unknown): value is IneligibleStatusMessagesInput {
+  if (!value || typeof value !== "object") return false;
+  const v = value as Record<string, unknown>;
+  return INELIGIBLE_STATUS_MESSAGE_KEYS.every((key) => typeof v[key] === "string");
 }
 
 export async function PUT(request: NextRequest) {
@@ -109,6 +126,9 @@ export async function PUT(request: NextRequest) {
       typeof body.headerAvatarEnabled === "boolean" ? body.headerAvatarEnabled : existing.branding.headerAvatarEnabled,
     eligibleLabel: typeof body.eligibleLabel === "string" ? body.eligibleLabel : existing.branding.eligibleLabel,
     ineligibleLabel: typeof body.ineligibleLabel === "string" ? body.ineligibleLabel : existing.branding.ineligibleLabel,
+    ineligibleStatusMessages: isIneligibleStatusMessages(body.ineligibleStatusMessages)
+      ? body.ineligibleStatusMessages
+      : existing.branding.ineligibleStatusMessages,
   };
 
   const { valid, errors } = validateBrandingInput(input);
@@ -162,6 +182,7 @@ export async function PUT(request: NextRequest) {
       headerAvatarEnabled: input.headerAvatarEnabled,
       eligibleLabel: input.eligibleLabel,
       ineligibleLabel: input.ineligibleLabel,
+      ineligibleStatusMessages: input.ineligibleStatusMessages,
     },
   });
 

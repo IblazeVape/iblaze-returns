@@ -13,6 +13,29 @@ export type PolicyCategory = { title: string; desc: string };
 export type SidebarLink = { label: string; url: string; icon?: string; children?: { label: string; url: string; icon?: string }[] };
 export type SidebarLayout = "inset" | "sidebar";
 
+/**
+ * One customer-facing sentence per line-item return status, shown in the
+ * order detail's ineligible-items list. Supports {days} (the merchant's
+ * return window, from returnWindowDays) and {closedDate} (windowExpired
+ * only — the formatted date the window closed) placeholder tokens,
+ * replaced at render time in components/dashboard-client.tsx.
+ */
+export type IneligibleStatusMessages = {
+  confirmed: string;
+  onItsWay: string;
+  outForDelivery: string;
+  attemptedDelivery: string;
+  windowExpired: string;
+  windowExpiredNoDate: string;
+  returnRequested: string;
+  returnInProgress: string;
+  returned: string;
+  refunded: string;
+  returnCancelled: string;
+  cancelled: string;
+  notEligible: string;
+};
+
 export type TenantBranding = {
   name: string;
   logoUrl: string;
@@ -60,6 +83,7 @@ export type TenantBranding = {
   headerAvatarEnabled: boolean;
   eligibleLabel: string;
   ineligibleLabel: string;
+  ineligibleStatusMessages: IneligibleStatusMessages;
 };
 
 export const DEFAULT_TENANT_FIELDS = {
@@ -114,5 +138,20 @@ export const DEFAULT_TENANT_FIELDS = {
     headerAvatarEnabled: true,
     eligibleLabel: "Eligible",
     ineligibleLabel: "Ineligible",
+    ineligibleStatusMessages: {
+      confirmed: "We're preparing these items for shipping. Your return window starts on delivery and closes {days} days later.",
+      onItsWay: "These items are on their way. Your return window starts on delivery and closes {days} days later.",
+      outForDelivery: "These items are out for delivery today. Your return window starts on delivery and closes {days} days later.",
+      attemptedDelivery: "A delivery attempt was made for these items. Please rebook or collect — your return window starts once delivered.",
+      windowExpired: "The return window has expired for these items. It closed on {closedDate}.",
+      windowExpiredNoDate: "The return window has expired for these items.",
+      returnRequested: "We've received your return request.",
+      returnInProgress: "Your return is in progress.",
+      returned: "These items have already been returned.",
+      refunded: "These items have already been refunded.",
+      returnCancelled: "This return request was cancelled.",
+      cancelled: "These items were cancelled.",
+      notEligible: "These items aren't eligible for return.",
+    },
   } satisfies TenantBranding,
 };

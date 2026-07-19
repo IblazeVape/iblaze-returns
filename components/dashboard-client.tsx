@@ -29,7 +29,8 @@ import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, Dr
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { PolicyHtml } from "@/components/policy-html"
 import { getCachedAccentColor, setCachedAccentColor } from "@/lib/accent-color-cache"
-import type { TenantBranding } from "@/lib/tenant"
+import type { TenantBranding, IneligibleStatusMessages } from "@/lib/tenant"
+import { DEFAULT_TENANT_FIELDS } from "@/lib/tenant"
 import { cn } from "@/lib/utils"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -271,9 +272,6 @@ function ineligibleBucketCounts(ineligibleItems: DisplayItem[]): Record<string, 
 
   return buckets
 }
-
-const ALREADY_RETURNED_MESSAGE = "These items have already been returned."
-const ALREADY_REFUNDED_MESSAGE = "These items have already been refunded."
 
 function isAlreadyReturnedStatus(status: ReturnStatus): boolean {
   return status === "Returned"
@@ -571,6 +569,7 @@ function buildNarrativeOrderSummary(
   totalEligibleUnits: number,
   ineligibleItems: DisplayItem[],
   returnWindowDays: number,
+  ineligibleStatusMessages: IneligibleStatusMessages,
 ): NarrativeOrderSummary {
   const total = parseFloat(order.totalPriceSet.shopMoney.amount)
   const refundedAmount = order.totalRefundedSet?.shopMoney?.amount
@@ -619,7 +618,7 @@ function buildNarrativeOrderSummary(
     .map(({ items, count, status }) => ({
       count,
       status,
-      message: getIneligibleGroupMessage(items[0], order, returnWindowDays, items as LineItem[]),
+      message: getIneligibleGroupMessage(items[0], order, returnWindowDays, ineligibleStatusMessages, items as LineItem[]),
     }))
 
   return { intro, fulfillmentLine, eligible: totalEligibleUnits, groups }
@@ -2547,7 +2546,7 @@ function getIneligibleGroupKey(item: LineItem, order: Order, returnWindowDays: n
     const closed = formatReturnWindowClosedForItem(item, order, returnWindowDays) ?? "unknown"
     return `window:${closed}`
   }
-  return `${item.returnStatus}:${getIneligibleGroupMessage(item, order, returnWindowDays)}`
+  return `${item.returnStatus}`
 }
 
 function ineligibleTableColSpan(cols: { variant: boolean; qty: boolean; total: boolean }) {
@@ -2656,41 +2655,46 @@ function getReturnStatusIcon(status: ReturnStatus): { icon: React.ElementType; c
 }
 
 /** One customer-facing sentence per group — Sidekick-approved copy, no redundant label + sub-line. */
-function getIneligibleGroupMessage(item: LineItem, order: Order, returnWindowDays: number, groupItems?: LineItem[]): string {
+function fillMessagePlaceholders(template: string, tokens: Record<string, string>): string {
+  return Object.entries(tokens).reduce((s, [key, value]) => s.split(`{${key}}`).join(value), template)
+}
+
+function getIneligibleGroupMessage(item: LineItem, order: Order, returnWindowDays: number, messages: IneligibleStatusMessages, groupItems?: LineItem[]): string {
+  const days = String(returnWindowDays)
   switch (item.returnStatus) {
     case "Confirmed":
-      return `We're preparing these items for shipping. Your return window starts on delivery and closes ${returnWindowDays} days later.`
+      return fillMessagePlaceholders(messages.confirmed, { days })
     case "On its way":
-      return `These items are on their way. Your return window starts on delivery and closes ${returnWindowDays} days later.`
+      return fillMessagePlaceholders(messages.onItsWay, { days })
     case "Out for delivery":
-      return `These items are out for delivery today. Your return window starts on delivery and closes ${returnWindowDays} days later.`
+      return fillMessagePlaceholders(messages.outForDelivery, { days })
     case "Attempted delivery":
-      return "A delivery attempt was made for these items. Please rebook or collect — your return window starts once delivered."
+      return messages.attemptedDelivery
     case "Passed the return window": {
       const closed = formatReturnWindowClosedForItem(item, order, returnWindowDays, groupItems)
       return closed
-        ? `The return window has expired for these items. It closed on ${closed}.`
-        : "The return window has expired for these items."
+        ? fillMessagePlaceholders(messages.windowExpired, { closedDate: closed })
+        : messages.windowExpiredNoDate
     }
     case "Return requested":
-      return "We've received your return request."
+      return messages.returnRequested
     case "Return in progress":
-      return "Your return is in progress."
+      return messages.returnInProgress
     case "Returned":
-      return ALREADY_RETURNED_MESSAGE
+      return messages.returned
     case "Refunded":
-      return ALREADY_REFUNDED_MESSAGE
+      return messages.refunded
     case "Return declined":
       return resolveDeclineMessage(item.returnReason || "Your return request was declined.")
     case "Return cancelled":
-      return "This return request was cancelled."
+      return messages.returnCancelled
     case "Cancelled":
-      return "These items were cancelled."
+      return messages.cancelled
     case "Final sale":
     case "Not eligible":
-      return "These items aren't eligible for return."
+      return messages.notEligible
     default:
-      return "These items aren't eligible for return."
+      return messages.notEligible
   }
 }
 
@@ -2705,9 +2709,9 @@ function getIneligibleFilterOptions(items: DisplayItem[]): { label: string; stat
   return Array.from(groups.entries()).map(([label, statuses]) => ({ label, statuses }))
 }
 
-function IneligibleGroupSummary({ item, order, groupItems, count, returnWindowDays }: { item: LineItem; order: Order; groupItems?: LineItem[]; count: string; returnWindowDays: number }) {
+function IneligibleGroupSummary({ item, order, groupItems, count, returnWindowDays, ineligibleStatusMessages }: { item: LineItem; order: Order; groupItems?: LineItem[]; count: string; returnWindowDays: number; ineligibleStatusMessages: IneligibleStatusMessages }) {
   const { icon: Icon, color } = getReturnStatusIcon(item.returnStatus)
-  const message = getIneligibleGroupMessage(item, order, returnWindowDays, groupItems)
+  const message = getIneligibleGroupMessage(item, order, returnWindowDays, ineligibleStatusMessages, groupItems)
   const title = getIneligibleAccordionTitle(item.returnStatus)
   const [open, setOpen] = useState(false)
 
@@ -3216,6 +3220,7 @@ type OrderDetailBranding = {
   ineligibleMessageEnabled: boolean
   eligibleLabel: string
   ineligibleLabel: string
+  ineligibleStatusMessages: IneligibleStatusMessages
 }
 
 function OrderDetail({
@@ -3235,7 +3240,7 @@ function OrderDetail({
     policyAcceptedMessage, policyDeclinedMessage, tableSearchEnabled, tableSearchPlaceholder,
     tableColumnsButtonEnabled, tableFilterButtonEnabled, tablePageSizeEnabled, shipmentCardsEnabled,
     productImageLinksEnabled, statusFilterEnabled, ineligibleMessageEnabled,
-    eligibleLabel, ineligibleLabel,
+    eligibleLabel, ineligibleLabel, ineligibleStatusMessages,
   } = branding
   const [policyAccepted, setPolicyAccepted] = useState(!requirePolicyAcceptance)
   const [selectedItems, setSelectedItems]   = useState<Record<string, { selected: boolean; quantity: number; reason: string; description: string }>>({})
@@ -3294,8 +3299,8 @@ function OrderDetail({
   )
 
   const narrativeSummary = useMemo(
-    () => buildNarrativeOrderSummary(order, totalEligibleUnits, ineligibleItems, returnWindowDays),
-    [order, totalEligibleUnits, ineligibleItems, returnWindowDays]
+    () => buildNarrativeOrderSummary(order, totalEligibleUnits, ineligibleItems, returnWindowDays, ineligibleStatusMessages),
+    [order, totalEligibleUnits, ineligibleItems, returnWindowDays, ineligibleStatusMessages]
   )
 
   const narrativeParagraph = useMemo(
@@ -3680,7 +3685,7 @@ function OrderDetail({
               <div className="hidden min-[1025px]:flex items-center gap-2">
                 {statusFilterEnabled && hasBothTabs && HEADER_STAT_DESIGN !== 4 ? (
                   <Select value={activeTab} onValueChange={(v) => { setActiveTab(v as "eligible" | "ineligible"); setCurrentPage(1) }}>
-                    <SelectTrigger className="w-[160px] h-8 bg-transparent text-sm"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="w-fit min-w-[120px] max-w-[260px] h-8 bg-transparent text-sm"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="eligible">{eligibleLabel} ({totalEligibleUnits})</SelectItem>
                       <SelectItem value="ineligible">{ineligibleLabel} ({totalIneligibleUnits})</SelectItem>
@@ -3936,7 +3941,7 @@ function OrderDetail({
                         {showGroupHeader && (
                           <TableRow className="bg-muted/80 hover:bg-muted/80 border-b border-border/60">
                             <TableCell colSpan={ineligibleTableColSpan(colsVisible)} className="p-0 whitespace-normal">
-                              <IneligibleGroupSummary item={item} order={order} groupItems={groupRows} count={formatGroupCount(groupRows)} returnWindowDays={returnWindowDays} />
+                              <IneligibleGroupSummary item={item} order={order} groupItems={groupRows} count={formatGroupCount(groupRows)} returnWindowDays={returnWindowDays} ineligibleStatusMessages={ineligibleStatusMessages} />
                             </TableCell>
                           </TableRow>
                         )}
@@ -4223,6 +4228,7 @@ function DashboardClientInner() {
     defaultOrderView: "grid", sidebarDefaultOpenOnDesktop: true, statusFilterEnabled: true,
     ineligibleMessageEnabled: true, sidebarAvatarEnabled: true, headerAvatarEnabled: true,
     eligibleLabel: "Eligible", ineligibleLabel: "Ineligible",
+    ineligibleStatusMessages: DEFAULT_TENANT_FIELDS.branding.ineligibleStatusMessages,
   })
   // False until accentColor holds a real (cached or fetched) tenant value —
   // the "#000000" placeholder above is a type-safe default, not a real

@@ -72,6 +72,7 @@ describe("tenant store", () => {
     expect(t?.branding.sidebarSubmenusExpandedByDefault).toBe(true);
     expect(t?.branding.guestBackgroundStyle).toBe("none");
     expect(t?.branding.policyFooterNoteEnabled).toBe(true);
+    expect(t?.branding.ineligibleStatusMessages.notEligible).toBe("These items aren't eligible for return.");
   });
 
   it("round-trips a full branding update", async () => {
@@ -122,6 +123,21 @@ describe("tenant store", () => {
         headerAvatarEnabled: false,
         eligibleLabel: "Ready to return",
         ineligibleLabel: "Not eligible",
+        ineligibleStatusMessages: {
+          confirmed: "Preparing for shipping.",
+          onItsWay: "On its way.",
+          outForDelivery: "Out for delivery.",
+          attemptedDelivery: "Delivery attempted.",
+          windowExpired: "Window expired on {closedDate}.",
+          windowExpiredNoDate: "Window expired.",
+          returnRequested: "Return requested.",
+          returnInProgress: "Return in progress.",
+          returned: "Already returned.",
+          refunded: "Already refunded.",
+          returnCancelled: "Return cancelled.",
+          cancelled: "Cancelled.",
+          notEligible: "Not eligible.",
+        },
       },
     });
     const t = await getTenant("d.myshopify.com");
@@ -152,6 +168,7 @@ describe("tenant store", () => {
     expect(t?.branding.sidebarSubmenusExpandedByDefault).toBe(false);
     expect(t?.branding.guestBackgroundStyle).toBe("dotField");
     expect(t?.branding.policyFooterNoteEnabled).toBe(false);
+    expect(t?.branding.ineligibleStatusMessages.returned).toBe("Already returned.");
   });
 
   it("merges old branding JSON with new field defaults", async () => {

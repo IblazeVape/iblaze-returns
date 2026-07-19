@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { validateBrandingInput, type BrandingInput, type PolicyCategoryInput, type SidebarLinkInput, type SidebarSubLinkInput } from "@/lib/branding-validation"
+import { validateBrandingInput, type BrandingInput, type PolicyCategoryInput, type SidebarLinkInput, type SidebarSubLinkInput, type IneligibleStatusMessagesInput } from "@/lib/branding-validation"
 import type { TenantBranding } from "@/lib/tenant"
 import { SIDEBAR_ICON_NAMES } from "@/lib/sidebar-icons"
 import { RichTextEditor } from "@/components/app-settings/rich-text-editor"
@@ -48,7 +48,7 @@ const TAB_FIELDS: Record<SettingsTab, (keyof BrandingInput)[]> = {
   table: [
     "headerSearchEnabled", "headerSearchPlaceholder", "tableSearchEnabled", "tableSearchPlaceholder",
     "tableColumnsButtonEnabled", "tableFilterButtonEnabled", "tablePageSizeEnabled", "shipmentCardsEnabled",
-    "productImageLinksEnabled",
+    "productImageLinksEnabled", "ineligibleStatusMessages",
   ],
   // No fields of its own — Reset actions act on the whole form/tenant record,
   // not a validated field subset, so there's nothing for the Save-error tab
@@ -153,6 +153,10 @@ export function SettingsForm({
 
   function set<K extends keyof BrandingInput>(key: K, value: BrandingInput[K]) {
     setForm((f) => ({ ...f, [key]: value }))
+  }
+
+  function setIneligibleMessage<K extends keyof IneligibleStatusMessagesInput>(key: K, value: string) {
+    setForm((f) => ({ ...f, ineligibleStatusMessages: { ...f.ineligibleStatusMessages, [key]: value } }))
   }
 
   async function authedFetch(input: string, init: RequestInit = {}) {
@@ -993,6 +997,41 @@ export function SettingsForm({
                 checked={form.productImageLinksEnabled}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("productImageLinksEnabled", e.target.checked)}
               ></s-checkbox>
+            </s-stack>
+          </s-section>
+
+          <s-section heading="Status messages">
+            <s-stack direction="block" gap="base">
+              <s-text color="subdued">
+                Customize the sentences shown to customers for each ineligible status. Use {"{days}"} for the return
+                window length and {"{closedDate}"} (expired window only) for the date it closed.
+              </s-text>
+              {([
+                ["confirmed", "Confirmed", "We're preparing these items for shipping. Your return window starts on delivery and closes {days} days later."],
+                ["onItsWay", "On its way", "These items are on their way. Your return window starts on delivery and closes {days} days later."],
+                ["outForDelivery", "Out for delivery", "These items are out for delivery today. Your return window starts on delivery and closes {days} days later."],
+                ["attemptedDelivery", "Attempted delivery", "A delivery attempt was made for these items. Please rebook or collect — your return window starts once delivered."],
+                ["windowExpired", "Window expired (with date)", "The return window has expired for these items. It closed on {closedDate}."],
+                ["windowExpiredNoDate", "Window expired (no date)", "The return window has expired for these items."],
+                ["returnRequested", "Return requested", "We've received your return request."],
+                ["returnInProgress", "Return in progress", "Your return is in progress."],
+                ["returned", "Returned", "These items have already been returned."],
+                ["refunded", "Refunded", "These items have already been refunded."],
+                ["returnCancelled", "Return cancelled", "This return request was cancelled."],
+                ["cancelled", "Cancelled", "These items were cancelled."],
+                ["notEligible", "Not eligible", "These items aren't eligible for return."],
+              ] as [keyof IneligibleStatusMessagesInput, string, string][]).map(([key, label, placeholder]) => (
+                <s-text-area
+                  key={key}
+                  label={label}
+                  name={`ineligibleStatusMessages.${key}`}
+                  value={form.ineligibleStatusMessages[key]}
+                  placeholder={placeholder}
+                  rows={2}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setIneligibleMessage(key, e.target.value)}
+                ></s-text-area>
+              ))}
+              {errors.ineligibleStatusMessages && <s-paragraph tone="critical">{errors.ineligibleStatusMessages}</s-paragraph>}
             </s-stack>
           </s-section>
         </>
