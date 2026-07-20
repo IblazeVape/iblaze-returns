@@ -92,11 +92,15 @@ export function GuestLookupForm({
       : "Enter your order number and the email used at checkout.");
 
   return (
-    <div className="w-full max-w-3xl mx-4 overflow-hidden rounded-xl border bg-card text-card-foreground shadow-xl">
-      <div className="grid md:grid-cols-2">
-        {/* Brand / visual panel — Moqups-style left column */}
+    <div className="w-full max-w-4xl mx-4 overflow-hidden rounded-2xl border bg-card text-card-foreground shadow-xl">
+      {/*
+        Flex (not grid) so the brand panel keeps a fixed visual weight.
+        Side-by-side from 720px up — Moqups-style; stacks cleanly on phones.
+      */}
+      <div className="flex flex-col min-[720px]:flex-row min-[720px]:min-h-[440px]">
+        {/* Brand / visual panel */}
         <div
-          className="relative flex min-h-[180px] flex-col justify-between overflow-hidden p-6 md:min-h-[420px] md:p-8"
+          className="relative flex w-full flex-col items-center justify-center gap-5 overflow-hidden px-8 py-10 min-[720px]:w-[42%] min-[720px]:shrink-0 min-[720px]:py-12"
           style={{ backgroundColor: "var(--brand, #111)" }}
         >
           {heroImageUrl ? (
@@ -104,49 +108,55 @@ export function GuestLookupForm({
             <img
               src={heroImageUrl}
               alt=""
-              className="absolute inset-0 h-full w-full object-cover"
+              className="absolute inset-0 size-full object-cover"
             />
           ) : (
             <>
               <div
-                className="pointer-events-none absolute -right-10 -top-10 size-40 rounded-full opacity-20"
+                aria-hidden
+                className="pointer-events-none absolute -right-12 -top-12 size-44 rounded-full opacity-25"
                 style={{ background: "radial-gradient(circle, #fff 0%, transparent 70%)" }}
               />
               <div
-                className="pointer-events-none absolute -bottom-16 -left-8 size-52 rounded-full opacity-15"
+                aria-hidden
+                className="pointer-events-none absolute -bottom-20 -left-10 size-56 rounded-full opacity-15"
                 style={{ background: "radial-gradient(circle, #fff 0%, transparent 70%)" }}
               />
             </>
           )}
 
-          <div className="relative z-10">
+          <div className="relative z-10 flex flex-col items-center gap-5 text-center">
             {logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={logoUrl}
                 alt={brandName || "Store"}
-                className="h-8 w-auto max-w-[160px] object-contain brightness-0 invert"
+                width={200}
+                height={80}
+                className="h-16 w-auto max-w-[200px] object-contain drop-shadow-md min-[720px]:h-20"
               />
             ) : (
-              <span className="text-sm font-semibold tracking-wide text-white/95">
+              <span className="text-lg font-semibold tracking-wide text-white">
                 {brandName || "Returns"}
               </span>
             )}
-          </div>
-
-          <div className="relative z-10 mt-8 md:mt-auto">
-            <p className="max-w-[14rem] text-xl font-semibold leading-snug tracking-tight text-white md:text-2xl">
-              Look up your order in seconds
-            </p>
-            <p className="mt-2 max-w-[16rem] text-sm text-white/75">
-              No account needed — just the details from your checkout.
-            </p>
+            <div className="max-w-[18rem] space-y-2">
+              <p className="text-xl font-semibold leading-snug tracking-tight text-white min-[720px]:text-2xl">
+                Look up your order in seconds
+              </p>
+              <p className="text-sm leading-relaxed text-white/75">
+                No account needed — just the details from your checkout.
+              </p>
+            </div>
           </div>
         </div>
 
         {/* Form panel */}
-        <div className="flex flex-col justify-center gap-6 p-6 md:p-8">
-          <p className="text-sm text-muted-foreground">{resolvedDescription}</p>
+        <div className="flex flex-1 flex-col justify-center gap-5 px-6 py-8 min-[720px]:px-10">
+          <div className="space-y-1.5">
+            <h2 className="text-xl font-semibold tracking-tight">Find your order</h2>
+            <p className="text-sm text-muted-foreground leading-relaxed">{resolvedDescription}</p>
+          </div>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
@@ -190,7 +200,7 @@ export function GuestLookupForm({
             <Button
               type="submit"
               disabled={status === "loading"}
-              className="w-full bg-[var(--brand)] hover:bg-[var(--brand)]/90 text-white"
+              className="mt-1 w-full bg-[var(--brand)] hover:bg-[var(--brand)]/90 text-white"
             >
               {status === "loading" ? (
                 <>

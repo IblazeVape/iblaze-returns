@@ -29,7 +29,7 @@ const PREVIEW_BRANDING: InitialBranding = {
 
 export default function GuestLookupDemoPage() {
   return (
-    <GuestPortalShell branding={PREVIEW_BRANDING}>
+    <GuestPortalShell branding={PREVIEW_BRANDING} title={PREVIEW_BRANDING.name}>
       <GuestLookupForm
         brandName={PREVIEW_BRANDING.name}
         logoUrl={PREVIEW_BRANDING.logoUrl}

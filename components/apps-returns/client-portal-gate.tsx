@@ -154,7 +154,7 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
     case "guest-or-login": {
       const loginUrl = `/account/login?return_url=${encodeURIComponent("/apps/returns")}`;
       return (
-        <GuestPortalShell branding={initial.branding}>
+        <GuestPortalShell branding={initial.branding} title={initial.branding.name || "Returns"}>
           <GuestLookupForm
             brandName={initial.branding.name}
             logoUrl={initial.branding.logoUrl}
@@ -183,7 +183,7 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
       // is verified server-side against the looked-up order's customer ID
       // (see loggedInOrderMatches in lib/guest-order-match.ts).
       return (
-        <GuestPortalShell branding={initial.branding}>
+        <GuestPortalShell branding={initial.branding} title={initial.branding.name || "Returns"}>
           <GuestLookupForm
             requirePostcode={false}
             brandName={initial.branding.name}
