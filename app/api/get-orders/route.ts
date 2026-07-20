@@ -627,7 +627,7 @@ async function handleGet(request: NextRequest): Promise<NextResponse> {
 
         let returnStatus: string;
         let returnReason: string;
-        let notReturnableReason: string | null = null;
+        let closedReason: string | null = null;
         let shippingStage: ShippingStage | null = null;
         let effectiveEligibleQty = effectiveEligibleWindowed;
 
@@ -640,13 +640,13 @@ async function handleGet(request: NextRequest): Promise<NextResponse> {
           returnReason = "";
 
         } else if (shopifySlotEligible > 0 && delivery.attemptedDeliveryQty > 0) {
-          returnStatus = "notReturnable"; notReturnableReason = "notDelivered"; shippingStage = "attemptedDelivery";
+          returnStatus = "awaitingDelivery"; shippingStage = "attemptedDelivery";
           returnReason = SHIPPING_STAGE_REASON.attemptedDelivery;
         } else if (shopifySlotEligible > 0 && delivery.outForDeliveryQty > 0) {
-          returnStatus = "notReturnable"; notReturnableReason = "notDelivered"; shippingStage = "outForDelivery";
+          returnStatus = "awaitingDelivery"; shippingStage = "outForDelivery";
           returnReason = SHIPPING_STAGE_REASON.outForDelivery;
         } else if (shopifySlotEligible > 0 && delivery.inTransitQty > 0) {
-          returnStatus = "notReturnable"; notReturnableReason = "notDelivered"; shippingStage = "onItsWay";
+          returnStatus = "awaitingDelivery"; shippingStage = "onItsWay";
           returnReason = SHIPPING_STAGE_REASON.onItsWay;
 
         } else if (bestReturn && Math.max(0, item.quantity - reservedQty) <= 0) {
@@ -691,7 +691,7 @@ async function handleGet(request: NextRequest): Promise<NextResponse> {
               // Item confirmed as unfulfilled — delivery state takes precedence
               const undelivered = statusFromUndeliveredDelivery(delivery, now, returnWindowDays);
               returnStatus = undelivered.returnStatus;
-              notReturnableReason = undelivered.notReturnableReason;
+              closedReason = undelivered.closedReason;
               shippingStage = undelivered.shippingStage;
               returnReason = undelivered.returnReason;
             } else if (reasonCodes.includes("RETURN_WINDOW_EXPIRED")) {
@@ -699,15 +699,15 @@ async function handleGet(request: NextRequest): Promise<NextResponse> {
               if (delivery.deliveredQty <= 0) {
                 const undelivered = statusFromUndeliveredDelivery(delivery, now, returnWindowDays);
                 returnStatus = undelivered.returnStatus;
-                notReturnableReason = undelivered.notReturnableReason;
+                closedReason = undelivered.closedReason;
                 shippingStage = undelivered.shippingStage;
                 returnReason = undelivered.returnReason;
               } else {
-                returnStatus = "notReturnable"; notReturnableReason = "outsideWindow";
+                returnStatus = "returnWindowClosed"; closedReason = "outsideWindow";
                 returnReason = formatReturnWindowExpiredReason(delivery.latestDeliveredAt, returnWindowDays);
               }
             } else if (reasonCodes.includes("FINAL_SALE")) {
-              returnStatus = "notReturnable"; notReturnableReason = "finalSale";
+              returnStatus = "returnWindowClosed"; closedReason = "finalSale";
               returnReason = "This item is marked as final sale and cannot be returned.";
             } else if (reasonCodes.includes("RETURNED")) {
               // Sidekick guidance: RETURNED ≠ refunded.
@@ -716,7 +716,7 @@ async function handleGet(request: NextRequest): Promise<NextResponse> {
               returnReason = "This item has already been returned.";
             } else {
               // Unknown reason code — generic copy; logged above
-              returnStatus = "notReturnable"; notReturnableReason = "other";
+              returnStatus = "returnWindowClosed"; closedReason = "other";
               returnReason = "This item is not eligible for return.";
             }
           } else {
@@ -744,7 +744,7 @@ async function handleGet(request: NextRequest): Promise<NextResponse> {
                 ? (now.getTime() - delivery.latestDeliveredAt.getTime()) / (1000 * 60 * 60 * 24)
                 : Infinity;
               if (daysSince > returnWindowDays) {
-                returnStatus = "notReturnable"; notReturnableReason = "outsideWindow";
+                returnStatus = "returnWindowClosed"; closedReason = "outsideWindow";
                 returnReason = formatReturnWindowExpiredReason(delivery.latestDeliveredAt, returnWindowDays);
               } else {
                 returnStatus = "Eligible";
@@ -754,7 +754,7 @@ async function handleGet(request: NextRequest): Promise<NextResponse> {
             } else {
               const undelivered2 = statusFromUndeliveredDelivery(delivery, now, returnWindowDays);
               returnStatus = undelivered2.returnStatus;
-              notReturnableReason = undelivered2.notReturnableReason;
+              closedReason = undelivered2.closedReason;
               shippingStage = undelivered2.shippingStage;
               returnReason = undelivered2.returnReason;
             }
@@ -775,7 +775,7 @@ async function handleGet(request: NextRequest): Promise<NextResponse> {
             if (delivery.latestDeliveredAt) {
               const daysSince = (now.getTime() - delivery.latestDeliveredAt.getTime()) / (1000 * 60 * 60 * 24);
               if (daysSince > returnWindowDays) {
-                returnStatus = "notReturnable"; notReturnableReason = "outsideWindow";
+                returnStatus = "returnWindowClosed"; closedReason = "outsideWindow";
                 returnReason = formatReturnWindowExpiredReason(delivery.latestDeliveredAt, returnWindowDays);
               } else {
                 returnStatus = "Eligible";
@@ -788,7 +788,7 @@ async function handleGet(request: NextRequest): Promise<NextResponse> {
           } else {
             const undelivered3 = statusFromUndeliveredDelivery(delivery, now, returnWindowDays);
             returnStatus = undelivered3.returnStatus;
-            notReturnableReason = undelivered3.notReturnableReason;
+            closedReason = undelivered3.closedReason;
             shippingStage = undelivered3.shippingStage;
             returnReason = undelivered3.returnReason;
           }
@@ -818,7 +818,7 @@ async function handleGet(request: NextRequest): Promise<NextResponse> {
           pendingQuantity: Math.max(0, item.quantity - delivery.deliveredQty - delivery.inTransitQty - delivery.outForDeliveryQty - delivery.attemptedDeliveryQty - delivery.confirmedQty),
           returnStatus,
           returnReason,
-          notReturnableReason,
+          closedReason,
           shippingStage,
           refundStatus,
           lineDeliveredAt: delivery.latestDeliveredAt

@@ -8,6 +8,7 @@
 // here lets it be unit tested directly while route.ts stays a valid route file.
 
 export type ShippingStage = "confirmed" | "onItsWay" | "outForDelivery" | "attemptedDelivery";
+export type ReturnClosedReason = "outsideWindow" | "finalSale" | "other";
 
 export const SHIPPING_STAGE_REASON: Record<ShippingStage, string> = {
   confirmed: "We're preparing your items for shipping.",
@@ -33,15 +34,15 @@ export function statusFromUndeliveredDelivery(
   },
   now: Date,
   returnWindowDays: number,
-): { returnStatus: string; notReturnableReason: string; shippingStage: ShippingStage | null; returnReason: string } {
+): { returnStatus: string; closedReason: ReturnClosedReason | null; shippingStage: ShippingStage | null; returnReason: string } {
   const isInTransit = delivery.attemptedDeliveryQty > 0 || delivery.outForDeliveryQty > 0 || delivery.inTransitQty > 0;
 
   if (isInTransit && delivery.earliestShippedAt) {
     const daysSinceShipped = (now.getTime() - delivery.earliestShippedAt.getTime()) / (1000 * 60 * 60 * 24);
     if (daysSinceShipped > returnWindowDays) {
       return {
-        returnStatus: "notReturnable",
-        notReturnableReason: "outsideWindow",
+        returnStatus: "returnWindowClosed",
+        closedReason: "outsideWindow",
         shippingStage: null,
         returnReason: formatReturnWindowExpiredReason(delivery.earliestShippedAt, returnWindowDays),
       };
@@ -55,8 +56,8 @@ export function statusFromUndeliveredDelivery(
     : "confirmed";
 
   return {
-    returnStatus: "notReturnable",
-    notReturnableReason: "notDelivered",
+    returnStatus: "awaitingDelivery",
+    closedReason: null,
     shippingStage: stage,
     returnReason: SHIPPING_STAGE_REASON[stage],
   };
