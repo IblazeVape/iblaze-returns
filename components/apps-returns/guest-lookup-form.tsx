@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -80,7 +80,6 @@ export function GuestLookupForm({
   return (
     <Card className="w-full max-w-md mx-4 shadow-xl">
       <CardHeader>
-        <CardTitle className="text-lg text-center">Find your order</CardTitle>
         <CardDescription className="text-center">
           {description ??
             (requirePostcode
