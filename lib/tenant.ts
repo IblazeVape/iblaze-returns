@@ -3,13 +3,13 @@ import { redis } from "@/lib/redis";
 import {
   DEFAULT_TENANT_FIELDS, type PolicyCategory, type SidebarLink, type SidebarLayout, type TenantBranding,
   type ReturnLifecycleStatus, type ReturnLifecycleStyle, type ReturnLifecycleStyles, type ReturnLifecycleMessages,
-  type NotReturnableReason, type RefundStatus, type RefundStatusLabels,
+  type ReturnClosedReason, type RefundStatus, type RefundStatusLabels,
 } from "@/lib/tenant-defaults";
 
 export type {
   PolicyCategory, SidebarLink, SidebarLayout, TenantBranding,
   ReturnLifecycleStatus, ReturnLifecycleStyle, ReturnLifecycleStyles, ReturnLifecycleMessages,
-  NotReturnableReason, RefundStatus, RefundStatusLabels,
+  ReturnClosedReason, RefundStatus, RefundStatusLabels,
 };
 export { DEFAULT_TENANT_FIELDS };
 
