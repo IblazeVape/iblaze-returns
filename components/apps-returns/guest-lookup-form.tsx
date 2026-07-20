@@ -12,8 +12,9 @@ import { Spinner } from "@/components/ui/spinner";
  * email + postcode against the tenant's Shopify data — see
  * app/apps/returns/guest-lookup/route.ts for the server-side check.
  *
- * Split layout (brand panel + form) mirrors common signup patterns so the
- * pre-auth screen feels intentional rather than a bare centered card.
+ * Split layout: returns hero image on the left (top strip on mobile), form
+ * on the right — so the pre-auth screen feels intentional rather than a bare
+ * centered card.
  *
  * On success the server returns a session token in the JSON body (NOT via
  * Set-Cookie — Shopify's App Proxy strips that on the way back to the
@@ -30,6 +31,8 @@ type GuestOrder = {
   statusPageUrl: string | null;
 };
 
+const DEFAULT_HERO = "/assets/guest-lookup-hero.png";
+
 export function GuestLookupForm({
   onVerified,
   requirePostcode = true,
@@ -37,7 +40,7 @@ export function GuestLookupForm({
   brandName,
   logoUrl,
   loginUrl,
-  heroImageUrl,
+  heroImageUrl = DEFAULT_HERO,
 }: {
   onVerified: (token: string, order: GuestOrder) => void;
   /** Off for logged-in customers (their store login is the 3rd factor
@@ -49,7 +52,7 @@ export function GuestLookupForm({
   logoUrl?: string;
   /** When set, shows the “Log in to see all your orders” path under the CTA. */
   loginUrl?: string;
-  /** Optional left-panel photo. Falls back to logo-on-brand when empty. */
+  /** Left-panel hero. Defaults to the built-in returns package image. */
   heroImageUrl?: string;
 }) {
   const [orderNumber, setOrderNumber] = useState("");
@@ -93,66 +96,51 @@ export function GuestLookupForm({
 
   return (
     <div className="w-full max-w-4xl mx-4 overflow-hidden rounded-2xl border bg-card text-card-foreground shadow-xl">
-      {/*
-        Flex (not grid) so the brand panel keeps a fixed visual weight.
-        Side-by-side from 720px up — Moqups-style; stacks cleanly on phones.
-      */}
-      <div className="flex flex-col min-[720px]:flex-row min-[720px]:min-h-[440px]">
-        {/* Brand / visual panel */}
-        <div
-          className="relative flex w-full flex-col items-center justify-center gap-5 overflow-hidden px-8 py-10 min-[720px]:w-[42%] min-[720px]:shrink-0 min-[720px]:py-12"
-          style={{ backgroundColor: "var(--brand, #111)" }}
-        >
-          {heroImageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={heroImageUrl}
-              alt=""
-              className="absolute inset-0 size-full object-cover"
-            />
-          ) : (
-            <>
-              <div
-                aria-hidden
-                className="pointer-events-none absolute -right-12 -top-12 size-44 rounded-full opacity-25"
-                style={{ background: "radial-gradient(circle, #fff 0%, transparent 70%)" }}
-              />
-              <div
-                aria-hidden
-                className="pointer-events-none absolute -bottom-20 -left-10 size-56 rounded-full opacity-15"
-                style={{ background: "radial-gradient(circle, #fff 0%, transparent 70%)" }}
-              />
-            </>
+      <div className="flex flex-col min-[720px]:flex-row min-[720px]:min-h-[460px]">
+        {/* Hero — short strip on mobile, full left column on desktop */}
+        <div className="relative h-44 w-full shrink-0 overflow-hidden min-[720px]:h-auto min-[720px]:w-[44%]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={heroImageUrl}
+            alt=""
+            className="absolute inset-0 size-full object-cover object-center"
+          />
+          <div
+            aria-hidden
+            className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent min-[720px]:bg-gradient-to-t min-[720px]:from-black/75 min-[720px]:via-black/15 min-[720px]:to-transparent"
+          />
+
+          {(logoUrl || brandName) && (
+            <div className="absolute left-4 top-4 z-10 min-[720px]:left-6 min-[720px]:top-6">
+              {logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={logoUrl}
+                  alt={brandName || "Store"}
+                  width={140}
+                  height={40}
+                  className="h-7 w-auto max-w-[140px] object-contain drop-shadow"
+                />
+              ) : (
+                <span className="text-sm font-semibold text-white drop-shadow">
+                  {brandName}
+                </span>
+              )}
+            </div>
           )}
 
-          <div className="relative z-10 flex flex-col items-center gap-5 text-center">
-            {logoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={logoUrl}
-                alt={brandName || "Store"}
-                width={200}
-                height={80}
-                className="h-16 w-auto max-w-[200px] object-contain drop-shadow-md min-[720px]:h-20"
-              />
-            ) : (
-              <span className="text-lg font-semibold tracking-wide text-white">
-                {brandName || "Returns"}
-              </span>
-            )}
-            <div className="max-w-[18rem] space-y-2">
-              <p className="text-xl font-semibold leading-snug tracking-tight text-white min-[720px]:text-2xl">
-                Look up your order in seconds
-              </p>
-              <p className="text-sm leading-relaxed text-white/75">
-                No account needed — just the details from your checkout.
-              </p>
-            </div>
+          <div className="absolute inset-x-0 bottom-0 z-10 p-4 min-[720px]:p-8">
+            <p className="max-w-[16rem] text-lg font-semibold leading-snug tracking-tight text-white min-[720px]:text-2xl">
+              Return your order with ease
+            </p>
+            <p className="mt-1 max-w-[18rem] text-xs leading-relaxed text-white/80 min-[720px]:mt-2 min-[720px]:text-sm">
+              Look up your order in seconds — no account needed.
+            </p>
           </div>
         </div>
 
         {/* Form panel */}
-        <div className="flex flex-1 flex-col justify-center gap-5 px-6 py-8 min-[720px]:px-10">
+        <div className="flex flex-1 flex-col justify-center gap-5 px-6 py-7 min-[720px]:px-10 min-[720px]:py-10">
           <div className="space-y-1.5">
             <h2 className="text-xl font-semibold tracking-tight">Find your order</h2>
             <p className="text-sm text-muted-foreground leading-relaxed">{resolvedDescription}</p>
