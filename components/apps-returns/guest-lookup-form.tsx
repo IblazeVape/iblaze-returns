@@ -35,8 +35,14 @@ type GuestOrder = {
 /** App Proxy only forwards `/apps/returns*`, so static files must be loaded
  * from the app origin (Vercel), not as relative paths on the shop domain. */
 function guestLookupHeroSrc() {
-  const base = (process.env.NEXT_PUBLIC_APP_URL || "").replace(/\/$/, "");
-  return base ? `${base}/assets/guest-lookup-hero.png` : "/assets/guest-lookup-hero.png";
+  const raw = (process.env.NEXT_PUBLIC_APP_URL || "").replace(/\/$/, "");
+  // Tunnel / preview URLs in local env must not leak into production builds'
+  // asset paths — fall back to the known production host.
+  const base =
+    raw && !raw.includes("trycloudflare.com") && !raw.includes("localhost")
+      ? raw
+      : "https://iblaze-returns.vercel.app";
+  return `${base}/assets/guest-lookup-hero.png`;
 }
 
 export function GuestLookupForm({
