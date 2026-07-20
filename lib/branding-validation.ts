@@ -2,11 +2,11 @@ export type PolicyCategoryInput = { title: string; desc: string };
 export type SidebarSubLinkInput = { label: string; url: string; icon?: string };
 export type SidebarLinkInput = { label: string; url: string; icon?: string; children?: SidebarSubLinkInput[] };
 export type ReturnLifecycleStatusInput =
-  | "notReturnable" | "returnRequested" | "returnInProgress"
+  | "awaitingDelivery" | "returnWindowClosed" | "returnRequested" | "returnInProgress"
   | "returnDeclined" | "returnCanceled" | "returnCompleted";
 
 export const RETURN_LIFECYCLE_STATUSES: ReturnLifecycleStatusInput[] = [
-  "notReturnable", "returnRequested", "returnInProgress",
+  "awaitingDelivery", "returnWindowClosed", "returnRequested", "returnInProgress",
   "returnDeclined", "returnCanceled", "returnCompleted",
 ];
 
