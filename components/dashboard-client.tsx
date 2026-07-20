@@ -251,29 +251,29 @@ function ineligibleBucketCounts(ineligibleItems: DisplayItem[]): Record<string, 
         if (item.refundStatus === "refunded") add("refunded", q)
         else add("completed", q)
         break
-      case "notReturnable":
-        switch (item.notReturnableReason) {
+      case "awaitingDelivery":
+        switch (item.shippingStage) {
+          case "onItsWay":
+            add("in_transit", q)
+            break
+          case "outForDelivery":
+            add("out_for_delivery", q)
+            break
+          case "attemptedDelivery":
+            add("attempted_delivery", q)
+            break
+          case "confirmed":
+          default:
+            add("not_shipped", q)
+        }
+        break
+      case "returnWindowClosed":
+        switch (item.closedReason) {
           case "outsideWindow":
             add("window", q)
             break
           case "finalSale":
             add("final_sale", q)
-            break
-          case "notDelivered":
-            switch (item.shippingStage) {
-              case "onItsWay":
-                add("in_transit", q)
-                break
-              case "outForDelivery":
-                add("out_for_delivery", q)
-                break
-              case "attemptedDelivery":
-                add("attempted_delivery", q)
-                break
-              case "confirmed":
-              default:
-                add("not_shipped", q)
-            }
             break
           default:
             add("other", q)
@@ -334,11 +334,11 @@ function computeHeaderStatBlocks(
     { id: "processing", count: buckets.in_progress || 0, caption: "processing", textColor: "text-orange-600", statusFilter: ["returnInProgress"], title: "Return being processed" },
     { id: "requested", count: buckets.requested || 0, caption: "requested", textColor: "text-violet-600", statusFilter: ["returnRequested"], title: "Return awaiting review" },
     { id: "declined", count: buckets.declined || 0, caption: "declined", textColor: "text-[var(--brand)]", statusFilter: ["returnDeclined"], title: "Return declined" },
-    { id: "in_transit", count: buckets.in_transit || 0, caption: "awaiting", textColor: "text-blue-600", statusFilter: ["notReturnable"], title: "Awaiting delivery — returnable once delivered" },
-    { id: "attempted", count: buckets.attempted_delivery || 0, caption: "attempted", textColor: "text-rose-600", statusFilter: ["notReturnable"], title: "Delivery attempted — action may be needed" },
-    { id: "out_for_delivery", count: buckets.out_for_delivery || 0, caption: "out for delivery", textColor: "text-blue-600", statusFilter: ["notReturnable"], title: "Out for delivery today" },
-    { id: "not_shipped", count: buckets.not_shipped || 0, caption: "not shipped", textColor: "text-zinc-600", statusFilter: ["notReturnable"], title: "Not dispatched yet" },
-    { id: "window", count: buckets.window || 0, caption: "expired", textColor: "text-zinc-500", statusFilter: ["notReturnable"], title: "Past return window" },
+    { id: "in_transit", count: buckets.in_transit || 0, caption: "awaiting", textColor: "text-blue-600", statusFilter: ["awaitingDelivery"], title: "Awaiting delivery — returnable once delivered" },
+    { id: "attempted", count: buckets.attempted_delivery || 0, caption: "attempted", textColor: "text-rose-600", statusFilter: ["awaitingDelivery"], title: "Delivery attempted — action may be needed" },
+    { id: "out_for_delivery", count: buckets.out_for_delivery || 0, caption: "out for delivery", textColor: "text-blue-600", statusFilter: ["awaitingDelivery"], title: "Out for delivery today" },
+    { id: "not_shipped", count: buckets.not_shipped || 0, caption: "not shipped", textColor: "text-zinc-600", statusFilter: ["awaitingDelivery"], title: "Not dispatched yet" },
+    { id: "window", count: buckets.window || 0, caption: "expired", textColor: "text-zinc-500", statusFilter: ["returnWindowClosed"], title: "Past return window" },
     {
       id: "returned",
       count: buckets.completed || 0,
@@ -355,7 +355,7 @@ function computeHeaderStatBlocks(
       statusFilter: ["returnCompleted"],
       title: "Refunded",
     },
-    { id: "final_sale", count: buckets.final_sale || 0, caption: "final sale", textColor: "text-zinc-500", statusFilter: ["notReturnable"], title: "Final sale — not returnable" },
+    { id: "final_sale", count: buckets.final_sale || 0, caption: "final sale", textColor: "text-zinc-500", statusFilter: ["returnWindowClosed"], title: "Final sale — not returnable" },
   ]
 
   for (const def of ineligibleDefs) {
@@ -615,7 +615,7 @@ function buildNarrativeParagraph(
   const alreadyDone      = completed + refunded + finalSale + expired + other
 
   // Return window close date (show if all expired items share one date)
-  const expiredItems  = ineligibleItems.filter(i => i.returnStatus === "notReturnable" && i.notReturnableReason === "outsideWindow")
+  const expiredItems  = ineligibleItems.filter(i => i.returnStatus === "returnWindowClosed" && i.closedReason === "outsideWindow")
   const expiredDates  = new Set(expiredItems.map(i => formatReturnWindowClosedForItem(i, order, returnWindowDays) ?? ""))
   const expiredDateStr = expiredDates.size === 1 && [...expiredDates][0] ? [...expiredDates][0] : null
 
@@ -2502,17 +2502,17 @@ function getIneligibleGroupKey(item: LineItem, order: Order, returnWindowDays: n
   if (item.returnStatus === "returnDeclined") {
     return `declined:${item.returnReason || ""}`
   }
-  if (item.returnStatus === "notReturnable" && item.notReturnableReason === "outsideWindow") {
+  if (item.returnStatus === "returnWindowClosed" && item.closedReason === "outsideWindow") {
     const closed = formatReturnWindowClosedForItem(item, order, returnWindowDays) ?? "unknown"
     return `window:${closed}`
   }
-  if (item.returnStatus === "notReturnable" && item.notReturnableReason === "notDelivered") {
-    return `notDelivered:${item.shippingStage ?? "confirmed"}`
+  if (item.returnStatus === "awaitingDelivery") {
+    return `awaitingDelivery:${item.shippingStage ?? "confirmed"}`
   }
   // Include refundStatus so a direct-refund-with-no-return row (returnStatus:
   // "returnCompleted", refundStatus: "refunded") never silently merges with a
   // genuinely-completed-return row that later also got refunded.
-  return `${item.returnStatus}:${item.notReturnableReason ?? ""}:${item.refundStatus ?? ""}`
+  return `${item.returnStatus}:${item.closedReason ?? ""}:${item.refundStatus ?? ""}`
 }
 
 function ineligibleTableColSpan(cols: { variant: boolean; qty: boolean; total: boolean }) {
@@ -2525,8 +2525,9 @@ const INELIGIBLE_STATUS_ORDER: Partial<Record<ReturnStatus, number>> = {
   "returnDeclined": 2,
   "returnCanceled": 3,
   "returnCompleted": 4,
-  "notReturnable": 5,
-  "Cancelled": 6,
+  "awaitingDelivery": 5,
+  "returnWindowClosed": 6,
+  "Cancelled": 7,
 }
 
 function compareIneligibleItems(a: DisplayItem, b: DisplayItem, order: Order, returnWindowDays: number) {
@@ -2547,7 +2548,7 @@ function formatGroupCount(rows: DisplayItem[]) {
 }
 
 function getStatusStyle(status: ReturnStatus, styles: ReturnLifecycleStyles): ReturnLifecycleStyle {
-  return styles[status as Exclude<ReturnStatus, "Eligible" | "Cancelled">] ?? styles.notReturnable
+  return styles[status as Exclude<ReturnStatus, "Eligible" | "Cancelled">] ?? styles.returnWindowClosed
 }
 
 function getIneligibleCoarseLabel(status: ReturnStatus, styles: ReturnLifecycleStyles): string {
@@ -2573,19 +2574,19 @@ function fillMessagePlaceholders(template: string, tokens: Record<string, string
 function getIneligibleGroupMessage(item: LineItem, order: Order, returnWindowDays: number, messages: ReturnLifecycleMessages, groupItems?: LineItem[]): string {
   const days = String(returnWindowDays)
   switch (item.returnStatus) {
-    case "notReturnable": {
-      if (item.notReturnableReason === "notDelivered") {
-        const stage = item.shippingStage ?? "confirmed"
-        const key = SHIPPING_STAGE_MESSAGE_KEY[stage]
-        return fillMessagePlaceholders(messages[key], { days })
-      }
-      if (item.notReturnableReason === "outsideWindow") {
+    case "awaitingDelivery": {
+      const stage = item.shippingStage ?? "confirmed"
+      const key = SHIPPING_STAGE_MESSAGE_KEY[stage]
+      return fillMessagePlaceholders(messages[key], { days })
+    }
+    case "returnWindowClosed": {
+      if (item.closedReason === "outsideWindow") {
         const closed = formatReturnWindowClosedForItem(item, order, returnWindowDays, groupItems)
         return closed
           ? fillMessagePlaceholders(messages.outsideWindow, { closedDate: closed })
           : messages.outsideWindowNoDate
       }
-      if (item.notReturnableReason === "finalSale") return messages.finalSale
+      if (item.closedReason === "finalSale") return messages.finalSale
       return messages.otherNotReturnable
     }
     case "returnRequested":
