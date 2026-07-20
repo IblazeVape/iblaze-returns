@@ -13,13 +13,21 @@ export type PolicyCategory = { title: string; desc: string };
 export type SidebarLink = { label: string; url: string; icon?: string; children?: { label: string; url: string; icon?: string }[] };
 export type SidebarLayout = "inset" | "sidebar";
 
-/** The 6-value return lifecycle status for a non-Eligible line item — maps
+/** The 7-value return lifecycle status for a non-Eligible line item — maps
  * directly onto Shopify's own Return.status values (REQUESTED, OPEN,
- * DECLINED, CANCELED, CLOSED), plus "notReturnable" for items that never
- * reached the Return object at all (not yet delivered, final sale, past
- * the window, or any other ineligibility reason Shopify reports). */
+ * DECLINED, CANCELED, CLOSED), plus two statuses for items that never
+ * reached the Return object at all: "awaitingDelivery" (still coming —
+ * nothing wrong, just hasn't arrived) and "returnWindowClosed"
+ * (permanently done — outside the window, final sale, or any other
+ * ineligibility reason Shopify reports). Split from a single "notReturnable"
+ * status because that one status made a capability claim ("can't be
+ * returned") that was true of every row in the ineligible table, so it
+ * couldn't distinguish anything in the filter dropdown — unlike these two,
+ * which make different process claims (still pending vs. permanently
+ * closed). */
 export type ReturnLifecycleStatus =
-  | "notReturnable"
+  | "awaitingDelivery"
+  | "returnWindowClosed"
   | "returnRequested"
   | "returnInProgress"
   | "returnDeclined"
@@ -27,18 +35,19 @@ export type ReturnLifecycleStatus =
   | "returnCompleted";
 
 export const RETURN_LIFECYCLE_STATUSES: ReturnLifecycleStatus[] = [
-  "notReturnable", "returnRequested", "returnInProgress",
-  "returnDeclined", "returnCanceled", "returnCompleted",
+  "awaitingDelivery", "returnWindowClosed", "returnRequested",
+  "returnInProgress", "returnDeclined", "returnCanceled", "returnCompleted",
 ];
 
-/** Why a "notReturnable" item can't be returned — maps onto Shopify's
- * NonReturnableReason enum (UNFULFILLED, RETURN_WINDOW_EXPIRED, FINAL_SALE,
- * OTHER — RETURNED is excluded here because that case maps directly to
- * returnCompleted, not to a "not returnable" reason). */
-export type NotReturnableReason = "notDelivered" | "outsideWindow" | "finalSale" | "other";
+/** Why a "returnWindowClosed" item can't be returned — maps onto a subset
+ * of Shopify's NonReturnableReason enum (RETURN_WINDOW_EXPIRED, FINAL_SALE,
+ * OTHER). UNFULFILLED is excluded here because that case now maps to the
+ * "awaitingDelivery" status instead of a reason under this one; RETURNED is
+ * excluded because that case maps directly to returnCompleted. */
+export type ReturnClosedReason = "outsideWindow" | "finalSale" | "other";
 
-export const NOT_RETURNABLE_REASONS: NotReturnableReason[] = [
-  "notDelivered", "outsideWindow", "finalSale", "other",
+export const RETURN_CLOSED_REASONS: ReturnClosedReason[] = [
+  "outsideWindow", "finalSale", "other",
 ];
 
 /** Independent refund fact — can coexist with ANY return lifecycle status,
@@ -53,10 +62,9 @@ export type ReturnLifecycleStyles = Record<ReturnLifecycleStatus, ReturnLifecycl
 
 /**
  * Customer-facing sentences. shipping* fields apply when status is
- * "notReturnable" and reason is "notDelivered" — the lifecycle status and
- * reason are the same for all four, but the sentence still needs to say
- * which shipping stage it's at. outsideWindow/finalSale/otherNotReturnable
- * apply when reason is outsideWindow/finalSale/other respectively.
+ * "awaitingDelivery" — the sentence still needs to say which shipping
+ * stage it's at. outsideWindow/finalSale/otherNotReturnable apply when
+ * status is "returnWindowClosed", dispatched on the item's closedReason.
  * returnDeclined has no field here — it uses the real Shopify decline
  * reason text, resolved dynamically in components/dashboard-client.tsx.
  * Supports {days} (merchant's return window) and {closedDate}
@@ -189,12 +197,13 @@ export const DEFAULT_TENANT_FIELDS = {
     eligibleLabel: "Eligible",
     ineligibleLabel: "Ineligible",
     returnLifecycleStyles: {
-      notReturnable:    { label: "Not returnable",     heading: "Not returnable",                       icon: "Lock",         color: "" },
-      returnRequested:  { label: "Return requested",   heading: "We've received your return request",   icon: "Eye",          color: "" },
-      returnInProgress: { label: "Return in progress", heading: "Your return is in progress",            icon: "RotateCcw",    color: "" },
-      returnDeclined:   { label: "Return declined",    heading: "Your return request was declined",      icon: "CircleX",      color: "" },
-      returnCanceled:   { label: "Return canceled",    heading: "This return was canceled",              icon: "XCircle",      color: "" },
-      returnCompleted:  { label: "Return completed",   heading: "This return is complete",               icon: "CheckCircle2", color: "" },
+      awaitingDelivery:   { label: "Awaiting delivery",    heading: "Awaiting delivery",                     icon: "Truck",        color: "" },
+      returnWindowClosed: { label: "Return window closed", heading: "Return window closed",                  icon: "Lock",         color: "" },
+      returnRequested:    { label: "Return requested",     heading: "We've received your return request",   icon: "Eye",          color: "" },
+      returnInProgress:   { label: "Return in progress",   heading: "Your return is in progress",            icon: "RotateCcw",    color: "" },
+      returnDeclined:     { label: "Return declined",      heading: "Your return request was declined",      icon: "CircleX",      color: "" },
+      returnCanceled:     { label: "Return canceled",      heading: "This return was canceled",              icon: "XCircle",      color: "" },
+      returnCompleted:    { label: "Return completed",     heading: "This return is complete",               icon: "CheckCircle2", color: "" },
     },
     returnLifecycleMessages: {
       shippingConfirmed:         "We're preparing these items for shipping. Your return window starts on delivery and closes {days} days later.",
