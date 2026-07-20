@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { validateBrandingInput, RETURN_LIFECYCLE_STATUSES, type BrandingInput, type PolicyCategoryInput, type SidebarLinkInput, type SidebarSubLinkInput, type ReturnLifecycleMessagesInput, type ReturnLifecycleStatusInput, type ReturnLifecycleStyleInput } from "@/lib/branding-validation"
+import { validateBrandingInput, type BrandingInput, type PolicyCategoryInput, type SidebarLinkInput, type SidebarSubLinkInput, type ReturnLifecycleMessagesInput, type ReturnLifecycleStatusInput, type ReturnLifecycleStyleInput } from "@/lib/branding-validation"
 import type { TenantBranding } from "@/lib/tenant"
 import { SIDEBAR_ICON_NAMES } from "@/lib/sidebar-icons"
 import { STATUS_ICON_NAMES } from "@/lib/status-icons"
@@ -9,14 +9,13 @@ import { RichTextEditor } from "@/components/app-settings/rich-text-editor"
 import { DEFAULT_TENANT_FIELDS } from "@/lib/tenant-defaults"
 import { migrateMarkdownIfNeeded } from "@/lib/markdown-to-html"
 
-/** Each status card's optional sentence field(s) — sourced from the
- * existing (differently-keyed) ineligibleStatusMessages, since that field
- * set shipped separately and isn't worth re-keying. finalSale and
- * notEligible intentionally share one message field (messages.notEligible)
- * — they're separate statuses for label/heading/icon purposes but the
- * underlying sentence hasn't been split. returnDeclined has no field here:
- * its text comes from the actual Shopify decline reason, not a static
- * template.
+/** RETURN_STATUS_CARDS drives the "Return status" section (6 cards, each with
+ * label/heading/icon/color, plus a per-status sentence for returnRequested,
+ * returnInProgress, returnCanceled, and returnCompleted). returnDeclined has no
+ * sentence field here since its text comes from the real Shopify decline reason,
+ * not a static template. notReturnable's sentences live in a separate "Not
+ * returnable reasons" section below (not per-card) since multiple reasons
+ * (final sale, outside window, not yet delivered) can apply under that one status.
  */
 const RETURN_STATUS_CARDS: { key: ReturnLifecycleStatusInput; name: string }[] = [
   { key: "notReturnable", name: "Not returnable" },
