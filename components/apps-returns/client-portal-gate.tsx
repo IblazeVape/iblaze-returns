@@ -156,6 +156,9 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
       return (
         <GuestPortalShell branding={initial.branding}>
           <GuestLookupForm
+            brandName={initial.branding.name}
+            logoUrl={initial.branding.logoUrl}
+            loginUrl={loginUrl}
             onVerified={(token, order) => {
               storeAppsReturnsSession(token);
               // We already have the real accent color server-side (it came
@@ -169,10 +172,6 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
               setReady(true);
             }}
           />
-          <div className="text-xs text-muted-foreground">— or —</div>
-          <a href={loginUrl} className="text-sm font-semibold hover:underline underline-offset-2">
-            Log in to see all your orders
-          </a>
         </GuestPortalShell>
       );
     }
@@ -187,6 +186,8 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
         <GuestPortalShell branding={initial.branding}>
           <GuestLookupForm
             requirePostcode={false}
+            brandName={initial.branding.name}
+            logoUrl={initial.branding.logoUrl}
             onVerified={(token, order) => {
               storeAppsReturnsSession(token);
               setCachedAccentColor(initial.branding.accentColor);
