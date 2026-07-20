@@ -63,6 +63,12 @@ export default async function AppProxyReturnsPage({
         defaultSidebarLayout: tenant.branding.defaultSidebarLayout,
         sidebarSubmenusExpandedByDefault: tenant.branding.sidebarSubmenusExpandedByDefault,
         guestBackgroundStyle: tenant.branding.guestBackgroundStyle,
+        guestLookupLayout: tenant.branding.guestLookupLayout,
+        guestLookupHeadline: tenant.branding.guestLookupHeadline,
+        guestLookupSubtext: tenant.branding.guestLookupSubtext,
+        guestLookupHeroUrl: tenant.branding.guestLookupHeroUrl,
+        guestLookupBrandDisplay: tenant.branding.guestLookupBrandDisplay,
+        guestLookupLogoUrl: tenant.branding.guestLookupLogoUrl,
       };
       initial = loggedInCustomerId
         ? { kind: "logged-in-lookup", branding }

@@ -71,6 +71,8 @@ describe("tenant store", () => {
     expect(t?.branding.productImageLinksEnabled).toBe(true);
     expect(t?.branding.sidebarSubmenusExpandedByDefault).toBe(true);
     expect(t?.branding.guestBackgroundStyle).toBe("none");
+    expect(t?.branding.guestLookupLayout).toBe("split");
+    expect(t?.branding.guestLookupHeadline).toBe("Return your order with ease");
     expect(t?.branding.policyFooterNoteEnabled).toBe(true);
     expect(t?.branding.returnLifecycleStyles.notReturnable.label).toBe("Not returnable");
     expect(t?.branding.returnLifecycleStyles.returnDeclined.icon).toBe("CircleX");
@@ -117,6 +119,12 @@ describe("tenant store", () => {
         productImageLinksEnabled: false,
         sidebarSubmenusExpandedByDefault: false,
         guestBackgroundStyle: "dotField",
+        guestLookupLayout: "classic",
+        guestLookupHeadline: "Find your return",
+        guestLookupSubtext: "Enter your details below.",
+        guestLookupHeroUrl: "https://cdn.shopify.com/hero.png",
+        guestLookupBrandDisplay: "text",
+        guestLookupLogoUrl: "",
         defaultOrderView: "list",
         sidebarDefaultOpenOnDesktop: false,
         statusFilterEnabled: false,

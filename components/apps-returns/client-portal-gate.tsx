@@ -27,6 +27,12 @@ export type InitialBranding = {
   defaultSidebarLayout: "inset" | "sidebar"
   sidebarSubmenusExpandedByDefault: boolean
   guestBackgroundStyle: "none" | "shapeGrid" | "dotField"
+  guestLookupLayout: "classic" | "split"
+  guestLookupHeadline: string
+  guestLookupSubtext: string
+  guestLookupHeroUrl: string
+  guestLookupBrandDisplay: "logo" | "text" | "none"
+  guestLookupLogoUrl: string
 }
 
 export type GateInitial =
@@ -156,8 +162,17 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
       return (
         <GuestPortalShell branding={initial.branding} title={initial.branding.name || "Returns"}>
           <GuestLookupForm
+            layout={initial.branding.guestLookupLayout}
             brandName={initial.branding.name}
-            logoUrl={initial.branding.logoUrl}
+            logoUrl={
+              initial.branding.guestLookupBrandDisplay === "logo"
+                ? (initial.branding.guestLookupLogoUrl || initial.branding.logoUrl)
+                : undefined
+            }
+            brandDisplay={initial.branding.guestLookupBrandDisplay}
+            heroImageUrl={initial.branding.guestLookupHeroUrl || undefined}
+            headline={initial.branding.guestLookupHeadline}
+            subtext={initial.branding.guestLookupSubtext}
             loginUrl={loginUrl}
             onVerified={(token, order) => {
               storeAppsReturnsSession(token);
@@ -186,8 +201,17 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
         <GuestPortalShell branding={initial.branding} title={initial.branding.name || "Returns"}>
           <GuestLookupForm
             requirePostcode={false}
+            layout={initial.branding.guestLookupLayout}
             brandName={initial.branding.name}
-            logoUrl={initial.branding.logoUrl}
+            logoUrl={
+              initial.branding.guestLookupBrandDisplay === "logo"
+                ? (initial.branding.guestLookupLogoUrl || initial.branding.logoUrl)
+                : undefined
+            }
+            brandDisplay={initial.branding.guestLookupBrandDisplay}
+            heroImageUrl={initial.branding.guestLookupHeroUrl || undefined}
+            headline={initial.branding.guestLookupHeadline}
+            subtext={initial.branding.guestLookupSubtext}
             onVerified={(token, order) => {
               storeAppsReturnsSession(token);
               setCachedAccentColor(initial.branding.accentColor);

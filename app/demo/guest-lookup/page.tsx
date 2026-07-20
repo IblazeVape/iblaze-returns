@@ -1,16 +1,17 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import { GuestLookupForm } from "@/components/apps-returns/guest-lookup-form";
 import { GuestPortalShell } from "@/components/apps-returns/guest-portal-shell";
 import type { InitialBranding } from "@/components/apps-returns/client-portal-gate";
 
 /**
  * Design preview for the guest order-lookup screen — no Shopify App Proxy
- * signature required. Use this to iterate on layout before deploying to
- * https://iblazevape.co.uk/apps/returns
+ * signature required.
  *
  * Local:  http://localhost:3000/demo/guest-lookup
- * Preview deploy: https://<preview>.vercel.app/demo/guest-lookup
+ * Classic: http://localhost:3000/demo/guest-lookup?layout=classic
  */
 const PREVIEW_BRANDING: InitialBranding = {
   name: "iBlaze",
@@ -25,24 +26,43 @@ const PREVIEW_BRANDING: InitialBranding = {
   defaultSidebarLayout: "inset",
   sidebarSubmenusExpandedByDefault: false,
   guestBackgroundStyle: "shapeGrid",
+  guestLookupLayout: "split",
+  guestLookupHeadline: "Return your order with ease",
+  guestLookupSubtext: "Look up your order in seconds — no account needed.",
+  guestLookupHeroUrl: "",
+  guestLookupBrandDisplay: "logo",
+  guestLookupLogoUrl: "",
 };
 
-export default function GuestLookupDemoPage() {
+function GuestLookupDemoInner() {
+  const searchParams = useSearchParams();
+  const layout = searchParams.get("layout") === "classic" ? "classic" : "split";
+
   return (
     <GuestPortalShell branding={PREVIEW_BRANDING} title={PREVIEW_BRANDING.name}>
       <GuestLookupForm
+        layout={layout}
         brandName={PREVIEW_BRANDING.name}
         logoUrl={PREVIEW_BRANDING.logoUrl}
+        brandDisplay="logo"
+        headline={PREVIEW_BRANDING.guestLookupHeadline}
+        subtext={PREVIEW_BRANDING.guestLookupSubtext}
         loginUrl="#login-preview"
-        onVerified={() => {
-          // Preview only — submission hits the real App Proxy route and will
-          // fail here without a signed Shopify request. UI is what matters.
-        }}
+        onVerified={() => {}}
       />
       <p className="text-xs text-muted-foreground text-center max-w-sm">
         Design preview — form submit won&apos;t verify an order here. Live flow stays at{" "}
         <span className="font-medium">/apps/returns</span> on your storefront.
+        {" "}Add <span className="font-medium">?layout=classic</span> to preview the original card.
       </p>
     </GuestPortalShell>
+  );
+}
+
+export default function GuestLookupDemoPage() {
+  return (
+    <Suspense fallback={null}>
+      <GuestLookupDemoInner />
+    </Suspense>
   );
 }

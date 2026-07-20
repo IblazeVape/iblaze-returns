@@ -53,7 +53,11 @@ type MediaLibraryFile = { id: string; url: string; alt: string | null; width: nu
 type SettingsTab = "branding" | "returns" | "navigation" | "table" | "danger";
 
 const TAB_FIELDS: Record<SettingsTab, (keyof BrandingInput)[]> = {
-  branding: ["name", "logoUrl", "accentColor", "storefrontUrl", "supportEmail", "guestBackgroundStyle"],
+  branding: [
+    "name", "logoUrl", "accentColor", "storefrontUrl", "supportEmail", "guestBackgroundStyle",
+    "guestLookupLayout", "guestLookupHeadline", "guestLookupSubtext", "guestLookupHeroUrl",
+    "guestLookupBrandDisplay", "guestLookupLogoUrl",
+  ],
   returns: [
     "returnWindowDays", "requirePolicyAcceptance", "alwaysShowGuestLookup",
     "policyHeading", "policySubheading", "policyLastUpdated", "policyBodyMode", "policyCategories", "policyBodyText",
@@ -566,6 +570,80 @@ export function SettingsForm({
               <s-option value="dotField">Dot field (interactive dots)</s-option>
             </s-select>
             <s-paragraph tone="subdued">An animated background behind the "Find your order" guest lookup screen, before a customer signs in.</s-paragraph>
+
+            <s-select
+              label="Guest lookup layout"
+              name="guestLookupLayout"
+              value={form.guestLookupLayout}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                set("guestLookupLayout", e.target.value as "classic" | "split")
+              }
+            >
+              <s-option value="classic">Classic — form only</s-option>
+              <s-option value="split">Split — image left, form right</s-option>
+            </s-select>
+            <s-paragraph tone="subdued">
+              Classic is the original centered form. Split adds a branded image panel beside the form (desktop) or above it (mobile).
+            </s-paragraph>
+            {errors.guestLookupLayout && <s-paragraph tone="critical">{errors.guestLookupLayout}</s-paragraph>}
+
+            {form.guestLookupLayout === "split" && (
+              <>
+                <s-text-field
+                  label="Panel headline"
+                  name="guestLookupHeadline"
+                  value={form.guestLookupHeadline}
+                  placeholder="Return your order with ease"
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("guestLookupHeadline", e.target.value)}
+                ></s-text-field>
+                {errors.guestLookupHeadline && <s-paragraph tone="critical">{errors.guestLookupHeadline}</s-paragraph>}
+
+                <s-text-field
+                  label="Panel supporting text"
+                  name="guestLookupSubtext"
+                  value={form.guestLookupSubtext}
+                  placeholder="Look up your order in seconds — no account needed."
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("guestLookupSubtext", e.target.value)}
+                ></s-text-field>
+                {errors.guestLookupSubtext && <s-paragraph tone="critical">{errors.guestLookupSubtext}</s-paragraph>}
+
+                <s-url-field
+                  label="Hero image URL"
+                  name="guestLookupHeroUrl"
+                  value={form.guestLookupHeroUrl}
+                  placeholder="Leave blank for the default returns package image"
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("guestLookupHeroUrl", e.target.value)}
+                ></s-url-field>
+                <s-paragraph tone="subdued">Paste a Shopify CDN or other https image URL. Blank uses the built-in default.</s-paragraph>
+                {errors.guestLookupHeroUrl && <s-paragraph tone="critical">{errors.guestLookupHeroUrl}</s-paragraph>}
+
+                <s-select
+                  label="Brand mark on panel"
+                  name="guestLookupBrandDisplay"
+                  value={form.guestLookupBrandDisplay}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                    set("guestLookupBrandDisplay", e.target.value as "logo" | "text" | "none")
+                  }
+                >
+                  <s-option value="logo">Logo image</s-option>
+                  <s-option value="text">Brand name as text</s-option>
+                  <s-option value="none">Hidden</s-option>
+                </s-select>
+
+                {form.guestLookupBrandDisplay === "logo" && (
+                  <>
+                    <s-url-field
+                      label="Panel logo URL (optional)"
+                      name="guestLookupLogoUrl"
+                      value={form.guestLookupLogoUrl}
+                      placeholder="Leave blank to use the main Branding logo"
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("guestLookupLogoUrl", e.target.value)}
+                    ></s-url-field>
+                    {errors.guestLookupLogoUrl && <s-paragraph tone="critical">{errors.guestLookupLogoUrl}</s-paragraph>}
+                  </>
+                )}
+              </>
+            )}
           </s-stack>
         </s-section>
       )}
