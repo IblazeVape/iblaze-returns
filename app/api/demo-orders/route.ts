@@ -85,7 +85,7 @@ const ORDERS = [
     eligibilitySource: "shopify",
     processedItems: [
       { ...baseItem, id: "gid://shopify/LineItem/4", title: "Pulse Smartwatch S2", quantity: 1, eligibleQuantity: 1, unitPrice: 149, returnStatus: "Eligible", lineDeliveredAt: daysAgo(2), productHandle: "pulse-smartwatch-s2", image: IMG.watch, variant: { title: "44mm · Slate" } },
-      { ...baseItem, id: "gid://shopify/LineItem/5", title: "BoomBox Mini Speaker", quantity: 2, eligibleQuantity: 0, unitPrice: 49, returnStatus: "Confirmed", returnReason: "This item hasn't been dispatched yet — check back once it ships.", lineDeliveredAt: null, productHandle: "boombox-mini-speaker", image: IMG.speaker, variant: { title: "Charcoal" } },
+      { ...baseItem, id: "gid://shopify/LineItem/5", title: "BoomBox Mini Speaker", quantity: 2, eligibleQuantity: 0, unitPrice: 49, returnStatus: "notReturnable", notReturnableReason: "notDelivered", shippingStage: "confirmed", returnReason: "We're preparing these items for shipping.", lineDeliveredAt: null, productHandle: "boombox-mini-speaker", image: IMG.speaker, variant: { title: "Charcoal" } },
     ],
     shipments: [
       { id: "gid://shopify/Fulfillment/2", displayStatus: "DELIVERED", shippedAt: daysAgo(4), deliveredAt: daysAgo(2), trackingInfo: [{ company: "Evri", number: "H0012345678", url: "https://www.evri.com/track" }], items: [{ id: "gid://shopify/LineItem/4", quantity: 1 }] },
@@ -107,8 +107,8 @@ const ORDERS = [
     earliestDelivery: null, latestDelivery: null,
     eligibilitySource: "shopify",
     processedItems: [
-      { ...baseItem, id: "gid://shopify/LineItem/6", title: "GlideX Wireless Mouse", quantity: 1, eligibleQuantity: 0, unitPrice: 39, returnStatus: "On its way", returnReason: "Your parcel is on its way. Your return window starts once it's delivered.", inTransitQuantity: 1, lineDeliveredAt: null, productHandle: "glidex-wireless-mouse", image: IMG.mouse, variant: { title: "Graphite" } },
-      { ...baseItem, id: "gid://shopify/LineItem/7", title: "MechType K87 Keyboard", quantity: 1, eligibleQuantity: 0, unitPrice: 119, returnStatus: "On its way", returnReason: "Your parcel is on its way. Your return window starts once it's delivered.", inTransitQuantity: 1, lineDeliveredAt: null, productHandle: "mechtype-k87-keyboard", image: IMG.keyboard, variant: { title: "RGB · UK Layout" } },
+      { ...baseItem, id: "gid://shopify/LineItem/6", title: "GlideX Wireless Mouse", quantity: 1, eligibleQuantity: 0, unitPrice: 39, returnStatus: "notReturnable", notReturnableReason: "notDelivered", shippingStage: "onItsWay", returnReason: "These items are on their way.", inTransitQuantity: 1, lineDeliveredAt: null, productHandle: "glidex-wireless-mouse", image: IMG.mouse, variant: { title: "Graphite" } },
+      { ...baseItem, id: "gid://shopify/LineItem/7", title: "MechType K87 Keyboard", quantity: 1, eligibleQuantity: 0, unitPrice: 119, returnStatus: "notReturnable", notReturnableReason: "notDelivered", shippingStage: "onItsWay", returnReason: "These items are on their way.", inTransitQuantity: 1, lineDeliveredAt: null, productHandle: "mechtype-k87-keyboard", image: IMG.keyboard, variant: { title: "RGB · UK Layout" } },
     ],
     shipments: [
       { id: "gid://shopify/Fulfillment/3", displayStatus: "IN_TRANSIT", shippedAt: daysAgo(1), deliveredAt: null, trackingInfo: [{ company: "Royal Mail", number: "RM987654321GB", url: "https://www.royalmail.com/track-your-item" }], items: [{ id: "gid://shopify/LineItem/6", quantity: 1 }, { id: "gid://shopify/LineItem/7", quantity: 1 }] },
@@ -130,8 +130,8 @@ const ORDERS = [
     earliestDelivery: null, latestDelivery: null,
     eligibilitySource: "shopify",
     processedItems: [
-      { ...baseItem, id: "gid://shopify/LineItem/8", title: "4K Action Camera Pro", quantity: 1, eligibleQuantity: 0, unitPrice: 199, returnStatus: "Confirmed", returnReason: "This item hasn't been dispatched yet — check back once it ships.", lineDeliveredAt: null, productHandle: "4k-action-camera-pro", image: IMG.camera, variant: { title: "Bundle Kit" } },
-      { ...baseItem, id: "gid://shopify/LineItem/9", title: "AirPro Earbuds Gen 3", quantity: 1, eligibleQuantity: 0, unitPrice: 59, returnStatus: "Confirmed", returnReason: "This item hasn't been dispatched yet — check back once it ships.", lineDeliveredAt: null, productHandle: "airpro-earbuds", image: IMG.earbuds, variant: { title: "Midnight" } },
+      { ...baseItem, id: "gid://shopify/LineItem/8", title: "4K Action Camera Pro", quantity: 1, eligibleQuantity: 0, unitPrice: 199, returnStatus: "notReturnable", notReturnableReason: "notDelivered", shippingStage: "confirmed", returnReason: "We're preparing these items for shipping.", lineDeliveredAt: null, productHandle: "4k-action-camera-pro", image: IMG.camera, variant: { title: "Bundle Kit" } },
+      { ...baseItem, id: "gid://shopify/LineItem/9", title: "AirPro Earbuds Gen 3", quantity: 1, eligibleQuantity: 0, unitPrice: 59, returnStatus: "notReturnable", notReturnableReason: "notDelivered", shippingStage: "confirmed", returnReason: "We're preparing these items for shipping.", lineDeliveredAt: null, productHandle: "airpro-earbuds", image: IMG.earbuds, variant: { title: "Midnight" } },
     ],
     shipments: [],
   },
@@ -194,8 +194,8 @@ const ORDERS = [
     earliestDelivery: daysAgo(50), latestDelivery: daysAgo(50),
     eligibilitySource: "shopify",
     processedItems: [
-      { ...baseItem, id: "gid://shopify/LineItem/13", title: "BoomBox Mini Speaker", quantity: 1, eligibleQuantity: 0, unitPrice: 49, returnStatus: "Passed the return window", returnReason: "The 30-day return window closed on this item.", lineDeliveredAt: daysAgo(50), productHandle: "boombox-mini-speaker", image: IMG.speaker, variant: { title: "Charcoal" } },
-      { ...baseItem, id: "gid://shopify/LineItem/14", title: "65W GaN Fast Charger", quantity: 2, eligibleQuantity: 0, unitPrice: 29, returnStatus: "Passed the return window", returnReason: "The 30-day return window closed on this item.", lineDeliveredAt: daysAgo(50), productHandle: "65w-gan-charger", image: IMG.charger, variant: { title: "White" } },
+      { ...baseItem, id: "gid://shopify/LineItem/13", title: "BoomBox Mini Speaker", quantity: 1, eligibleQuantity: 0, unitPrice: 49, returnStatus: "notReturnable", notReturnableReason: "outsideWindow", returnReason: "The return window has expired for these items.", lineDeliveredAt: daysAgo(50), productHandle: "boombox-mini-speaker", image: IMG.speaker, variant: { title: "Charcoal" } },
+      { ...baseItem, id: "gid://shopify/LineItem/14", title: "65W GaN Fast Charger", quantity: 2, eligibleQuantity: 0, unitPrice: 29, returnStatus: "notReturnable", notReturnableReason: "outsideWindow", returnReason: "The return window has expired for these items.", lineDeliveredAt: daysAgo(50), productHandle: "65w-gan-charger", image: IMG.charger, variant: { title: "White" } },
     ],
     shipments: [
       { id: "gid://shopify/Fulfillment/7", displayStatus: "DELIVERED", shippedAt: daysAgo(53), deliveredAt: daysAgo(50), trackingInfo: [{ company: "Royal Mail", number: "RM555666777GB", url: "https://www.royalmail.com/track-your-item" }], items: [{ id: "gid://shopify/LineItem/13", quantity: 1 }, { id: "gid://shopify/LineItem/14", quantity: 2 }] },
@@ -217,7 +217,7 @@ const ORDERS = [
     earliestDelivery: daysAgo(56), latestDelivery: daysAgo(56),
     eligibilitySource: "shopify",
     processedItems: [
-      { ...baseItem, id: "gid://shopify/LineItem/15", title: "4K Action Camera Pro", quantity: 1, eligibleQuantity: 0, unitPrice: 199, returnStatus: "Passed the return window", returnReason: "The 30-day return window closed on this item.", lineDeliveredAt: daysAgo(56), productHandle: "4k-action-camera-pro", image: IMG.camera, variant: { title: "Bundle Kit" } },
+      { ...baseItem, id: "gid://shopify/LineItem/15", title: "4K Action Camera Pro", quantity: 1, eligibleQuantity: 0, unitPrice: 199, returnStatus: "notReturnable", notReturnableReason: "outsideWindow", returnReason: "The return window has expired for these items.", lineDeliveredAt: daysAgo(56), productHandle: "4k-action-camera-pro", image: IMG.camera, variant: { title: "Bundle Kit" } },
     ],
     shipments: [
       { id: "gid://shopify/Fulfillment/8", displayStatus: "DELIVERED", shippedAt: daysAgo(58), deliveredAt: daysAgo(56), trackingInfo: [], items: [{ id: "gid://shopify/LineItem/15", quantity: 1 }] },
@@ -285,7 +285,7 @@ const ORDERS = [
     earliestDelivery: null, latestDelivery: null,
     eligibilitySource: "shopify",
     processedItems: [
-      { ...baseItem, id: "gid://shopify/LineItem/20", title: "SkyHawk Mini Drone", quantity: 1, eligibleQuantity: 0, unitPrice: 349, returnStatus: "On its way", returnReason: "Your parcel is out for delivery. Your return window starts once it's delivered.", inTransitQuantity: 1, lineDeliveredAt: null, productHandle: "skyhawk-mini-drone", image: IMG.drone, variant: { title: "Sky Grey" } },
+      { ...baseItem, id: "gid://shopify/LineItem/20", title: "SkyHawk Mini Drone", quantity: 1, eligibleQuantity: 0, unitPrice: 349, returnStatus: "notReturnable", notReturnableReason: "notDelivered", shippingStage: "outForDelivery", returnReason: "These items are out for delivery today.", inTransitQuantity: 1, lineDeliveredAt: null, productHandle: "skyhawk-mini-drone", image: IMG.drone, variant: { title: "Sky Grey" } },
     ],
     shipments: [
       { id: "gid://shopify/Fulfillment/11", displayStatus: "OUT_FOR_DELIVERY", shippedAt: daysAgo(1), deliveredAt: null, trackingInfo: [{ company: "Royal Mail", number: "RM445566778GB", url: "https://www.royalmail.com/track-your-item" }], items: [{ id: "gid://shopify/LineItem/20", quantity: 1 }] },
@@ -307,7 +307,7 @@ const ORDERS = [
     earliestDelivery: null, latestDelivery: null,
     eligibilitySource: "shopify",
     processedItems: [
-      { ...baseItem, id: "gid://shopify/LineItem/21", title: "GlowBright Desk Lamp", quantity: 1, eligibleQuantity: 0, unitPrice: 45, returnStatus: "On its way", returnReason: "A delivery attempt was made — check with the courier for redelivery.", lineDeliveredAt: null, productHandle: "glowbright-desk-lamp", image: IMG.lamp, variant: { title: "Warm White" } },
+      { ...baseItem, id: "gid://shopify/LineItem/21", title: "GlowBright Desk Lamp", quantity: 1, eligibleQuantity: 0, unitPrice: 45, returnStatus: "notReturnable", notReturnableReason: "notDelivered", shippingStage: "attemptedDelivery", returnReason: "A delivery attempt was made for these items. You'll be able to request a return once they've been delivered.", lineDeliveredAt: null, productHandle: "glowbright-desk-lamp", image: IMG.lamp, variant: { title: "Warm White" } },
     ],
     shipments: [
       { id: "gid://shopify/Fulfillment/12", displayStatus: "ATTEMPTED_DELIVERY", shippedAt: daysAgo(3), deliveredAt: null, trackingInfo: [{ company: "Evri", number: "H0033445566", url: "https://www.evri.com/track" }], items: [{ id: "gid://shopify/LineItem/21", quantity: 1 }] },
@@ -351,7 +351,7 @@ const ORDERS = [
     earliestDelivery: null, latestDelivery: null,
     eligibilitySource: "shopify",
     processedItems: [
-      { ...baseItem, id: "gid://shopify/LineItem/23", title: "MeshLink Wi-Fi 6 Router", quantity: 1, eligibleQuantity: 0, unitPrice: 89, returnStatus: "Confirmed", returnReason: "This item hasn't been dispatched yet — check back once it ships.", lineDeliveredAt: null, productHandle: "meshlink-wifi6-router", image: IMG.router, variant: { title: "2-Pack" } },
+      { ...baseItem, id: "gid://shopify/LineItem/23", title: "MeshLink Wi-Fi 6 Router", quantity: 1, eligibleQuantity: 0, unitPrice: 89, returnStatus: "notReturnable", notReturnableReason: "notDelivered", shippingStage: "confirmed", returnReason: "We're preparing these items for shipping.", lineDeliveredAt: null, productHandle: "meshlink-wifi6-router", image: IMG.router, variant: { title: "2-Pack" } },
     ],
     shipments: [],
   },
@@ -371,7 +371,7 @@ const ORDERS = [
     earliestDelivery: daysAgo(65), latestDelivery: daysAgo(65),
     eligibilitySource: "shopify",
     processedItems: [
-      { ...baseItem, id: "gid://shopify/LineItem/24", title: "SwiftSSD 1TB Portable Drive", quantity: 1, eligibleQuantity: 0, unitPrice: 99, returnStatus: "Passed the return window", returnReason: "The 30-day return window closed on this item.", lineDeliveredAt: daysAgo(65), productHandle: "swiftssd-1tb-portable", image: IMG.ssd, variant: { title: "Space Grey" } },
+      { ...baseItem, id: "gid://shopify/LineItem/24", title: "SwiftSSD 1TB Portable Drive", quantity: 1, eligibleQuantity: 0, unitPrice: 99, returnStatus: "notReturnable", notReturnableReason: "outsideWindow", returnReason: "The return window has expired for these items.", lineDeliveredAt: daysAgo(65), productHandle: "swiftssd-1tb-portable", image: IMG.ssd, variant: { title: "Space Grey" } },
     ],
     shipments: [
       { id: "gid://shopify/Fulfillment/14", displayStatus: "DELIVERED", shippedAt: daysAgo(67), deliveredAt: daysAgo(65), trackingInfo: [{ company: "DPD", number: "155001122334", url: "https://track.dpd.co.uk" }], items: [{ id: "gid://shopify/LineItem/24", quantity: 1 }] },
