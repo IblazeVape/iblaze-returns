@@ -9,16 +9,18 @@ import { RichTextEditor } from "@/components/app-settings/rich-text-editor"
 import { DEFAULT_TENANT_FIELDS } from "@/lib/tenant-defaults"
 import { migrateMarkdownIfNeeded } from "@/lib/markdown-to-html"
 
-/** RETURN_STATUS_CARDS drives the "Return status" section (6 cards, each with
+/** RETURN_STATUS_CARDS drives the "Return status" section (7 cards, each with
  * label/heading/icon/color, plus a per-status sentence for returnRequested,
  * returnInProgress, returnCanceled, and returnCompleted). returnDeclined has no
  * sentence field here since its text comes from the real Shopify decline reason,
- * not a static template. notReturnable's sentences live in a separate "Not
- * returnable reasons" section below (not per-card) since multiple reasons
- * (final sale, outside window, not yet delivered) can apply under that one status.
+ * not a static template. awaitingDelivery's 4 shipping-stage sentences and
+ * returnWindowClosed's 4 reason sentences are nested directly under their own
+ * cards (not a separate section), since each has multiple sentences under one
+ * status.
  */
 const RETURN_STATUS_CARDS: { key: ReturnLifecycleStatusInput; name: string }[] = [
-  { key: "notReturnable", name: "Not returnable" },
+  { key: "awaitingDelivery", name: "Awaiting delivery" },
+  { key: "returnWindowClosed", name: "Return window closed" },
   { key: "returnRequested", name: "Return requested" },
   { key: "returnInProgress", name: "Return in progress" },
   { key: "returnDeclined", name: "Return declined" },
@@ -1099,11 +1101,29 @@ export function SettingsForm({
                             <s-text-area label="Sentence" value={form.returnLifecycleMessages.returnCompleted} rows={2}
                               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("returnCompleted", e.target.value)}></s-text-area>
                           )}
-                          {key === "notReturnable" && (
-                            <s-paragraph tone="subdued">
-                              This status covers several reasons (not yet delivered, final sale, outside the return
-                              window, or other) — edit each reason's sentence in "Not returnable reasons" below.
-                            </s-paragraph>
+                          {key === "awaitingDelivery" && (
+                            <>
+                              <s-text-area label="Not yet shipped" value={form.returnLifecycleMessages.shippingConfirmed} rows={2}
+                                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("shippingConfirmed", e.target.value)}></s-text-area>
+                              <s-text-area label="On its way" value={form.returnLifecycleMessages.shippingOnItsWay} rows={2}
+                                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("shippingOnItsWay", e.target.value)}></s-text-area>
+                              <s-text-area label="Out for delivery" value={form.returnLifecycleMessages.shippingOutForDelivery} rows={2}
+                                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("shippingOutForDelivery", e.target.value)}></s-text-area>
+                              <s-text-area label="Attempted delivery" value={form.returnLifecycleMessages.shippingAttemptedDelivery} rows={2}
+                                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("shippingAttemptedDelivery", e.target.value)}></s-text-area>
+                            </>
+                          )}
+                          {key === "returnWindowClosed" && (
+                            <>
+                              <s-text-area label="Outside the return window (with a closed date)" value={form.returnLifecycleMessages.outsideWindow} rows={2}
+                                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("outsideWindow", e.target.value)}></s-text-area>
+                              <s-text-area label="Outside the return window (no closed date available)" value={form.returnLifecycleMessages.outsideWindowNoDate} rows={2}
+                                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("outsideWindowNoDate", e.target.value)}></s-text-area>
+                              <s-text-area label="Final sale" value={form.returnLifecycleMessages.finalSale} rows={2}
+                                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("finalSale", e.target.value)}></s-text-area>
+                              <s-text-area label="Other" value={form.returnLifecycleMessages.otherNotReturnable} rows={2}
+                                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("otherNotReturnable", e.target.value)}></s-text-area>
+                            </>
                           )}
                         </>
                       )}
@@ -1113,31 +1133,6 @@ export function SettingsForm({
               })}
               {errors.returnLifecycleMessages && <s-paragraph tone="critical">{errors.returnLifecycleMessages}</s-paragraph>}
               {errors.returnLifecycleStyles && <s-paragraph tone="critical">{errors.returnLifecycleStyles}</s-paragraph>}
-            </s-stack>
-          </s-section>
-
-          <s-section heading="Not returnable reasons">
-            <s-stack direction="block" gap="base">
-              <s-text color="subdued">
-                The specific sentence shown under the "Not returnable" badge, depending on why the item can't be
-                returned right now.
-              </s-text>
-              <s-text-area label="Not yet shipped" value={form.returnLifecycleMessages.shippingConfirmed} rows={2}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("shippingConfirmed", e.target.value)}></s-text-area>
-              <s-text-area label="On its way" value={form.returnLifecycleMessages.shippingOnItsWay} rows={2}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("shippingOnItsWay", e.target.value)}></s-text-area>
-              <s-text-area label="Out for delivery" value={form.returnLifecycleMessages.shippingOutForDelivery} rows={2}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("shippingOutForDelivery", e.target.value)}></s-text-area>
-              <s-text-area label="Attempted delivery" value={form.returnLifecycleMessages.shippingAttemptedDelivery} rows={2}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("shippingAttemptedDelivery", e.target.value)}></s-text-area>
-              <s-text-area label="Outside the return window (with a closed date)" value={form.returnLifecycleMessages.outsideWindow} rows={2}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("outsideWindow", e.target.value)}></s-text-area>
-              <s-text-area label="Outside the return window (no closed date available)" value={form.returnLifecycleMessages.outsideWindowNoDate} rows={2}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("outsideWindowNoDate", e.target.value)}></s-text-area>
-              <s-text-area label="Final sale" value={form.returnLifecycleMessages.finalSale} rows={2}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("finalSale", e.target.value)}></s-text-area>
-              <s-text-area label="Other" value={form.returnLifecycleMessages.otherNotReturnable} rows={2}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("otherNotReturnable", e.target.value)}></s-text-area>
             </s-stack>
           </s-section>
 
