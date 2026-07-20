@@ -37,10 +37,11 @@ import { cn } from "@/lib/utils"
 // ─── Types ────────────────────────────────────────────────────────────────────
 type ReturnStatus =
   | "Eligible" | "Cancelled"
-  | "notReturnable" | "returnRequested" | "returnInProgress"
+  | "awaitingDelivery" | "returnWindowClosed" | "returnRequested" | "returnInProgress"
   | "returnDeclined" | "returnCanceled" | "returnCompleted"
 
 type ShippingStage = "confirmed" | "onItsWay" | "outForDelivery" | "attemptedDelivery"
+type ReturnClosedReason = "outsideWindow" | "finalSale" | "other"
 
 interface LineItem {
   id: string
@@ -60,7 +61,7 @@ interface LineItem {
   unitPrice?: number | null
   returnStatus: ReturnStatus
   returnReason?: string
-  notReturnableReason?: "notDelivered" | "outsideWindow" | "finalSale" | "other" | null
+  closedReason?: ReturnClosedReason | null
   shippingStage?: ShippingStage | null
   refundStatus?: "notRefunded" | "partiallyRefunded" | "refunded"
   lineDeliveredAt?: string | null
@@ -2362,7 +2363,7 @@ function buildIneligibleDisplayItems(order: Order): DisplayItem[] {
       if (attemptedSplitQty > 0) {
         result.push({
           ...item,
-          returnStatus: "notReturnable", notReturnableReason: "notDelivered", shippingStage: "attemptedDelivery",
+          returnStatus: "awaitingDelivery", shippingStage: "attemptedDelivery",
           returnReason: "",
           splitQty: attemptedSplitQty,
           splitKey: `${item.id}-remainder-attempted`,
@@ -2374,7 +2375,7 @@ function buildIneligibleDisplayItems(order: Order): DisplayItem[] {
       if (ofdSplitQty > 0) {
         result.push({
           ...item,
-          returnStatus: "notReturnable", notReturnableReason: "notDelivered", shippingStage: "outForDelivery",
+          returnStatus: "awaitingDelivery", shippingStage: "outForDelivery",
           returnReason: "",
           splitQty: ofdSplitQty,
           splitKey: `${item.id}-remainder-ofd`,
@@ -2386,7 +2387,7 @@ function buildIneligibleDisplayItems(order: Order): DisplayItem[] {
       if (inTransitSplitQty > 0) {
         result.push({
           ...item,
-          returnStatus: "notReturnable", notReturnableReason: "notDelivered", shippingStage: "onItsWay",
+          returnStatus: "awaitingDelivery", shippingStage: "onItsWay",
           returnReason: "",
           splitQty: inTransitSplitQty,
           splitKey: `${item.id}-remainder-transit`,
@@ -2396,9 +2397,9 @@ function buildIneligibleDisplayItems(order: Order): DisplayItem[] {
         const stillPending = !!(item.pendingQuantity && item.pendingQuantity > 0)
         result.push({
           ...item,
-          returnStatus: "notReturnable",
-          notReturnableReason: stillPending ? "notDelivered" : "other",
+          returnStatus: stillPending ? "awaitingDelivery" : "returnWindowClosed",
           shippingStage: stillPending ? "confirmed" : null,
+          closedReason: stillPending ? null : "other",
           returnReason: "",
           splitQty: remaining,
           splitKey: `${item.id}-remainder-pending`,
