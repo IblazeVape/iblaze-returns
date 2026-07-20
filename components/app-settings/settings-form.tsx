@@ -201,18 +201,23 @@ export function SettingsForm({
     return fetch(input, { ...init, headers: { ...init.headers, Authorization: `Bearer ${token}` } })
   }
 
-  async function handleChooseFromLibrary() {
+  async function handleChooseFromLibrary(field: "logoUrl" | "guestLookupHeroUrl" | "guestLookupLogoUrl" = "logoUrl") {
     setLoadingLibrary(true)
     try {
       const res = await authedFetch("/api/app/media-library")
       const data = (await res.json()) as { files?: MediaLibraryFile[] }
       const files = data.files ?? []
       if (files.length === 0) {
-        setErrors((e) => ({ ...e, logoUrl: "No images found in your Shopify media library." }))
+        setErrors((e) => ({ ...e, [field]: "No images found in your Shopify media library." }))
         return
       }
+      const headings = {
+        logoUrl: "Choose a logo",
+        guestLookupHeroUrl: "Choose a guest lookup image",
+        guestLookupLogoUrl: "Choose a guest lookup logo",
+      } as const
       const picker = await shopify.picker({
-        heading: "Choose a logo",
+        heading: headings[field],
         items: files.map((f) => ({ id: f.id, heading: f.alt || filenameFromUrl(f.url), thumbnail: { url: f.url } })),
       })
       const selectedIds = await picker.selected
@@ -222,16 +227,17 @@ export function SettingsForm({
       if (!selectedIds?.length) return
       const chosen = files.find((f) => f.id === selectedIds[0])
       if (chosen) {
-        set("logoUrl", chosen.url)
+        set(field, chosen.url)
         setErrors((e) => {
-          const { logoUrl, ...rest } = e
-          return rest
+          const next = { ...e }
+          delete next[field]
+          return next
         })
       } else {
-        setErrors((e) => ({ ...e, logoUrl: "Couldn't match the selected image. Try again." }))
+        setErrors((e) => ({ ...e, [field]: "Couldn't match the selected image. Try again." }))
       }
     } catch {
-      setErrors((e) => ({ ...e, logoUrl: "Couldn't open the media library. Try again." }))
+      setErrors((e) => ({ ...e, [field]: "Couldn't open the media library. Try again." }))
     } finally {
       setLoadingLibrary(false)
     }
@@ -518,7 +524,7 @@ export function SettingsForm({
                   }}
                 />
               )}
-              <s-button onClick={handleChooseFromLibrary} disabled={loadingLibrary}>
+              <s-button onClick={() => handleChooseFromLibrary("logoUrl")} disabled={loadingLibrary}>
                 {loadingLibrary ? "Loading…" : "Choose from Shopify"}
               </s-button>
             </s-stack>
@@ -607,14 +613,46 @@ export function SettingsForm({
                 ></s-text-field>
                 {errors.guestLookupSubtext && <s-paragraph tone="critical">{errors.guestLookupSubtext}</s-paragraph>}
 
+                <s-stack direction="inline" gap="base" alignItems="center">
+                  {form.guestLookupHeroUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      key={form.guestLookupHeroUrl}
+                      src={form.guestLookupHeroUrl}
+                      alt="Guest lookup hero"
+                      style={{ width: 64, height: 48, objectFit: "cover", borderRadius: 6, border: "1px solid #d1d5db" }}
+                      onError={(e) => {
+                        e.currentTarget.style.display = "none"
+                        setErrors((err) => ({ ...err, guestLookupHeroUrl: "This image URL didn't load. Try a different one." }))
+                      }}
+                    />
+                  )}
+                  <s-button onClick={() => handleChooseFromLibrary("guestLookupHeroUrl")} disabled={loadingLibrary}>
+                    {loadingLibrary ? "Loading…" : "Choose from Shopify"}
+                  </s-button>
+                  {form.guestLookupHeroUrl && (
+                    <s-button
+                      variant="tertiary"
+                      onClick={() => {
+                        set("guestLookupHeroUrl", "")
+                        setErrors((e) => {
+                          const { guestLookupHeroUrl: _, ...rest } = e
+                          return rest
+                        })
+                      }}
+                    >
+                      Use default image
+                    </s-button>
+                  )}
+                </s-stack>
                 <s-url-field
-                  label="Hero image URL"
+                  label="Or paste a hero image URL"
                   name="guestLookupHeroUrl"
                   value={form.guestLookupHeroUrl}
                   placeholder="Leave blank for the default returns package image"
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("guestLookupHeroUrl", e.target.value)}
                 ></s-url-field>
-                <s-paragraph tone="subdued">Paste a Shopify CDN or other https image URL. Blank uses the built-in default.</s-paragraph>
+                <s-paragraph tone="subdued">Pick from your Shopify media library, or paste a URL. Blank uses the built-in default.</s-paragraph>
                 {errors.guestLookupHeroUrl && <s-paragraph tone="critical">{errors.guestLookupHeroUrl}</s-paragraph>}
 
                 <s-select
@@ -632,8 +670,30 @@ export function SettingsForm({
 
                 {form.guestLookupBrandDisplay === "logo" && (
                   <>
+                    <s-stack direction="inline" gap="base" alignItems="center">
+                      {(form.guestLookupLogoUrl || form.logoUrl) && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          key={form.guestLookupLogoUrl || form.logoUrl}
+                          src={form.guestLookupLogoUrl || form.logoUrl}
+                          alt="Guest lookup logo"
+                          style={{ width: 40, height: 40, objectFit: "contain", borderRadius: 6, border: "1px solid #d1d5db" }}
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none"
+                          }}
+                        />
+                      )}
+                      <s-button onClick={() => handleChooseFromLibrary("guestLookupLogoUrl")} disabled={loadingLibrary}>
+                        {loadingLibrary ? "Loading…" : "Choose from Shopify"}
+                      </s-button>
+                      {form.guestLookupLogoUrl && (
+                        <s-button variant="tertiary" onClick={() => set("guestLookupLogoUrl", "")}>
+                          Use main logo
+                        </s-button>
+                      )}
+                    </s-stack>
                     <s-url-field
-                      label="Panel logo URL (optional)"
+                      label="Or paste a panel logo URL"
                       name="guestLookupLogoUrl"
                       value={form.guestLookupLogoUrl}
                       placeholder="Leave blank to use the main Branding logo"
