@@ -235,49 +235,51 @@ function ineligibleBucketCounts(ineligibleItems: DisplayItem[]): Record<string, 
   for (const item of ineligibleItems) {
     const q = item.splitQty ?? item.quantity
     const status = item.returnStatus
-    const reason = (item.returnReason || "").toLowerCase()
 
     switch (status) {
-      case "Return requested":
+      case "returnRequested":
         add("requested", q)
         break
-      case "Return in progress":
+      case "returnInProgress":
         add("in_progress", q)
         break
-      case "Returned":
-        add("completed", q)
-        break
-      case "Return declined":
+      case "returnDeclined":
         add("declined", q)
         break
-      case "Refunded":
-        add("refunded", q)
+      case "returnCompleted":
+        if (item.refundStatus === "refunded") add("refunded", q)
+        else add("completed", q)
         break
-      case "Passed the return window":
-        add("window", q)
-        break
-      case "Final sale":
-        add("final_sale", q)
-        break
-      case "On its way":
-        add("in_transit", q)
-        break
-      case "Out for delivery":
-        add("out_for_delivery", q)
-        break
-      case "Attempted delivery":
-        add("attempted_delivery", q)
-        break
-      case "Confirmed":
-        if (reason.includes("preparing")) add("preparing", q)
-        else add("not_shipped", q)
+      case "notReturnable":
+        switch (item.notReturnableReason) {
+          case "outsideWindow":
+            add("window", q)
+            break
+          case "finalSale":
+            add("final_sale", q)
+            break
+          case "notDelivered":
+            switch (item.shippingStage) {
+              case "onItsWay":
+                add("in_transit", q)
+                break
+              case "outForDelivery":
+                add("out_for_delivery", q)
+                break
+              case "attemptedDelivery":
+                add("attempted_delivery", q)
+                break
+              case "confirmed":
+              default:
+                add("not_shipped", q)
+            }
+            break
+          default:
+            add("other", q)
+        }
         break
       default:
-        if (reason.includes("already been returned") || reason.includes("already returned")) add("completed", q)
-        else if (reason.includes("on its way") || reason.includes("in transit")) add("in_transit", q)
-        else if (reason.includes("return window")) add("window", q)
-        else if (reason.includes("dispatched")) add("not_shipped", q)
-        else add("other", q)
+        add("other", q)
     }
   }
 
@@ -328,20 +330,20 @@ function computeHeaderStatBlocks(
     statusFilter: ReturnStatus[]
     title: string
   }> = [
-    { id: "processing", count: buckets.in_progress || 0, caption: "processing", textColor: "text-orange-600", statusFilter: ["Return in progress"], title: "Return being processed" },
-    { id: "requested", count: buckets.requested || 0, caption: "requested", textColor: "text-violet-600", statusFilter: ["Return requested"], title: "Return awaiting review" },
-    { id: "declined", count: buckets.declined || 0, caption: "declined", textColor: "text-[var(--brand)]", statusFilter: ["Return declined"], title: "Return declined" },
-    { id: "in_transit", count: buckets.in_transit || 0, caption: "awaiting", textColor: "text-blue-600", statusFilter: ["On its way"], title: "Awaiting delivery — returnable once delivered" },
-    { id: "attempted", count: buckets.attempted_delivery || 0, caption: "attempted", textColor: "text-rose-600", statusFilter: ["Attempted delivery"], title: "Delivery attempted — action may be needed" },
-    { id: "out_for_delivery", count: buckets.out_for_delivery || 0, caption: "out for delivery", textColor: "text-blue-600", statusFilter: ["Out for delivery"], title: "Out for delivery today" },
-    { id: "not_shipped", count: (buckets.not_shipped || 0) + (buckets.preparing || 0), caption: "not shipped", textColor: "text-zinc-600", statusFilter: ["Confirmed"], title: "Not dispatched yet" },
-    { id: "window", count: buckets.window || 0, caption: "expired", textColor: "text-zinc-500", statusFilter: ["Passed the return window"], title: "Past return window" },
+    { id: "processing", count: buckets.in_progress || 0, caption: "processing", textColor: "text-orange-600", statusFilter: ["returnInProgress"], title: "Return being processed" },
+    { id: "requested", count: buckets.requested || 0, caption: "requested", textColor: "text-violet-600", statusFilter: ["returnRequested"], title: "Return awaiting review" },
+    { id: "declined", count: buckets.declined || 0, caption: "declined", textColor: "text-[var(--brand)]", statusFilter: ["returnDeclined"], title: "Return declined" },
+    { id: "in_transit", count: buckets.in_transit || 0, caption: "awaiting", textColor: "text-blue-600", statusFilter: ["notReturnable"], title: "Awaiting delivery — returnable once delivered" },
+    { id: "attempted", count: buckets.attempted_delivery || 0, caption: "attempted", textColor: "text-rose-600", statusFilter: ["notReturnable"], title: "Delivery attempted — action may be needed" },
+    { id: "out_for_delivery", count: buckets.out_for_delivery || 0, caption: "out for delivery", textColor: "text-blue-600", statusFilter: ["notReturnable"], title: "Out for delivery today" },
+    { id: "not_shipped", count: buckets.not_shipped || 0, caption: "not shipped", textColor: "text-zinc-600", statusFilter: ["notReturnable"], title: "Not dispatched yet" },
+    { id: "window", count: buckets.window || 0, caption: "expired", textColor: "text-zinc-500", statusFilter: ["notReturnable"], title: "Past return window" },
     {
       id: "returned",
       count: buckets.completed || 0,
       caption: "returned",
       textColor: "text-teal-600",
-      statusFilter: ["Returned"],
+      statusFilter: ["returnCompleted"],
       title: "Returned",
     },
     {
@@ -349,10 +351,10 @@ function computeHeaderStatBlocks(
       count: buckets.refunded || 0,
       caption: "refunded",
       textColor: "text-green-600",
-      statusFilter: ["Refunded"],
+      statusFilter: ["returnCompleted"],
       title: "Refunded",
     },
-    { id: "final_sale", count: buckets.final_sale || 0, caption: "final sale", textColor: "text-zinc-500", statusFilter: ["Final sale"], title: "Final sale — not returnable" },
+    { id: "final_sale", count: buckets.final_sale || 0, caption: "final sale", textColor: "text-zinc-500", statusFilter: ["notReturnable"], title: "Final sale — not returnable" },
   ]
 
   for (const def of ineligibleDefs) {
@@ -557,78 +559,8 @@ function buildFullSummaryText(
   return clauses.join(" · ") + "."
 }
 
-// ─── Narrative order summary (structured, for the alert) ─────────────────────
-type NarrativeGroup = { count: number; message: string; status: ReturnStatus }
-
-type NarrativeOrderSummary = {
-  intro: string
-  fulfillmentLine: string | null
-  eligible: number
-  groups: NarrativeGroup[]
-}
-
 function cap(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1)
-}
-
-function buildNarrativeOrderSummary(
-  order: Order,
-  totalEligibleUnits: number,
-  ineligibleItems: DisplayItem[],
-  returnWindowDays: number,
-  ineligibleStatusMessages: IneligibleStatusMessages,
-): NarrativeOrderSummary {
-  const total = parseFloat(order.totalPriceSet.shopMoney.amount)
-  const refundedAmount = order.totalRefundedSet?.shopMoney?.amount
-    ? parseFloat(order.totalRefundedSet.shopMoney.amount)
-    : 0
-  const placedDate = new Date(order.createdAt).toLocaleDateString("en-GB", {
-    day: "numeric", month: "long", year: "numeric",
-  })
-  const n = order.totalUnits
-  let intro = `Placed on ${placedDate} · £${total.toFixed(2)} · ${n} item${n !== 1 ? "s" : ""}`
-  if (refundedAmount > 0) intro += ` (£${refundedAmount.toFixed(2)} refunded)`
-
-  if (order.cancelledAt) {
-    return {
-      intro,
-      fulfillmentLine: "This order was cancelled — returns are not available.",
-      eligible: 0,
-      groups: [],
-    }
-  }
-
-  // Fulfillment line — only when there's a breakdown worth showing
-  let fulfillmentLine: string | null = null
-  const fparts = buildOrderFulfillmentBreakdownParts(order)
-  if (fparts.length > 1) {
-    fulfillmentLine = fparts.map((p, i) => i === 0 ? cap(p) : p).join(" · ")
-  } else if (fparts.length === 1 && order.orderStatus !== "Delivered") {
-    fulfillmentLine = cap(fparts[0])
-  }
-
-  // Group ineligible items by their narrative key (reuses existing grouping logic)
-  const groupMap = new Map<string, { items: DisplayItem[]; count: number; status: ReturnStatus }>()
-  for (const item of ineligibleItems) {
-    const key = getIneligibleGroupKey(item, order, returnWindowDays)
-    const existing = groupMap.get(key)
-    if (existing) {
-      existing.items.push(item)
-      existing.count += item.splitQty ?? item.quantity
-    } else {
-      groupMap.set(key, { items: [item], count: item.splitQty ?? item.quantity, status: item.returnStatus })
-    }
-  }
-
-  const groups: NarrativeGroup[] = Array.from(groupMap.values())
-    .sort((a, b) => (INELIGIBLE_STATUS_ORDER[a.status] ?? 99) - (INELIGIBLE_STATUS_ORDER[b.status] ?? 99))
-    .map(({ items, count, status }) => ({
-      count,
-      status,
-      message: getIneligibleGroupMessage(items[0], order, returnWindowDays, ineligibleStatusMessages, items as LineItem[]),
-    }))
-
-  return { intro, fulfillmentLine, eligible: totalEligibleUnits, groups }
 }
 
 function joinFragments(fragments: string[]): string {
@@ -682,7 +614,7 @@ function buildNarrativeParagraph(
   const alreadyDone      = completed + refunded + finalSale + expired + other
 
   // Return window close date (show if all expired items share one date)
-  const expiredItems  = ineligibleItems.filter(i => i.returnStatus === "Passed the return window")
+  const expiredItems  = ineligibleItems.filter(i => i.returnStatus === "notReturnable" && i.notReturnableReason === "outsideWindow")
   const expiredDates  = new Set(expiredItems.map(i => formatReturnWindowClosedForItem(i, order, returnWindowDays) ?? ""))
   const expiredDateStr = expiredDates.size === 1 && [...expiredDates][0] ? [...expiredDates][0] : null
 
@@ -2539,7 +2471,7 @@ function ItemReasonText({ item, align = "start" }: { item: LineItem; align?: "st
   )
   const listCls = cn("space-y-1 list-none", align === "start" && "mt-1 pr-1", align === "end" && "text-right")
 
-  if (item.returnStatus === "Return declined" && item.declinedReturnEntries.length > 0) {
+  if (item.returnStatus === "returnDeclined" && item.declinedReturnEntries.length > 0) {
     const grouped = groupDeclinedEntries(item.declinedReturnEntries)
     if (grouped.length === 1) {
       return <p className={textCls}>{grouped[0].message}</p>
@@ -2561,17 +2493,17 @@ function ItemReasonText({ item, align = "start" }: { item: LineItem; align?: "st
 }
 
 function getIneligibleGroupKey(item: LineItem, order: Order, returnWindowDays: number): string {
-  if (item.returnStatus === "Return declined") {
-    // item.returnReason is already resolved (real Shopify reason, or the
-    // merchant's declined fallback) by buildIneligibleDisplayItems — no
-    // need to re-resolve it here.
+  if (item.returnStatus === "returnDeclined") {
     return `declined:${item.returnReason || ""}`
   }
-  if (item.returnStatus === "Passed the return window") {
+  if (item.returnStatus === "notReturnable" && item.notReturnableReason === "outsideWindow") {
     const closed = formatReturnWindowClosedForItem(item, order, returnWindowDays) ?? "unknown"
     return `window:${closed}`
   }
-  return `${item.returnStatus}`
+  if (item.returnStatus === "notReturnable" && item.notReturnableReason === "notDelivered") {
+    return `notDelivered:${item.shippingStage ?? "confirmed"}`
+  }
+  return `${item.returnStatus}:${item.notReturnableReason ?? ""}`
 }
 
 function ineligibleTableColSpan(cols: { variant: boolean; qty: boolean; total: boolean }) {
@@ -2579,20 +2511,13 @@ function ineligibleTableColSpan(cols: { variant: boolean; qty: boolean; total: b
 }
 
 const INELIGIBLE_STATUS_ORDER: Partial<Record<ReturnStatus, number>> = {
-  "Return requested": 0,
-  "Return in progress": 1,
-  "Return declined": 2,
-  "Returned": 3,
-  "Return cancelled": 4,
-  "Refunded": 5,
-  "Attempted delivery": 6,
-  "Out for delivery": 7,
-  "On its way": 8,
-  "Confirmed": 9,
-  "Passed the return window": 10,
-  "Cancelled": 12,
-  "Final sale": 13,
-  "Not eligible": 14,
+  "returnRequested": 0,
+  "returnInProgress": 1,
+  "returnDeclined": 2,
+  "returnCanceled": 3,
+  "returnCompleted": 4,
+  "notReturnable": 5,
+  "Cancelled": 6,
 }
 
 function compareIneligibleItems(a: DisplayItem, b: DisplayItem, order: Order, returnWindowDays: number) {
@@ -2612,43 +2537,21 @@ function formatGroupCount(rows: DisplayItem[]) {
   return `${rows.length} lines · ${units} units`
 }
 
-// One canonical style-key per non-Eligible ReturnStatus — everything about
-// how a status displays (filter/badge label, accordion heading, icon,
-// color) is merchant-editable via branding.ineligibleStatusStyles, keyed by
-// this map. Kept 1:1 (no grouping) even though finalSale/notEligible/etc.
-// share a default appearance, so each can be given its own text later.
-const STATUS_STYLE_KEY_MAP: Record<Exclude<ReturnStatus, "Eligible">, IneligibleStatusKey> = {
-  "Confirmed": "confirmed",
-  "On its way": "onItsWay",
-  "Out for delivery": "outForDelivery",
-  "Attempted delivery": "attemptedDelivery",
-  "Passed the return window": "passedReturnWindow",
-  "Return requested": "returnRequested",
-  "Return in progress": "returnInProgress",
-  "Returned": "returned",
-  "Refunded": "refunded",
-  "Return declined": "returnDeclined",
-  "Return cancelled": "returnCancelled",
-  "Cancelled": "cancelled",
-  "Final sale": "finalSale",
-  "Not eligible": "notEligible",
+function getStatusStyle(status: ReturnStatus, styles: ReturnLifecycleStyles): ReturnLifecycleStyle {
+  return styles[status as Exclude<ReturnStatus, "Eligible" | "Cancelled">] ?? styles.notReturnable
 }
 
-function getStatusStyle(status: ReturnStatus, styles: IneligibleStatusStyles): IneligibleStatusStyle {
-  return styles[STATUS_STYLE_KEY_MAP[status as Exclude<ReturnStatus, "Eligible">]] ?? styles.notEligible
-}
-
-function getIneligibleCoarseLabel(status: ReturnStatus, styles: IneligibleStatusStyles): string {
+function getIneligibleCoarseLabel(status: ReturnStatus, styles: ReturnLifecycleStyles): string {
   return getStatusStyle(status, styles).label
 }
 
 // More descriptive titles for the mobile group accordion (distinct from the
 // coarse labels used in the filter dropdown).
-function getIneligibleAccordionTitle(status: ReturnStatus, styles: IneligibleStatusStyles): string {
+function getIneligibleAccordionTitle(status: ReturnStatus, styles: ReturnLifecycleStyles): string {
   return getStatusStyle(status, styles).heading
 }
 
-function getReturnStatusIcon(status: ReturnStatus, styles: IneligibleStatusStyles): { icon: React.ElementType; color: string; label: string } {
+function getReturnStatusIcon(status: ReturnStatus, styles: ReturnLifecycleStyles): { icon: React.ElementType; color: string; label: string } {
   const style = getStatusStyle(status, styles)
   return { icon: getIneligibleStatusIconComponent(style.icon), color: style.color, label: style.label }
 }
@@ -2658,49 +2561,40 @@ function fillMessagePlaceholders(template: string, tokens: Record<string, string
   return Object.entries(tokens).reduce((s, [key, value]) => s.split(`{${key}}`).join(value), template)
 }
 
-function getIneligibleGroupMessage(item: LineItem, order: Order, returnWindowDays: number, messages: IneligibleStatusMessages, groupItems?: LineItem[]): string {
+function getIneligibleGroupMessage(item: LineItem, order: Order, returnWindowDays: number, messages: ReturnLifecycleMessages, groupItems?: LineItem[]): string {
   const days = String(returnWindowDays)
   switch (item.returnStatus) {
-    case "Confirmed":
-      return fillMessagePlaceholders(messages.confirmed, { days })
-    case "On its way":
-      return fillMessagePlaceholders(messages.onItsWay, { days })
-    case "Out for delivery":
-      return fillMessagePlaceholders(messages.outForDelivery, { days })
-    case "Attempted delivery":
-      return messages.attemptedDelivery
-    case "Passed the return window": {
-      const closed = formatReturnWindowClosedForItem(item, order, returnWindowDays, groupItems)
-      return closed
-        ? fillMessagePlaceholders(messages.windowExpired, { closedDate: closed })
-        : messages.windowExpiredNoDate
+    case "notReturnable": {
+      if (item.notReturnableReason === "notDelivered") {
+        const stage = item.shippingStage ?? "confirmed"
+        const key = SHIPPING_STAGE_MESSAGE_KEY[stage]
+        return fillMessagePlaceholders(messages[key], { days })
+      }
+      if (item.notReturnableReason === "outsideWindow") {
+        const closed = formatReturnWindowClosedForItem(item, order, returnWindowDays, groupItems)
+        return closed
+          ? fillMessagePlaceholders(messages.outsideWindow, { closedDate: closed })
+          : messages.outsideWindowNoDate
+      }
+      if (item.notReturnableReason === "finalSale") return messages.finalSale
+      return messages.otherNotReturnable
     }
-    case "Return requested":
+    case "returnRequested":
       return messages.returnRequested
-    case "Return in progress":
+    case "returnInProgress":
       return messages.returnInProgress
-    case "Returned":
-      return messages.returned
-    case "Refunded":
-      return messages.refunded
-    case "Return declined":
-      // Already resolved by buildIneligibleDisplayItems (real Shopify
-      // reason, or the merchant's declined fallback below) — item.returnReason
-      // is only falsy here if this item somehow bypassed that path.
-      return item.returnReason || DEFAULT_DECLINE_FALLBACK
-    case "Return cancelled":
-      return messages.returnCancelled
-    case "Cancelled":
-      return messages.cancelled
-    case "Final sale":
-    case "Not eligible":
-      return messages.notEligible
+    case "returnDeclined":
+      return resolveDeclineMessage(item.returnReason || "Your return request was declined.")
+    case "returnCanceled":
+      return messages.returnCanceled
+    case "returnCompleted":
+      return messages.returnCompleted
     default:
-      return messages.notEligible
+      return messages.otherNotReturnable
   }
 }
 
-function getIneligibleFilterOptions(items: DisplayItem[], styles: IneligibleStatusStyles): { label: string; statuses: ReturnStatus[] }[] {
+function getIneligibleFilterOptions(items: DisplayItem[], styles: ReturnLifecycleStyles): { label: string; statuses: ReturnStatus[] }[] {
   const groups = new Map<string, ReturnStatus[]>()
   for (const item of items) {
     const label = getIneligibleCoarseLabel(item.returnStatus, styles)
@@ -2730,14 +2624,15 @@ function dedupeAccordionContent(title: string, message: string): string | null {
   return message
 }
 
-function IneligibleGroupSummary({ item, order, groupItems, count, returnWindowDays, ineligibleStatusMessages, ineligibleStatusStyles }: { item: LineItem; order: Order; groupItems?: LineItem[]; count: string; returnWindowDays: number; ineligibleStatusMessages: IneligibleStatusMessages; ineligibleStatusStyles: IneligibleStatusStyles }) {
-  const { icon: Icon, color } = getReturnStatusIcon(item.returnStatus, ineligibleStatusStyles)
+function IneligibleGroupSummary({ item, order, groupItems, count, returnWindowDays, returnLifecycleMessages, returnLifecycleStyles, refundStatusLabels }: { item: LineItem; order: Order; groupItems?: LineItem[]; count: string; returnWindowDays: number; returnLifecycleMessages: ReturnLifecycleMessages; returnLifecycleStyles: ReturnLifecycleStyles; refundStatusLabels: RefundStatusLabels }) {
+  const refundLabel = item.refundStatus && item.refundStatus !== "notRefunded" ? refundStatusLabels[item.refundStatus] : ""
+  const { icon: Icon, color } = getReturnStatusIcon(item.returnStatus, returnLifecycleStyles)
   // color is a merchant-set hex (inline style) or "" (default theme color,
   // via the text-foreground class) — never both, so dark mode still works
   // for merchants who never touch this.
   const iconColorProps = color ? { style: { color } } : { className: "text-foreground" }
-  const message = getIneligibleGroupMessage(item, order, returnWindowDays, ineligibleStatusMessages, groupItems)
-  const title = getIneligibleAccordionTitle(item.returnStatus, ineligibleStatusStyles)
+  const message = getIneligibleGroupMessage(item, order, returnWindowDays, returnLifecycleMessages, groupItems)
+  const title = getIneligibleAccordionTitle(item.returnStatus, returnLifecycleStyles)
   const content = dedupeAccordionContent(title, message)
   const [open, setOpen] = useState(false)
 
@@ -2750,7 +2645,10 @@ function IneligibleGroupSummary({ item, order, groupItems, count, returnWindowDa
           <Icon className={cn("mr-1 inline size-3 shrink-0 align-[-0.15em]", iconColorProps.className)} style={iconColorProps.style} aria-hidden />
           {message}
         </p>
-        <span className="text-[10px] font-medium leading-snug text-muted-foreground shrink-0 tabular-nums">{count}</span>
+        <span className="flex items-center gap-1.5 shrink-0">
+          {refundLabel && <span className="text-[10px] font-medium text-muted-foreground">{refundLabel}</span>}
+          <span className="text-[10px] font-medium leading-snug text-muted-foreground tabular-nums">{count}</span>
+        </span>
       </div>
 
       {/* Mobile: collapsible — descriptive title + count far right (muted title row);
@@ -2762,7 +2660,10 @@ function IneligibleGroupSummary({ item, order, groupItems, count, returnWindowDa
           <div className="flex items-center gap-1.5 w-full py-3 pl-5 pr-4">
             <Icon className={cn("inline size-3 shrink-0", iconColorProps.className)} style={iconColorProps.style} aria-hidden />
             <span className="min-w-0 truncate text-[11px] font-medium text-muted-foreground">{title}</span>
-            <span className="ml-auto text-[10px] font-medium text-muted-foreground shrink-0 tabular-nums">{count}</span>
+            <span className="ml-auto flex items-center gap-1.5 shrink-0">
+              {refundLabel && <span className="text-[10px] font-medium text-muted-foreground">{refundLabel}</span>}
+              <span className="text-[10px] font-medium text-muted-foreground tabular-nums">{count}</span>
+            </span>
           </div>
         ) : (
           <>
@@ -2775,7 +2676,10 @@ function IneligibleGroupSummary({ item, order, groupItems, count, returnWindowDa
               <Icon className={cn("inline size-3 shrink-0", iconColorProps.className)} style={iconColorProps.style} aria-hidden />
               <span className="min-w-0 truncate text-[11px] font-medium text-muted-foreground">{title}</span>
               <ChevronDown className={cn("size-3 shrink-0 text-muted-foreground transition-transform duration-200", open && "rotate-180")} aria-hidden />
-              <span className="ml-auto text-[10px] font-medium text-muted-foreground shrink-0 tabular-nums">{count}</span>
+              <span className="ml-auto flex items-center gap-1.5 shrink-0">
+                {refundLabel && <span className="text-[10px] font-medium text-muted-foreground">{refundLabel}</span>}
+                <span className="text-[10px] font-medium text-muted-foreground tabular-nums">{count}</span>
+              </span>
             </button>
             <div
               className={cn(
@@ -3258,8 +3162,9 @@ type OrderDetailBranding = {
   ineligibleMessageEnabled: boolean
   eligibleLabel: string
   ineligibleLabel: string
-  ineligibleStatusMessages: IneligibleStatusMessages
-  ineligibleStatusStyles: IneligibleStatusStyles
+  returnLifecycleMessages: ReturnLifecycleMessages
+  returnLifecycleStyles: ReturnLifecycleStyles
+  refundStatusLabels: RefundStatusLabels
 }
 
 function OrderDetail({
@@ -3279,7 +3184,7 @@ function OrderDetail({
     policyAcceptedMessage, policyDeclinedMessage, tableSearchEnabled, tableSearchPlaceholder,
     tableColumnsButtonEnabled, tableFilterButtonEnabled, tablePageSizeEnabled, shipmentCardsEnabled,
     productImageLinksEnabled, statusFilterEnabled, ineligibleMessageEnabled,
-    eligibleLabel, ineligibleLabel, ineligibleStatusMessages, ineligibleStatusStyles,
+    eligibleLabel, ineligibleLabel, returnLifecycleMessages, returnLifecycleStyles, refundStatusLabels,
   } = branding
   const [policyAccepted, setPolicyAccepted] = useState(!requirePolicyAcceptance)
   const [selectedItems, setSelectedItems]   = useState<Record<string, { selected: boolean; quantity: number; reason: string; description: string }>>({})
@@ -3322,8 +3227,8 @@ function OrderDetail({
   }, [order, totalEligibleUnits, totalIneligibleUnits, ineligibleItems])
 
   const ineligibleFilterGroupCount = useMemo(
-    () => new Set(ineligibleItems.map(i => getIneligibleCoarseLabel(i.returnStatus, ineligibleStatusStyles))).size,
-    [ineligibleItems, ineligibleStatusStyles],
+    () => new Set(ineligibleItems.map(i => getIneligibleCoarseLabel(i.returnStatus, returnLifecycleStyles))).size,
+    [ineligibleItems, returnLifecycleStyles],
   )
   const showIneligibleFilter = ineligibleFilterGroupCount > 1
 
@@ -3335,11 +3240,6 @@ function OrderDetail({
   const fullOrderSummary = useMemo(
     () => buildFullSummaryText(order, totalEligibleUnits, ineligibleItems),
     [order, totalEligibleUnits, ineligibleItems]
-  )
-
-  const narrativeSummary = useMemo(
-    () => buildNarrativeOrderSummary(order, totalEligibleUnits, ineligibleItems, returnWindowDays, ineligibleStatusMessages),
-    [order, totalEligibleUnits, ineligibleItems, returnWindowDays, ineligibleStatusMessages]
   )
 
   const narrativeParagraph = useMemo(
@@ -3757,7 +3657,7 @@ function OrderDetail({
                     </PopoverTrigger>
                     <PopoverContent className="w-52 p-2" align="end">
                       <div className="flex flex-col gap-0.5">
-                        {getIneligibleFilterOptions(ineligibleItems, ineligibleStatusStyles).map(({ label, statuses }) => (
+                        {getIneligibleFilterOptions(ineligibleItems, returnLifecycleStyles).map(({ label, statuses }) => (
                           <label key={label} className="flex items-center gap-2.5 px-2 py-1.5 rounded-md hover:bg-muted cursor-pointer text-sm">
                             <Checkbox
                               checked={statuses.every(s => ineligibleStatusFilter.includes(s))}
@@ -3845,7 +3745,7 @@ function OrderDetail({
                     </PopoverTrigger>
                     <PopoverContent className="w-52 p-2" align="end">
                       <div className="flex flex-col gap-0.5">
-                        {getIneligibleFilterOptions(ineligibleItems, ineligibleStatusStyles).map(({ label, statuses }) => (
+                        {getIneligibleFilterOptions(ineligibleItems, returnLifecycleStyles).map(({ label, statuses }) => (
                           <label key={label} className="flex items-center gap-2.5 px-2 py-1.5 rounded-md hover:bg-muted cursor-pointer text-sm">
                             <Checkbox
                               checked={statuses.every(s => ineligibleStatusFilter.includes(s))}
@@ -3980,7 +3880,7 @@ function OrderDetail({
                         {showGroupHeader && (
                           <TableRow className="bg-muted/80 hover:bg-muted/80 border-b border-border/60">
                             <TableCell colSpan={ineligibleTableColSpan(colsVisible)} className="p-0 whitespace-normal">
-                              <IneligibleGroupSummary item={item} order={order} groupItems={groupRows} count={formatGroupCount(groupRows)} returnWindowDays={returnWindowDays} ineligibleStatusMessages={ineligibleStatusMessages} ineligibleStatusStyles={ineligibleStatusStyles} />
+                              <IneligibleGroupSummary item={item} order={order} groupItems={groupRows} count={formatGroupCount(groupRows)} returnWindowDays={returnWindowDays} returnLifecycleMessages={returnLifecycleMessages} returnLifecycleStyles={returnLifecycleStyles} refundStatusLabels={refundStatusLabels} />
                             </TableCell>
                           </TableRow>
                         )}
@@ -4267,8 +4167,9 @@ function DashboardClientInner() {
     defaultOrderView: "grid", sidebarDefaultOpenOnDesktop: true, statusFilterEnabled: true,
     ineligibleMessageEnabled: true, sidebarAvatarEnabled: true, headerAvatarEnabled: true,
     eligibleLabel: "Eligible", ineligibleLabel: "Ineligible",
-    ineligibleStatusMessages: DEFAULT_TENANT_FIELDS.branding.ineligibleStatusMessages,
-    ineligibleStatusStyles: DEFAULT_TENANT_FIELDS.branding.ineligibleStatusStyles,
+    returnLifecycleMessages: DEFAULT_TENANT_FIELDS.branding.returnLifecycleMessages,
+    returnLifecycleStyles: DEFAULT_TENANT_FIELDS.branding.returnLifecycleStyles,
+    refundStatusLabels: DEFAULT_TENANT_FIELDS.branding.refundStatusLabels,
     alwaysShowGuestLookup: false,
   })
   // False until accentColor holds a real (cached or fetched) tenant value —
