@@ -72,9 +72,9 @@ describe("tenant store", () => {
     expect(t?.branding.sidebarSubmenusExpandedByDefault).toBe(true);
     expect(t?.branding.guestBackgroundStyle).toBe("none");
     expect(t?.branding.policyFooterNoteEnabled).toBe(true);
-    expect(t?.branding.ineligibleStatusMessages.notEligible).toBe("These items aren't eligible for return.");
-    expect(t?.branding.ineligibleStatusStyles.confirmed.label).toBe("Not yet shipped");
-    expect(t?.branding.ineligibleStatusStyles.returnDeclined.icon).toBe("CircleX");
+    expect(t?.branding.returnLifecycleStyles.notReturnable.label).toBe("Not returnable");
+    expect(t?.branding.returnLifecycleStyles.returnDeclined.icon).toBe("CircleX");
+    expect(t?.branding.refundStatusLabels.notRefunded).toBe("");
   });
 
   it("round-trips a full branding update", async () => {
@@ -125,36 +125,32 @@ describe("tenant store", () => {
         headerAvatarEnabled: false,
         eligibleLabel: "Ready to return",
         ineligibleLabel: "Not eligible",
-        ineligibleStatusMessages: {
-          confirmed: "Preparing for shipping.",
-          onItsWay: "On its way.",
-          outForDelivery: "Out for delivery.",
-          attemptedDelivery: "Delivery attempted.",
-          windowExpired: "Window expired on {closedDate}.",
-          windowExpiredNoDate: "Window expired.",
-          returnRequested: "Return requested.",
-          returnInProgress: "Return in progress.",
-          returned: "Already returned.",
-          refunded: "Already refunded.",
-          returnCancelled: "Return cancelled.",
-          cancelled: "Cancelled.",
-          notEligible: "Not eligible.",
+        returnLifecycleStyles: {
+          notReturnable:    { label: "Window closed",      heading: "Window expired",           icon: "Lock",         color: "#4F46E5" },
+          returnRequested:  { label: "Requested",          heading: "Return requested",         icon: "Eye",          color: "" },
+          returnInProgress: { label: "In progress",        heading: "In progress",              icon: "RotateCcw",    color: "" },
+          returnDeclined:   { label: "Declined",           heading: "Declined",                 icon: "CircleX",      color: "" },
+          returnCanceled:   { label: "Canceled",           heading: "Canceled",                 icon: "XCircle",      color: "" },
+          returnCompleted:  { label: "Returned",           heading: "Returned",                 icon: "CheckCircle2", color: "" },
         },
-        ineligibleStatusStyles: {
-          confirmed: { label: "Not shipped", heading: "Preparing shipment", icon: "Clock", color: "" },
-          onItsWay: { label: "In transit", heading: "On its way", icon: "Package", color: "" },
-          outForDelivery: { label: "Out for delivery", heading: "Out for delivery", icon: "Truck", color: "" },
-          attemptedDelivery: { label: "Attempted", heading: "Attempted delivery", icon: "Truck", color: "" },
-          passedReturnWindow: { label: "Window closed", heading: "Window expired", icon: "Lock", color: "#4F46E5" },
-          returnRequested: { label: "Requested", heading: "Return requested", icon: "Eye", color: "" },
-          returnInProgress: { label: "In progress", heading: "In progress", icon: "RotateCcw", color: "" },
-          returned: { label: "Returned", heading: "Returned", icon: "CheckCircle2", color: "" },
-          refunded: { label: "Refunded", heading: "Refunded", icon: "BadgeCheck", color: "" },
-          returnDeclined: { label: "Declined", heading: "Declined", icon: "CircleX", color: "" },
-          returnCancelled: { label: "Not eligible", heading: "Not eligible", icon: "XCircle", color: "" },
-          cancelled: { label: "Not eligible", heading: "Not eligible", icon: "XCircle", color: "" },
-          finalSale: { label: "Not eligible", heading: "Not eligible", icon: "HelpCircle", color: "" },
-          notEligible: { label: "Not eligible", heading: "Not eligible", icon: "HelpCircle", color: "" },
+        returnLifecycleMessages: {
+          shippingConfirmed:         "Preparing for shipping.",
+          shippingOnItsWay:          "On its way.",
+          shippingOutForDelivery:    "Out for delivery.",
+          shippingAttemptedDelivery: "Delivery attempted.",
+          outsideWindow:              "Window expired on {closedDate}.",
+          outsideWindowNoDate:        "Window expired.",
+          finalSale:                  "Final sale item.",
+          otherNotReturnable:         "Not eligible.",
+          returnRequested:            "Return requested.",
+          returnInProgress:           "Return in progress.",
+          returnCanceled:             "Return canceled.",
+          returnCompleted:            "Already returned.",
+        },
+        refundStatusLabels: {
+          notRefunded: "",
+          partiallyRefunded: "Partly refunded",
+          refunded: "Already refunded.",
         },
         alwaysShowGuestLookup: true,
       },
@@ -187,9 +183,9 @@ describe("tenant store", () => {
     expect(t?.branding.sidebarSubmenusExpandedByDefault).toBe(false);
     expect(t?.branding.guestBackgroundStyle).toBe("dotField");
     expect(t?.branding.policyFooterNoteEnabled).toBe(false);
-    expect(t?.branding.ineligibleStatusMessages.returned).toBe("Already returned.");
+    expect(t?.branding.returnLifecycleMessages.returnCompleted).toBe("Already returned.");
     expect(t?.branding.alwaysShowGuestLookup).toBe(true);
-    expect(t?.branding.ineligibleStatusStyles.passedReturnWindow).toEqual({ label: "Window closed", heading: "Window expired", icon: "Lock", color: "#4F46E5" });
+    expect(t?.branding.returnLifecycleStyles.notReturnable).toEqual({ label: "Window closed", heading: "Window expired", icon: "Lock", color: "#4F46E5" });
   });
 
   it("merges old branding JSON with new field defaults", async () => {

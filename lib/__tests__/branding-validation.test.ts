@@ -46,36 +46,32 @@ const VALID: BrandingInput = {
   headerAvatarEnabled: true,
   eligibleLabel: "Eligible",
   ineligibleLabel: "Ineligible",
-  ineligibleStatusMessages: {
-    confirmed: "We're preparing these items for shipping. Your return window starts on delivery and closes {days} days later.",
-    onItsWay: "These items are on their way. Your return window starts on delivery and closes {days} days later.",
-    outForDelivery: "These items are out for delivery today. Your return window starts on delivery and closes {days} days later.",
-    attemptedDelivery: "A delivery attempt was made for these items. Please rebook or collect — your return window starts once delivered.",
-    windowExpired: "The return window has expired for these items. It closed on {closedDate}.",
-    windowExpiredNoDate: "The return window has expired for these items.",
-    returnRequested: "We've received your return request.",
-    returnInProgress: "Your return is in progress.",
-    returned: "These items have already been returned.",
-    refunded: "These items have already been refunded.",
-    returnCancelled: "This return request was cancelled.",
-    cancelled: "These items were cancelled.",
-    notEligible: "These items aren't eligible for return.",
+  returnLifecycleStyles: {
+    notReturnable:    { label: "Not returnable",     heading: "Not returnable",                     icon: "Lock",         color: "" },
+    returnRequested:  { label: "Return requested",   heading: "We've received your return request", icon: "Eye",          color: "" },
+    returnInProgress: { label: "Return in progress", heading: "Your return is in progress",          icon: "RotateCcw",    color: "" },
+    returnDeclined:   { label: "Return declined",    heading: "Your return request was declined",    icon: "CircleX",      color: "" },
+    returnCanceled:   { label: "Return canceled",    heading: "This return was canceled",             icon: "XCircle",      color: "" },
+    returnCompleted:  { label: "Return completed",   heading: "This return is complete",              icon: "CheckCircle2", color: "" },
   },
-  ineligibleStatusStyles: {
-    confirmed: { label: "Not yet shipped", heading: "We're preparing these items for shipping", icon: "Clock", color: "" },
-    onItsWay: { label: "In transit", heading: "These items are on their way", icon: "Package", color: "" },
-    outForDelivery: { label: "Out for delivery", heading: "Out for delivery", icon: "Truck", color: "" },
-    attemptedDelivery: { label: "Attempted delivery", heading: "Attempted delivery", icon: "Truck", color: "" },
-    passedReturnWindow: { label: "Outside return window", heading: "The return window has expired for these items", icon: "Lock", color: "" },
-    returnRequested: { label: "Return requested", heading: "We've received your return request", icon: "Eye", color: "" },
-    returnInProgress: { label: "Return in progress", heading: "Your return is in progress", icon: "RotateCcw", color: "" },
-    returned: { label: "Returned", heading: "These items have already been returned", icon: "CheckCircle2", color: "" },
-    refunded: { label: "Refunded", heading: "Refunded", icon: "BadgeCheck", color: "" },
-    returnDeclined: { label: "Return declined", heading: "Your return request was declined", icon: "CircleX", color: "" },
-    returnCancelled: { label: "Not eligible", heading: "Not eligible", icon: "XCircle", color: "" },
-    cancelled: { label: "Not eligible", heading: "Not eligible", icon: "XCircle", color: "" },
-    finalSale: { label: "Not eligible", heading: "Not eligible", icon: "HelpCircle", color: "" },
-    notEligible: { label: "Not eligible", heading: "Not eligible", icon: "HelpCircle", color: "" },
+  returnLifecycleMessages: {
+    shippingConfirmed:         "We're preparing these items for shipping.",
+    shippingOnItsWay:          "These items are on their way.",
+    shippingOutForDelivery:    "These items are out for delivery today.",
+    shippingAttemptedDelivery: "A delivery attempt was made for these items.",
+    outsideWindow:              "The return window has expired for these items. It closed on {closedDate}.",
+    outsideWindowNoDate:        "The return window has expired for these items.",
+    finalSale:                  "This item is marked as final sale and cannot be returned.",
+    otherNotReturnable:         "These items aren't eligible for return.",
+    returnRequested:            "We've received your return request.",
+    returnInProgress:           "Your return is in progress.",
+    returnCanceled:             "This return request was canceled.",
+    returnCompleted:            "These items have already been returned.",
+  },
+  refundStatusLabels: {
+    notRefunded: "",
+    partiallyRefunded: "Partially refunded",
+    refunded: "Refunded",
   },
   alwaysShowGuestLookup: false,
 };
@@ -218,50 +214,50 @@ describe("validateBrandingInput", () => {
   it("rejects an empty ineligible status message", () => {
     const result = validateBrandingInput({
       ...VALID,
-      ineligibleStatusMessages: { ...VALID.ineligibleStatusMessages, returned: "" },
+      returnLifecycleMessages: { ...VALID.returnLifecycleMessages, returnCompleted: "" },
     });
     expect(result.valid).toBe(false);
-    expect(result.errors.ineligibleStatusMessages).toBeDefined();
+    expect(result.errors.returnLifecycleMessages).toBeDefined();
   });
 
   it("rejects an ineligible status message over 300 characters", () => {
     const result = validateBrandingInput({
       ...VALID,
-      ineligibleStatusMessages: { ...VALID.ineligibleStatusMessages, returned: "x".repeat(301) },
+      returnLifecycleMessages: { ...VALID.returnLifecycleMessages, returnCompleted: "x".repeat(301) },
     });
     expect(result.valid).toBe(false);
-    expect(result.errors.ineligibleStatusMessages).toBeDefined();
+    expect(result.errors.returnLifecycleMessages).toBeDefined();
   });
 
   it("rejects a status style with an empty label or heading", () => {
     const withEmptyLabel = validateBrandingInput({
       ...VALID,
-      ineligibleStatusStyles: { ...VALID.ineligibleStatusStyles, returned: { ...VALID.ineligibleStatusStyles.returned, label: "" } },
+      returnLifecycleStyles: { ...VALID.returnLifecycleStyles, returnCompleted: { ...VALID.returnLifecycleStyles.returnCompleted, label: "" } },
     });
     expect(withEmptyLabel.valid).toBe(false);
-    expect(withEmptyLabel.errors.ineligibleStatusStyles).toBeDefined();
+    expect(withEmptyLabel.errors.returnLifecycleStyles).toBeDefined();
 
     const withEmptyHeading = validateBrandingInput({
       ...VALID,
-      ineligibleStatusStyles: { ...VALID.ineligibleStatusStyles, returned: { ...VALID.ineligibleStatusStyles.returned, heading: "" } },
+      returnLifecycleStyles: { ...VALID.returnLifecycleStyles, returnCompleted: { ...VALID.returnLifecycleStyles.returnCompleted, heading: "" } },
     });
     expect(withEmptyHeading.valid).toBe(false);
-    expect(withEmptyHeading.errors.ineligibleStatusStyles).toBeDefined();
+    expect(withEmptyHeading.errors.returnLifecycleStyles).toBeDefined();
   });
 
   it("rejects a status style color that isn't a valid hex", () => {
     const result = validateBrandingInput({
       ...VALID,
-      ineligibleStatusStyles: { ...VALID.ineligibleStatusStyles, returned: { ...VALID.ineligibleStatusStyles.returned, color: "red" } },
+      returnLifecycleStyles: { ...VALID.returnLifecycleStyles, returnCompleted: { ...VALID.returnLifecycleStyles.returnCompleted, color: "red" } },
     });
     expect(result.valid).toBe(false);
-    expect(result.errors.ineligibleStatusStyles).toBeDefined();
+    expect(result.errors.returnLifecycleStyles).toBeDefined();
   });
 
   it("accepts a status style with a blank color (theme default)", () => {
     const result = validateBrandingInput({
       ...VALID,
-      ineligibleStatusStyles: { ...VALID.ineligibleStatusStyles, returned: { ...VALID.ineligibleStatusStyles.returned, color: "" } },
+      returnLifecycleStyles: { ...VALID.returnLifecycleStyles, returnCompleted: { ...VALID.returnLifecycleStyles.returnCompleted, color: "" } },
     });
     expect(result.valid).toBe(true);
   });
@@ -269,8 +265,17 @@ describe("validateBrandingInput", () => {
   it("accepts a status style with a valid hex color", () => {
     const result = validateBrandingInput({
       ...VALID,
-      ineligibleStatusStyles: { ...VALID.ineligibleStatusStyles, returned: { ...VALID.ineligibleStatusStyles.returned, color: "#4F46E5" } },
+      returnLifecycleStyles: { ...VALID.returnLifecycleStyles, returnCompleted: { ...VALID.returnLifecycleStyles.returnCompleted, color: "#4F46E5" } },
     });
     expect(result.valid).toBe(true);
+  });
+
+  it("rejects empty refund status labels", () => {
+    const result = validateBrandingInput({
+      ...VALID,
+      refundStatusLabels: { ...VALID.refundStatusLabels, refunded: "" },
+    });
+    expect(result.valid).toBe(false);
+    expect(result.errors.refundStatusLabels).toBeDefined();
   });
 });
