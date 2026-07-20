@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { validateBrandingInput, type BrandingInput, type PolicyCategoryInput, type SidebarLinkInput, type SidebarSubLinkInput, type IneligibleStatusMessagesInput, type IneligibleStatusKeyInput, type IneligibleStatusStyleInput } from "@/lib/branding-validation"
+import { validateBrandingInput, RETURN_LIFECYCLE_STATUSES, type BrandingInput, type PolicyCategoryInput, type SidebarLinkInput, type SidebarSubLinkInput, type ReturnLifecycleMessagesInput, type ReturnLifecycleStatusInput, type ReturnLifecycleStyleInput } from "@/lib/branding-validation"
 import type { TenantBranding } from "@/lib/tenant"
 import { SIDEBAR_ICON_NAMES } from "@/lib/sidebar-icons"
 import { STATUS_ICON_NAMES } from "@/lib/status-icons"
@@ -18,21 +18,13 @@ import { migrateMarkdownIfNeeded } from "@/lib/markdown-to-html"
  * its text comes from the actual Shopify decline reason, not a static
  * template.
  */
-const STATUS_CARDS: { key: IneligibleStatusKeyInput; name: string }[] = [
-  { key: "confirmed", name: "Confirmed" },
-  { key: "onItsWay", name: "On its way" },
-  { key: "outForDelivery", name: "Out for delivery" },
-  { key: "attemptedDelivery", name: "Attempted delivery" },
-  { key: "passedReturnWindow", name: "Passed the return window" },
+const RETURN_STATUS_CARDS: { key: ReturnLifecycleStatusInput; name: string }[] = [
+  { key: "notReturnable", name: "Not returnable" },
   { key: "returnRequested", name: "Return requested" },
   { key: "returnInProgress", name: "Return in progress" },
-  { key: "returned", name: "Returned" },
-  { key: "refunded", name: "Refunded" },
   { key: "returnDeclined", name: "Return declined" },
-  { key: "returnCancelled", name: "Return cancelled" },
-  { key: "cancelled", name: "Cancelled" },
-  { key: "finalSale", name: "Final sale" },
-  { key: "notEligible", name: "Not eligible" },
+  { key: "returnCanceled", name: "Return canceled" },
+  { key: "returnCompleted", name: "Return completed" },
 ]
 
 declare const shopify: {
@@ -75,7 +67,7 @@ const TAB_FIELDS: Record<SettingsTab, (keyof BrandingInput)[]> = {
   table: [
     "headerSearchEnabled", "headerSearchPlaceholder", "tableSearchEnabled", "tableSearchPlaceholder",
     "tableColumnsButtonEnabled", "tableFilterButtonEnabled", "tablePageSizeEnabled", "shipmentCardsEnabled",
-    "productImageLinksEnabled", "ineligibleStatusMessages", "ineligibleStatusStyles",
+    "productImageLinksEnabled", "returnLifecycleMessages", "returnLifecycleStyles", "refundStatusLabels",
   ],
   // No fields of its own — Reset actions act on the whole form/tenant record,
   // not a validated field subset, so there's nothing for the Save-error tab
@@ -167,8 +159,8 @@ export function SettingsForm({
 
   // Same collapsed-by-default pattern, applied to the per-status label/
   // heading/icon/color/message cards — keeps the 14-status list scannable.
-  const [openStatusKey, setOpenStatusKey] = useState<IneligibleStatusKeyInput | null>(null)
-  function toggleStatusOpen(key: IneligibleStatusKeyInput) {
+  const [openStatusKey, setOpenStatusKey] = useState<ReturnLifecycleStatusInput | null>(null)
+  function toggleStatusOpen(key: ReturnLifecycleStatusInput) {
     setOpenStatusKey((prev) => (prev === key ? null : key))
   }
 
@@ -183,18 +175,22 @@ export function SettingsForm({
     setForm((f) => ({ ...f, [key]: value }))
   }
 
-  function setIneligibleMessage<K extends keyof IneligibleStatusMessagesInput>(key: K, value: string) {
-    setForm((f) => ({ ...f, ineligibleStatusMessages: { ...f.ineligibleStatusMessages, [key]: value } }))
+  function setReturnLifecycleMessage<K extends keyof ReturnLifecycleMessagesInput>(key: K, value: string) {
+    setForm((f) => ({ ...f, returnLifecycleMessages: { ...f.returnLifecycleMessages, [key]: value } }))
   }
 
-  function setStatusStyle<K extends keyof IneligibleStatusStyleInput>(statusKey: IneligibleStatusKeyInput, field: K, value: IneligibleStatusStyleInput[K]) {
+  function setStatusStyle<K extends keyof ReturnLifecycleStyleInput>(statusKey: ReturnLifecycleStatusInput, field: K, value: ReturnLifecycleStyleInput[K]) {
     setForm((f) => ({
       ...f,
-      ineligibleStatusStyles: {
-        ...f.ineligibleStatusStyles,
-        [statusKey]: { ...f.ineligibleStatusStyles[statusKey], [field]: value },
+      returnLifecycleStyles: {
+        ...f.returnLifecycleStyles,
+        [statusKey]: { ...f.returnLifecycleStyles[statusKey], [field]: value },
       },
     }))
+  }
+
+  function setRefundStatusLabel(key: "partiallyRefunded" | "refunded", value: string) {
+    setForm((f) => ({ ...f, refundStatusLabels: { ...f.refundStatusLabels, [key]: value } }))
   }
 
   async function authedFetch(input: string, init: RequestInit = {}) {
@@ -1039,17 +1035,15 @@ export function SettingsForm({
             </s-stack>
           </s-section>
 
-          <s-section heading="Statuses">
+          <s-section heading="Return status">
             <s-stack direction="block" gap="base">
               <s-text color="subdued">
-                Everything about how each return status displays to customers: the short label (shown in the filter
-                button and badges), the mobile accordion heading, the icon and color, and — where the status has one
-                — its full sentence. Use {"{days}"} for the return window length and {"{closedDate}"} (expired
-                window only) for the date it closed.
+                The label, mobile heading, icon, and color shown for each stage of a return. Use {"{days}"} for the
+                return window length.
               </s-text>
-              {STATUS_CARDS.map(({ key, name }) => {
+              {RETURN_STATUS_CARDS.map(({ key, name }) => {
                 const isOpen = openStatusKey === key
-                const style = form.ineligibleStatusStyles[key]
+                const style = form.returnLifecycleStyles[key]
                 return (
                   <s-box key={key} padding="base" border="base" borderRadius="base">
                     <s-stack direction="block" gap="small">
@@ -1084,86 +1078,13 @@ export function SettingsForm({
                             placeholder="#4F46E5"
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setStatusStyle(key, "color", e.target.value)}
                           ></s-text-field>
-
-                          {key === "confirmed" && (
-                            <s-text-area
-                              label="Sentence"
-                              value={form.ineligibleStatusMessages.confirmed}
-                              rows={2}
-                              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setIneligibleMessage("confirmed", e.target.value)}
-                            ></s-text-area>
-                          )}
-                          {key === "onItsWay" && (
-                            <s-text-area
-                              label="Sentence"
-                              value={form.ineligibleStatusMessages.onItsWay}
-                              rows={2}
-                              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setIneligibleMessage("onItsWay", e.target.value)}
-                            ></s-text-area>
-                          )}
-                          {key === "outForDelivery" && (
-                            <s-text-area
-                              label="Sentence"
-                              value={form.ineligibleStatusMessages.outForDelivery}
-                              rows={2}
-                              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setIneligibleMessage("outForDelivery", e.target.value)}
-                            ></s-text-area>
-                          )}
-                          {key === "attemptedDelivery" && (
-                            <s-text-area
-                              label="Sentence"
-                              value={form.ineligibleStatusMessages.attemptedDelivery}
-                              rows={2}
-                              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setIneligibleMessage("attemptedDelivery", e.target.value)}
-                            ></s-text-area>
-                          )}
-                          {key === "passedReturnWindow" && (
-                            <>
-                              <s-text-area
-                                label="Sentence — with a closed date"
-                                value={form.ineligibleStatusMessages.windowExpired}
-                                rows={2}
-                                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setIneligibleMessage("windowExpired", e.target.value)}
-                              ></s-text-area>
-                              <s-text-area
-                                label="Sentence — no closed date available"
-                                value={form.ineligibleStatusMessages.windowExpiredNoDate}
-                                rows={2}
-                                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setIneligibleMessage("windowExpiredNoDate", e.target.value)}
-                              ></s-text-area>
-                            </>
-                          )}
                           {key === "returnRequested" && (
-                            <s-text-area
-                              label="Sentence"
-                              value={form.ineligibleStatusMessages.returnRequested}
-                              rows={2}
-                              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setIneligibleMessage("returnRequested", e.target.value)}
-                            ></s-text-area>
+                            <s-text-area label="Sentence" value={form.returnLifecycleMessages.returnRequested} rows={2}
+                              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("returnRequested", e.target.value)}></s-text-area>
                           )}
                           {key === "returnInProgress" && (
-                            <s-text-area
-                              label="Sentence"
-                              value={form.ineligibleStatusMessages.returnInProgress}
-                              rows={2}
-                              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setIneligibleMessage("returnInProgress", e.target.value)}
-                            ></s-text-area>
-                          )}
-                          {key === "returned" && (
-                            <s-text-area
-                              label="Sentence"
-                              value={form.ineligibleStatusMessages.returned}
-                              rows={2}
-                              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setIneligibleMessage("returned", e.target.value)}
-                            ></s-text-area>
-                          )}
-                          {key === "refunded" && (
-                            <s-text-area
-                              label="Sentence"
-                              value={form.ineligibleStatusMessages.refunded}
-                              rows={2}
-                              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setIneligibleMessage("refunded", e.target.value)}
-                            ></s-text-area>
+                            <s-text-area label="Sentence" value={form.returnLifecycleMessages.returnInProgress} rows={2}
+                              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("returnInProgress", e.target.value)}></s-text-area>
                           )}
                           {key === "returnDeclined" && (
                             <s-paragraph tone="subdued">
@@ -1171,35 +1092,19 @@ export function SettingsForm({
                               sentence, so there's no message to edit here.
                             </s-paragraph>
                           )}
-                          {key === "returnCancelled" && (
-                            <s-text-area
-                              label="Sentence"
-                              value={form.ineligibleStatusMessages.returnCancelled}
-                              rows={2}
-                              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setIneligibleMessage("returnCancelled", e.target.value)}
-                            ></s-text-area>
+                          {key === "returnCanceled" && (
+                            <s-text-area label="Sentence" value={form.returnLifecycleMessages.returnCanceled} rows={2}
+                              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("returnCanceled", e.target.value)}></s-text-area>
                           )}
-                          {key === "cancelled" && (
-                            <s-text-area
-                              label="Sentence"
-                              value={form.ineligibleStatusMessages.cancelled}
-                              rows={2}
-                              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setIneligibleMessage("cancelled", e.target.value)}
-                            ></s-text-area>
+                          {key === "returnCompleted" && (
+                            <s-text-area label="Sentence" value={form.returnLifecycleMessages.returnCompleted} rows={2}
+                              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("returnCompleted", e.target.value)}></s-text-area>
                           )}
-                          {(key === "finalSale" || key === "notEligible") && (
-                            <>
-                              <s-paragraph tone="subdued">
-                                Final sale and Not eligible currently share one sentence — editing it here updates
-                                both statuses' text.
-                              </s-paragraph>
-                              <s-text-area
-                                label="Sentence (shared)"
-                                value={form.ineligibleStatusMessages.notEligible}
-                                rows={2}
-                                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setIneligibleMessage("notEligible", e.target.value)}
-                              ></s-text-area>
-                            </>
+                          {key === "notReturnable" && (
+                            <s-paragraph tone="subdued">
+                              This status covers several reasons (not yet delivered, final sale, outside the return
+                              window, or other) — edit each reason's sentence in "Not returnable reasons" below.
+                            </s-paragraph>
                           )}
                         </>
                       )}
@@ -1207,8 +1112,47 @@ export function SettingsForm({
                   </s-box>
                 )
               })}
-              {errors.ineligibleStatusMessages && <s-paragraph tone="critical">{errors.ineligibleStatusMessages}</s-paragraph>}
-              {errors.ineligibleStatusStyles && <s-paragraph tone="critical">{errors.ineligibleStatusStyles}</s-paragraph>}
+              {errors.returnLifecycleMessages && <s-paragraph tone="critical">{errors.returnLifecycleMessages}</s-paragraph>}
+              {errors.returnLifecycleStyles && <s-paragraph tone="critical">{errors.returnLifecycleStyles}</s-paragraph>}
+            </s-stack>
+          </s-section>
+
+          <s-section heading="Not returnable reasons">
+            <s-stack direction="block" gap="base">
+              <s-text color="subdued">
+                The specific sentence shown under the "Not returnable" badge, depending on why the item can't be
+                returned right now.
+              </s-text>
+              <s-text-area label="Not yet shipped" value={form.returnLifecycleMessages.shippingConfirmed} rows={2}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("shippingConfirmed", e.target.value)}></s-text-area>
+              <s-text-area label="On its way" value={form.returnLifecycleMessages.shippingOnItsWay} rows={2}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("shippingOnItsWay", e.target.value)}></s-text-area>
+              <s-text-area label="Out for delivery" value={form.returnLifecycleMessages.shippingOutForDelivery} rows={2}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("shippingOutForDelivery", e.target.value)}></s-text-area>
+              <s-text-area label="Attempted delivery" value={form.returnLifecycleMessages.shippingAttemptedDelivery} rows={2}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("shippingAttemptedDelivery", e.target.value)}></s-text-area>
+              <s-text-area label="Outside the return window (with a closed date)" value={form.returnLifecycleMessages.outsideWindow} rows={2}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("outsideWindow", e.target.value)}></s-text-area>
+              <s-text-area label="Outside the return window (no closed date available)" value={form.returnLifecycleMessages.outsideWindowNoDate} rows={2}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("outsideWindowNoDate", e.target.value)}></s-text-area>
+              <s-text-area label="Final sale" value={form.returnLifecycleMessages.finalSale} rows={2}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("finalSale", e.target.value)}></s-text-area>
+              <s-text-area label="Other" value={form.returnLifecycleMessages.otherNotReturnable} rows={2}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("otherNotReturnable", e.target.value)}></s-text-area>
+            </s-stack>
+          </s-section>
+
+          <s-section heading="Refund">
+            <s-stack direction="block" gap="base">
+              <s-text color="subdued">
+                Shown as a small extra fact next to the return status, when applicable. No label is shown when
+                nothing has been refunded.
+              </s-text>
+              <s-text-field label="Partially refunded" value={form.refundStatusLabels.partiallyRefunded}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRefundStatusLabel("partiallyRefunded", e.target.value)}></s-text-field>
+              <s-text-field label="Refunded" value={form.refundStatusLabels.refunded}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRefundStatusLabel("refunded", e.target.value)}></s-text-field>
+              {errors.refundStatusLabels && <s-paragraph tone="critical">{errors.refundStatusLabels}</s-paragraph>}
             </s-stack>
           </s-section>
         </>
