@@ -7,6 +7,7 @@ import { getAdminReturnableInfo, fetchRemainingLineItems, fetchRemainingReturns,
 import { getRequestShop } from "@/lib/request-shop";
 import { withCors, corsPreflight } from "@/lib/cors";
 import { getTenant } from "@/lib/tenant";
+import { statusFromUndeliveredDelivery, formatReturnWindowExpiredReason, SHIPPING_STAGE_REASON, ShippingStage } from "@/lib/get-orders-status";
 
 // Eligibility is time-sensitive (return window expires by date) and user-specific.
 // Never cache at the Next.js data layer — always recompute per request.
@@ -920,61 +921,6 @@ function capDeclinedEntries(
     remaining -= quantity;
   }
   return result;
-}
-
-type ShippingStage = "confirmed" | "onItsWay" | "outForDelivery" | "attemptedDelivery";
-
-const SHIPPING_STAGE_REASON: Record<ShippingStage, string> = {
-  confirmed: "We're preparing your items for shipping.",
-  onItsWay: "Your parcel is on its way. Your return window starts once it's delivered.",
-  outForDelivery: "Your parcel is out for delivery today. Your return window starts once it's delivered.",
-  attemptedDelivery: "A delivery attempt was made for your parcel. You'll be able to request a return once it's been delivered.",
-};
-
-function statusFromUndeliveredDelivery(
-  delivery: {
-    inTransitQty: number;
-    outForDeliveryQty: number;
-    attemptedDeliveryQty: number;
-    confirmedQty: number;
-    earliestShippedAt: Date | null;
-  },
-  now: Date,
-  returnWindowDays: number,
-): { returnStatus: string; notReturnableReason: string; shippingStage: ShippingStage | null; returnReason: string } {
-  const isInTransit = delivery.attemptedDeliveryQty > 0 || delivery.outForDeliveryQty > 0 || delivery.inTransitQty > 0;
-
-  if (isInTransit && delivery.earliestShippedAt) {
-    const daysSinceShipped = (now.getTime() - delivery.earliestShippedAt.getTime()) / (1000 * 60 * 60 * 24);
-    if (daysSinceShipped > returnWindowDays) {
-      return {
-        returnStatus: "notReturnable",
-        notReturnableReason: "outsideWindow",
-        shippingStage: null,
-        returnReason: formatReturnWindowExpiredReason(delivery.earliestShippedAt, returnWindowDays),
-      };
-    }
-  }
-
-  const stage: ShippingStage =
-    delivery.attemptedDeliveryQty > 0 ? "attemptedDelivery"
-    : delivery.outForDeliveryQty > 0 ? "outForDelivery"
-    : delivery.inTransitQty > 0 ? "onItsWay"
-    : "confirmed";
-
-  return {
-    returnStatus: "notReturnable",
-    notReturnableReason: "notDelivered",
-    shippingStage: stage,
-    returnReason: SHIPPING_STAGE_REASON[stage],
-  };
-}
-
-function formatReturnWindowExpiredReason(deliveredAt: Date | null, returnWindowDays: number): string {
-  if (!deliveredAt) return "The return window has expired for this item.";
-  const closed = new Date(deliveredAt.getTime() + returnWindowDays * 24 * 60 * 60 * 1000);
-  const closedLabel = closed.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-  return `The return window closed on ${closedLabel}.`;
 }
 
 function buildTrackingUrl(company: string | null, number: string): string {
