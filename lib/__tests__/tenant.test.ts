@@ -186,6 +186,8 @@ describe("tenant store", () => {
     expect(t?.branding.returnLifecycleMessages.returnCompleted).toBe("Already returned.");
     expect(t?.branding.alwaysShowGuestLookup).toBe(true);
     expect(t?.branding.returnLifecycleStyles.notReturnable).toEqual({ label: "Window closed", heading: "Window expired", icon: "Lock", color: "#4F46E5" });
+    expect(t?.branding.refundStatusLabels.partiallyRefunded).toBe("Partly refunded");
+    expect(t?.branding.refundStatusLabels.refunded).toBe("Already refunded.");
   });
 
   it("merges old branding JSON with new field defaults", async () => {

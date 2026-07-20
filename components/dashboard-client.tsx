@@ -2345,7 +2345,12 @@ function buildIneligibleDisplayItems(order: Order): DisplayItem[] {
         ...item,
         returnStatus: "returnCompleted",
         refundStatus: "refunded",
-        returnReason: "",
+        // No accompanying Return record exists for this quantity (it was already
+        // claimed by the requested/open/completed/declined pushes above), so this
+        // is strictly a direct refund. Say so explicitly rather than letting
+        // getIneligibleGroupMessage fall back to the generic "already returned"
+        // copy used for genuine completed returns.
+        returnReason: "This item has already been refunded.",
         splitQty: directRefundQty,
         splitKey: `${item.id}-refunded`,
       })
@@ -2503,7 +2508,10 @@ function getIneligibleGroupKey(item: LineItem, order: Order, returnWindowDays: n
   if (item.returnStatus === "notReturnable" && item.notReturnableReason === "notDelivered") {
     return `notDelivered:${item.shippingStage ?? "confirmed"}`
   }
-  return `${item.returnStatus}:${item.notReturnableReason ?? ""}`
+  // Include refundStatus so a direct-refund-with-no-return row (returnStatus:
+  // "returnCompleted", refundStatus: "refunded") never silently merges with a
+  // genuinely-completed-return row that later also got refunded.
+  return `${item.returnStatus}:${item.notReturnableReason ?? ""}:${item.refundStatus ?? ""}`
 }
 
 function ineligibleTableColSpan(cols: { variant: boolean; qty: boolean; total: boolean }) {
@@ -2588,7 +2596,11 @@ function getIneligibleGroupMessage(item: LineItem, order: Order, returnWindowDay
     case "returnCanceled":
       return messages.returnCanceled
     case "returnCompleted":
-      return messages.returnCompleted
+      // Genuine completed returns push returnReason: "" and fall through to the
+      // generic copy. Direct refunds with no Return record (see the
+      // directRefundQty push above) carry a specific, correct sentence — prefer
+      // it when present.
+      return item.returnReason || messages.returnCompleted
     default:
       return messages.otherNotReturnable
   }

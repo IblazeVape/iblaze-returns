@@ -731,7 +731,7 @@ async function handleGet(request: NextRequest): Promise<NextResponse> {
               // refund happened but no return record exists, with refundStatus (set
               // below, outside this if-chain) carrying the actual refund fact.
               const isDirectRefund = refQty > 0 && completedQty === 0 && openQty === 0;
-              returnStatus = isDirectRefund ? "returnCompleted" : "returnCompleted";
+              returnStatus = "returnCompleted";
               returnReason = isDirectRefund
                 ? "This item has already been refunded."
                 : "This item has already been returned.";
