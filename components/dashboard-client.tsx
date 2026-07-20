@@ -29,18 +29,18 @@ import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, Dr
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { PolicyHtml } from "@/components/policy-html"
 import { getCachedAccentColor, setCachedAccentColor } from "@/lib/accent-color-cache"
-import type { TenantBranding, IneligibleStatusMessages, IneligibleStatusKey, IneligibleStatusStyle, IneligibleStatusStyles } from "@/lib/tenant"
+import type { TenantBranding, ReturnLifecycleStyle, ReturnLifecycleStyles, ReturnLifecycleMessages, RefundStatusLabels } from "@/lib/tenant"
 import { DEFAULT_TENANT_FIELDS } from "@/lib/tenant"
 import { getStatusIcon as getIneligibleStatusIconComponent } from "@/lib/status-icons"
 import { cn } from "@/lib/utils"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type ReturnStatus =
-  | "Eligible" | "Confirmed" | "On its way" | "Out for delivery" | "Attempted delivery"
-  | "Passed the return window" | "Returned" | "Refunded"
-  | "Return requested" | "Return in progress"
-  | "Return declined" | "Return cancelled" | "Cancelled"
-  | "Final sale" | "Not eligible"
+  | "Eligible" | "Cancelled"
+  | "notReturnable" | "returnRequested" | "returnInProgress"
+  | "returnDeclined" | "returnCanceled" | "returnCompleted"
+
+type ShippingStage = "confirmed" | "onItsWay" | "outForDelivery" | "attemptedDelivery"
 
 interface LineItem {
   id: string
@@ -60,6 +60,9 @@ interface LineItem {
   unitPrice?: number | null
   returnStatus: ReturnStatus
   returnReason?: string
+  notReturnableReason?: "notDelivered" | "outsideWindow" | "finalSale" | "other" | null
+  shippingStage?: ShippingStage | null
+  refundStatus?: "notRefunded" | "partiallyRefunded" | "refunded"
   lineDeliveredAt?: string | null
   productHandle?: string | null
   image?: { url: string } | null
@@ -68,6 +71,13 @@ interface LineItem {
 
 // Used in the ineligible tab — may be a split view of a partially-eligible item
 type DisplayItem = LineItem & { splitQty?: number; splitKey?: string }
+
+const SHIPPING_STAGE_MESSAGE_KEY: Record<ShippingStage, keyof ReturnLifecycleMessages> = {
+  confirmed: "shippingConfirmed",
+  onItsWay: "shippingOnItsWay",
+  outForDelivery: "shippingOutForDelivery",
+  attemptedDelivery: "shippingAttemptedDelivery",
+}
 
 interface ShipmentTracking { company: string; number: string; url: string }
 interface Shipment {
@@ -2349,7 +2359,7 @@ function buildIneligibleDisplayItems(order: Order): DisplayItem[] {
     if (requestedQty > 0) {
       result.push({
         ...item,
-        returnStatus: "Return requested",
+        returnStatus: "returnRequested",
         returnReason: "",
         splitQty: requestedQty,
         splitKey: `${item.id}-requested`,
@@ -2360,7 +2370,7 @@ function buildIneligibleDisplayItems(order: Order): DisplayItem[] {
     if (openQty > 0) {
       result.push({
         ...item,
-        returnStatus: "Return in progress",
+        returnStatus: "returnInProgress",
         returnReason: "",
         splitQty: openQty,
         splitKey: `${item.id}-open`,
@@ -2371,7 +2381,7 @@ function buildIneligibleDisplayItems(order: Order): DisplayItem[] {
     if (completedQty > 0) {
       result.push({
         ...item,
-        returnStatus: "Returned",
+        returnStatus: "returnCompleted",
         returnReason: "",
         splitQty: completedQty,
         splitKey: `${item.id}-completed`,
@@ -2388,7 +2398,7 @@ function buildIneligibleDisplayItems(order: Order): DisplayItem[] {
         if (declinedQty <= 0) return
         result.push({
           ...item,
-          returnStatus: "Return declined",
+          returnStatus: "returnDeclined",
           returnReason: entry.message,
           splitQty: declinedQty,
           splitKey: `${item.id}-declined-${i}`,
@@ -2401,7 +2411,8 @@ function buildIneligibleDisplayItems(order: Order): DisplayItem[] {
     if (directRefundQty > 0) {
       result.push({
         ...item,
-        returnStatus: "Refunded",
+        returnStatus: "returnCompleted",
+        refundStatus: "refunded",
         returnReason: "",
         splitQty: directRefundQty,
         splitKey: `${item.id}-refunded`,
@@ -2414,8 +2425,8 @@ function buildIneligibleDisplayItems(order: Order): DisplayItem[] {
       if (attemptedSplitQty > 0) {
         result.push({
           ...item,
-          returnStatus: "Attempted delivery",
-          returnReason: "A delivery attempt was made. Please rebook or collect your parcel — your return window starts once it's delivered.",
+          returnStatus: "notReturnable", notReturnableReason: "notDelivered", shippingStage: "attemptedDelivery",
+          returnReason: "",
           splitQty: attemptedSplitQty,
           splitKey: `${item.id}-remainder-attempted`,
         })
@@ -2426,8 +2437,8 @@ function buildIneligibleDisplayItems(order: Order): DisplayItem[] {
       if (ofdSplitQty > 0) {
         result.push({
           ...item,
-          returnStatus: "Out for delivery",
-          returnReason: "Your parcel is out for delivery today. Your return window starts once it's delivered.",
+          returnStatus: "notReturnable", notReturnableReason: "notDelivered", shippingStage: "outForDelivery",
+          returnReason: "",
           splitQty: ofdSplitQty,
           splitKey: `${item.id}-remainder-ofd`,
         })
@@ -2438,19 +2449,20 @@ function buildIneligibleDisplayItems(order: Order): DisplayItem[] {
       if (inTransitSplitQty > 0) {
         result.push({
           ...item,
-          returnStatus: "On its way",
-          returnReason: "Your parcel is on its way. Your return window starts once it's delivered.",
+          returnStatus: "notReturnable", notReturnableReason: "notDelivered", shippingStage: "onItsWay",
+          returnReason: "",
           splitQty: inTransitSplitQty,
           splitKey: `${item.id}-remainder-transit`,
         })
       }
       if (remaining > 0) {
+        const stillPending = !!(item.pendingQuantity && item.pendingQuantity > 0)
         result.push({
           ...item,
-          returnStatus: "Confirmed",
-          returnReason: item.pendingQuantity && item.pendingQuantity > 0
-            ? "This item hasn't been dispatched yet — check back once it ships."
-            : "This item is not eligible for return.",
+          returnStatus: "notReturnable",
+          notReturnableReason: stillPending ? "notDelivered" : "other",
+          shippingStage: stillPending ? "confirmed" : null,
+          returnReason: "",
           splitQty: remaining,
           splitKey: `${item.id}-remainder-pending`,
         })
