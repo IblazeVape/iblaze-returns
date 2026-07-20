@@ -190,6 +190,9 @@ describe("tenant store", () => {
     expect(t?.branding.productImageLinksEnabled).toBe(false);
     expect(t?.branding.sidebarSubmenusExpandedByDefault).toBe(false);
     expect(t?.branding.guestBackgroundStyle).toBe("dotField");
+    expect(t?.branding.guestLookupLayout).toBe("classic");
+    expect(t?.branding.guestLookupHeadline).toBe("Find your return");
+    expect(t?.branding.guestLookupBrandDisplay).toBe("text");
     expect(t?.branding.policyFooterNoteEnabled).toBe(false);
     expect(t?.branding.returnLifecycleMessages.returnCompleted).toBe("Already returned.");
     expect(t?.branding.alwaysShowGuestLookup).toBe(true);
