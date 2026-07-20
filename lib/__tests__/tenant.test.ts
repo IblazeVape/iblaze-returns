@@ -72,7 +72,8 @@ describe("tenant store", () => {
     expect(t?.branding.sidebarSubmenusExpandedByDefault).toBe(true);
     expect(t?.branding.guestBackgroundStyle).toBe("none");
     expect(t?.branding.policyFooterNoteEnabled).toBe(true);
-    expect(t?.branding.returnLifecycleStyles.notReturnable.label).toBe("Not returnable");
+    expect(t?.branding.returnLifecycleStyles.awaitingDelivery.label).toBe("Awaiting delivery");
+    expect(t?.branding.returnLifecycleStyles.returnWindowClosed.label).toBe("Return window closed");
     expect(t?.branding.returnLifecycleStyles.returnDeclined.icon).toBe("CircleX");
     expect(t?.branding.refundStatusLabels.notRefunded).toBe("");
   });
@@ -126,12 +127,13 @@ describe("tenant store", () => {
         eligibleLabel: "Ready to return",
         ineligibleLabel: "Not eligible",
         returnLifecycleStyles: {
-          notReturnable:    { label: "Window closed",      heading: "Window expired",           icon: "Lock",         color: "#4F46E5" },
-          returnRequested:  { label: "Requested",          heading: "Return requested",         icon: "Eye",          color: "" },
-          returnInProgress: { label: "In progress",        heading: "In progress",              icon: "RotateCcw",    color: "" },
-          returnDeclined:   { label: "Declined",           heading: "Declined",                 icon: "CircleX",      color: "" },
-          returnCanceled:   { label: "Canceled",           heading: "Canceled",                 icon: "XCircle",      color: "" },
-          returnCompleted:  { label: "Returned",           heading: "Returned",                 icon: "CheckCircle2", color: "" },
+          awaitingDelivery:   { label: "Still coming",       heading: "Still coming",             icon: "Truck",        color: "" },
+          returnWindowClosed: { label: "Window closed",      heading: "Window expired",           icon: "Lock",         color: "#4F46E5" },
+          returnRequested:    { label: "Requested",          heading: "Return requested",         icon: "Eye",          color: "" },
+          returnInProgress:   { label: "In progress",        heading: "In progress",              icon: "RotateCcw",    color: "" },
+          returnDeclined:     { label: "Declined",           heading: "Declined",                 icon: "CircleX",      color: "" },
+          returnCanceled:     { label: "Canceled",           heading: "Canceled",                 icon: "XCircle",      color: "" },
+          returnCompleted:    { label: "Returned",           heading: "Returned",                 icon: "CheckCircle2", color: "" },
         },
         returnLifecycleMessages: {
           shippingConfirmed:         "Preparing for shipping.",
@@ -185,7 +187,8 @@ describe("tenant store", () => {
     expect(t?.branding.policyFooterNoteEnabled).toBe(false);
     expect(t?.branding.returnLifecycleMessages.returnCompleted).toBe("Already returned.");
     expect(t?.branding.alwaysShowGuestLookup).toBe(true);
-    expect(t?.branding.returnLifecycleStyles.notReturnable).toEqual({ label: "Window closed", heading: "Window expired", icon: "Lock", color: "#4F46E5" });
+    expect(t?.branding.returnLifecycleStyles.returnWindowClosed).toEqual({ label: "Window closed", heading: "Window expired", icon: "Lock", color: "#4F46E5" });
+    expect(t?.branding.returnLifecycleStyles.awaitingDelivery).toEqual({ label: "Still coming", heading: "Still coming", icon: "Truck", color: "" });
     expect(t?.branding.refundStatusLabels.partiallyRefunded).toBe("Partly refunded");
     expect(t?.branding.refundStatusLabels.refunded).toBe("Already refunded.");
   });

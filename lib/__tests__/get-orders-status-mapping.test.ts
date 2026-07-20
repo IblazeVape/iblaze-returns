@@ -18,43 +18,45 @@ const baseDelivery = {
 describe("statusFromUndeliveredDelivery", () => {
   const now = new Date("2026-07-19T00:00:00Z");
 
-  it("returns notReturnable/notDelivered/confirmed when nothing has shipped", () => {
+  it("returns awaitingDelivery/confirmed when nothing has shipped", () => {
     const result = statusFromUndeliveredDelivery(baseDelivery, now, 30);
-    expect(result.returnStatus).toBe("notReturnable");
-    expect(result.notReturnableReason).toBe("notDelivered");
+    expect(result.returnStatus).toBe("awaitingDelivery");
+    expect(result.closedReason).toBe(null);
     expect(result.shippingStage).toBe("confirmed");
     expect(result.returnReason).toBe(SHIPPING_STAGE_REASON.confirmed);
   });
 
-  it("returns notDelivered/onItsWay when in transit", () => {
+  it("returns awaitingDelivery/onItsWay when in transit", () => {
     const result = statusFromUndeliveredDelivery({ ...baseDelivery, inTransitQty: 1 }, now, 30);
+    expect(result.returnStatus).toBe("awaitingDelivery");
     expect(result.shippingStage).toBe("onItsWay");
   });
 
-  it("returns notDelivered/outForDelivery, taking priority over inTransit", () => {
+  it("returns awaitingDelivery/outForDelivery, taking priority over inTransit", () => {
     const result = statusFromUndeliveredDelivery({ ...baseDelivery, inTransitQty: 1, outForDeliveryQty: 1 }, now, 30);
     expect(result.shippingStage).toBe("outForDelivery");
   });
 
-  it("returns notDelivered/attemptedDelivery, taking priority over the others", () => {
+  it("returns awaitingDelivery/attemptedDelivery, taking priority over the others", () => {
     const result = statusFromUndeliveredDelivery(
       { ...baseDelivery, inTransitQty: 1, outForDeliveryQty: 1, attemptedDeliveryQty: 1 }, now, 30
     );
     expect(result.shippingStage).toBe("attemptedDelivery");
   });
 
-  it("returns outsideWindow (not notDelivered) when in transit longer than the return window", () => {
+  it("returns returnWindowClosed/outsideWindow (not awaitingDelivery) when in transit longer than the return window", () => {
     const shippedLongAgo = new Date("2026-06-01T00:00:00Z"); // 48 days before `now`
     const result = statusFromUndeliveredDelivery(
       { ...baseDelivery, inTransitQty: 1, earliestShippedAt: shippedLongAgo }, now, 30
     );
-    expect(result.returnStatus).toBe("notReturnable");
-    expect(result.notReturnableReason).toBe("outsideWindow");
+    expect(result.returnStatus).toBe("returnWindowClosed");
+    expect(result.closedReason).toBe("outsideWindow");
     expect(result.shippingStage).toBe(null);
   });
 
   it("does not apply the window-expired check to a not-yet-shipped item", () => {
     const result = statusFromUndeliveredDelivery(baseDelivery, now, 30);
-    expect(result.notReturnableReason).toBe("notDelivered");
+    expect(result.returnStatus).toBe("awaitingDelivery");
+    expect(result.closedReason).toBe(null);
   });
 });
