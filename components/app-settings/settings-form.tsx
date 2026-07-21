@@ -8,7 +8,6 @@ import { STATUS_ICON_NAMES } from "@/lib/status-icons"
 import { RichTextEditor } from "@/components/app-settings/rich-text-editor"
 import { DEFAULT_TENANT_FIELDS } from "@/lib/tenant-defaults"
 import { migrateMarkdownIfNeeded } from "@/lib/markdown-to-html"
-import { GuestLookupForm } from "@/components/apps-returns/guest-lookup-form"
 
 /** RETURN_STATUS_CARDS drives the "Return status" section (6 cards, each with
  * label/heading/icon/color, plus a per-status sentence for returnRequested,
@@ -148,8 +147,6 @@ export function SettingsForm({
     const tab = new URLSearchParams(window.location.search).get("tab")
     return tab === "returns" || tab === "navigation" || tab === "table" || tab === "danger" ? tab : "branding"
   })
-  /** Within Branding: Identity vs Lookup card (with live preview). */
-  const [brandingPane, setBrandingPane] = useState<"identity" | "lookup">("lookup")
   // Which sidebar-link rows are expanded — collapsed by default (existing
   // links show a one-line summary) so the list stays scannable once a
   // merchant has several links with sub-links. A newly added link opens
@@ -500,42 +497,49 @@ export function SettingsForm({
       </s-section>
 
       {activeTab === "branding" && (
-        <>
-          <s-section padding="none">
-            <s-box padding="base" borderBlockEndWidth="base" borderColor="subdued">
-              <div style={{ display: "flex", gap: 16 }}>
-                {(
-                  [
-                    { id: "identity" as const, label: "Store identity" },
-                    { id: "lookup" as const, label: "Find your order card" },
-                  ] as const
-                ).map((pane) => (
-                  <button
-                    key={pane.id}
-                    type="button"
-                    onClick={() => setBrandingPane(pane.id)}
-                    style={{
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      padding: "0 0 8px 0",
-                      fontFamily: "inherit",
-                      fontSize: "0.8125rem",
-                      fontWeight: brandingPane === pane.id ? 600 : 400,
-                      color: brandingPane === pane.id ? "#1a1a1a" : "#6b6b6b",
-                      borderBottom: brandingPane === pane.id ? "2px solid #1a1a1a" : "2px solid transparent",
-                      marginBottom: -1,
-                    }}
-                  >
-                    {pane.label}
-                  </button>
-                ))}
-              </div>
-            </s-box>
-          </s-section>
+        <s-section heading="Branding">
+          <s-stack direction="block" gap="base">
+            <s-paragraph color="subdued">
+              Edit one area at a time. Changes stay in this form until you Save.
+            </s-paragraph>
 
-          {brandingPane === "identity" && (
-            <s-section heading="Store identity">
+            {/* Store identity row */}
+            <s-box padding="base" border="base" borderRadius="base" background="base">
+              <s-stack direction="inline" gap="base" alignItems="center" justifyContent="space-between">
+                <s-stack direction="block" gap="none">
+                  <s-heading>Store identity</s-heading>
+                  <s-paragraph color="subdued">
+                    {[form.name || "Untitled", form.accentColor || null, form.logoUrl ? "Logo set" : null]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </s-paragraph>
+                </s-stack>
+                <s-button commandFor="branding-identity-modal" command="--show">Edit</s-button>
+              </s-stack>
+            </s-box>
+
+            {/* Find your order card row */}
+            <s-box padding="base" border="base" borderRadius="base" background="base">
+              <s-stack direction="inline" gap="base" alignItems="center" justifyContent="space-between">
+                <s-stack direction="block" gap="none">
+                  <s-heading>Find your order card</s-heading>
+                  <s-paragraph color="subdued">
+                    {[
+                      form.guestLookupLayout === "split" ? "Split photo + form" : "Classic form",
+                      form.guestBackgroundStyle === "shapeGrid"
+                        ? "Shape grid"
+                        : form.guestBackgroundStyle === "dotField"
+                          ? "Dot field"
+                          : "No background",
+                    ].join(" · ")}
+                  </s-paragraph>
+                </s-stack>
+                <s-button commandFor="branding-lookup-modal" command="--show">Edit</s-button>
+              </s-stack>
+            </s-box>
+
+            {/* ── Store identity modal ── */}
+            <s-modal id="branding-identity-modal" heading="Store identity" size="large">
               <s-stack direction="block" gap="base">
                 <s-text-field
                   label="Brand name"
@@ -567,7 +571,7 @@ export function SettingsForm({
                   </s-button>
                 </s-stack>
                 <s-url-field
-                  label="Logo URL (sidebar & header)"
+                  label="Logo URL"
                   name="logoUrl"
                   value={form.logoUrl}
                   placeholder="Leave blank to show brand name as text"
@@ -601,53 +605,16 @@ export function SettingsForm({
                 ></s-email-field>
                 {errors.supportEmail && <s-paragraph tone="critical">{errors.supportEmail}</s-paragraph>}
               </s-stack>
-            </s-section>
-          )}
+              <s-button slot="primary-action" variant="primary" commandFor="branding-identity-modal" command="--hide">
+                Done
+              </s-button>
+            </s-modal>
 
-          {brandingPane === "lookup" && (
-            <>
-              <s-section heading="Live preview">
+            {/* ── Find your order card modal ── */}
+            <s-modal id="branding-lookup-modal" heading="Find your order card" size="large-100">
+              <s-stack direction="block" gap="large">
                 <s-stack direction="block" gap="base">
-                  <s-paragraph tone="subdued">
-                    What customers see. Edits update below instantly — Save to publish.
-                  </s-paragraph>
-                  <div
-                    style={{
-                      ["--brand" as string]: form.accentColor || "#111111",
-                      background: "#f6f6f7",
-                      borderRadius: 12,
-                      padding: "20px 12px",
-                      overflow: "auto",
-                      display: "flex",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <div style={{ width: "100%", maxWidth: 720, transform: "scale(0.92)", transformOrigin: "top center" }}>
-                      <GuestLookupForm
-                        interactive={false}
-                        layout={form.guestLookupLayout}
-                        brandName={form.name || "Your Store"}
-                        logoUrl={
-                          form.guestLookupBrandDisplay === "logo"
-                            ? form.guestLookupLogoUrl || form.logoUrl || undefined
-                            : undefined
-                        }
-                        brandDisplay={form.guestLookupBrandDisplay}
-                        heroImageUrl={form.guestLookupHeroUrl || undefined}
-                        headline={form.guestLookupHeadline}
-                        subtext={form.guestLookupSubtext}
-                        overlayOpacity={form.guestLookupOverlayOpacity}
-                        overlayBlur={form.guestLookupOverlayBlur}
-                        loginUrl="#preview"
-                        onVerified={() => {}}
-                      />
-                    </div>
-                  </div>
-                </s-stack>
-              </s-section>
-
-              <s-section heading="Layout">
-                <s-stack direction="block" gap="base">
+                  <s-heading>Layout</s-heading>
                   <s-select
                     label="Card style"
                     name="guestLookupLayout"
@@ -674,14 +641,14 @@ export function SettingsForm({
                     <s-option value="dotField">Dot field</s-option>
                   </s-select>
                 </s-stack>
-              </s-section>
 
-              {form.guestLookupLayout === "split" && (
-                <>
-                  <s-section heading="Photo panel text">
+                {form.guestLookupLayout === "split" && (
+                  <>
+                    <s-divider></s-divider>
                     <s-stack direction="block" gap="base">
+                      <s-heading>Photo panel text</s-heading>
                       <s-text-field
-                        label="Headline on the photo"
+                        label="Headline"
                         name="guestLookupHeadline"
                         value={form.guestLookupHeadline}
                         placeholder="Return your order with ease"
@@ -689,7 +656,7 @@ export function SettingsForm({
                       ></s-text-field>
                       {errors.guestLookupHeadline && <s-paragraph tone="critical">{errors.guestLookupHeadline}</s-paragraph>}
                       <s-text-field
-                        label="Line under the headline"
+                        label="Supporting line"
                         name="guestLookupSubtext"
                         value={form.guestLookupSubtext}
                         placeholder="Look up your order in seconds — no account needed."
@@ -697,10 +664,10 @@ export function SettingsForm({
                       ></s-text-field>
                       {errors.guestLookupSubtext && <s-paragraph tone="critical">{errors.guestLookupSubtext}</s-paragraph>}
                     </s-stack>
-                  </s-section>
 
-                  <s-section heading="Photo">
+                    <s-divider></s-divider>
                     <s-stack direction="block" gap="base">
+                      <s-heading>Photo</s-heading>
                       <s-stack direction="inline" gap="base" alignItems="center">
                         {form.guestLookupHeroUrl ? (
                           // eslint-disable-next-line @next/next/no-img-element
@@ -772,12 +739,12 @@ export function SettingsForm({
                         <s-paragraph tone="critical">{errors.guestLookupOverlayBlur}</s-paragraph>
                       )}
                     </s-stack>
-                  </s-section>
 
-                  <s-section heading="Corner mark on photo">
+                    <s-divider></s-divider>
                     <s-stack direction="block" gap="base">
+                      <s-heading>Corner mark</s-heading>
                       <s-select
-                        label="What shows in the top-left"
+                        label="Top-left of photo"
                         name="guestLookupBrandDisplay"
                         value={form.guestLookupBrandDisplay}
                         onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
@@ -827,12 +794,15 @@ export function SettingsForm({
                         </>
                       )}
                     </s-stack>
-                  </s-section>
-                </>
-              )}
-            </>
-          )}
-        </>
+                  </>
+                )}
+              </s-stack>
+              <s-button slot="primary-action" variant="primary" commandFor="branding-lookup-modal" command="--hide">
+                Done
+              </s-button>
+            </s-modal>
+          </s-stack>
+        </s-section>
       )}
 
       {activeTab === "returns" && (

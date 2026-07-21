@@ -51,6 +51,7 @@ declare global {
         "s-grid-item": PolarisElementProps;
         "s-clickable": PolarisElementProps;
         "s-popover": PolarisElementProps;
+        "s-modal": PolarisElementProps;
         "s-choice-list": PolarisElementProps;
         "s-choice": PolarisElementProps;
         "s-image": PolarisElementProps;
