@@ -812,6 +812,9 @@ export function SettingsForm({
                     <s-divider></s-divider>
                     <s-stack direction="block" gap="base">
                       <s-heading>Photo panel text</s-heading>
+                      <s-paragraph color="subdued">
+                        Leave both blank to hide the overlay copy. On mobile the photo/gradient band then shrinks to a short logo strip instead of a tall empty card.
+                      </s-paragraph>
                       <s-text-field
                         label="Headline"
                         name="guestLookupHeadline"

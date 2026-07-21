@@ -213,10 +213,26 @@ export function GuestLookupForm({
       }
     : undefined;
 
+  // Empty headline/subtext → hide copy and shrink the mobile hero so it
+  // doesn't leave a tall empty band above the form (logo-only strip).
+  const panelHeadline = (headline ?? "").trim();
+  const panelSubtext = (subtext ?? "").trim();
+  const hasPanelCopy = Boolean(panelHeadline || panelSubtext);
+  const compactMobileHero = !hasPanelCopy;
+
   const splitInner = (
-    <div className="flex flex-col min-[720px]:flex-row min-[720px]:min-h-[420px]">
+    <div
+      className={cn(
+        "flex flex-col min-[720px]:flex-row",
+        // Only force a tall desktop panel when there's photo/copy to fill it.
+        hasPanelCopy || !useGradient ? "min-[720px]:min-h-[420px]" : "min-[720px]:min-h-[280px]",
+      )}
+    >
       <div
-        className="relative h-40 w-full shrink-0 overflow-hidden bg-zinc-900 min-[720px]:h-auto min-[720px]:w-[44%]"
+        className={cn(
+          "relative w-full shrink-0 overflow-hidden bg-zinc-900 min-[720px]:h-auto min-[720px]:w-[44%]",
+          compactMobileHero ? "h-16" : "h-44",
+        )}
         style={sideBackground}
       >
         {!useGradient ? (
@@ -237,7 +253,14 @@ export function GuestLookupForm({
         />
 
         {showBrandMark && (
-          <div className="absolute left-4 top-4 z-10 min-[720px]:left-6 min-[720px]:top-6">
+          <div
+            className={cn(
+              "absolute z-10",
+              compactMobileHero
+                ? "inset-0 flex items-center px-4 min-[720px]:inset-auto min-[720px]:left-6 min-[720px]:top-6 min-[720px]:block min-[720px]:px-0"
+                : "left-4 top-4 min-[720px]:left-6 min-[720px]:top-6",
+            )}
+          >
             {brandDisplay === "logo" && logoUrl && !logoFailed ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -256,14 +279,25 @@ export function GuestLookupForm({
           </div>
         )}
 
-        <div className="absolute inset-x-0 bottom-0 z-10 p-4 min-[720px]:p-8">
-          <p className="max-w-[16rem] text-lg font-semibold leading-snug tracking-tight text-white min-[720px]:text-2xl">
-            {headline}
-          </p>
-          <p className="mt-1 max-w-[18rem] text-xs leading-relaxed text-white/80 min-[720px]:mt-2 min-[720px]:text-sm">
-            {subtext}
-          </p>
-        </div>
+        {hasPanelCopy ? (
+          <div className="absolute inset-x-0 bottom-0 z-10 p-4 min-[720px]:p-8">
+            {panelHeadline ? (
+              <p className="max-w-[16rem] text-lg font-semibold leading-snug tracking-tight text-white min-[720px]:text-2xl">
+                {panelHeadline}
+              </p>
+            ) : null}
+            {panelSubtext ? (
+              <p
+                className={cn(
+                  "max-w-[18rem] text-xs leading-relaxed text-white/80 min-[720px]:text-sm",
+                  panelHeadline && "mt-1 min-[720px]:mt-2",
+                )}
+              >
+                {panelSubtext}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
       </div>
 
       <div className="flex flex-1 flex-col justify-center gap-5 px-6 py-7 min-[720px]:px-10 min-[720px]:py-10">

@@ -122,7 +122,7 @@ export function SiteHeader({
               href={effectiveOrderStatusUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="hidden min-[1025px]:flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="hidden min-[1025px]:flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm text-muted-foreground transition-[background-color,color] duration-200 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
             >
               <Package className="size-3.5" />
               {orderStatusLinkLabel}
@@ -133,7 +133,7 @@ export function SiteHeader({
               href={storefrontUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="hidden min-[1025px]:flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="hidden min-[1025px]:flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm text-muted-foreground transition-[background-color,color] duration-200 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
             >
               <Home className="size-3.5" />
               {storeLinkLabel}
@@ -174,7 +174,7 @@ export function SiteHeader({
               href={storefrontUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="min-[1025px]:hidden flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="min-[1025px]:hidden flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-[background-color,color] duration-200 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
             >
               <Home className="size-4" />
               <span className="text-xs font-medium">{storeLinkLabel}</span>
@@ -185,7 +185,7 @@ export function SiteHeader({
               href={effectiveOrderStatusUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="min-[1025px]:hidden flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="min-[1025px]:hidden flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-[background-color,color] duration-200 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
             >
               <Package className="size-4" />
               <span className="text-xs font-medium">{orderStatusLinkLabel}</span>
