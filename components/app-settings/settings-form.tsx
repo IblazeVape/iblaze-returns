@@ -80,6 +80,62 @@ const TAB_FIELDS: Record<SettingsTab, (keyof BrandingInput)[]> = {
   danger: [],
 };
 
+/** Which settings modal owns which fields — used to highlight the row and auto-open the right modal on Save errors. */
+const SETTINGS_MODAL_FIELDS: Record<string, (keyof BrandingInput)[]> = {
+  "branding-identity-modal": ["name", "logoUrl", "accentColor", "storefrontUrl", "supportEmail"],
+  "branding-lookup-modal": [
+    "guestBackgroundStyle", "guestLookupLayout", "guestLookupHeadline", "guestLookupSubtext",
+    "guestLookupHeroUrl", "guestLookupBrandDisplay", "guestLookupLogoUrl",
+    "guestLookupOverlayOpacity", "guestLookupOverlayBlur", "guestLookupSnakeBorder",
+    "guestLookupSideStyle", "guestLookupGradientFrom", "guestLookupGradientTo",
+  ],
+  "returns-window-modal": ["returnWindowDays", "requirePolicyAcceptance"],
+  "returns-lookup-audience-modal": ["alwaysShowGuestLookup", "guestLookupEnabled"],
+  "returns-policy-modal": [
+    "policyHeading", "policySubheading", "policyLastUpdated", "policyBodyMode",
+    "policyCategories", "policyBodyText", "policyFooterNoteEnabled", "policyFooterNote",
+  ],
+  "returns-confirm-modal": ["policyAcceptedMessage", "policyDeclinedMessage"],
+  "nav-sidebar-layout-modal": [
+    "sidebarLayoutSwitcherEnabled", "defaultSidebarLayout", "sidebarDefaultOpenOnDesktop",
+    "sidebarAvatarEnabled", "headerAvatarEnabled",
+  ],
+  "nav-sidebar-links-modal": ["sidebarLinks", "sidebarNote", "sidebarSubmenusExpandedByDefault"],
+  "nav-header-links-modal": [
+    "storeLinkEnabled", "storeLinkLabel", "orderStatusLinkEnabled", "orderStatusLinkLabel",
+  ],
+  "table-header-search-modal": ["headerSearchEnabled", "headerSearchPlaceholder"],
+  "table-order-items-modal": [
+    "tableSearchEnabled", "tableSearchPlaceholder", "tableFilterButtonEnabled", "statusFilterEnabled",
+    "eligibleLabel", "ineligibleLabel", "ineligibleMessageEnabled", "defaultOrderView",
+    "tableColumnsButtonEnabled", "tablePageSizeEnabled", "shipmentCardsEnabled", "productImageLinksEnabled",
+  ],
+  "table-return-status-modal": ["returnLifecycleStyles", "returnLifecycleMessages"],
+  "table-not-returnable-modal": ["returnLifecycleMessages"],
+  "table-refund-modal": ["refundStatusLabels"],
+};
+
+function firstModalForErrors(errors: Partial<Record<keyof BrandingInput, string>>): string | null {
+  const keys = Object.keys(errors) as (keyof BrandingInput)[]
+  for (const [modalId, fields] of Object.entries(SETTINGS_MODAL_FIELDS)) {
+    if (fields.some((f) => keys.includes(f))) return modalId
+  }
+  return null
+}
+
+function showSettingsModal(modalId: string) {
+  // Wait a tick so the tab that owns the modal is mounted first.
+  requestAnimationFrame(() => {
+    const el = document.getElementById(modalId) as (HTMLElement & { show?: () => void }) | null
+    if (el && typeof el.show === "function") {
+      el.show()
+      return
+    }
+    const trigger = document.querySelector<HTMLElement>(`[commandfor="${modalId}"], [commandFor="${modalId}"]`)
+    trigger?.click()
+  })
+}
+
 function filenameFromUrl(url: string): string {
   try {
     const path = new URL(url).pathname;
@@ -114,23 +170,42 @@ function SettingsEditRow({
   title,
   summary,
   modalSize = "large",
+  errors,
   children,
 }: {
   modalId: string
   title: string
   summary: string
   modalSize?: string
+  errors: Partial<Record<keyof BrandingInput, string>>
   children: React.ReactNode
 }) {
+  const fieldErrors = (SETTINGS_MODAL_FIELDS[modalId] ?? [])
+    .map((field) => errors[field])
+    .filter((msg): msg is string => Boolean(msg))
+  const uniqueErrors = [...new Set(fieldErrors)]
+  const hasError = uniqueErrors.length > 0
+
   return (
     <>
-      <s-box padding="base" border="base" borderRadius="base" background="base">
+      <s-box
+        padding="base"
+        border="base"
+        borderRadius="base"
+        background="base"
+        style={hasError ? { outline: "2px solid #c72a2a", outlineOffset: 0 } : undefined}
+      >
         <s-stack direction="inline" gap="base" alignItems="center" justifyContent="space-between">
           <s-stack direction="block" gap="none">
             <s-heading>{title}</s-heading>
             <s-paragraph color="subdued">{summary}</s-paragraph>
+            {hasError ? (
+              <s-paragraph tone="critical">{uniqueErrors[0]}</s-paragraph>
+            ) : null}
           </s-stack>
-          <s-button commandFor={modalId} command="--show">Edit</s-button>
+          <s-button commandFor={modalId} command="--show" variant={hasError ? "primary" : undefined}>
+            {hasError ? "Fix" : "Edit"}
+          </s-button>
         </s-stack>
       </s-box>
       <s-modal id={modalId} heading={title} size={modalSize}>
@@ -379,16 +454,20 @@ export function SettingsForm({
     const { valid, errors: validationErrors } = validateBrandingInput(form)
     setErrors(validationErrors)
     if (!valid) {
-      // A validation error on a tab that isn't currently open renders to a
-      // hidden section — from the merchant's view, clicking Save appeared to
-      // do nothing at all. Jump to whichever tab actually has the error.
-      const errorKeys = Object.keys(validationErrors)
+      // Jump to the tab that owns the error, highlight that settings row, show
+      // the real message in the toast, and open the matching modal so the
+      // merchant doesn't have to hunt through Edit panels.
+      const errorKeys = Object.keys(validationErrors) as (keyof BrandingInput)[]
       const tabWithError = (Object.keys(TAB_FIELDS) as SettingsTab[]).find((tab) =>
         TAB_FIELDS[tab].some((field) => errorKeys.includes(field))
       )
       if (tabWithError) setActiveTab(tabWithError)
+      const modalId = firstModalForErrors(validationErrors)
+      // Give React a moment to mount the target tab (and its modals) first.
+      if (modalId) setTimeout(() => showSettingsModal(modalId), 50)
       setStatus("invalid")
-      if (typeof shopify !== "undefined") shopify.toast.show("Fix the highlighted error and try again.", { isError: true })
+      const firstMessage = errorKeys.map((k) => validationErrors[k]).find(Boolean) || "Fix the highlighted error and try again."
+      if (typeof shopify !== "undefined") shopify.toast.show(firstMessage, { isError: true })
       return
     }
 
@@ -542,7 +621,19 @@ export function SettingsForm({
             </s-paragraph>
 
             {/* Store identity row */}
-            <s-box padding="base" border="base" borderRadius="base" background="base">
+            {(() => {
+              const identityErrors = (SETTINGS_MODAL_FIELDS["branding-identity-modal"] ?? [])
+                .map((field) => errors[field])
+                .filter((msg): msg is string => Boolean(msg))
+              const identityError = [...new Set(identityErrors)][0]
+              return (
+            <s-box
+              padding="base"
+              border="base"
+              borderRadius="base"
+              background="base"
+              style={identityError ? { outline: "2px solid #c72a2a", outlineOffset: 0 } : undefined}
+            >
               <s-stack direction="inline" gap="base" alignItems="center" justifyContent="space-between">
                 <s-stack direction="block" gap="none">
                   <s-heading>Store identity</s-heading>
@@ -551,13 +642,30 @@ export function SettingsForm({
                       .filter(Boolean)
                       .join(" · ")}
                   </s-paragraph>
+                  {identityError ? <s-paragraph tone="critical">{identityError}</s-paragraph> : null}
                 </s-stack>
-                <s-button commandFor="branding-identity-modal" command="--show">Edit</s-button>
+                <s-button commandFor="branding-identity-modal" command="--show" variant={identityError ? "primary" : undefined}>
+                  {identityError ? "Fix" : "Edit"}
+                </s-button>
               </s-stack>
             </s-box>
+              )
+            })()}
 
             {/* Find your order card row */}
-            <s-box padding="base" border="base" borderRadius="base" background="base">
+            {(() => {
+              const lookupErrors = (SETTINGS_MODAL_FIELDS["branding-lookup-modal"] ?? [])
+                .map((field) => errors[field])
+                .filter((msg): msg is string => Boolean(msg))
+              const lookupError = [...new Set(lookupErrors)][0]
+              return (
+            <s-box
+              padding="base"
+              border="base"
+              borderRadius="base"
+              background="base"
+              style={lookupError ? { outline: "2px solid #c72a2a", outlineOffset: 0 } : undefined}
+            >
               <s-stack direction="inline" gap="base" alignItems="center" justifyContent="space-between">
                 <s-stack direction="block" gap="none">
                   <s-heading>Find your order card</s-heading>
@@ -576,10 +684,15 @@ export function SettingsForm({
                           : "No background",
                     ].join(" · ")}
                   </s-paragraph>
+                  {lookupError ? <s-paragraph tone="critical">{lookupError}</s-paragraph> : null}
                 </s-stack>
-                <s-button commandFor="branding-lookup-modal" command="--show">Edit</s-button>
+                <s-button commandFor="branding-lookup-modal" command="--show" variant={lookupError ? "primary" : undefined}>
+                  {lookupError ? "Fix" : "Edit"}
+                </s-button>
               </s-stack>
             </s-box>
+              )
+            })()}
 
             {/* ── Store identity modal ── */}
             <s-modal id="branding-identity-modal" heading="Store identity" size="large">
@@ -981,6 +1094,7 @@ export function SettingsForm({
               title="Return window"
               summary={`${form.returnWindowDays} days · ${form.requirePolicyAcceptance ? "Policy acceptance on" : "Policy acceptance off"}`}
               modalSize="large"
+              errors={errors}
             >
             <s-stack direction="block" gap="base">
               <s-number-field
@@ -1013,6 +1127,7 @@ export function SettingsForm({
                     : "Guest lookup on · logged-in customers see their orders"
               }
               modalSize="large"
+              errors={errors}
             >
             <s-stack direction="block" gap="base">
               <s-checkbox
@@ -1046,6 +1161,7 @@ export function SettingsForm({
               title="Returns policy dialog"
               summary={`${form.policyHeading || "Untitled"} · ${form.policyBodyMode === "text" ? "Free text" : `${form.policyCategories.length} categor${form.policyCategories.length === 1 ? "y" : "ies"}`}`}
               modalSize="large-100"
+              errors={errors}
             >
             <s-stack direction="block" gap="base">
               <s-paragraph tone="subdued">Controls the "Review & Accept" dialog customers see before selecting items to return.</s-paragraph>
@@ -1166,6 +1282,7 @@ export function SettingsForm({
               title="Confirmation messages"
               summary={"Accept / decline toast messages"}
               modalSize="large"
+              errors={errors}
             >
             <s-stack direction="block" gap="base">
               <s-paragraph tone="subdued">Shown briefly as a toast after a customer accepts or declines the policy.</s-paragraph>
@@ -1202,6 +1319,7 @@ export function SettingsForm({
               title="Sidebar layout"
               summary={`${form.defaultSidebarLayout === "inset" ? "Inset" : "Sidebar"}${form.sidebarLayoutSwitcherEnabled ? " · switcher on" : ""}`}
               modalSize="large"
+              errors={errors}
             >
             <s-stack direction="block" gap="base">
               <s-checkbox
@@ -1245,6 +1363,7 @@ export function SettingsForm({
               title="Sidebar links"
               summary={`${form.sidebarLinks.length} link${form.sidebarLinks.length === 1 ? "" : "s"}${form.sidebarNote ? " · note set" : ""}`}
               modalSize="large-100"
+              errors={errors}
             >
             <s-stack direction="block" gap="base">
               <s-paragraph tone="subdued">Extra links shown in the customer portal's sidebar, alongside Home and Orders. Open in a new tab. Each link can optionally have its own sub-links (a one-level submenu).</s-paragraph>
@@ -1345,6 +1464,7 @@ export function SettingsForm({
               title="Store & order status links"
               summary={[form.storeLinkEnabled ? form.storeLinkLabel || "Store" : null, form.orderStatusLinkEnabled ? form.orderStatusLinkLabel || "Order status" : null].filter(Boolean).join(" · ") || "Both hidden"}
               modalSize="large"
+              errors={errors}
             >
             <s-stack direction="block" gap="base">
               <s-checkbox
@@ -1397,6 +1517,7 @@ export function SettingsForm({
               title="Header search"
               summary={form.headerSearchEnabled ? `On · “${form.headerSearchPlaceholder || "Search orders..."}”` : "Hidden"}
               modalSize="large"
+              errors={errors}
             >
             <s-stack direction="block" gap="base">
               <s-checkbox
@@ -1422,6 +1543,7 @@ export function SettingsForm({
               title="Order item table"
               summary={`${form.defaultOrderView === "grid" ? "Grid" : "List"} view · ${[form.tableSearchEnabled && "search", form.shipmentCardsEnabled && "shipments"].filter(Boolean).join(", ") || "basics"}`}
               modalSize="large-100"
+              errors={errors}
             >
             <s-stack direction="block" gap="base">
               <s-checkbox
@@ -1515,6 +1637,7 @@ export function SettingsForm({
               title="Return status"
               summary={"Labels, icons & sentences for each return stage"}
               modalSize="large-100"
+              errors={errors}
             >
             <s-stack direction="block" gap="base">
               <s-text color="subdued">
@@ -1602,6 +1725,7 @@ export function SettingsForm({
               title="Not returnable reasons"
               summary={"Sentences for shipping / window / final sale"}
               modalSize="large-100"
+              errors={errors}
             >
             <s-stack direction="block" gap="base">
               <s-text color="subdued">
@@ -1632,6 +1756,7 @@ export function SettingsForm({
               title="Refund"
               summary={"Partial & full refund labels"}
               modalSize="large"
+              errors={errors}
             >
             <s-stack direction="block" gap="base">
               <s-text color="subdued">
