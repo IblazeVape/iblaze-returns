@@ -93,6 +93,10 @@ export type BrandingInput = {
   refundStatusLabels: RefundStatusLabelsInput;
   alwaysShowGuestLookup: boolean;
   guestLookupEnabled: boolean;
+  policyPresentation: "dialog" | "externalLink";
+  policyExternalUrl: string;
+  toastPosition: "top-left" | "top-center" | "top-right" | "bottom-left" | "bottom-center" | "bottom-right";
+  portalCustomScript: string;
 };
 
 const HEX_COLOR_RE = /^#[0-9a-fA-F]{6}$/;
@@ -184,6 +188,25 @@ export function validateBrandingInput(
     errors.guestLookupGradientTo = "Must be a hex color like #334155.";
   }
 
+  if (input.policyPresentation !== "dialog" && input.policyPresentation !== "externalLink") {
+    errors.policyPresentation = "Must be dialog or externalLink.";
+  }
+  if (input.policyPresentation === "externalLink") {
+    if (!input.policyExternalUrl) {
+      errors.policyExternalUrl = "Enter a policy URL, or switch back to the in-app dialog.";
+    } else if (!isValidUrl(input.policyExternalUrl)) {
+      errors.policyExternalUrl = "Must be a valid URL.";
+    }
+  } else if (input.policyExternalUrl && !isValidUrl(input.policyExternalUrl)) {
+    errors.policyExternalUrl = "Must be a valid URL.";
+  }
+  const toastPositions = ["top-left","top-center","top-right","bottom-left","bottom-center","bottom-right"] as const;
+  if (!toastPositions.includes(input.toastPosition as typeof toastPositions[number])) {
+    errors.toastPosition = "Pick a toast position.";
+  }
+  if (input.portalCustomScript.length > 20000) {
+    errors.portalCustomScript = "Must be 20000 characters or fewer.";
+  }
   if (typeof input.guestLookupEnabled !== "boolean") {
     errors.guestLookupEnabled = "Must be true or false.";
   }

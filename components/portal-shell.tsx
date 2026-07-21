@@ -5,6 +5,7 @@ import { useSidebarLayout } from "@/components/sidebar-layout-provider"
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
+import { setCachedAccentColor } from "@/lib/accent-color-cache"
 
 /**
  * The one shell — sidebar + header — every screen of the portal renders
@@ -75,10 +76,11 @@ export function PortalShell({
   // inside PortalShell itself (inline styles have higher specificity than
   // the inherited value from an ancestor), so it's kept for that fast path.
   React.useEffect(() => {
+    if (!accentColor) return
     document.documentElement.style.setProperty("--brand", accentColor)
-    return () => {
-      document.documentElement.style.removeProperty("--brand")
-    }
+    setCachedAccentColor(accentColor)
+    // Do not remove --brand on unmount — GuestPortalShell → DashboardClient
+    // remounts the shell and clearing here flashes the default spinner colour.
   }, [accentColor])
 
   return (

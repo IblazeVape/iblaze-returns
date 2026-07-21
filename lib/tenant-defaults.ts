@@ -160,6 +160,14 @@ export type TenantBranding = {
   alwaysShowGuestLookup: boolean;
   /** When false, unauthenticated visitors are sent to Shopify login instead of the guest lookup form. */
   guestLookupEnabled: boolean;
+  /** How customers review the returns policy before selecting items. */
+  policyPresentation: "dialog" | "externalLink";
+  /** External policy URL when policyPresentation is externalLink. */
+  policyExternalUrl: string;
+  /** Sonner toast corner/edge for customer portal messages. */
+  toastPosition: "top-left" | "top-center" | "top-right" | "bottom-left" | "bottom-center" | "bottom-right";
+  /** Optional HTML/JS snippet injected into the customer portal (chat widgets, etc.). */
+  portalCustomScript: string;
 };
 
 export const DEFAULT_TENANT_FIELDS = {
@@ -255,5 +263,9 @@ export const DEFAULT_TENANT_FIELDS = {
     },
     alwaysShowGuestLookup: false,
     guestLookupEnabled: true,
+    policyPresentation: "dialog",
+    policyExternalUrl: "",
+    toastPosition: "top-right",
+    portalCustomScript: "",
   } satisfies TenantBranding,
 };

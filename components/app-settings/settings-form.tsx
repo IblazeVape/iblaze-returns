@@ -59,20 +59,24 @@ const TAB_FIELDS: Record<SettingsTab, (keyof BrandingInput)[]> = {
     "guestLookupLayout", "guestLookupHeadline", "guestLookupSubtext", "guestLookupHeroUrl",
     "guestLookupBrandDisplay", "guestLookupLogoUrl", "guestLookupOverlayOpacity", "guestLookupOverlayBlur",
     "guestLookupSnakeBorder", "guestLookupSideStyle", "guestLookupGradientFrom", "guestLookupGradientTo",
+    "toastPosition", "portalCustomScript",
   ],
   returns: [
     "returnWindowDays", "requirePolicyAcceptance", "alwaysShowGuestLookup", "guestLookupEnabled",
     "policyHeading", "policySubheading", "policyLastUpdated", "policyBodyMode", "policyCategories", "policyBodyText",
     "policyFooterNoteEnabled", "policyFooterNote", "policyAcceptedMessage", "policyDeclinedMessage",
+    "policyPresentation", "policyExternalUrl",
   ],
   navigation: [
     "storeLinkEnabled", "storeLinkLabel", "orderStatusLinkEnabled", "orderStatusLinkLabel",
-    "sidebarLinks", "sidebarNote", "sidebarSubmenusExpandedByDefault", "sidebarLayoutSwitcherEnabled", "defaultSidebarLayout",
+    "sidebarLinks", "sidebarNote", "sidebarSubmenusExpandedByDefault", "sidebarLayoutSwitcherEnabled",
+    "defaultSidebarLayout", "sidebarDefaultOpenOnDesktop", "sidebarAvatarEnabled", "headerAvatarEnabled",
   ],
   table: [
     "headerSearchEnabled", "headerSearchPlaceholder", "tableSearchEnabled", "tableSearchPlaceholder",
     "tableColumnsButtonEnabled", "tableFilterButtonEnabled", "tablePageSizeEnabled", "shipmentCardsEnabled",
-    "productImageLinksEnabled", "returnLifecycleMessages", "returnLifecycleStyles", "refundStatusLabels",
+    "productImageLinksEnabled", "statusFilterEnabled", "ineligibleMessageEnabled", "eligibleLabel",
+    "ineligibleLabel", "defaultOrderView", "returnLifecycleMessages", "returnLifecycleStyles", "refundStatusLabels",
   ],
   // No fields of its own — Reset actions act on the whole form/tenant record,
   // not a validated field subset, so there's nothing for the Save-error tab
@@ -83,6 +87,7 @@ const TAB_FIELDS: Record<SettingsTab, (keyof BrandingInput)[]> = {
 /** Which settings modal owns which fields — used to highlight the row and auto-open the right modal on Save errors. */
 const SETTINGS_MODAL_FIELDS: Record<string, (keyof BrandingInput)[]> = {
   "branding-identity-modal": ["name", "logoUrl", "accentColor", "storefrontUrl", "supportEmail"],
+  "branding-portal-extras-modal": ["toastPosition", "portalCustomScript"],
   "branding-lookup-modal": [
     "guestBackgroundStyle", "guestLookupLayout", "guestLookupHeadline", "guestLookupSubtext",
     "guestLookupHeroUrl", "guestLookupBrandDisplay", "guestLookupLogoUrl",
@@ -94,15 +99,17 @@ const SETTINGS_MODAL_FIELDS: Record<string, (keyof BrandingInput)[]> = {
   "returns-policy-modal": [
     "policyHeading", "policySubheading", "policyLastUpdated", "policyBodyMode",
     "policyCategories", "policyBodyText", "policyFooterNoteEnabled", "policyFooterNote",
+    "policyPresentation", "policyExternalUrl",
   ],
   "returns-confirm-modal": ["policyAcceptedMessage", "policyDeclinedMessage"],
   "nav-sidebar-layout-modal": [
     "sidebarLayoutSwitcherEnabled", "defaultSidebarLayout", "sidebarDefaultOpenOnDesktop",
-    "sidebarAvatarEnabled", "headerAvatarEnabled",
+    "sidebarAvatarEnabled",
   ],
   "nav-sidebar-links-modal": ["sidebarLinks", "sidebarNote", "sidebarSubmenusExpandedByDefault"],
   "nav-header-links-modal": [
     "storeLinkEnabled", "storeLinkLabel", "orderStatusLinkEnabled", "orderStatusLinkLabel",
+    "headerAvatarEnabled",
   ],
   "table-header-search-modal": ["headerSearchEnabled", "headerSearchPlaceholder"],
   "table-order-items-modal": [
@@ -283,12 +290,20 @@ export function SettingsForm({
   // Same collapsed-by-default pattern as sidebar links above, applied to
   // the returns-policy category list — keeps a long category list scannable.
   const [openCategoryIndex, setOpenCategoryIndex] = useState<number | null>(null)
+  const [categoryFilter, setCategoryFilter] = useState("")
   function toggleCategoryOpen(index: number) {
     setOpenCategoryIndex((prev) => (prev === index ? null : index))
   }
 
   function set<K extends keyof BrandingInput>(key: K, value: BrandingInput[K]) {
-    setForm((f) => ({ ...f, [key]: value }))
+    setForm((f) => {
+      const next = { ...f, [key]: value }
+      // Live-clear the Fix state as soon as the form is valid again (don't wait for Save).
+      const { valid, errors: nextErrors } = validateBrandingInput(next)
+      setErrors(nextErrors)
+      if (valid) setStatus((s) => (s === "invalid" ? "idle" : s))
+      return next
+    })
   }
 
   function setReturnLifecycleMessage<K extends keyof ReturnLifecycleMessagesInput>(key: K, value: string) {
@@ -357,7 +372,11 @@ export function SettingsForm({
   }
 
   function updateCategory(index: number, patch: Partial<PolicyCategoryInput>) {
-    setForm((f) => ({ ...f, policyCategories: f.policyCategories.map((c, i) => (i === index ? { ...c, ...patch } : c)) }))
+    setForm((f) => {
+      const next = { ...f, policyCategories: f.policyCategories.map((c, i) => (i === index ? { ...c, ...patch } : c)) }
+      setErrors(validateBrandingInput(next).errors)
+      return next
+    })
   }
   function addCategory() {
     setForm((f) => {
@@ -1082,6 +1101,55 @@ export function SettingsForm({
                 Done
               </s-button>
             </s-modal>
+
+            <SettingsEditRow
+              modalId="branding-portal-extras-modal"
+              title="Notifications & widgets"
+              summary={`${({
+                "top-left": "Toasts top-left",
+                "top-center": "Toasts top-centre",
+                "top-right": "Toasts top-right",
+                "bottom-left": "Toasts bottom-left",
+                "bottom-center": "Toasts bottom-centre",
+                "bottom-right": "Toasts bottom-right",
+              } as const)[form.toastPosition]}${form.portalCustomScript.trim() ? " · custom script on" : ""}`}
+              modalSize="large"
+              errors={errors}
+            >
+              <s-stack direction="block" gap="base">
+                <s-select
+                  label="Where success / error messages appear"
+                  name="toastPosition"
+                  value={form.toastPosition}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                    set("toastPosition", e.target.value as BrandingInput["toastPosition"])
+                  }
+                >
+                  <s-option value="top-left">Top left</s-option>
+                  <s-option value="top-center">Top centre</s-option>
+                  <s-option value="top-right">Top right</s-option>
+                  <s-option value="bottom-left">Bottom left</s-option>
+                  <s-option value="bottom-center">Bottom centre</s-option>
+                  <s-option value="bottom-right">Bottom right</s-option>
+                </s-select>
+                {errors.toastPosition && <s-paragraph tone="critical">{errors.toastPosition}</s-paragraph>}
+
+                <s-divider></s-divider>
+                <s-text-area
+                  label="Custom HTML / script (optional)"
+                  name="portalCustomScript"
+                  value={form.portalCustomScript}
+                  rows={6}
+                  maxLength={20000}
+                  placeholder={"<!-- e.g. HelpCrunch / chat widget snippet -->"}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("portalCustomScript", e.target.value)}
+                ></s-text-area>
+                <s-paragraph tone="subdued">
+                  Injected on the customer portal only. Use for chat widgets and similar tools. Only add scripts you trust.
+                </s-paragraph>
+                {errors.portalCustomScript && <s-paragraph tone="critical">{errors.portalCustomScript}</s-paragraph>}
+              </s-stack>
+            </SettingsEditRow>
           </s-stack>
         </s-section>
       )}
@@ -1161,14 +1229,49 @@ export function SettingsForm({
 
             <SettingsEditRow
               modalId="returns-policy-modal"
-              title="Returns policy dialog"
-              summary={`${form.policyHeading || "Untitled"} · ${form.policyBodyMode === "text" ? "Free text" : `${form.policyCategories.length} categor${form.policyCategories.length === 1 ? "y" : "ies"}`}`}
+              title="Returns policy"
+              summary={
+                form.policyPresentation === "externalLink"
+                  ? `External link · ${form.policyExternalUrl || "URL required"}`
+                  : `${form.policyHeading || "Untitled"} · ${form.policyBodyMode === "text" ? "In-app free text" : `In-app · ${form.policyCategories.length} categor${form.policyCategories.length === 1 ? "y" : "ies"}`}`
+              }
               modalSize="large-100"
               errors={errors}
             >
             <s-stack direction="block" gap="base">
-              <s-paragraph tone="subdued">Controls the "Review & Accept" dialog customers see before selecting items to return.</s-paragraph>
+              <s-paragraph tone="subdued">How customers review your policy before they can select items to return.</s-paragraph>
 
+              <s-select
+                label="Policy experience"
+                name="policyPresentation"
+                value={form.policyPresentation}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                  set("policyPresentation", e.target.value as "dialog" | "externalLink")
+                }
+              >
+                <s-option value="dialog">In-app dialog (recommended)</s-option>
+                <s-option value="externalLink">Link to an external policy page</s-option>
+              </s-select>
+              {errors.policyPresentation && <s-paragraph tone="critical">{errors.policyPresentation}</s-paragraph>}
+
+              {form.policyPresentation === "externalLink" ? (
+                <>
+                  <s-url-field
+                    label="Policy page URL"
+                    name="policyExternalUrl"
+                    value={form.policyExternalUrl}
+                    placeholder="https://your-store.com/pages/returns-policy"
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policyExternalUrl", e.target.value)}
+                  ></s-url-field>
+                  {errors.policyExternalUrl && <s-paragraph tone="critical">{errors.policyExternalUrl}</s-paragraph>}
+                  <s-paragraph tone="subdued">
+                    Customers still get a small Accept / Decline step. The full policy opens on your site in a new tab.
+                  </s-paragraph>
+                </>
+              ) : null}
+
+              {form.policyPresentation === "dialog" && (
+              <>
               <s-text-field
                 label="Dialog heading"
                 name="policyHeading"
@@ -1214,7 +1317,23 @@ export function SettingsForm({
 
               {form.policyBodyMode === "categories" ? (
                 <s-stack direction="block" gap="base">
+                  <s-paragraph color="subdued">
+                    {form.policyCategories.length} categor{form.policyCategories.length === 1 ? "y" : "ies"} — expand one at a time. Use search when the list gets long.
+                  </s-paragraph>
+                  {form.policyCategories.length > 4 ? (
+                    <s-text-field
+                      label="Filter categories"
+                      value={categoryFilter}
+                      placeholder="Search by title…"
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCategoryFilter(e.target.value)}
+                    ></s-text-field>
+                  ) : null}
+                  <div style={{ maxHeight: 360, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
                   {form.policyCategories.map((cat, i) => {
+                    const q = categoryFilter.trim().toLowerCase()
+                    if (q && !(cat.title || "").toLowerCase().includes(q) && !(cat.desc || "").toLowerCase().includes(q)) {
+                      return null
+                    }
                     const isOpen = openCategoryIndex === i
                     return (
                       <s-box key={i} padding="base" border="base" borderRadius="base">
@@ -1246,6 +1365,7 @@ export function SettingsForm({
                       </s-box>
                     )
                   })}
+                  </div>
                   <s-button onClick={addCategory}>Add category</s-button>
                   {errors.policyCategories && <s-paragraph tone="critical">{errors.policyCategories}</s-paragraph>}
                 </s-stack>
@@ -1277,6 +1397,8 @@ export function SettingsForm({
                 onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("policyFooterNote", e.target.value)}
               ></s-text-area>
               {errors.policyFooterNote && <s-paragraph tone="critical">{errors.policyFooterNote}</s-paragraph>}
+              </>
+              )}
             </s-stack>
             </SettingsEditRow>
 
@@ -1347,16 +1469,10 @@ export function SettingsForm({
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("sidebarDefaultOpenOnDesktop", e.target.checked)}
               ></s-checkbox>
               <s-checkbox
-                label="Show the customer avatar in the sidebar"
+                label="Show the customer avatar in the sidebar footer"
                 name="sidebarAvatarEnabled"
                 checked={form.sidebarAvatarEnabled}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("sidebarAvatarEnabled", e.target.checked)}
-              ></s-checkbox>
-              <s-checkbox
-                label="Show the customer avatar/account menu in the header"
-                name="headerAvatarEnabled"
-                checked={form.headerAvatarEnabled}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("headerAvatarEnabled", e.target.checked)}
               ></s-checkbox>
             </s-stack>
             </SettingsEditRow>
@@ -1464,14 +1580,19 @@ export function SettingsForm({
 
             <SettingsEditRow
               modalId="nav-header-links-modal"
-              title="Store & order status links"
-              summary={[form.storeLinkEnabled ? form.storeLinkLabel || "Store" : null, form.orderStatusLinkEnabled ? form.orderStatusLinkLabel || "Order status" : null].filter(Boolean).join(" · ") || "Both hidden"}
+              title="Header"
+              summary={[
+                form.storeLinkEnabled ? form.storeLinkLabel || "Store link" : null,
+                form.orderStatusLinkEnabled ? form.orderStatusLinkLabel || "Order status" : null,
+                form.headerAvatarEnabled ? "Account menu" : null,
+              ].filter(Boolean).join(" · ") || "Header links hidden"}
               modalSize="large"
               errors={errors}
             >
             <s-stack direction="block" gap="base">
+              <s-paragraph tone="subdued">Controls the top bar of the customer portal (not the sidebar).</s-paragraph>
               <s-checkbox
-                label="Show a link back to the storefront in the header"
+                label="Show Store link in the top bar"
                 name="storeLinkEnabled"
                 checked={form.storeLinkEnabled}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("storeLinkEnabled", e.target.checked)}
@@ -1503,6 +1624,15 @@ export function SettingsForm({
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("orderStatusLinkLabel", e.target.value)}
               ></s-text-field>
               {errors.orderStatusLinkLabel && <s-paragraph tone="critical">{errors.orderStatusLinkLabel}</s-paragraph>}
+
+              <s-divider></s-divider>
+              <s-checkbox
+                label="Show customer account menu in the top bar"
+                name="headerAvatarEnabled"
+                checked={form.headerAvatarEnabled}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("headerAvatarEnabled", e.target.checked)}
+              ></s-checkbox>
+              <s-paragraph tone="subdued">The avatar / account menu on the right of the header when someone is signed in.</s-paragraph>
             </s-stack>
             </SettingsEditRow>
           </s-stack>
@@ -1517,20 +1647,25 @@ export function SettingsForm({
             </s-paragraph>
             <SettingsEditRow
               modalId="table-header-search-modal"
-              title="Header search"
-              summary={form.headerSearchEnabled ? `On · “${form.headerSearchPlaceholder || "Search orders..."}”` : "Hidden"}
+              title="Order search (top bar)"
+              summary={
+                form.headerSearchEnabled
+                  ? `Shows a search box in the top bar (placeholder: “${form.headerSearchPlaceholder || "Search orders..."}”)`
+                  : "No order search in the top bar"
+              }
               modalSize="large"
               errors={errors}
             >
             <s-stack direction="block" gap="base">
+              <s-paragraph tone="subdued">Lets customers search their orders from the portal header.</s-paragraph>
               <s-checkbox
-                label="Show the order search bar in the header"
+                label="Show order search in the top bar"
                 name="headerSearchEnabled"
                 checked={form.headerSearchEnabled}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("headerSearchEnabled", e.target.checked)}
               ></s-checkbox>
               <s-text-field
-                label="Header search placeholder"
+                label="Grey hint text inside the search box"
                 name="headerSearchPlaceholder"
                 value={form.headerSearchPlaceholder}
                 placeholder="Search orders..."
@@ -1543,20 +1678,25 @@ export function SettingsForm({
 
             <SettingsEditRow
               modalId="table-order-items-modal"
-              title="Order item table"
-              summary={`${form.defaultOrderView === "grid" ? "Grid" : "List"} view · ${[form.tableSearchEnabled && "search", form.shipmentCardsEnabled && "shipments"].filter(Boolean).join(", ") || "basics"}`}
+              title="Order detail & item list"
+              summary={`${form.defaultOrderView === "grid" ? "Grid cards" : "List rows"} · ${[
+                form.tableSearchEnabled && "product search",
+                form.tablePageSizeEnabled && "rows per page",
+                form.shipmentCardsEnabled && "shipments",
+              ].filter(Boolean).join(" · ") || "simple layout"}`}
               modalSize="large-100"
               errors={errors}
             >
             <s-stack direction="block" gap="base">
+              <s-paragraph tone="subdued">Controls how products appear when a customer opens an order.</s-paragraph>
               <s-checkbox
-                label="Show the product/variant search bar"
+                label="Show search box to find a product or variant in the order"
                 name="tableSearchEnabled"
                 checked={form.tableSearchEnabled}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("tableSearchEnabled", e.target.checked)}
               ></s-checkbox>
               <s-text-field
-                label="Table search placeholder"
+                label="Hint text inside the product search box"
                 name="tableSearchPlaceholder"
                 value={form.tableSearchPlaceholder}
                 placeholder="Search product or variant..."
@@ -1566,19 +1706,19 @@ export function SettingsForm({
               {errors.tableSearchPlaceholder && <s-paragraph tone="critical">{errors.tableSearchPlaceholder}</s-paragraph>}
 
               <s-checkbox
-                label="Show the Filter button (ineligible items)"
+                label="Show a Filter button for items that can’t be returned"
                 name="tableFilterButtonEnabled"
                 checked={form.tableFilterButtonEnabled}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("tableFilterButtonEnabled", e.target.checked)}
               ></s-checkbox>
               <s-checkbox
-                label="Show the Eligible/Ineligible status filter"
+                label="Show Eligible / Ineligible tabs on the order"
                 name="statusFilterEnabled"
                 checked={form.statusFilterEnabled}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("statusFilterEnabled", e.target.checked)}
               ></s-checkbox>
               <s-text-field
-                label="Eligible tab label"
+                label="Name for the ‘can be returned’ tab"
                 name="eligibleLabel"
                 value={form.eligibleLabel}
                 placeholder="Eligible"
@@ -1586,7 +1726,7 @@ export function SettingsForm({
               ></s-text-field>
               {errors.eligibleLabel && <s-paragraph tone="critical">{errors.eligibleLabel}</s-paragraph>}
               <s-text-field
-                label="Ineligible tab label"
+                label="Name for the ‘can’t be returned’ tab"
                 name="ineligibleLabel"
                 value={form.ineligibleLabel}
                 placeholder="Ineligible"
@@ -1594,40 +1734,43 @@ export function SettingsForm({
               ></s-text-field>
               {errors.ineligibleLabel && <s-paragraph tone="critical">{errors.ineligibleLabel}</s-paragraph>}
               <s-checkbox
-                label={'Show the "These items can’t be selected here" message on the Ineligible tab'}
+                label={'Show the "These items can’t be selected here" message on the can’t-return tab'}
                 name="ineligibleMessageEnabled"
                 checked={form.ineligibleMessageEnabled}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("ineligibleMessageEnabled", e.target.checked)}
               ></s-checkbox>
               <s-select
-                label="Default order view"
+                label="How the My Orders list looks by default"
                 name="defaultOrderView"
                 value={form.defaultOrderView}
                 onChange={(e: React.ChangeEvent<HTMLSelectElement>) => set("defaultOrderView", e.target.value as "list" | "grid")}
               >
-                <s-option value="grid">Grid</s-option>
-                <s-option value="list">List</s-option>
+                <s-option value="grid">Grid of order cards</s-option>
+                <s-option value="list">Simple list of rows</s-option>
               </s-select>
               <s-checkbox
-                label="Show the Columns button"
+                label="Show a Columns button so customers can hide/show table columns"
                 name="tableColumnsButtonEnabled"
                 checked={form.tableColumnsButtonEnabled}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("tableColumnsButtonEnabled", e.target.checked)}
               ></s-checkbox>
               <s-checkbox
-                label='Show the "Show N" page-size selector'
+                label="Show rows-per-page control (Show 10 / 25 / 50)"
                 name="tablePageSizeEnabled"
                 checked={form.tablePageSizeEnabled}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("tablePageSizeEnabled", e.target.checked)}
               ></s-checkbox>
+              <s-paragraph tone="subdued">
+                When on, customers can choose how many product rows appear on each page of the order item table.
+              </s-paragraph>
               <s-checkbox
-                label="Show shipment tracking cards"
+                label="Show shipment tracking cards above the item list"
                 name="shipmentCardsEnabled"
                 checked={form.shipmentCardsEnabled}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("shipmentCardsEnabled", e.target.checked)}
               ></s-checkbox>
               <s-checkbox
-                label="Make product images clickable links to the storefront product page"
+                label="Make product images link to the storefront product page"
                 name="productImageLinksEnabled"
                 checked={form.productImageLinksEnabled}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("productImageLinksEnabled", e.target.checked)}

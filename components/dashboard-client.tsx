@@ -4,7 +4,8 @@ import * as React from "react"
 import { useEffect, useState, useMemo, useRef, useLayoutEffect, useCallback, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
-import { toast } from "sonner"
+import { portalToast, setPortalToastPosition } from "@/lib/portal-toast"
+import { PortalCustomScripts } from "@/components/apps-returns/portal-custom-scripts"
 import { ChevronRight, ChevronDown, LayoutGrid, List, ArrowLeft, RotateCcw, CheckCircle2, ShoppingBag, ShieldCheck, ExternalLink, Lock, Truck, Package, Search, MapPin, SlidersHorizontal, XCircle, CircleX, Columns2, Clock, BadgeCheck, HelpCircle, Eye, Info, type LucideIcon } from "lucide-react"
 
 import { PortalShell } from "@/components/portal-shell"
@@ -2884,6 +2885,8 @@ function HygienePolicy({
   footerNote,
   acceptedMessage = "Policy accepted",
   declinedMessage = "Policy declined",
+  presentation = "dialog",
+  externalUrl = "",
 }: {
   onAccept: () => void
   onDecline: () => void
@@ -2899,7 +2902,10 @@ function HygienePolicy({
   footerNote?: string
   acceptedMessage?: string
   declinedMessage?: string
+  presentation?: "dialog" | "externalLink"
+  externalUrl?: string
 }) {
+  const useExternal = presentation === "externalLink" && !!externalUrl
   const isDesktop = useMediaQuery("(min-width: 768px)")
 
   const trigger = link
@@ -2927,15 +2933,26 @@ function HygienePolicy({
             <DialogDescription>{subheading}</DialogDescription>
             {lastUpdated && <p className="text-xs text-muted-foreground">Last updated: {lastUpdated}</p>}
           </DialogHeader>
-          <div className="overflow-y-auto overflow-x-hidden max-h-[50vh] styled-scroll">
-            <HygienePolicyList itemPx="px-6" bodyMode={bodyMode} categories={categories} bodyText={bodyText} footerNoteEnabled={footerNoteEnabled} footerNote={footerNote} />
+          <div className="overflow-y-auto overflow-x-hidden max-h-[50vh] styled-scroll px-6 py-4">
+            {useExternal ? (
+              <div className="space-y-3 text-sm">
+                <p className="text-muted-foreground leading-relaxed">
+                  Read our returns policy on our website, then come back here to accept.
+                </p>
+                <Button asChild variant="outline" className="w-full">
+                  <a href={externalUrl} target="_blank" rel="noopener noreferrer">Open returns policy</a>
+                </Button>
+              </div>
+            ) : (
+              <HygienePolicyList itemPx="px-0" bodyMode={bodyMode} categories={categories} bodyText={bodyText} footerNoteEnabled={footerNoteEnabled} footerNote={footerNote} />
+            )}
           </div>
           <div className="flex gap-2 px-6 pb-6 pt-4">
             <DialogClose asChild>
-              <Button className="flex-1 bg-[var(--brand)] hover:bg-[var(--brand)]/90 text-white" onClick={() => { onAccept(); toast.success(acceptedMessage) }}><CheckCircle2 className="size-4" /> I Accept</Button>
+              <Button className="flex-1 bg-[var(--brand)] hover:bg-[var(--brand)]/90 text-white" onClick={() => { onAccept(); portalToast.success(acceptedMessage) }}><CheckCircle2 className="size-4" /> I Accept</Button>
             </DialogClose>
             <DialogClose asChild>
-              <Button variant="outline" className="flex-1" onClick={() => { onDecline(); toast.warning(declinedMessage) }}>Decline</Button>
+              <Button variant="outline" className="flex-1" onClick={() => { onDecline(); portalToast.warning(declinedMessage) }}>Decline</Button>
             </DialogClose>
           </div>
         </DialogContent>
@@ -2953,16 +2970,27 @@ function HygienePolicy({
           {lastUpdated && <p className="text-xs text-muted-foreground">Last updated: {lastUpdated}</p>}
         </DrawerHeader>
         <Separator />
-        <div className="overflow-y-auto overflow-x-hidden max-h-[45vh] styled-scroll">
-          <HygienePolicyList itemPx="px-4" bodyMode={bodyMode} categories={categories} bodyText={bodyText} footerNoteEnabled={footerNoteEnabled} footerNote={footerNote} />
+        <div className="overflow-y-auto overflow-x-hidden max-h-[45vh] styled-scroll px-4 py-3">
+          {useExternal ? (
+            <div className="space-y-3 text-sm">
+              <p className="text-muted-foreground leading-relaxed">
+                Read our returns policy on our website, then come back here to accept.
+              </p>
+              <Button asChild variant="outline" className="w-full">
+                <a href={externalUrl} target="_blank" rel="noopener noreferrer">Open returns policy</a>
+              </Button>
+            </div>
+          ) : (
+            <HygienePolicyList itemPx="px-0" bodyMode={bodyMode} categories={categories} bodyText={bodyText} footerNoteEnabled={footerNoteEnabled} footerNote={footerNote} />
+          )}
         </div>
         <DrawerFooter className="pt-2">
           <div className="flex gap-2">
             <DrawerClose asChild>
-              <Button className="flex-1 bg-[var(--brand)] hover:bg-[var(--brand)]/90 text-white" onClick={() => { onAccept(); toast.success(acceptedMessage) }}><CheckCircle2 className="size-4" /> I Accept</Button>
+              <Button className="flex-1 bg-[var(--brand)] hover:bg-[var(--brand)]/90 text-white" onClick={() => { onAccept(); portalToast.success(acceptedMessage) }}><CheckCircle2 className="size-4" /> I Accept</Button>
             </DrawerClose>
             <DrawerClose asChild>
-              <Button variant="outline" className="flex-1" onClick={() => { onDecline(); toast.warning(declinedMessage) }}>Decline</Button>
+              <Button variant="outline" className="flex-1" onClick={() => { onDecline(); portalToast.warning(declinedMessage) }}>Decline</Button>
             </DrawerClose>
           </div>
         </DrawerFooter>
@@ -3163,6 +3191,8 @@ type OrderDetailBranding = {
   policyFooterNote: string
   policyAcceptedMessage: string
   policyDeclinedMessage: string
+  policyPresentation: "dialog" | "externalLink"
+  policyExternalUrl: string
   tableSearchEnabled: boolean
   tableSearchPlaceholder: string
   tableColumnsButtonEnabled: boolean
@@ -3193,7 +3223,8 @@ function OrderDetail({
   const {
     supportEmail, requirePolicyAcceptance, policyHeading, policySubheading, policyLastUpdated,
     policyBodyMode, policyCategories, policyBodyText, policyFooterNoteEnabled, policyFooterNote,
-    policyAcceptedMessage, policyDeclinedMessage, tableSearchEnabled, tableSearchPlaceholder,
+    policyAcceptedMessage, policyDeclinedMessage, policyPresentation, policyExternalUrl,
+    tableSearchEnabled, tableSearchPlaceholder,
     tableColumnsButtonEnabled, tableFilterButtonEnabled, tablePageSizeEnabled, shipmentCardsEnabled,
     productImageLinksEnabled, statusFilterEnabled, ineligibleMessageEnabled,
     eligibleLabel, ineligibleLabel, returnLifecycleMessages, returnLifecycleStyles, refundStatusLabels,
@@ -3364,15 +3395,15 @@ function OrderDetail({
         setSubmitted(true)
         setTimeout(() => { window.location.href = orderStatusUrl }, 3000)
       } else if (res.status === 401) {
-        toast.error("Session expired", { description: "Please log in again to submit your return." })
+        portalToast.error("Session expired", { description: "Please log in again to submit your return." })
         setTimeout(() => { window.location.href = isAppsReturnsPortal() ? "/apps/returns" : "/" }, 1500)
       } else if (result.code === "ELIGIBILITY_CHANGED") {
-        toast.error("Eligibility changed", { description: "Some items are no longer eligible. Refreshing your order..." })
+        portalToast.error("Eligibility changed", { description: "Some items are no longer eligible. Refreshing your order..." })
         setTimeout(() => window.location.reload(), 2000)
       } else {
-        toast.error("Submission failed", { description: result.error || "Something went wrong." })
+        portalToast.error("Submission failed", { description: result.error || "Something went wrong." })
       }
-    } catch { toast.error("Network error", { description: "Please check your connection." }) }
+    } catch { portalToast.error("Network error", { description: "Please check your connection." }) }
     finally { setSubmitting(false) }
   }
 
@@ -3627,6 +3658,8 @@ function OrderDetail({
                   footerNote={policyFooterNote}
                   acceptedMessage={policyAcceptedMessage}
                   declinedMessage={policyDeclinedMessage}
+                  presentation={policyPresentation}
+                  externalUrl={policyExternalUrl}
                 />
               </div>
             )}
@@ -4196,6 +4229,10 @@ function DashboardClientInner() {
     refundStatusLabels: DEFAULT_TENANT_FIELDS.branding.refundStatusLabels,
     alwaysShowGuestLookup: false,
     guestLookupEnabled: true,
+    policyPresentation: "dialog",
+    policyExternalUrl: "",
+    toastPosition: "top-right",
+    portalCustomScript: "",
   })
   // False until accentColor holds a real (cached or fetched) tenant value —
   // the "#000000" placeholder above is a type-safe default, not a real
@@ -4213,8 +4250,13 @@ function DashboardClientInner() {
   // read, just via useLayoutEffect since this one needs to beat first paint.
   useLayoutEffect(() => {
     const cached = getCachedAccentColor()
-    if (cached) {
-      setBranding((b) => ({ ...b, accentColor: cached }))
+    const fromCss =
+      typeof document !== "undefined"
+        ? document.documentElement.style.getPropertyValue("--brand").trim()
+        : ""
+    const seed = cached || fromCss
+    if (seed) {
+      setBranding((b) => ({ ...b, accentColor: seed }))
       setAccentColorReady(true)
     }
   }, [])
@@ -4275,6 +4317,9 @@ function DashboardClientInner() {
           if (d.branding.accentColor) {
             setCachedAccentColor(d.branding.accentColor)
             setAccentColorReady(true)
+          }
+          if (d.branding.toastPosition) {
+            setPortalToastPosition(d.branding.toastPosition)
           }
         }
       })
@@ -4582,6 +4627,7 @@ function DashboardClientInner() {
   if (loading || (isGuestOrderContext() && !selectedOrder)) {
     return (
       <div className="relative overflow-hidden" style={{ height: "100dvh", width: "100vw" }}>
+        <PortalCustomScripts html={branding.portalCustomScript} />
         <div className="pointer-events-none select-none blur-xs brightness-95 h-full w-full">{portalContent}</div>
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/40 backdrop-blur-xs">
             <Card className="w-full max-w-xs mx-4 shadow-xl">
@@ -4609,5 +4655,10 @@ function DashboardClientInner() {
     )
   }
 
-  return portalContent
+  return (
+    <>
+      <PortalCustomScripts html={branding.portalCustomScript} />
+      {portalContent}
+    </>
+  )
 }

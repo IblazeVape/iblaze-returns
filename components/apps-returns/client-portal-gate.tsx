@@ -5,6 +5,7 @@ import DashboardClient from "@/components/dashboard-client";
 import { GuestLookupForm } from "@/components/apps-returns/guest-lookup-form";
 import { GuestPortalShell } from "@/components/apps-returns/guest-portal-shell";
 import { AuthenticatingCard } from "@/components/apps-returns/authenticating-card";
+import { PortalCustomScripts } from "@/components/apps-returns/portal-custom-scripts";
 import { setHideLegacySignOut } from "@/components/user-account-menu";
 import {
   storeAppsReturnsSession,
@@ -13,6 +14,7 @@ import {
 } from "@/lib/apps-returns-client-session";
 import { setAppsReturnsPortal, setAppsReturnsIdentityKind, setGuestOrderContext } from "@/lib/apps-returns-portal-mode";
 import { setCachedAccentColor } from "@/lib/accent-color-cache";
+import { setPortalToastPosition } from "@/lib/portal-toast";
 
 export type InitialBranding = {
   name: string
@@ -39,12 +41,14 @@ export type InitialBranding = {
   guestLookupSideStyle: "image" | "gradient"
   guestLookupGradientFrom: string
   guestLookupGradientTo: string
+  toastPosition: "top-left" | "top-center" | "top-right" | "bottom-left" | "bottom-center" | "bottom-right"
+  portalCustomScript: string
 }
 
 export type GateInitial =
   | { kind: "unsigned" }
   | { kind: "not-set-up"; shop: string }
-  | { kind: "logged-in" }
+  | { kind: "logged-in"; branding: Pick<InitialBranding, "accentColor" | "toastPosition" | "portalCustomScript"> }
   | { kind: "logged-in-lookup"; branding: InitialBranding }
   | { kind: "guest-or-login"; branding: InitialBranding }
   | { kind: "guest-login-required" };
@@ -98,6 +102,23 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
     : null
   );
 
+  // Seed accent + toast position as soon as we have server branding — before
+  // paint of AuthenticatingCard / GuestPortalShell so a freshly changed accent
+  // never flashes the previous cached (or default) colour.
+  if (
+    initial.kind === "logged-in" ||
+    initial.kind === "guest-or-login" ||
+    initial.kind === "logged-in-lookup"
+  ) {
+    if (initial.branding.accentColor) {
+      setCachedAccentColor(initial.branding.accentColor);
+      if (typeof document !== "undefined") {
+        document.documentElement.style.setProperty("--brand", initial.branding.accentColor);
+      }
+    }
+    setPortalToastPosition(initial.branding.toastPosition);
+  }
+
   useEffect(() => {
     installAppsReturnsFetchPatch();
 
@@ -142,7 +163,9 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
   }
 
   if (signingIn) {
-    return <AuthenticatingCard />;
+    const accent =
+      initial.kind === "logged-in" ? initial.branding.accentColor : undefined;
+    return <AuthenticatingCard accentColor={accent} />;
   }
 
   switch (initial.kind) {
@@ -163,13 +186,14 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
     case "logged-in":
       // useEffect above is about to fire the session fetch; signingIn covers
       // the visible state a beat later. Avoid a flash of guest UI here.
-      return <AuthenticatingCard />;
+      return <AuthenticatingCard accentColor={initial.branding.accentColor} />;
     case "guest-login-required":
       return <RedirectToStoreLogin />;
     case "guest-or-login": {
       const loginUrl = `/customer_authentication/login?return_to=${encodeURIComponent("/apps/returns")}`;
       return (
         <GuestPortalShell branding={initial.branding} title={initial.branding.name || "Returns"}>
+          <PortalCustomScripts html={initial.branding.portalCustomScript} />
           <GuestLookupForm
             layout={initial.branding.guestLookupLayout}
             brandName={initial.branding.name}
@@ -197,6 +221,7 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
               // shows the tenant's actual color immediately instead of
               // flashing neutral gray while it re-fetches branding itself.
               setCachedAccentColor(initial.branding.accentColor);
+              setPortalToastPosition(initial.branding.toastPosition);
               const numericOrderId = order.id.split("/").pop() ?? null;
               setGuestOrderContext(numericOrderId, handleLookupAnother);
               setReady(true);
@@ -214,6 +239,7 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
       // (see loggedInOrderMatches in lib/guest-order-match.ts).
       return (
         <GuestPortalShell branding={initial.branding} title={initial.branding.name || "Returns"}>
+          <PortalCustomScripts html={initial.branding.portalCustomScript} />
           <GuestLookupForm
             requirePostcode={false}
             layout={initial.branding.guestLookupLayout}
@@ -236,6 +262,7 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
             onVerified={(token, order) => {
               storeAppsReturnsSession(token);
               setCachedAccentColor(initial.branding.accentColor);
+              setPortalToastPosition(initial.branding.toastPosition);
               const numericOrderId = order.id.split("/").pop() ?? null;
               setGuestOrderContext(numericOrderId, handleLookupAnother);
               setReady(true);

@@ -38,6 +38,8 @@ const PREVIEW_BRANDING: InitialBranding = {
   guestLookupSideStyle: "image",
   guestLookupGradientFrom: "#0f172a",
   guestLookupGradientTo: "#334155",
+  toastPosition: "top-right",
+  portalCustomScript: "",
 };
 
 function GuestLookupDemoInner() {

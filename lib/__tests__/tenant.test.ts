@@ -168,6 +168,10 @@ describe("tenant store", () => {
         },
         alwaysShowGuestLookup: true,
         guestLookupEnabled: false,
+        policyPresentation: "dialog",
+        policyExternalUrl: "",
+        toastPosition: "top-right",
+        portalCustomScript: "",
       },
     });
     const t = await getTenant("d.myshopify.com");

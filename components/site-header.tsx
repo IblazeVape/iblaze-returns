@@ -114,7 +114,7 @@ export function SiteHeader({
           </div>
         )}
 
-        <div className="ml-auto flex items-center gap-2 min-[1025px]:gap-4">
+        <div className="ml-auto flex items-center gap-1 min-[1025px]:gap-1">
 
           {/* ── Desktop: all links inline ── */}
           {effectiveOrderStatusUrl && (

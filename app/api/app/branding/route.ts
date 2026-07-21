@@ -202,6 +202,19 @@ export async function PUT(request: NextRequest) {
       typeof body.alwaysShowGuestLookup === "boolean" ? body.alwaysShowGuestLookup : existing.branding.alwaysShowGuestLookup,
     guestLookupEnabled:
       typeof body.guestLookupEnabled === "boolean" ? body.guestLookupEnabled : existing.branding.guestLookupEnabled,
+    policyPresentation:
+      body.policyPresentation === "dialog" || body.policyPresentation === "externalLink"
+        ? body.policyPresentation
+        : existing.branding.policyPresentation,
+    policyExternalUrl:
+      typeof body.policyExternalUrl === "string" ? body.policyExternalUrl : existing.branding.policyExternalUrl,
+    toastPosition:
+      body.toastPosition === "top-left" || body.toastPosition === "top-center" || body.toastPosition === "top-right"
+      || body.toastPosition === "bottom-left" || body.toastPosition === "bottom-center" || body.toastPosition === "bottom-right"
+        ? body.toastPosition
+        : existing.branding.toastPosition,
+    portalCustomScript:
+      typeof body.portalCustomScript === "string" ? body.portalCustomScript : existing.branding.portalCustomScript,
   };
 
   const { valid, errors } = validateBrandingInput(input);
@@ -272,6 +285,10 @@ export async function PUT(request: NextRequest) {
       refundStatusLabels: input.refundStatusLabels,
       alwaysShowGuestLookup: input.alwaysShowGuestLookup,
       guestLookupEnabled: input.guestLookupEnabled,
+      policyPresentation: input.policyPresentation,
+      policyExternalUrl: input.policyExternalUrl,
+      toastPosition: input.toastPosition,
+      portalCustomScript: input.portalCustomScript,
     },
   });
 

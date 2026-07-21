@@ -12,14 +12,28 @@ import { getCachedAccentColor } from "@/lib/accent-color-cache";
  * looks like a continuation of the same portal loading — not a separate
  * "Signing you in…" screen.
  *
- * This screen renders before any branding fetch has happened (there's no
- * tenant data available yet at all in this flow), so — same reasoning as
- * DashboardClient's spinner — it uses a cached accent color from a
- * previous visit if one exists, falling back to neutral gray only on a
- * genuine first-ever visit.
+ * Prefer an explicit `accentColor` from the server (App Proxy branding).
+ * Fall back to the localStorage cache from a previous visit, then to a
+ * live `--brand` CSS var if GuestPortalShell already set it this session.
+ * Only a genuine first-ever visit with no branding yet uses neutral gray.
  */
-export function AuthenticatingCard({ label = "Verifying your session securely..." }: { label?: string }) {
-  const [accentColor] = useState(() => getCachedAccentColor());
+export function AuthenticatingCard({
+  label = "Verifying your session securely...",
+  accentColor: accentFromProps,
+}: {
+  label?: string;
+  accentColor?: string;
+}) {
+  const [accentColor] = useState(() => {
+    if (accentFromProps) return accentFromProps;
+    const cached = getCachedAccentColor();
+    if (cached) return cached;
+    if (typeof document !== "undefined") {
+      const fromCss = document.documentElement.style.getPropertyValue("--brand").trim();
+      if (fromCss) return fromCss;
+    }
+    return null;
+  });
 
   return (
     <div

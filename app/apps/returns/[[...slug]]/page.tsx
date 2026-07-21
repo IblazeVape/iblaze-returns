@@ -48,7 +48,16 @@ export default async function AppProxyReturnsPage({
     if (!tenant?.accessToken) {
       initial = { kind: "not-set-up", shop };
     } else if (loggedInCustomerId && !tenant.branding.alwaysShowGuestLookup) {
-      initial = { kind: "logged-in" };
+      // Pass accent (+ toast/script) so AuthenticatingCard paints the real
+      // brand colour immediately — no wait for /api/branding after mint.
+      initial = {
+        kind: "logged-in",
+        branding: {
+          accentColor: tenant.branding.accentColor,
+          toastPosition: tenant.branding.toastPosition,
+          portalCustomScript: tenant.branding.portalCustomScript,
+        },
+      };
     } else if (!loggedInCustomerId && !tenant.branding.guestLookupEnabled) {
       // Merchant disabled guest lookup — clientside redirect to store login
       // (App Proxy rewrites server Location headers, so we cannot 302 here).
@@ -79,6 +88,8 @@ export default async function AppProxyReturnsPage({
         guestLookupSideStyle: tenant.branding.guestLookupSideStyle,
         guestLookupGradientFrom: tenant.branding.guestLookupGradientFrom,
         guestLookupGradientTo: tenant.branding.guestLookupGradientTo,
+        toastPosition: tenant.branding.toastPosition,
+        portalCustomScript: tenant.branding.portalCustomScript,
       };
       initial = loggedInCustomerId
         ? { kind: "logged-in-lookup", branding }

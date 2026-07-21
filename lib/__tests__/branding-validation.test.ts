@@ -87,6 +87,10 @@ const VALID: BrandingInput = {
   },
   alwaysShowGuestLookup: false,
   guestLookupEnabled: true,
+  policyPresentation: "dialog",
+  policyExternalUrl: "",
+  toastPosition: "top-right",
+  portalCustomScript: "",
 };
 
 describe("validateBrandingInput", () => {
