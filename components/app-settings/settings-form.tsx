@@ -135,7 +135,7 @@ export function SettingsForm({
 
   const [errors, setErrors] = useState<Partial<Record<keyof BrandingInput, string>>>({})
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error" | "invalid">("idle")
-  const [loadingLibrary, setLoadingLibrary] = useState(false)
+  const [loadingLibraryField, setLoadingLibraryField] = useState<"logoUrl" | "guestLookupHeroUrl" | "guestLookupLogoUrl" | null>(null)
   // Polaris's s-tabs/s-tab-list/s-tab/s-tab-panel custom elements don't
   // register/render correctly in this app's embedded runtime (confirmed live
   // — they fell back to unstyled inline text with no panel switching), so
@@ -202,7 +202,7 @@ export function SettingsForm({
   }
 
   async function handleChooseFromLibrary(field: "logoUrl" | "guestLookupHeroUrl" | "guestLookupLogoUrl" = "logoUrl") {
-    setLoadingLibrary(true)
+    setLoadingLibraryField(field)
     try {
       const res = await authedFetch("/api/app/media-library")
       const data = (await res.json()) as { files?: MediaLibraryFile[] }
@@ -239,7 +239,7 @@ export function SettingsForm({
     } catch {
       setErrors((e) => ({ ...e, [field]: "Couldn't open the media library. Try again." }))
     } finally {
-      setLoadingLibrary(false)
+      setLoadingLibraryField(null)
     }
   }
 
@@ -524,8 +524,8 @@ export function SettingsForm({
                   }}
                 />
               )}
-              <s-button onClick={() => handleChooseFromLibrary("logoUrl")} disabled={loadingLibrary}>
-                {loadingLibrary ? "Loading…" : "Choose from Shopify"}
+              <s-button onClick={() => handleChooseFromLibrary("logoUrl")} disabled={loadingLibraryField !== null}>
+                {loadingLibraryField === "logoUrl" ? "Loading…" : "Choose from Shopify"}
               </s-button>
             </s-stack>
             <s-url-field
@@ -627,8 +627,8 @@ export function SettingsForm({
                       }}
                     />
                   )}
-                  <s-button onClick={() => handleChooseFromLibrary("guestLookupHeroUrl")} disabled={loadingLibrary}>
-                    {loadingLibrary ? "Loading…" : "Choose from Shopify"}
+                  <s-button onClick={() => handleChooseFromLibrary("guestLookupHeroUrl")} disabled={loadingLibraryField !== null}>
+                    {loadingLibraryField === "guestLookupHeroUrl" ? "Loading…" : "Choose from Shopify"}
                   </s-button>
                   {form.guestLookupHeroUrl && (
                     <s-button
@@ -671,11 +671,11 @@ export function SettingsForm({
                 {form.guestLookupBrandDisplay === "logo" && (
                   <>
                     <s-stack direction="inline" gap="base" alignItems="center">
-                      {(form.guestLookupLogoUrl || form.logoUrl) && (
+                      {form.guestLookupLogoUrl && (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
-                          key={form.guestLookupLogoUrl || form.logoUrl}
-                          src={form.guestLookupLogoUrl || form.logoUrl}
+                          key={form.guestLookupLogoUrl}
+                          src={form.guestLookupLogoUrl}
                           alt="Guest lookup logo"
                           style={{ width: 40, height: 40, objectFit: "contain", borderRadius: 6, border: "1px solid #d1d5db" }}
                           onError={(e) => {
@@ -683,12 +683,12 @@ export function SettingsForm({
                           }}
                         />
                       )}
-                      <s-button onClick={() => handleChooseFromLibrary("guestLookupLogoUrl")} disabled={loadingLibrary}>
-                        {loadingLibrary ? "Loading…" : "Choose from Shopify"}
+                      <s-button onClick={() => handleChooseFromLibrary("guestLookupLogoUrl")} disabled={loadingLibraryField !== null}>
+                        {loadingLibraryField === "guestLookupLogoUrl" ? "Loading…" : "Choose from Shopify"}
                       </s-button>
                       {form.guestLookupLogoUrl && (
                         <s-button variant="tertiary" onClick={() => set("guestLookupLogoUrl", "")}>
-                          Use main logo
+                          {form.logoUrl ? "Use main logo" : "Clear"}
                         </s-button>
                       )}
                     </s-stack>
@@ -696,9 +696,18 @@ export function SettingsForm({
                       label="Or paste a panel logo URL"
                       name="guestLookupLogoUrl"
                       value={form.guestLookupLogoUrl}
-                      placeholder="Leave blank to use the main Branding logo"
+                      placeholder={
+                        form.logoUrl
+                          ? "Leave blank to use the main Branding logo"
+                          : "Leave blank to show the brand name as text"
+                      }
                       onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("guestLookupLogoUrl", e.target.value)}
                     ></s-url-field>
+                    <s-paragraph tone="subdued">
+                      {form.logoUrl
+                        ? "If blank, the panel uses your main Branding logo above."
+                        : "No main logo is set yet — if this is blank, the panel shows your brand name as text instead."}
+                    </s-paragraph>
                     {errors.guestLookupLogoUrl && <s-paragraph tone="critical">{errors.guestLookupLogoUrl}</s-paragraph>}
                   </>
                 )}
