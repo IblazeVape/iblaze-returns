@@ -7,23 +7,13 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
+import { cn } from "@/lib/utils";
 
 /**
- * Guest order lookup form for the App Proxy portal. Shown when the customer
- * has no Shopify account session (guest checkout). Verifies order number +
- * email + postcode against the tenant's Shopify data — see
- * app/apps/returns/guest-lookup/route.ts for the server-side check.
+ * Guest order lookup form for the App Proxy portal.
  *
- * Two merchant-selectable layouts (Settings → Branding → Guest lookup layout):
- *  - classic: original centered form card
- *  - split: image panel + form (hero must be an absolute app/CDN URL —
- *    relative `/assets/...` 404s on the storefront under App Proxy)
- *
- * On success the server returns a session token in the JSON body (NOT via
- * Set-Cookie — Shopify's App Proxy strips that on the way back to the
- * browser, confirmed live). `onVerified` hands the token to the parent
- * (ClientPortalGate), which stores it and renders the real DashboardClient
- * portal inline — no page reload.
+ * Layouts (Settings → Branding): classic | split
+ * Pass interactive={false} for a display-only settings preview.
  */
 type GuestOrder = {
   id: string;
@@ -37,8 +27,6 @@ type GuestOrder = {
 export type GuestLookupLayout = "classic" | "split";
 export type GuestLookupBrandDisplay = "logo" | "text" | "none";
 
-/** App Proxy only forwards `/apps/returns*`, so static files must be loaded
- * from the app origin (Vercel), not as relative paths on the shop domain. */
 function defaultGuestLookupHeroSrc() {
   const raw = (process.env.NEXT_PUBLIC_APP_URL || "").replace(/\/$/, "");
   const base =
@@ -62,6 +50,7 @@ export function GuestLookupForm({
   brandDisplay = "logo",
   overlayOpacity = 40,
   overlayBlur = 0,
+  interactive = true,
 }: {
   onVerified: (token: string, order: GuestOrder) => void;
   requirePostcode?: boolean;
@@ -74,10 +63,9 @@ export function GuestLookupForm({
   headline?: string;
   subtext?: string;
   brandDisplay?: GuestLookupBrandDisplay;
-  /** 0–100 black veil over the hero image. */
   overlayOpacity?: number;
-  /** 0–24 backdrop blur in pixels. */
   overlayBlur?: number;
+  interactive?: boolean;
 }) {
   const [orderNumber, setOrderNumber] = useState("");
   const [email, setEmail] = useState("");
@@ -86,9 +74,11 @@ export function GuestLookupForm({
   const [error, setError] = useState("");
   const [logoFailed, setLogoFailed] = useState(false);
   const heroSrc = heroImageUrl || defaultGuestLookupHeroSrc();
+  const lockUi = !interactive;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (lockUi) return;
     setStatus("loading");
     setError("");
     try {
@@ -126,6 +116,8 @@ export function GuestLookupForm({
           onChange={(e) => setOrderNumber(e.target.value)}
           placeholder="#1234"
           required
+          readOnly={lockUi}
+          tabIndex={lockUi ? -1 : undefined}
         />
       </div>
       <div className="flex flex-col gap-1.5">
@@ -137,6 +129,8 @@ export function GuestLookupForm({
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@example.com"
           required
+          readOnly={lockUi}
+          tabIndex={lockUi ? -1 : undefined}
         />
       </div>
       {requirePostcode && (
@@ -148,6 +142,8 @@ export function GuestLookupForm({
             onChange={(e) => setPostcode(e.target.value)}
             placeholder="SW1A 1AA"
             required
+            readOnly={lockUi}
+            tabIndex={lockUi ? -1 : undefined}
           />
         </div>
       )}
@@ -156,8 +152,9 @@ export function GuestLookupForm({
 
       <Button
         type="submit"
-        disabled={status === "loading"}
+        disabled={lockUi || status === "loading"}
         className="mt-1 w-full bg-[var(--brand)] hover:bg-[var(--brand)]/90 text-white"
+        tabIndex={lockUi ? -1 : undefined}
       >
         {status === "loading" ? (
           <>
@@ -174,25 +171,37 @@ export function GuestLookupForm({
     <div className="flex flex-col items-center gap-2 border-t pt-5">
       <span className="text-xs text-muted-foreground">— or —</span>
       <a
-        href={loginUrl}
+        href={lockUi ? undefined : loginUrl}
         className="text-sm font-semibold text-[var(--brand)] hover:underline underline-offset-2"
+        tabIndex={lockUi ? -1 : undefined}
+        onClick={lockUi ? (e) => e.preventDefault() : undefined}
       >
         Log in to see all your orders
       </a>
     </div>
   ) : null;
 
+  const shellClass = cn(
+    "relative w-full overflow-hidden rounded-2xl p-px shadow-xl",
+    layout === "classic" ? "max-w-md" : "max-w-4xl",
+    lockUi && "pointer-events-none select-none",
+  );
+
   if (layout === "classic") {
     return (
-      <Card className="w-full max-w-md mx-4 shadow-xl">
-        <CardHeader>
-          <CardDescription className="text-center">{resolvedDescription}</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-5">
-          {fields}
-          {loginFooter}
-        </CardContent>
-      </Card>
+      <div className={shellClass} aria-hidden={lockUi || undefined}>
+        <div className="rounded-[15px] bg-card text-card-foreground border">
+          <Card className="border-0 shadow-none">
+            <CardHeader>
+              <CardDescription className="text-center">{resolvedDescription}</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-5">
+              {fields}
+              {loginFooter}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     );
   }
 
@@ -201,26 +210,28 @@ export function GuestLookupForm({
   const blurPx = Math.min(24, Math.max(0, overlayBlur));
 
   return (
-    <div className="relative w-full max-w-4xl mx-4 overflow-hidden rounded-2xl p-px shadow-xl">
+    <div className={shellClass} aria-hidden={lockUi || undefined}>
       <div className="absolute inset-0 rounded-2xl" style={{ background: "hsl(var(--border))" }} aria-hidden />
-      <motion.div
-        className="absolute pointer-events-none"
-        style={{
-          inset: "-100%",
-          width: "300%",
-          height: "300%",
-          background:
-            "conic-gradient(from 0deg, transparent 65%, currentColor 75%, transparent 85%)",
-          opacity: 0.55,
-        }}
-        animate={{ rotate: 360 }}
-        transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
-        aria-hidden
-      />
+      {!lockUi ? (
+        <motion.div
+          className="absolute pointer-events-none"
+          style={{
+            inset: "-100%",
+            width: "300%",
+            height: "300%",
+            background:
+              "conic-gradient(from 0deg, transparent 65%, currentColor 75%, transparent 85%)",
+            opacity: 0.55,
+          }}
+          animate={{ rotate: 360 }}
+          transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
+          aria-hidden
+        />
+      ) : null}
 
       <div className="relative overflow-hidden rounded-[15px] bg-card text-card-foreground">
-        <div className="flex flex-col min-[720px]:flex-row min-[720px]:min-h-[460px]">
-          <div className="relative h-44 w-full shrink-0 overflow-hidden bg-zinc-900 min-[720px]:h-auto min-[720px]:w-[44%]">
+        <div className="flex flex-col min-[720px]:flex-row min-[720px]:min-h-[420px]">
+          <div className="relative h-40 w-full shrink-0 overflow-hidden bg-zinc-900 min-[720px]:h-auto min-[720px]:w-[44%]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={heroSrc}
@@ -228,7 +239,6 @@ export function GuestLookupForm({
               className="absolute inset-0 size-full object-cover object-center"
               style={blurPx > 0 ? { filter: `blur(${blurPx}px)`, transform: "scale(1.06)" } : undefined}
             />
-            {/* Dark veil — merchant-controlled opacity for text contrast */}
             <div
               aria-hidden
               className="absolute inset-0"

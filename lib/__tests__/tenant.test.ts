@@ -125,6 +125,8 @@ describe("tenant store", () => {
         guestLookupHeroUrl: "https://cdn.shopify.com/hero.png",
         guestLookupBrandDisplay: "text",
         guestLookupLogoUrl: "",
+        guestLookupOverlayOpacity: 40,
+        guestLookupOverlayBlur: 0,
         defaultOrderView: "list",
         sidebarDefaultOpenOnDesktop: false,
         statusFilterEnabled: false,
