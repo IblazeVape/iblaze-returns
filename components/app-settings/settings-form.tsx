@@ -212,9 +212,9 @@ export function SettingsForm({
         return
       }
       const headings = {
-        logoUrl: "Choose a logo",
-        guestLookupHeroUrl: "Choose a guest lookup image",
-        guestLookupLogoUrl: "Choose a guest lookup logo",
+        logoUrl: "Choose store logo",
+        guestLookupHeroUrl: "Choose hero image for Find your order",
+        guestLookupLogoUrl: "Choose panel logo",
       } as const
       const picker = await shopify.picker({
         heading: headings[field],
@@ -512,6 +512,7 @@ export function SettingsForm({
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("name", e.target.value)}
               ></s-text-field>
 
+              <s-paragraph tone="subdued">Used in the portal sidebar and header. If blank, the brand name is shown as text instead.</s-paragraph>
               <s-stack direction="inline" gap="base" alignItems="center">
                 {form.logoUrl && (
                   // key forces a fresh <img> (and fresh error state) whenever the
@@ -529,12 +530,15 @@ export function SettingsForm({
                     }}
                   />
                 )}
-                <s-button onClick={() => handleChooseFromLibrary("logoUrl")} disabled={loadingLibraryField !== null}>
-                  {loadingLibraryField === "logoUrl" ? "Loading…" : "Choose from Shopify"}
+                <s-button
+                  onClick={() => handleChooseFromLibrary("logoUrl")}
+                  disabled={loadingLibraryField === "logoUrl"}
+                >
+                  {loadingLibraryField === "logoUrl" ? "Loading…" : "Choose store logo"}
                 </s-button>
               </s-stack>
               <s-url-field
-                label="Or paste a logo URL"
+                label="Or paste a store logo URL"
                 name="logoUrl"
                 value={form.logoUrl}
                 placeholder="https://cdn.shopify.com/your-logo.png"
@@ -633,6 +637,7 @@ export function SettingsForm({
                 ></s-text-field>
                 {errors.guestLookupSubtext && <s-paragraph tone="critical">{errors.guestLookupSubtext}</s-paragraph>}
 
+                <s-paragraph tone="subdued">Large photo on the left of the Find your order card.</s-paragraph>
                 <s-stack direction="inline" gap="base" alignItems="center">
                   {form.guestLookupHeroUrl && (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -647,8 +652,11 @@ export function SettingsForm({
                       }}
                     />
                   )}
-                  <s-button onClick={() => handleChooseFromLibrary("guestLookupHeroUrl")} disabled={loadingLibraryField !== null}>
-                    {loadingLibraryField === "guestLookupHeroUrl" ? "Loading…" : "Choose from Shopify"}
+                  <s-button
+                    onClick={() => handleChooseFromLibrary("guestLookupHeroUrl")}
+                    disabled={loadingLibraryField === "guestLookupHeroUrl"}
+                  >
+                    {loadingLibraryField === "guestLookupHeroUrl" ? "Loading…" : "Choose hero image"}
                   </s-button>
                   {form.guestLookupHeroUrl && (
                     <s-button
@@ -672,7 +680,9 @@ export function SettingsForm({
                   placeholder="Leave blank for the default returns package image"
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("guestLookupHeroUrl", e.target.value)}
                 ></s-url-field>
-                <s-paragraph tone="subdued">Pick from your Shopify media library, or paste a URL. Blank uses the built-in default.</s-paragraph>
+                <s-paragraph tone="subdued">
+                  Opens your Shopify Content → Files library (images only). Product photos that aren&apos;t in Files won&apos;t appear — upload them under Content → Files first, or paste a URL.
+                </s-paragraph>
                 {errors.guestLookupHeroUrl && <s-paragraph tone="critical">{errors.guestLookupHeroUrl}</s-paragraph>}
 
                 <s-number-field
@@ -737,8 +747,11 @@ export function SettingsForm({
                           }}
                         />
                       )}
-                      <s-button onClick={() => handleChooseFromLibrary("guestLookupLogoUrl")} disabled={loadingLibraryField !== null}>
-                        {loadingLibraryField === "guestLookupLogoUrl" ? "Loading…" : "Choose from Shopify"}
+                      <s-button
+                        onClick={() => handleChooseFromLibrary("guestLookupLogoUrl")}
+                        disabled={loadingLibraryField === "guestLookupLogoUrl"}
+                      >
+                        {loadingLibraryField === "guestLookupLogoUrl" ? "Loading…" : "Choose panel logo"}
                       </s-button>
                       {form.guestLookupLogoUrl && (
                         <s-button variant="tertiary" onClick={() => set("guestLookupLogoUrl", "")}>
@@ -759,8 +772,8 @@ export function SettingsForm({
                     ></s-url-field>
                     <s-paragraph tone="subdued">
                       {form.logoUrl
-                        ? "If blank, the panel uses your main Branding logo above."
-                        : "No main logo is set yet — if this is blank, the panel shows your brand name as text instead."}
+                        ? "Small logo in the top-left of the hero panel. If blank, uses your store logo from Store identity."
+                        : "Small logo in the top-left of the hero panel. No store logo is set — if this is blank, the brand name shows as text."}
                     </s-paragraph>
                     {errors.guestLookupLogoUrl && <s-paragraph tone="critical">{errors.guestLookupLogoUrl}</s-paragraph>}
                   </>
