@@ -501,7 +501,7 @@ export function SettingsForm({
           <s-section heading="Store identity">
             <s-stack direction="block" gap="base">
               <s-paragraph tone="subdued">
-                Core brand details used across the returns portal — sidebar, header, and emails.
+                Your store name, logo, and colours across the whole returns portal.
               </s-paragraph>
 
               <s-text-field
@@ -512,42 +512,44 @@ export function SettingsForm({
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("name", e.target.value)}
               ></s-text-field>
 
-              <s-paragraph tone="subdued">Used in the portal sidebar and header. If blank, the brand name is shown as text instead.</s-paragraph>
-              <s-stack direction="inline" gap="base" alignItems="center">
-                {form.logoUrl && (
-                  // key forces a fresh <img> (and fresh error state) whenever the
-                  // URL changes, so a broken new URL doesn't keep showing a stale
-                  // "broken image" state from a previous one.
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    key={form.logoUrl}
-                    src={form.logoUrl}
-                    alt="Current logo"
-                    style={{ width: 40, height: 40, objectFit: "contain", borderRadius: 6, border: "1px solid #d1d5db" }}
-                    onError={(e) => {
-                      e.currentTarget.style.display = "none"
-                      setErrors((err) => ({ ...err, logoUrl: "This image URL didn't load. Try a different one." }))
-                    }}
-                  />
-                )}
-                <s-button
-                  onClick={() => handleChooseFromLibrary("logoUrl")}
-                  disabled={loadingLibraryField === "logoUrl"}
-                >
-                  {loadingLibraryField === "logoUrl" ? "Loading…" : "Choose store logo"}
-                </s-button>
-              </s-stack>
-              <s-url-field
-                label="Or paste a store logo URL"
-                name="logoUrl"
-                value={form.logoUrl}
-                placeholder="https://cdn.shopify.com/your-logo.png"
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("logoUrl", e.target.value)}
-              ></s-url-field>
-              {errors.logoUrl && <s-paragraph tone="critical">{errors.logoUrl}</s-paragraph>}
+              <s-box padding="base" border="base" borderRadius="base">
+                <s-stack direction="block" gap="base">
+                  <s-heading>Store logo</s-heading>
+                  <s-paragraph tone="subdued">Sidebar and header. Leave empty to show the brand name as text.</s-paragraph>
+                  <s-stack direction="inline" gap="base" alignItems="center">
+                    {form.logoUrl && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        key={form.logoUrl}
+                        src={form.logoUrl}
+                        alt="Current logo"
+                        style={{ width: 40, height: 40, objectFit: "contain", borderRadius: 6, border: "1px solid #d1d5db" }}
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none"
+                          setErrors((err) => ({ ...err, logoUrl: "This image URL didn't load. Try a different one." }))
+                        }}
+                      />
+                    )}
+                    <s-button
+                      onClick={() => handleChooseFromLibrary("logoUrl")}
+                      disabled={loadingLibraryField === "logoUrl"}
+                    >
+                      {loadingLibraryField === "logoUrl" ? "Loading…" : "Browse Shopify Files"}
+                    </s-button>
+                  </s-stack>
+                  <s-url-field
+                    label="Logo URL"
+                    name="logoUrl"
+                    value={form.logoUrl}
+                    placeholder="https://cdn.shopify.com/your-logo.png"
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("logoUrl", e.target.value)}
+                  ></s-url-field>
+                  {errors.logoUrl && <s-paragraph tone="critical">{errors.logoUrl}</s-paragraph>}
+                </s-stack>
+              </s-box>
 
               <s-color-field
-                label="Accent color"
+                label="Accent colour (buttons & highlights)"
                 name="accentColor"
                 value={form.accentColor}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("accentColor", e.target.value)}
@@ -555,13 +557,13 @@ export function SettingsForm({
               {errors.accentColor && <s-paragraph tone="critical">{errors.accentColor}</s-paragraph>}
 
               <s-url-field
-                label="Storefront URL"
+                label="Store website URL"
                 name="storefrontUrl"
                 value={form.storefrontUrl}
                 placeholder="https://your-store.com"
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("storefrontUrl", e.target.value)}
               ></s-url-field>
-              <s-paragraph tone="subdued">Where the sidebar logo and the header&apos;s store link send customers — usually your live storefront domain, not your myshopify.com admin URL.</s-paragraph>
+              <s-paragraph tone="subdued">Used for “back to store” links — your live site, not admin.myshopify.com.</s-paragraph>
               {errors.storefrontUrl && <s-paragraph tone="critical">{errors.storefrontUrl}</s-paragraph>}
 
               <s-email-field
@@ -571,213 +573,214 @@ export function SettingsForm({
                 placeholder="help@your-store.com"
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("supportEmail", e.target.value)}
               ></s-email-field>
-              <s-paragraph tone="subdued">Only shown after a customer submits a return that includes an item still in transit (a split-shipment order where the rest has already arrived), as a &quot;contact us if that item has a delivery issue&quot; line.</s-paragraph>
+              <s-paragraph tone="subdued">Shown only when a return includes an item still in transit.</s-paragraph>
               {errors.supportEmail && <s-paragraph tone="critical">{errors.supportEmail}</s-paragraph>}
             </s-stack>
           </s-section>
 
-          <s-section heading="Guest lookup screen">
+          <s-section heading="Find your order screen">
             <s-stack direction="block" gap="base">
               <s-paragraph tone="subdued">
-                How the &quot;Find your order&quot; screen looks before a customer verifies an order.
+                The lookup card customers see before they find an order.
               </s-paragraph>
 
               <s-select
-                label="Background"
-                name="guestBackgroundStyle"
-                value={form.guestBackgroundStyle}
-                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => set("guestBackgroundStyle", e.target.value as "none" | "shapeGrid" | "dotField")}
-              >
-                <s-option value="none">None</s-option>
-                <s-option value="shapeGrid">Shape grid (animated squares)</s-option>
-                <s-option value="dotField">Dot field (interactive dots)</s-option>
-              </s-select>
-              <s-paragraph tone="subdued">Animated background behind the lookup card.</s-paragraph>
-
-              <s-select
-                label="Layout"
+                label="Card layout"
                 name="guestLookupLayout"
                 value={form.guestLookupLayout}
                 onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
                   set("guestLookupLayout", e.target.value as "classic" | "split")
                 }
               >
-                <s-option value="classic">Classic — form only</s-option>
-                <s-option value="split">Split — image left, form right</s-option>
+                <s-option value="classic">Classic — simple form only</s-option>
+                <s-option value="split">Split — photo on the left, form on the right</s-option>
               </s-select>
-              <s-paragraph tone="subdued">
-                Classic is the original centered form. Split adds a branded image panel beside the form (desktop) or above it (mobile).
-              </s-paragraph>
               {errors.guestLookupLayout && <s-paragraph tone="critical">{errors.guestLookupLayout}</s-paragraph>}
+
+              <s-select
+                label="Page background animation"
+                name="guestBackgroundStyle"
+                value={form.guestBackgroundStyle}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => set("guestBackgroundStyle", e.target.value as "none" | "shapeGrid" | "dotField")}
+              >
+                <s-option value="none">None</s-option>
+                <s-option value="shapeGrid">Shape grid</s-option>
+                <s-option value="dotField">Dot field</s-option>
+              </s-select>
             </s-stack>
           </s-section>
 
           {form.guestLookupLayout === "split" && (
-            <s-section heading="Guest lookup panel">
-              <s-stack direction="block" gap="base">
+            <s-section heading="Photo panel (left side)">
+              <s-stack direction="block" gap="large">
                 <s-paragraph tone="subdued">
-                  Left-side image panel copy and artwork for the split layout.
+                  Customise the image half of the split Find your order card.
                 </s-paragraph>
 
-                <s-text-field
-                  label="Panel headline"
-                  name="guestLookupHeadline"
-                  value={form.guestLookupHeadline}
-                  placeholder="Return your order with ease"
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("guestLookupHeadline", e.target.value)}
-                ></s-text-field>
-                {errors.guestLookupHeadline && <s-paragraph tone="critical">{errors.guestLookupHeadline}</s-paragraph>}
+                <s-box padding="base" border="base" borderRadius="base">
+                  <s-stack direction="block" gap="base">
+                    <s-heading>1. Text on the photo</s-heading>
+                    <s-text-field
+                      label="Headline"
+                      name="guestLookupHeadline"
+                      value={form.guestLookupHeadline}
+                      placeholder="Return your order with ease"
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("guestLookupHeadline", e.target.value)}
+                    ></s-text-field>
+                    {errors.guestLookupHeadline && <s-paragraph tone="critical">{errors.guestLookupHeadline}</s-paragraph>}
+                    <s-text-field
+                      label="Supporting line"
+                      name="guestLookupSubtext"
+                      value={form.guestLookupSubtext}
+                      placeholder="Look up your order in seconds — no account needed."
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("guestLookupSubtext", e.target.value)}
+                    ></s-text-field>
+                    {errors.guestLookupSubtext && <s-paragraph tone="critical">{errors.guestLookupSubtext}</s-paragraph>}
+                  </s-stack>
+                </s-box>
 
-                <s-text-field
-                  label="Panel supporting text"
-                  name="guestLookupSubtext"
-                  value={form.guestLookupSubtext}
-                  placeholder="Look up your order in seconds — no account needed."
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("guestLookupSubtext", e.target.value)}
-                ></s-text-field>
-                {errors.guestLookupSubtext && <s-paragraph tone="critical">{errors.guestLookupSubtext}</s-paragraph>}
-
-                <s-paragraph tone="subdued">Large photo on the left of the Find your order card.</s-paragraph>
-                <s-stack direction="inline" gap="base" alignItems="center">
-                  {form.guestLookupHeroUrl && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      key={form.guestLookupHeroUrl}
-                      src={form.guestLookupHeroUrl}
-                      alt="Guest lookup hero"
-                      style={{ width: 64, height: 48, objectFit: "cover", borderRadius: 6, border: "1px solid #d1d5db" }}
-                      onError={(e) => {
-                        e.currentTarget.style.display = "none"
-                        setErrors((err) => ({ ...err, guestLookupHeroUrl: "This image URL didn't load. Try a different one." }))
-                      }}
-                    />
-                  )}
-                  <s-button
-                    onClick={() => handleChooseFromLibrary("guestLookupHeroUrl")}
-                    disabled={loadingLibraryField === "guestLookupHeroUrl"}
-                  >
-                    {loadingLibraryField === "guestLookupHeroUrl" ? "Loading…" : "Choose hero image"}
-                  </s-button>
-                  {form.guestLookupHeroUrl && (
-                    <s-button
-                      variant="tertiary"
-                      onClick={() => {
-                        set("guestLookupHeroUrl", "")
-                        setErrors((e) => {
-                          const { guestLookupHeroUrl: _, ...rest } = e
-                          return rest
-                        })
-                      }}
-                    >
-                      Use default image
-                    </s-button>
-                  )}
-                </s-stack>
-                <s-url-field
-                  label="Or paste a hero image URL"
-                  name="guestLookupHeroUrl"
-                  value={form.guestLookupHeroUrl}
-                  placeholder="Leave blank for the default returns package image"
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("guestLookupHeroUrl", e.target.value)}
-                ></s-url-field>
-                <s-paragraph tone="subdued">
-                  Opens your Shopify Content → Files library (images only). Product photos that aren&apos;t in Files won&apos;t appear — upload them under Content → Files first, or paste a URL.
-                </s-paragraph>
-                {errors.guestLookupHeroUrl && <s-paragraph tone="critical">{errors.guestLookupHeroUrl}</s-paragraph>}
-
-                <s-number-field
-                  label="Image overlay opacity (%)"
-                  name="guestLookupOverlayOpacity"
-                  min={0}
-                  max={100}
-                  value={form.guestLookupOverlayOpacity}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                    set("guestLookupOverlayOpacity", Number(e.target.value))
-                  }
-                ></s-number-field>
-                <s-paragraph tone="subdued">
-                  Darkens the hero image so white text stays readable. 0 = no veil, 100 = fully black.
-                </s-paragraph>
-                {errors.guestLookupOverlayOpacity && (
-                  <s-paragraph tone="critical">{errors.guestLookupOverlayOpacity}</s-paragraph>
-                )}
-
-                <s-number-field
-                  label="Image blur (px)"
-                  name="guestLookupOverlayBlur"
-                  min={0}
-                  max={24}
-                  value={form.guestLookupOverlayBlur}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                    set("guestLookupOverlayBlur", Number(e.target.value))
-                  }
-                ></s-number-field>
-                <s-paragraph tone="subdued">
-                  Softens the hero image behind the text. 0 = sharp, try 4–12 for a frosted look.
-                </s-paragraph>
-                {errors.guestLookupOverlayBlur && (
-                  <s-paragraph tone="critical">{errors.guestLookupOverlayBlur}</s-paragraph>
-                )}
-
-                <s-select
-                  label="Brand mark on panel"
-                  name="guestLookupBrandDisplay"
-                  value={form.guestLookupBrandDisplay}
-                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-                    set("guestLookupBrandDisplay", e.target.value as "logo" | "text" | "none")
-                  }
-                >
-                  <s-option value="logo">Logo image</s-option>
-                  <s-option value="text">Brand name as text</s-option>
-                  <s-option value="none">Hidden</s-option>
-                </s-select>
-
-                {form.guestLookupBrandDisplay === "logo" && (
-                  <>
+                <s-box padding="base" border="base" borderRadius="base">
+                  <s-stack direction="block" gap="base">
+                    <s-heading>2. Photo</s-heading>
+                    <s-paragraph tone="subdued">
+                      From Shopify Content → Files, or paste a URL. Leave blank for the default package image.
+                    </s-paragraph>
                     <s-stack direction="inline" gap="base" alignItems="center">
-                      {form.guestLookupLogoUrl && (
+                      {form.guestLookupHeroUrl && (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
-                          key={form.guestLookupLogoUrl}
-                          src={form.guestLookupLogoUrl}
-                          alt="Guest lookup logo"
-                          style={{ width: 40, height: 40, objectFit: "contain", borderRadius: 6, border: "1px solid #d1d5db" }}
+                          key={form.guestLookupHeroUrl}
+                          src={form.guestLookupHeroUrl}
+                          alt="Guest lookup hero"
+                          style={{ width: 64, height: 48, objectFit: "cover", borderRadius: 6, border: "1px solid #d1d5db" }}
                           onError={(e) => {
                             e.currentTarget.style.display = "none"
+                            setErrors((err) => ({ ...err, guestLookupHeroUrl: "This image URL didn't load. Try a different one." }))
                           }}
                         />
                       )}
                       <s-button
-                        onClick={() => handleChooseFromLibrary("guestLookupLogoUrl")}
-                        disabled={loadingLibraryField === "guestLookupLogoUrl"}
+                        onClick={() => handleChooseFromLibrary("guestLookupHeroUrl")}
+                        disabled={loadingLibraryField === "guestLookupHeroUrl"}
                       >
-                        {loadingLibraryField === "guestLookupLogoUrl" ? "Loading…" : "Choose panel logo"}
+                        {loadingLibraryField === "guestLookupHeroUrl" ? "Loading…" : "Browse Shopify Files"}
                       </s-button>
-                      {form.guestLookupLogoUrl && (
-                        <s-button variant="tertiary" onClick={() => set("guestLookupLogoUrl", "")}>
-                          {form.logoUrl ? "Use main logo" : "Clear"}
+                      {form.guestLookupHeroUrl && (
+                        <s-button
+                          variant="tertiary"
+                          onClick={() => {
+                            set("guestLookupHeroUrl", "")
+                            setErrors((e) => {
+                              const { guestLookupHeroUrl: _, ...rest } = e
+                              return rest
+                            })
+                          }}
+                        >
+                          Use default
                         </s-button>
                       )}
                     </s-stack>
                     <s-url-field
-                      label="Or paste a panel logo URL"
-                      name="guestLookupLogoUrl"
-                      value={form.guestLookupLogoUrl}
-                      placeholder={
-                        form.logoUrl
-                          ? "Leave blank to use the main Branding logo"
-                          : "Leave blank to show the brand name as text"
-                      }
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("guestLookupLogoUrl", e.target.value)}
+                      label="Photo URL"
+                      name="guestLookupHeroUrl"
+                      value={form.guestLookupHeroUrl}
+                      placeholder="https://cdn.shopify.com/…"
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("guestLookupHeroUrl", e.target.value)}
                     ></s-url-field>
-                    <s-paragraph tone="subdued">
-                      {form.logoUrl
-                        ? "Small logo in the top-left of the hero panel. If blank, uses your store logo from Store identity."
-                        : "Small logo in the top-left of the hero panel. No store logo is set — if this is blank, the brand name shows as text."}
-                    </s-paragraph>
-                    {errors.guestLookupLogoUrl && <s-paragraph tone="critical">{errors.guestLookupLogoUrl}</s-paragraph>}
-                  </>
-                )}
+                    {errors.guestLookupHeroUrl && <s-paragraph tone="critical">{errors.guestLookupHeroUrl}</s-paragraph>}
+                  </s-stack>
+                </s-box>
+
+                <s-box padding="base" border="base" borderRadius="base">
+                  <s-stack direction="block" gap="base">
+                    <s-heading>3. Make text easier to read</s-heading>
+                    <s-number-field
+                      label="Darken photo (%)"
+                      name="guestLookupOverlayOpacity"
+                      min={0}
+                      max={100}
+                      value={form.guestLookupOverlayOpacity}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                        set("guestLookupOverlayOpacity", Number(e.target.value))
+                      }
+                    ></s-number-field>
+                    {errors.guestLookupOverlayOpacity && (
+                      <s-paragraph tone="critical">{errors.guestLookupOverlayOpacity}</s-paragraph>
+                    )}
+                    <s-number-field
+                      label="Blur photo (0–24)"
+                      name="guestLookupOverlayBlur"
+                      min={0}
+                      max={24}
+                      value={form.guestLookupOverlayBlur}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                        set("guestLookupOverlayBlur", Number(e.target.value))
+                      }
+                    ></s-number-field>
+                    {errors.guestLookupOverlayBlur && (
+                      <s-paragraph tone="critical">{errors.guestLookupOverlayBlur}</s-paragraph>
+                    )}
+                  </s-stack>
+                </s-box>
+
+                <s-box padding="base" border="base" borderRadius="base">
+                  <s-stack direction="block" gap="base">
+                    <s-heading>4. Corner brand mark</s-heading>
+                    <s-select
+                      label="Show in the top-left of the photo"
+                      name="guestLookupBrandDisplay"
+                      value={form.guestLookupBrandDisplay}
+                      onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                        set("guestLookupBrandDisplay", e.target.value as "logo" | "text" | "none")
+                      }
+                    >
+                      <s-option value="logo">A logo image</s-option>
+                      <s-option value="text">Brand name as text</s-option>
+                      <s-option value="none">Nothing</s-option>
+                    </s-select>
+
+                    {form.guestLookupBrandDisplay === "logo" && (
+                      <>
+                        <s-paragraph tone="subdued">
+                          Optional override. If empty, uses your store logo (or brand name if you have no logo).
+                        </s-paragraph>
+                        <s-stack direction="inline" gap="base" alignItems="center">
+                          {form.guestLookupLogoUrl && (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              key={form.guestLookupLogoUrl}
+                              src={form.guestLookupLogoUrl}
+                              alt="Guest lookup logo"
+                              style={{ width: 40, height: 40, objectFit: "contain", borderRadius: 6, border: "1px solid #d1d5db" }}
+                              onError={(e) => {
+                                e.currentTarget.style.display = "none"
+                              }}
+                            />
+                          )}
+                          <s-button
+                            onClick={() => handleChooseFromLibrary("guestLookupLogoUrl")}
+                            disabled={loadingLibraryField === "guestLookupLogoUrl"}
+                          >
+                            {loadingLibraryField === "guestLookupLogoUrl" ? "Loading…" : "Browse Shopify Files"}
+                          </s-button>
+                          {form.guestLookupLogoUrl && (
+                            <s-button variant="tertiary" onClick={() => set("guestLookupLogoUrl", "")}>
+                              {form.logoUrl ? "Use store logo" : "Clear"}
+                            </s-button>
+                          )}
+                        </s-stack>
+                        <s-url-field
+                          label="Corner logo URL"
+                          name="guestLookupLogoUrl"
+                          value={form.guestLookupLogoUrl}
+                          placeholder="Optional"
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("guestLookupLogoUrl", e.target.value)}
+                        ></s-url-field>
+                        {errors.guestLookupLogoUrl && <s-paragraph tone="critical">{errors.guestLookupLogoUrl}</s-paragraph>}
+                      </>
+                    )}
+                  </s-stack>
+                </s-box>
               </s-stack>
             </s-section>
           )}
@@ -807,7 +810,7 @@ export function SettingsForm({
             </s-stack>
           </s-section>
 
-          <s-section heading="Guest lookup">
+          <s-section heading="Who sees the lookup form">
             <s-stack direction="block" gap="base">
               <s-checkbox
                 label="Always show the order lookup form, even for logged-in customers"
@@ -816,10 +819,7 @@ export function SettingsForm({
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("alwaysShowGuestLookup", e.target.checked)}
               ></s-checkbox>
               <s-paragraph tone="subdued">
-                When on, a logged-in customer visiting the returns portal directly sees the order lookup form (order
-                number + email — no postcode needed, since we already know they're logged in) instead of their full
-                order history. When off, logged-in customers see their full order list as normal. Guests (not logged
-                in) always need order number, email and postcode — that isn't configurable.
+                Off = logged-in customers see their full order list. On = everyone starts on Find your order (layout &amp; photo are under Branding).
               </s-paragraph>
             </s-stack>
           </s-section>
