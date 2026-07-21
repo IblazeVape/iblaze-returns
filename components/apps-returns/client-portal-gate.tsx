@@ -35,6 +35,10 @@ export type InitialBranding = {
   guestLookupLogoUrl: string
   guestLookupOverlayOpacity: number
   guestLookupOverlayBlur: number
+  guestLookupSnakeBorder: boolean
+  guestLookupSideStyle: "image" | "gradient"
+  guestLookupGradientFrom: string
+  guestLookupGradientTo: string
 }
 
 export type GateInitial =
@@ -177,6 +181,10 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
             subtext={initial.branding.guestLookupSubtext}
             overlayOpacity={initial.branding.guestLookupOverlayOpacity}
             overlayBlur={initial.branding.guestLookupOverlayBlur}
+            snakeBorder={initial.branding.guestLookupSnakeBorder}
+            sideStyle={initial.branding.guestLookupSideStyle}
+            gradientFrom={initial.branding.guestLookupGradientFrom}
+            gradientTo={initial.branding.guestLookupGradientTo}
             loginUrl={loginUrl}
             onVerified={(token, order) => {
               storeAppsReturnsSession(token);
@@ -218,6 +226,10 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
             subtext={initial.branding.guestLookupSubtext}
             overlayOpacity={initial.branding.guestLookupOverlayOpacity}
             overlayBlur={initial.branding.guestLookupOverlayBlur}
+            snakeBorder={initial.branding.guestLookupSnakeBorder}
+            sideStyle={initial.branding.guestLookupSideStyle}
+            gradientFrom={initial.branding.guestLookupGradientFrom}
+            gradientTo={initial.branding.guestLookupGradientTo}
             onVerified={(token, order) => {
               storeAppsReturnsSession(token);
               setCachedAccentColor(initial.branding.accentColor);

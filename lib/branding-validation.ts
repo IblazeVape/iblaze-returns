@@ -76,6 +76,10 @@ export type BrandingInput = {
   guestLookupLogoUrl: string;
   guestLookupOverlayOpacity: number;
   guestLookupOverlayBlur: number;
+  guestLookupSnakeBorder: boolean;
+  guestLookupSideStyle: "image" | "gradient";
+  guestLookupGradientFrom: string;
+  guestLookupGradientTo: string;
   defaultOrderView: "list" | "grid";
   sidebarDefaultOpenOnDesktop: boolean;
   statusFilterEnabled: boolean;
@@ -165,6 +169,20 @@ export function validateBrandingInput(
   ) {
     errors.guestLookupOverlayBlur = "Must be a whole number from 0 to 24.";
   }
+
+  if (typeof input.guestLookupSnakeBorder !== "boolean") {
+    errors.guestLookupSnakeBorder = "Must be true or false.";
+  }
+  if (input.guestLookupSideStyle !== "image" && input.guestLookupSideStyle !== "gradient") {
+    errors.guestLookupSideStyle = "Must be image or gradient.";
+  }
+  if (!HEX_COLOR_RE.test(input.guestLookupGradientFrom)) {
+    errors.guestLookupGradientFrom = "Must be a hex color like #0F172A.";
+  }
+  if (!HEX_COLOR_RE.test(input.guestLookupGradientTo)) {
+    errors.guestLookupGradientTo = "Must be a hex color like #334155.";
+  }
+
   if (input.storefrontUrl && !isValidUrl(input.storefrontUrl)) {
     errors.storefrontUrl = "Must be a valid URL.";
   }

@@ -159,6 +159,22 @@ export async function PUT(request: NextRequest) {
       typeof body.guestLookupOverlayBlur === "number" && Number.isFinite(body.guestLookupOverlayBlur)
         ? Math.round(body.guestLookupOverlayBlur)
         : existing.branding.guestLookupOverlayBlur,
+    guestLookupSnakeBorder:
+      typeof body.guestLookupSnakeBorder === "boolean"
+        ? body.guestLookupSnakeBorder
+        : existing.branding.guestLookupSnakeBorder,
+    guestLookupSideStyle:
+      body.guestLookupSideStyle === "image" || body.guestLookupSideStyle === "gradient"
+        ? body.guestLookupSideStyle
+        : existing.branding.guestLookupSideStyle,
+    guestLookupGradientFrom:
+      typeof body.guestLookupGradientFrom === "string"
+        ? body.guestLookupGradientFrom
+        : existing.branding.guestLookupGradientFrom,
+    guestLookupGradientTo:
+      typeof body.guestLookupGradientTo === "string"
+        ? body.guestLookupGradientTo
+        : existing.branding.guestLookupGradientTo,
     defaultOrderView:
       body.defaultOrderView === "list" || body.defaultOrderView === "grid" ? body.defaultOrderView : existing.branding.defaultOrderView,
     sidebarDefaultOpenOnDesktop:
@@ -237,6 +253,10 @@ export async function PUT(request: NextRequest) {
       guestLookupLogoUrl: input.guestLookupLogoUrl,
       guestLookupOverlayOpacity: input.guestLookupOverlayOpacity,
       guestLookupOverlayBlur: input.guestLookupOverlayBlur,
+      guestLookupSnakeBorder: input.guestLookupSnakeBorder,
+      guestLookupSideStyle: input.guestLookupSideStyle,
+      guestLookupGradientFrom: input.guestLookupGradientFrom,
+      guestLookupGradientTo: input.guestLookupGradientTo,
       defaultOrderView: input.defaultOrderView,
       sidebarDefaultOpenOnDesktop: input.sidebarDefaultOpenOnDesktop,
       statusFilterEnabled: input.statusFilterEnabled,

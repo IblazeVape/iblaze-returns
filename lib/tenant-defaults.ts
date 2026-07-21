@@ -138,6 +138,14 @@ export type TenantBranding = {
   guestLookupOverlayOpacity: number;
   /** Backdrop blur on the hero image in pixels (0–24). */
   guestLookupOverlayBlur: number;
+  /** Animated conic “snake” border around the lookup card. */
+  guestLookupSnakeBorder: boolean;
+  /** Split left panel: photo or colour gradient. */
+  guestLookupSideStyle: "image" | "gradient";
+  /** Gradient start colour (hex) when side style is gradient. */
+  guestLookupGradientFrom: string;
+  /** Gradient end colour (hex) when side style is gradient. */
+  guestLookupGradientTo: string;
   defaultOrderView: "list" | "grid";
   sidebarDefaultOpenOnDesktop: boolean;
   statusFilterEnabled: boolean;
@@ -204,6 +212,10 @@ export const DEFAULT_TENANT_FIELDS = {
     guestLookupLogoUrl: "",
     guestLookupOverlayOpacity: 40,
     guestLookupOverlayBlur: 0,
+    guestLookupSnakeBorder: true,
+    guestLookupSideStyle: "image",
+    guestLookupGradientFrom: "#0f172a",
+    guestLookupGradientTo: "#334155",
     defaultOrderView: "grid",
     sidebarDefaultOpenOnDesktop: true,
     statusFilterEnabled: true,

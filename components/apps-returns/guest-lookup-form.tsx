@@ -26,6 +26,7 @@ type GuestOrder = {
 
 export type GuestLookupLayout = "classic" | "split";
 export type GuestLookupBrandDisplay = "logo" | "text" | "none";
+export type GuestLookupSideStyle = "image" | "gradient";
 
 function defaultGuestLookupHeroSrc() {
   const raw = (process.env.NEXT_PUBLIC_APP_URL || "").replace(/\/$/, "");
@@ -50,6 +51,10 @@ export function GuestLookupForm({
   brandDisplay = "logo",
   overlayOpacity = 40,
   overlayBlur = 0,
+  snakeBorder = true,
+  sideStyle = "image",
+  gradientFrom = "#0f172a",
+  gradientTo = "#334155",
   interactive = true,
 }: {
   onVerified: (token: string, order: GuestOrder) => void;
@@ -65,6 +70,10 @@ export function GuestLookupForm({
   brandDisplay?: GuestLookupBrandDisplay;
   overlayOpacity?: number;
   overlayBlur?: number;
+  snakeBorder?: boolean;
+  sideStyle?: "image" | "gradient";
+  gradientFrom?: string;
+  gradientTo?: string;
   interactive?: boolean;
 }) {
   const [orderNumber, setOrderNumber] = useState("");
@@ -197,16 +206,30 @@ export function GuestLookupForm({
     </Card>
   );
 
+  const useGradient = sideStyle === "gradient";
+  const sideBackground = useGradient
+    ? {
+        backgroundImage: `linear-gradient(145deg, ${gradientFrom} 0%, ${gradientTo} 100%)`,
+      }
+    : undefined;
+
   const splitInner = (
     <div className="flex flex-col min-[720px]:flex-row min-[720px]:min-h-[420px]">
-      <div className="relative h-40 w-full shrink-0 overflow-hidden bg-zinc-900 min-[720px]:h-auto min-[720px]:w-[44%]">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={heroSrc}
-          alt=""
-          className="absolute inset-0 size-full object-cover object-center"
-          style={blurPx > 0 ? { filter: `blur(${blurPx}px)`, transform: "scale(1.06)" } : undefined}
-        />
+      <div
+        className="relative h-40 w-full shrink-0 overflow-hidden bg-zinc-900 min-[720px]:h-auto min-[720px]:w-[44%]"
+        style={sideBackground}
+      >
+        {!useGradient ? (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={heroSrc}
+              alt=""
+              className="absolute inset-0 size-full object-cover object-center"
+              style={blurPx > 0 ? { filter: `blur(${blurPx}px)`, transform: "scale(1.06)" } : undefined}
+            />
+          </>
+        ) : null}
         <div
           aria-hidden
           className="absolute inset-0"
@@ -267,7 +290,7 @@ export function GuestLookupForm({
       aria-hidden={lockUi || undefined}
     >
       <div className="absolute inset-0 rounded-2xl" style={{ background: "hsl(var(--border))" }} aria-hidden />
-      {!lockUi ? (
+      {snakeBorder && !lockUi ? (
         <motion.div
           className="absolute pointer-events-none"
           style={{

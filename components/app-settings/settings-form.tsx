@@ -8,6 +8,7 @@ import { STATUS_ICON_NAMES } from "@/lib/status-icons"
 import { RichTextEditor } from "@/components/app-settings/rich-text-editor"
 import { DEFAULT_TENANT_FIELDS } from "@/lib/tenant-defaults"
 import { migrateMarkdownIfNeeded } from "@/lib/markdown-to-html"
+import { GUEST_LOOKUP_GRADIENT_PRESETS, matchGuestLookupGradientPreset } from "@/lib/guest-lookup-gradients"
 
 /** RETURN_STATUS_CARDS drives the "Return status" section (6 cards, each with
  * label/heading/icon/color, plus a per-status sentence for returnRequested,
@@ -57,6 +58,7 @@ const TAB_FIELDS: Record<SettingsTab, (keyof BrandingInput)[]> = {
     "name", "logoUrl", "accentColor", "storefrontUrl", "supportEmail", "guestBackgroundStyle",
     "guestLookupLayout", "guestLookupHeadline", "guestLookupSubtext", "guestLookupHeroUrl",
     "guestLookupBrandDisplay", "guestLookupLogoUrl", "guestLookupOverlayOpacity", "guestLookupOverlayBlur",
+    "guestLookupSnakeBorder", "guestLookupSideStyle", "guestLookupGradientFrom", "guestLookupGradientTo",
   ],
   returns: [
     "returnWindowDays", "requirePolicyAcceptance", "alwaysShowGuestLookup",
@@ -525,7 +527,12 @@ export function SettingsForm({
                   <s-heading>Find your order card</s-heading>
                   <s-paragraph color="subdued">
                     {[
-                      form.guestLookupLayout === "split" ? "Split photo + form" : "Classic form",
+                      form.guestLookupLayout === "split"
+                        ? form.guestLookupSideStyle === "gradient"
+                          ? "Split gradient + form"
+                          : "Split photo + form"
+                        : "Classic form",
+                      form.guestLookupSnakeBorder ? "Snake border" : "Plain border",
                       form.guestBackgroundStyle === "shapeGrid"
                         ? "Shape grid"
                         : form.guestBackgroundStyle === "dotField"
@@ -640,6 +647,15 @@ export function SettingsForm({
                     <s-option value="shapeGrid">Shape grid</s-option>
                     <s-option value="dotField">Dot field</s-option>
                   </s-select>
+
+                  <s-checkbox
+                    label="Animated snake border around the card"
+                    name="guestLookupSnakeBorder"
+                    checked={form.guestLookupSnakeBorder}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      set("guestLookupSnakeBorder", e.target.checked)
+                    }
+                  ></s-checkbox>
                 </s-stack>
 
                 {form.guestLookupLayout === "split" && (
@@ -667,53 +683,179 @@ export function SettingsForm({
 
                     <s-divider></s-divider>
                     <s-stack direction="block" gap="base">
-                      <s-heading>Photo</s-heading>
-                      <s-stack direction="inline" gap="base" alignItems="center">
-                        {form.guestLookupHeroUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            key={form.guestLookupHeroUrl}
-                            src={form.guestLookupHeroUrl}
-                            alt=""
-                            style={{ width: 72, height: 54, objectFit: "cover", borderRadius: 6, border: "1px solid #d1d5db" }}
-                            onError={(e) => {
-                              e.currentTarget.style.display = "none"
-                              setErrors((err) => ({ ...err, guestLookupHeroUrl: "This image URL didn't load. Try a different one." }))
-                            }}
-                          />
-                        ) : null}
-                        <s-button
-                          onClick={() => handleChooseFromLibrary("guestLookupHeroUrl")}
-                          disabled={loadingLibraryField === "guestLookupHeroUrl"}
-                        >
-                          {loadingLibraryField === "guestLookupHeroUrl" ? "Loading…" : "Browse Files for photo"}
-                        </s-button>
-                        {form.guestLookupHeroUrl ? (
-                          <s-button
-                            variant="tertiary"
-                            onClick={() => {
-                              set("guestLookupHeroUrl", "")
-                              setErrors((e) => {
-                                const { guestLookupHeroUrl: _, ...rest } = e
-                                return rest
-                              })
+                      <s-heading>Side panel</s-heading>
+                      <s-select
+                        label="Panel background"
+                        name="guestLookupSideStyle"
+                        value={form.guestLookupSideStyle}
+                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                          set("guestLookupSideStyle", e.target.value as "image" | "gradient")
+                        }
+                      >
+                        <s-option value="image">Photo</s-option>
+                        <s-option value="gradient">Colour gradient</s-option>
+                      </s-select>
+                      {errors.guestLookupSideStyle && <s-paragraph tone="critical">{errors.guestLookupSideStyle}</s-paragraph>}
+
+                      {form.guestLookupSideStyle === "gradient" ? (
+                        <>
+                          <s-paragraph color="subdued">Presets</s-paragraph>
+                          <div
+                            style={{
+                              display: "grid",
+                              gridTemplateColumns: "repeat(auto-fill, minmax(72px, 1fr))",
+                              gap: 8,
                             }}
                           >
-                            Use default
-                          </s-button>
-                        ) : null}
-                      </s-stack>
-                      <s-url-field
-                        label="Photo URL"
-                        name="guestLookupHeroUrl"
-                        value={form.guestLookupHeroUrl}
-                        placeholder="Blank = default package image"
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("guestLookupHeroUrl", e.target.value)}
-                      ></s-url-field>
-                      {errors.guestLookupHeroUrl && <s-paragraph tone="critical">{errors.guestLookupHeroUrl}</s-paragraph>}
+                            {GUEST_LOOKUP_GRADIENT_PRESETS.map((preset) => {
+                              const selected =
+                                matchGuestLookupGradientPreset(
+                                  form.guestLookupGradientFrom,
+                                  form.guestLookupGradientTo,
+                                )?.id === preset.id
+                              return (
+                                <button
+                                  key={preset.id}
+                                  type="button"
+                                  title={preset.label}
+                                  aria-label={`Use ${preset.label} gradient`}
+                                  aria-pressed={selected}
+                                  onClick={() => {
+                                    set("guestLookupGradientFrom", preset.from)
+                                    set("guestLookupGradientTo", preset.to)
+                                    setErrors((e) => {
+                                      const { guestLookupGradientFrom: _a, guestLookupGradientTo: _b, ...rest } = e
+                                      return rest
+                                    })
+                                  }}
+                                  style={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    alignItems: "stretch",
+                                    gap: 4,
+                                    padding: 0,
+                                    border: selected ? "2px solid #1a1a1a" : "1px solid #d1d5db",
+                                    borderRadius: 8,
+                                    background: "transparent",
+                                    cursor: "pointer",
+                                    fontFamily: "inherit",
+                                    overflow: "hidden",
+                                  }}
+                                >
+                                  <span
+                                    aria-hidden
+                                    style={{
+                                      display: "block",
+                                      height: 40,
+                                      backgroundImage: `linear-gradient(145deg, ${preset.from} 0%, ${preset.to} 100%)`,
+                                    }}
+                                  />
+                                  <span
+                                    style={{
+                                      fontSize: 10,
+                                      lineHeight: 1.2,
+                                      padding: "0 4px 6px",
+                                      color: "#6b6b6b",
+                                      textAlign: "center",
+                                      whiteSpace: "nowrap",
+                                      overflow: "hidden",
+                                      textOverflow: "ellipsis",
+                                    }}
+                                  >
+                                    {preset.label}
+                                  </span>
+                                </button>
+                              )
+                            })}
+                          </div>
+
+                          <s-paragraph color="subdued">Or customise</s-paragraph>
+                          <s-color-field
+                            label="Gradient start"
+                            name="guestLookupGradientFrom"
+                            value={form.guestLookupGradientFrom}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                              set("guestLookupGradientFrom", e.target.value)
+                            }
+                          ></s-color-field>
+                          {errors.guestLookupGradientFrom && (
+                            <s-paragraph tone="critical">{errors.guestLookupGradientFrom}</s-paragraph>
+                          )}
+                          <s-color-field
+                            label="Gradient end"
+                            name="guestLookupGradientTo"
+                            value={form.guestLookupGradientTo}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                              set("guestLookupGradientTo", e.target.value)
+                            }
+                          ></s-color-field>
+                          {errors.guestLookupGradientTo && (
+                            <s-paragraph tone="critical">{errors.guestLookupGradientTo}</s-paragraph>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <s-stack direction="inline" gap="base" alignItems="center">
+                            {form.guestLookupHeroUrl ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                key={form.guestLookupHeroUrl}
+                                src={form.guestLookupHeroUrl}
+                                alt=""
+                                style={{ width: 72, height: 54, objectFit: "cover", borderRadius: 6, border: "1px solid #d1d5db" }}
+                                onError={(e) => {
+                                  e.currentTarget.style.display = "none"
+                                  setErrors((err) => ({ ...err, guestLookupHeroUrl: "This image URL didn't load. Try a different one." }))
+                                }}
+                              />
+                            ) : null}
+                            <s-button
+                              onClick={() => handleChooseFromLibrary("guestLookupHeroUrl")}
+                              disabled={loadingLibraryField === "guestLookupHeroUrl"}
+                            >
+                              {loadingLibraryField === "guestLookupHeroUrl" ? "Loading…" : "Browse Files for photo"}
+                            </s-button>
+                            {form.guestLookupHeroUrl ? (
+                              <s-button
+                                variant="tertiary"
+                                onClick={() => {
+                                  set("guestLookupHeroUrl", "")
+                                  setErrors((e) => {
+                                    const { guestLookupHeroUrl: _, ...rest } = e
+                                    return rest
+                                  })
+                                }}
+                              >
+                                Use default
+                              </s-button>
+                            ) : null}
+                          </s-stack>
+                          <s-url-field
+                            label="Photo URL"
+                            name="guestLookupHeroUrl"
+                            value={form.guestLookupHeroUrl}
+                            placeholder="Blank = default package image"
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("guestLookupHeroUrl", e.target.value)}
+                          ></s-url-field>
+                          {errors.guestLookupHeroUrl && <s-paragraph tone="critical">{errors.guestLookupHeroUrl}</s-paragraph>}
+                          <s-number-field
+                            label="Blur photo (0–24)"
+                            name="guestLookupOverlayBlur"
+                            min={0}
+                            max={24}
+                            value={form.guestLookupOverlayBlur}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                              set("guestLookupOverlayBlur", Number(e.target.value))
+                            }
+                          ></s-number-field>
+                          {errors.guestLookupOverlayBlur && (
+                            <s-paragraph tone="critical">{errors.guestLookupOverlayBlur}</s-paragraph>
+                          )}
+                        </>
+                      )}
 
                       <s-number-field
-                        label="Darken photo (%)"
+                        label="Darken panel (%)"
                         name="guestLookupOverlayOpacity"
                         min={0}
                         max={100}
@@ -724,19 +866,6 @@ export function SettingsForm({
                       ></s-number-field>
                       {errors.guestLookupOverlayOpacity && (
                         <s-paragraph tone="critical">{errors.guestLookupOverlayOpacity}</s-paragraph>
-                      )}
-                      <s-number-field
-                        label="Blur photo (0–24)"
-                        name="guestLookupOverlayBlur"
-                        min={0}
-                        max={24}
-                        value={form.guestLookupOverlayBlur}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                          set("guestLookupOverlayBlur", Number(e.target.value))
-                        }
-                      ></s-number-field>
-                      {errors.guestLookupOverlayBlur && (
-                        <s-paragraph tone="critical">{errors.guestLookupOverlayBlur}</s-paragraph>
                       )}
                     </s-stack>
 

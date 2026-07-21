@@ -34,6 +34,10 @@ const PREVIEW_BRANDING: InitialBranding = {
   guestLookupLogoUrl: "",
   guestLookupOverlayOpacity: 40,
   guestLookupOverlayBlur: 0,
+  guestLookupSnakeBorder: true,
+  guestLookupSideStyle: "image",
+  guestLookupGradientFrom: "#0f172a",
+  guestLookupGradientTo: "#334155",
 };
 
 function GuestLookupDemoInner() {
@@ -51,6 +55,10 @@ function GuestLookupDemoInner() {
         subtext={PREVIEW_BRANDING.guestLookupSubtext}
         overlayOpacity={PREVIEW_BRANDING.guestLookupOverlayOpacity}
         overlayBlur={PREVIEW_BRANDING.guestLookupOverlayBlur}
+        snakeBorder={PREVIEW_BRANDING.guestLookupSnakeBorder}
+        sideStyle={PREVIEW_BRANDING.guestLookupSideStyle}
+        gradientFrom={PREVIEW_BRANDING.guestLookupGradientFrom}
+        gradientTo={PREVIEW_BRANDING.guestLookupGradientTo}
         loginUrl="#login-preview"
         onVerified={() => {}}
       />
