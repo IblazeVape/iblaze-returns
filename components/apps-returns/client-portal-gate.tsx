@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import DashboardClient from "@/components/dashboard-client";
 import { GuestLookupForm } from "@/components/apps-returns/guest-lookup-form";
 import { GuestPortalShell } from "@/components/apps-returns/guest-portal-shell";
@@ -246,18 +246,13 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
   }
 }
 
-/** Guest lookup disabled — send the browser to the storefront login. */
+/** Guest lookup disabled — send the browser to storefront login with no interstitial. */
 function RedirectToStoreLogin() {
-  useEffect(() => {
+  useLayoutEffect(() => {
     const loginUrl = `/account/login?return_url=${encodeURIComponent("/apps/returns")}`;
     window.location.replace(loginUrl);
   }, []);
-  return (
-    <Notice
-      title="Sign in to continue"
-      body="This store requires a Shopify account to start a return. Taking you to login…"
-    />
-  );
+  return null;
 }
 
 function Notice({ title, body }: { title: string; body: string }) {
