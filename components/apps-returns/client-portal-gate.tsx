@@ -33,6 +33,8 @@ export type InitialBranding = {
   guestLookupHeroUrl: string
   guestLookupBrandDisplay: "logo" | "text" | "none"
   guestLookupLogoUrl: string
+  guestLookupOverlayOpacity: number
+  guestLookupOverlayBlur: number
 }
 
 export type GateInitial =
@@ -173,6 +175,8 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
             heroImageUrl={initial.branding.guestLookupHeroUrl || undefined}
             headline={initial.branding.guestLookupHeadline}
             subtext={initial.branding.guestLookupSubtext}
+            overlayOpacity={initial.branding.guestLookupOverlayOpacity}
+            overlayBlur={initial.branding.guestLookupOverlayBlur}
             loginUrl={loginUrl}
             onVerified={(token, order) => {
               storeAppsReturnsSession(token);
@@ -212,6 +216,8 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
             heroImageUrl={initial.branding.guestLookupHeroUrl || undefined}
             headline={initial.branding.guestLookupHeadline}
             subtext={initial.branding.guestLookupSubtext}
+            overlayOpacity={initial.branding.guestLookupOverlayOpacity}
+            overlayBlur={initial.branding.guestLookupOverlayBlur}
             onVerified={(token, order) => {
               storeAppsReturnsSession(token);
               setCachedAccentColor(initial.branding.accentColor);

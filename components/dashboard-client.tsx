@@ -4182,6 +4182,8 @@ function DashboardClientInner() {
     guestLookupHeroUrl: "",
     guestLookupBrandDisplay: "logo",
     guestLookupLogoUrl: "",
+    guestLookupOverlayOpacity: 40,
+    guestLookupOverlayBlur: 0,
     defaultOrderView: "grid", sidebarDefaultOpenOnDesktop: true, statusFilterEnabled: true,
     ineligibleMessageEnabled: true, sidebarAvatarEnabled: true, headerAvatarEnabled: true,
     eligibleLabel: "Eligible", ineligibleLabel: "Ineligible",

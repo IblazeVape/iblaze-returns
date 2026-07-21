@@ -74,6 +74,8 @@ export type BrandingInput = {
   guestLookupHeroUrl: string;
   guestLookupBrandDisplay: "logo" | "text" | "none";
   guestLookupLogoUrl: string;
+  guestLookupOverlayOpacity: number;
+  guestLookupOverlayBlur: number;
   defaultOrderView: "list" | "grid";
   sidebarDefaultOpenOnDesktop: boolean;
   statusFilterEnabled: boolean;
@@ -148,6 +150,20 @@ export function validateBrandingInput(
     input.guestLookupBrandDisplay !== "none"
   ) {
     errors.guestLookupBrandDisplay = "Must be logo, text, or none.";
+  }
+  if (
+    !Number.isInteger(input.guestLookupOverlayOpacity) ||
+    input.guestLookupOverlayOpacity < 0 ||
+    input.guestLookupOverlayOpacity > 100
+  ) {
+    errors.guestLookupOverlayOpacity = "Must be a whole number from 0 to 100.";
+  }
+  if (
+    !Number.isInteger(input.guestLookupOverlayBlur) ||
+    input.guestLookupOverlayBlur < 0 ||
+    input.guestLookupOverlayBlur > 24
+  ) {
+    errors.guestLookupOverlayBlur = "Must be a whole number from 0 to 24.";
   }
   if (input.storefrontUrl && !isValidUrl(input.storefrontUrl)) {
     errors.storefrontUrl = "Must be a valid URL.";

@@ -44,6 +44,8 @@ const VALID: BrandingInput = {
   guestLookupHeroUrl: "",
   guestLookupBrandDisplay: "logo",
   guestLookupLogoUrl: "",
+  guestLookupOverlayOpacity: 40,
+  guestLookupOverlayBlur: 0,
   defaultOrderView: "grid",
   sidebarDefaultOpenOnDesktop: true,
   statusFilterEnabled: true,

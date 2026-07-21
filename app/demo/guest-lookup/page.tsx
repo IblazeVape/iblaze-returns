@@ -32,6 +32,8 @@ const PREVIEW_BRANDING: InitialBranding = {
   guestLookupHeroUrl: "",
   guestLookupBrandDisplay: "logo",
   guestLookupLogoUrl: "",
+  guestLookupOverlayOpacity: 40,
+  guestLookupOverlayBlur: 0,
 };
 
 function GuestLookupDemoInner() {
@@ -47,6 +49,8 @@ function GuestLookupDemoInner() {
         brandDisplay="logo"
         headline={PREVIEW_BRANDING.guestLookupHeadline}
         subtext={PREVIEW_BRANDING.guestLookupSubtext}
+        overlayOpacity={PREVIEW_BRANDING.guestLookupOverlayOpacity}
+        overlayBlur={PREVIEW_BRANDING.guestLookupOverlayBlur}
         loginUrl="#login-preview"
         onVerified={() => {}}
       />

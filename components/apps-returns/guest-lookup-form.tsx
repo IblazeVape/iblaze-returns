@@ -60,6 +60,8 @@ export function GuestLookupForm({
   headline = "Return your order with ease",
   subtext = "Look up your order in seconds — no account needed.",
   brandDisplay = "logo",
+  overlayOpacity = 40,
+  overlayBlur = 0,
 }: {
   onVerified: (token: string, order: GuestOrder) => void;
   requirePostcode?: boolean;
@@ -72,6 +74,10 @@ export function GuestLookupForm({
   headline?: string;
   subtext?: string;
   brandDisplay?: GuestLookupBrandDisplay;
+  /** 0–100 black veil over the hero image. */
+  overlayOpacity?: number;
+  /** 0–24 backdrop blur in pixels. */
+  overlayBlur?: number;
 }) {
   const [orderNumber, setOrderNumber] = useState("");
   const [email, setEmail] = useState("");
@@ -191,6 +197,8 @@ export function GuestLookupForm({
   }
 
   const showBrandMark = brandDisplay !== "none" && (brandDisplay === "text" ? !!brandName : !!(logoUrl || brandName));
+  const veilOpacity = Math.min(100, Math.max(0, overlayOpacity)) / 100;
+  const blurPx = Math.min(24, Math.max(0, overlayBlur));
 
   return (
     <div className="relative w-full max-w-4xl mx-4 overflow-hidden rounded-2xl p-px shadow-xl">
@@ -218,10 +226,13 @@ export function GuestLookupForm({
               src={heroSrc}
               alt=""
               className="absolute inset-0 size-full object-cover object-center"
+              style={blurPx > 0 ? { filter: `blur(${blurPx}px)`, transform: "scale(1.06)" } : undefined}
             />
+            {/* Dark veil — merchant-controlled opacity for text contrast */}
             <div
               aria-hidden
-              className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/55 to-transparent"
+              className="absolute inset-0"
+              style={{ backgroundColor: `rgba(0, 0, 0, ${veilOpacity})` }}
             />
 
             {showBrandMark && (

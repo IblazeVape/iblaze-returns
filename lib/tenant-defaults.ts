@@ -134,6 +134,10 @@ export type TenantBranding = {
   guestLookupBrandDisplay: "logo" | "text" | "none";
   /** Optional panel logo override. Empty = fall back to logoUrl. */
   guestLookupLogoUrl: string;
+  /** Black veil over the hero image (0–100). Higher = darker / easier text. */
+  guestLookupOverlayOpacity: number;
+  /** Backdrop blur on the hero image in pixels (0–24). */
+  guestLookupOverlayBlur: number;
   defaultOrderView: "list" | "grid";
   sidebarDefaultOpenOnDesktop: boolean;
   statusFilterEnabled: boolean;
@@ -198,6 +202,8 @@ export const DEFAULT_TENANT_FIELDS = {
     guestLookupHeroUrl: "",
     guestLookupBrandDisplay: "logo",
     guestLookupLogoUrl: "",
+    guestLookupOverlayOpacity: 40,
+    guestLookupOverlayBlur: 0,
     defaultOrderView: "grid",
     sidebarDefaultOpenOnDesktop: true,
     statusFilterEnabled: true,

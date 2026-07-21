@@ -56,7 +56,7 @@ const TAB_FIELDS: Record<SettingsTab, (keyof BrandingInput)[]> = {
   branding: [
     "name", "logoUrl", "accentColor", "storefrontUrl", "supportEmail", "guestBackgroundStyle",
     "guestLookupLayout", "guestLookupHeadline", "guestLookupSubtext", "guestLookupHeroUrl",
-    "guestLookupBrandDisplay", "guestLookupLogoUrl",
+    "guestLookupBrandDisplay", "guestLookupLogoUrl", "guestLookupOverlayOpacity", "guestLookupOverlayBlur",
   ],
   returns: [
     "returnWindowDays", "requirePolicyAcceptance", "alwaysShowGuestLookup",
@@ -674,6 +674,40 @@ export function SettingsForm({
                 ></s-url-field>
                 <s-paragraph tone="subdued">Pick from your Shopify media library, or paste a URL. Blank uses the built-in default.</s-paragraph>
                 {errors.guestLookupHeroUrl && <s-paragraph tone="critical">{errors.guestLookupHeroUrl}</s-paragraph>}
+
+                <s-number-field
+                  label="Image overlay opacity (%)"
+                  name="guestLookupOverlayOpacity"
+                  min={0}
+                  max={100}
+                  value={form.guestLookupOverlayOpacity}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    set("guestLookupOverlayOpacity", Number(e.target.value))
+                  }
+                ></s-number-field>
+                <s-paragraph tone="subdued">
+                  Darkens the hero image so white text stays readable. 0 = no veil, 100 = fully black.
+                </s-paragraph>
+                {errors.guestLookupOverlayOpacity && (
+                  <s-paragraph tone="critical">{errors.guestLookupOverlayOpacity}</s-paragraph>
+                )}
+
+                <s-number-field
+                  label="Image blur (px)"
+                  name="guestLookupOverlayBlur"
+                  min={0}
+                  max={24}
+                  value={form.guestLookupOverlayBlur}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    set("guestLookupOverlayBlur", Number(e.target.value))
+                  }
+                ></s-number-field>
+                <s-paragraph tone="subdued">
+                  Softens the hero image behind the text. 0 = sharp, try 4–12 for a frosted look.
+                </s-paragraph>
+                {errors.guestLookupOverlayBlur && (
+                  <s-paragraph tone="critical">{errors.guestLookupOverlayBlur}</s-paragraph>
+                )}
 
                 <s-select
                   label="Brand mark on panel"

@@ -151,6 +151,14 @@ export async function PUT(request: NextRequest) {
         : existing.branding.guestLookupBrandDisplay,
     guestLookupLogoUrl:
       typeof body.guestLookupLogoUrl === "string" ? body.guestLookupLogoUrl : existing.branding.guestLookupLogoUrl,
+    guestLookupOverlayOpacity:
+      typeof body.guestLookupOverlayOpacity === "number" && Number.isFinite(body.guestLookupOverlayOpacity)
+        ? Math.round(body.guestLookupOverlayOpacity)
+        : existing.branding.guestLookupOverlayOpacity,
+    guestLookupOverlayBlur:
+      typeof body.guestLookupOverlayBlur === "number" && Number.isFinite(body.guestLookupOverlayBlur)
+        ? Math.round(body.guestLookupOverlayBlur)
+        : existing.branding.guestLookupOverlayBlur,
     defaultOrderView:
       body.defaultOrderView === "list" || body.defaultOrderView === "grid" ? body.defaultOrderView : existing.branding.defaultOrderView,
     sidebarDefaultOpenOnDesktop:
@@ -227,6 +235,8 @@ export async function PUT(request: NextRequest) {
       guestLookupHeroUrl: input.guestLookupHeroUrl,
       guestLookupBrandDisplay: input.guestLookupBrandDisplay,
       guestLookupLogoUrl: input.guestLookupLogoUrl,
+      guestLookupOverlayOpacity: input.guestLookupOverlayOpacity,
+      guestLookupOverlayBlur: input.guestLookupOverlayBlur,
       defaultOrderView: input.defaultOrderView,
       sidebarDefaultOpenOnDesktop: input.sidebarDefaultOpenOnDesktop,
       statusFilterEnabled: input.statusFilterEnabled,

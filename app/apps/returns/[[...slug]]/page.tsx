@@ -69,6 +69,8 @@ export default async function AppProxyReturnsPage({
         guestLookupHeroUrl: tenant.branding.guestLookupHeroUrl,
         guestLookupBrandDisplay: tenant.branding.guestLookupBrandDisplay,
         guestLookupLogoUrl: tenant.branding.guestLookupLogoUrl,
+        guestLookupOverlayOpacity: tenant.branding.guestLookupOverlayOpacity,
+        guestLookupOverlayBlur: tenant.branding.guestLookupOverlayBlur,
       };
       initial = loggedInCustomerId
         ? { kind: "logged-in-lookup", branding }
