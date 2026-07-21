@@ -167,7 +167,7 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
     case "guest-login-required":
       return <RedirectToStoreLogin />;
     case "guest-or-login": {
-      const loginUrl = `/account/login?return_url=${encodeURIComponent("/apps/returns")}`;
+      const loginUrl = `/customer_authentication/login?return_to=${encodeURIComponent("/apps/returns")}`;
       return (
         <GuestPortalShell branding={initial.branding} title={initial.branding.name || "Returns"}>
           <GuestLookupForm
@@ -246,10 +246,12 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
   }
 }
 
-/** Guest lookup disabled — send the browser to storefront login with no interstitial. */
+/** Guest lookup disabled — jump to Shopify login, then return_to brings them back to the portal. */
 function RedirectToStoreLogin() {
   useLayoutEffect(() => {
-    const loginUrl = `/account/login?return_url=${encodeURIComponent("/apps/returns")}`;
+    // New Customer Accounts: /customer_authentication/login?return_to=… (relative path only).
+    // Legacy /account/login?return_url= often dumps people on the account orders page instead.
+    const loginUrl = `/customer_authentication/login?return_to=${encodeURIComponent("/apps/returns")}`;
     window.location.replace(loginUrl);
   }, []);
   return null;
