@@ -49,6 +49,10 @@ export default async function AppProxyReturnsPage({
       initial = { kind: "not-set-up", shop };
     } else if (loggedInCustomerId && !tenant.branding.alwaysShowGuestLookup) {
       initial = { kind: "logged-in" };
+    } else if (!loggedInCustomerId && !tenant.branding.guestLookupEnabled) {
+      // Merchant disabled guest lookup — clientside redirect to store login
+      // (App Proxy rewrites server Location headers, so we cannot 302 here).
+      initial = { kind: "guest-login-required" };
     } else {
       const branding: InitialBranding = {
         name: tenant.branding.name,

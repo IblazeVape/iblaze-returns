@@ -46,7 +46,8 @@ export type GateInitial =
   | { kind: "not-set-up"; shop: string }
   | { kind: "logged-in" }
   | { kind: "logged-in-lookup"; branding: InitialBranding }
-  | { kind: "guest-or-login"; branding: InitialBranding };
+  | { kind: "guest-or-login"; branding: InitialBranding }
+  | { kind: "guest-login-required" };
 
 /**
  * Client-side identity resolution + portal rendering for the App Proxy
@@ -163,6 +164,8 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
       // useEffect above is about to fire the session fetch; signingIn covers
       // the visible state a beat later. Avoid a flash of guest UI here.
       return <AuthenticatingCard />;
+    case "guest-login-required":
+      return <RedirectToStoreLogin />;
     case "guest-or-login": {
       const loginUrl = `/account/login?return_url=${encodeURIComponent("/apps/returns")}`;
       return (
@@ -241,6 +244,20 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
         </GuestPortalShell>
       );
   }
+}
+
+/** Guest lookup disabled — send the browser to the storefront login. */
+function RedirectToStoreLogin() {
+  useEffect(() => {
+    const loginUrl = `/account/login?return_url=${encodeURIComponent("/apps/returns")}`;
+    window.location.replace(loginUrl);
+  }, []);
+  return (
+    <Notice
+      title="Sign in to continue"
+      body="This store requires a Shopify account to start a return. Taking you to login…"
+    />
+  );
 }
 
 function Notice({ title, body }: { title: string; body: string }) {

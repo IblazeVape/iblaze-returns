@@ -92,6 +92,7 @@ export type BrandingInput = {
   returnLifecycleMessages: ReturnLifecycleMessagesInput;
   refundStatusLabels: RefundStatusLabelsInput;
   alwaysShowGuestLookup: boolean;
+  guestLookupEnabled: boolean;
 };
 
 const HEX_COLOR_RE = /^#[0-9a-fA-F]{6}$/;
@@ -183,6 +184,12 @@ export function validateBrandingInput(
     errors.guestLookupGradientTo = "Must be a hex color like #334155.";
   }
 
+  if (typeof input.guestLookupEnabled !== "boolean") {
+    errors.guestLookupEnabled = "Must be true or false.";
+  }
+  if (typeof input.alwaysShowGuestLookup !== "boolean") {
+    errors.alwaysShowGuestLookup = "Must be true or false.";
+  }
   if (input.storefrontUrl && !isValidUrl(input.storefrontUrl)) {
     errors.storefrontUrl = "Must be a valid URL.";
   }

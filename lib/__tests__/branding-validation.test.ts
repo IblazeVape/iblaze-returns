@@ -86,6 +86,7 @@ const VALID: BrandingInput = {
     refunded: "Refunded",
   },
   alwaysShowGuestLookup: false,
+  guestLookupEnabled: true,
 };
 
 describe("validateBrandingInput", () => {

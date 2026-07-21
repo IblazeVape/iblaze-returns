@@ -158,6 +158,8 @@ export type TenantBranding = {
   returnLifecycleMessages: ReturnLifecycleMessages;
   refundStatusLabels: RefundStatusLabels;
   alwaysShowGuestLookup: boolean;
+  /** When false, unauthenticated visitors are sent to Shopify login instead of the guest lookup form. */
+  guestLookupEnabled: boolean;
 };
 
 export const DEFAULT_TENANT_FIELDS = {
@@ -252,5 +254,6 @@ export const DEFAULT_TENANT_FIELDS = {
       refunded: "Refunded",
     },
     alwaysShowGuestLookup: false,
+    guestLookupEnabled: true,
   } satisfies TenantBranding,
 };

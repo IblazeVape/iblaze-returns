@@ -4195,6 +4195,7 @@ function DashboardClientInner() {
     returnLifecycleStyles: DEFAULT_TENANT_FIELDS.branding.returnLifecycleStyles,
     refundStatusLabels: DEFAULT_TENANT_FIELDS.branding.refundStatusLabels,
     alwaysShowGuestLookup: false,
+    guestLookupEnabled: true,
   })
   // False until accentColor holds a real (cached or fetched) tenant value —
   // the "#000000" placeholder above is a type-safe default, not a real

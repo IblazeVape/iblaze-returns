@@ -61,7 +61,7 @@ const TAB_FIELDS: Record<SettingsTab, (keyof BrandingInput)[]> = {
     "guestLookupSnakeBorder", "guestLookupSideStyle", "guestLookupGradientFrom", "guestLookupGradientTo",
   ],
   returns: [
-    "returnWindowDays", "requirePolicyAcceptance", "alwaysShowGuestLookup",
+    "returnWindowDays", "requirePolicyAcceptance", "alwaysShowGuestLookup", "guestLookupEnabled",
     "policyHeading", "policySubheading", "policyLastUpdated", "policyBodyMode", "policyCategories", "policyBodyText",
     "policyFooterNoteEnabled", "policyFooterNote", "policyAcceptedMessage", "policyDeclinedMessage",
   ],
@@ -105,6 +105,42 @@ function reorderIndexMap(length: number, from: number, to: number): number[] {
   const map = new Array<number>(length)
   reordered.forEach((oldIndex, newIndex) => { map[oldIndex] = newIndex })
   return map
+}
+
+
+/** Summary row + Polaris modal editor — used by Branding-style settings panes. */
+function SettingsEditRow({
+  modalId,
+  title,
+  summary,
+  modalSize = "large",
+  children,
+}: {
+  modalId: string
+  title: string
+  summary: string
+  modalSize?: string
+  children: React.ReactNode
+}) {
+  return (
+    <>
+      <s-box padding="base" border="base" borderRadius="base" background="base">
+        <s-stack direction="inline" gap="base" alignItems="center" justifyContent="space-between">
+          <s-stack direction="block" gap="none">
+            <s-heading>{title}</s-heading>
+            <s-paragraph color="subdued">{summary}</s-paragraph>
+          </s-stack>
+          <s-button commandFor={modalId} command="--show">Edit</s-button>
+        </s-stack>
+      </s-box>
+      <s-modal id={modalId} heading={title} size={modalSize}>
+        {children}
+        <s-button slot="primary-action" variant="primary" commandFor={modalId} command="--hide">
+          Done
+        </s-button>
+      </s-modal>
+    </>
+  )
 }
 
 export function SettingsForm({
@@ -935,8 +971,17 @@ export function SettingsForm({
       )}
 
       {activeTab === "returns" && (
-        <>
-          <s-section heading="Return window">
+        <s-section heading="Returns">
+          <s-stack direction="block" gap="base">
+            <s-paragraph color="subdued">
+              Edit one area at a time. Changes stay in this form until you Save.
+            </s-paragraph>
+            <SettingsEditRow
+              modalId="returns-window-modal"
+              title="Return window"
+              summary={`${form.returnWindowDays} days · ${form.requirePolicyAcceptance ? "Policy acceptance on" : "Policy acceptance off"}`}
+              modalSize="large"
+            >
             <s-stack direction="block" gap="base">
               <s-number-field
                 label="Return window (days)"
@@ -955,10 +1000,34 @@ export function SettingsForm({
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("requirePolicyAcceptance", e.target.checked)}
               ></s-checkbox>
             </s-stack>
-          </s-section>
+            </SettingsEditRow>
 
-          <s-section heading="Who sees the lookup form">
+            <SettingsEditRow
+              modalId="returns-lookup-audience-modal"
+              title="Who sees the lookup form"
+              summary={
+                !form.guestLookupEnabled
+                  ? "Guests must log in"
+                  : form.alwaysShowGuestLookup
+                    ? "Guest lookup on · everyone starts on Find your order"
+                    : "Guest lookup on · logged-in customers see their orders"
+              }
+              modalSize="large"
+            >
             <s-stack direction="block" gap="base">
+              <s-checkbox
+                label="Allow guests to look up an order without logging in"
+                name="guestLookupEnabled"
+                checked={form.guestLookupEnabled}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("guestLookupEnabled", e.target.checked)}
+              ></s-checkbox>
+              <s-paragraph tone="subdued">
+                Off = visitors who aren&apos;t logged into your store are sent to Shopify login instead of the Find your order form.
+              </s-paragraph>
+              {errors.guestLookupEnabled && <s-paragraph tone="critical">{errors.guestLookupEnabled}</s-paragraph>}
+
+              <s-divider></s-divider>
+
               <s-checkbox
                 label="Always show the order lookup form, even for logged-in customers"
                 name="alwaysShowGuestLookup"
@@ -968,10 +1037,16 @@ export function SettingsForm({
               <s-paragraph tone="subdued">
                 Off = logged-in customers see their full order list. On = everyone starts on Find your order (layout &amp; photo are under Branding).
               </s-paragraph>
+              {errors.alwaysShowGuestLookup && <s-paragraph tone="critical">{errors.alwaysShowGuestLookup}</s-paragraph>}
             </s-stack>
-          </s-section>
+            </SettingsEditRow>
 
-          <s-section heading="Returns policy dialog">
+            <SettingsEditRow
+              modalId="returns-policy-modal"
+              title="Returns policy dialog"
+              summary={`${form.policyHeading || "Untitled"} · ${form.policyBodyMode === "text" ? "Free text" : `${form.policyCategories.length} categor${form.policyCategories.length === 1 ? "y" : "ies"}`}`}
+              modalSize="large-100"
+            >
             <s-stack direction="block" gap="base">
               <s-paragraph tone="subdued">Controls the "Review & Accept" dialog customers see before selecting items to return.</s-paragraph>
 
@@ -1084,9 +1159,14 @@ export function SettingsForm({
               ></s-text-area>
               {errors.policyFooterNote && <s-paragraph tone="critical">{errors.policyFooterNote}</s-paragraph>}
             </s-stack>
-          </s-section>
+            </SettingsEditRow>
 
-          <s-section heading="Confirmation messages">
+            <SettingsEditRow
+              modalId="returns-confirm-modal"
+              title="Confirmation messages"
+              summary={"Accept / decline toast messages"}
+              modalSize="large"
+            >
             <s-stack direction="block" gap="base">
               <s-paragraph tone="subdued">Shown briefly as a toast after a customer accepts or declines the policy.</s-paragraph>
               <s-text-field
@@ -1106,13 +1186,23 @@ export function SettingsForm({
               ></s-text-field>
               {errors.policyDeclinedMessage && <s-paragraph tone="critical">{errors.policyDeclinedMessage}</s-paragraph>}
             </s-stack>
-          </s-section>
-        </>
+            </SettingsEditRow>
+          </s-stack>
+        </s-section>
       )}
 
       {activeTab === "navigation" && (
-        <>
-          <s-section heading="Sidebar layout">
+        <s-section heading="Navigation">
+          <s-stack direction="block" gap="base">
+            <s-paragraph color="subdued">
+              Edit one area at a time. Changes stay in this form until you Save.
+            </s-paragraph>
+            <SettingsEditRow
+              modalId="nav-sidebar-layout-modal"
+              title="Sidebar layout"
+              summary={`${form.defaultSidebarLayout === "inset" ? "Inset" : "Sidebar"}${form.sidebarLayoutSwitcherEnabled ? " · switcher on" : ""}`}
+              modalSize="large"
+            >
             <s-stack direction="block" gap="base">
               <s-checkbox
                 label="Let customers switch between sidebar and inset layouts"
@@ -1148,9 +1238,14 @@ export function SettingsForm({
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("headerAvatarEnabled", e.target.checked)}
               ></s-checkbox>
             </s-stack>
-          </s-section>
+            </SettingsEditRow>
 
-          <s-section heading="Sidebar links">
+            <SettingsEditRow
+              modalId="nav-sidebar-links-modal"
+              title="Sidebar links"
+              summary={`${form.sidebarLinks.length} link${form.sidebarLinks.length === 1 ? "" : "s"}${form.sidebarNote ? " · note set" : ""}`}
+              modalSize="large-100"
+            >
             <s-stack direction="block" gap="base">
               <s-paragraph tone="subdued">Extra links shown in the customer portal's sidebar, alongside Home and Orders. Open in a new tab. Each link can optionally have its own sub-links (a one-level submenu).</s-paragraph>
               {form.sidebarLinks.map((link, i) => {
@@ -1243,9 +1338,14 @@ export function SettingsForm({
               ></s-text-area>
               {errors.sidebarNote && <s-paragraph tone="critical">{errors.sidebarNote}</s-paragraph>}
             </s-stack>
-          </s-section>
+            </SettingsEditRow>
 
-          <s-section heading="Store & order status links">
+            <SettingsEditRow
+              modalId="nav-header-links-modal"
+              title="Store & order status links"
+              summary={[form.storeLinkEnabled ? form.storeLinkLabel || "Store" : null, form.orderStatusLinkEnabled ? form.orderStatusLinkLabel || "Order status" : null].filter(Boolean).join(" · ") || "Both hidden"}
+              modalSize="large"
+            >
             <s-stack direction="block" gap="base">
               <s-checkbox
                 label="Show a link back to the storefront in the header"
@@ -1281,13 +1381,23 @@ export function SettingsForm({
               ></s-text-field>
               {errors.orderStatusLinkLabel && <s-paragraph tone="critical">{errors.orderStatusLinkLabel}</s-paragraph>}
             </s-stack>
-          </s-section>
-        </>
+            </SettingsEditRow>
+          </s-stack>
+        </s-section>
       )}
 
       {activeTab === "table" && (
-        <>
-          <s-section heading="Header search">
+        <s-section heading="Table & status">
+          <s-stack direction="block" gap="base">
+            <s-paragraph color="subdued">
+              Edit one area at a time. Changes stay in this form until you Save.
+            </s-paragraph>
+            <SettingsEditRow
+              modalId="table-header-search-modal"
+              title="Header search"
+              summary={form.headerSearchEnabled ? `On · “${form.headerSearchPlaceholder || "Search orders..."}”` : "Hidden"}
+              modalSize="large"
+            >
             <s-stack direction="block" gap="base">
               <s-checkbox
                 label="Show the order search bar in the header"
@@ -1305,9 +1415,14 @@ export function SettingsForm({
               ></s-text-field>
               {errors.headerSearchPlaceholder && <s-paragraph tone="critical">{errors.headerSearchPlaceholder}</s-paragraph>}
             </s-stack>
-          </s-section>
+            </SettingsEditRow>
 
-          <s-section heading="Order item table">
+            <SettingsEditRow
+              modalId="table-order-items-modal"
+              title="Order item table"
+              summary={`${form.defaultOrderView === "grid" ? "Grid" : "List"} view · ${[form.tableSearchEnabled && "search", form.shipmentCardsEnabled && "shipments"].filter(Boolean).join(", ") || "basics"}`}
+              modalSize="large-100"
+            >
             <s-stack direction="block" gap="base">
               <s-checkbox
                 label="Show the product/variant search bar"
@@ -1393,9 +1508,14 @@ export function SettingsForm({
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("productImageLinksEnabled", e.target.checked)}
               ></s-checkbox>
             </s-stack>
-          </s-section>
+            </SettingsEditRow>
 
-          <s-section heading="Return status">
+            <SettingsEditRow
+              modalId="table-return-status-modal"
+              title="Return status"
+              summary={"Labels, icons & sentences for each return stage"}
+              modalSize="large-100"
+            >
             <s-stack direction="block" gap="base">
               <s-text color="subdued">
                 The label, mobile heading, icon, and color shown for each stage of a return. Use {"{days}"} for the
@@ -1475,9 +1595,14 @@ export function SettingsForm({
               {errors.returnLifecycleMessages && <s-paragraph tone="critical">{errors.returnLifecycleMessages}</s-paragraph>}
               {errors.returnLifecycleStyles && <s-paragraph tone="critical">{errors.returnLifecycleStyles}</s-paragraph>}
             </s-stack>
-          </s-section>
+            </SettingsEditRow>
 
-          <s-section heading="Not returnable reasons">
+            <SettingsEditRow
+              modalId="table-not-returnable-modal"
+              title="Not returnable reasons"
+              summary={"Sentences for shipping / window / final sale"}
+              modalSize="large-100"
+            >
             <s-stack direction="block" gap="base">
               <s-text color="subdued">
                 The specific sentence shown under the "Not returnable" badge, depending on why the item can't be
@@ -1500,9 +1625,14 @@ export function SettingsForm({
               <s-text-area label="Other" value={form.returnLifecycleMessages.otherNotReturnable} rows={2}
                 onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("otherNotReturnable", e.target.value)}></s-text-area>
             </s-stack>
-          </s-section>
+            </SettingsEditRow>
 
-          <s-section heading="Refund">
+            <SettingsEditRow
+              modalId="table-refund-modal"
+              title="Refund"
+              summary={"Partial & full refund labels"}
+              modalSize="large"
+            >
             <s-stack direction="block" gap="base">
               <s-text color="subdued">
                 Shown as a small extra fact next to the return status, when applicable. No label is shown when
@@ -1514,8 +1644,9 @@ export function SettingsForm({
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRefundStatusLabel("refunded", e.target.value)}></s-text-field>
               {errors.refundStatusLabels && <s-paragraph tone="critical">{errors.refundStatusLabels}</s-paragraph>}
             </s-stack>
-          </s-section>
-        </>
+            </SettingsEditRow>
+          </s-stack>
+        </s-section>
       )}
 
       {activeTab === "danger" && (

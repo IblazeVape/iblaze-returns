@@ -200,6 +200,8 @@ export async function PUT(request: NextRequest) {
       : existing.branding.refundStatusLabels,
     alwaysShowGuestLookup:
       typeof body.alwaysShowGuestLookup === "boolean" ? body.alwaysShowGuestLookup : existing.branding.alwaysShowGuestLookup,
+    guestLookupEnabled:
+      typeof body.guestLookupEnabled === "boolean" ? body.guestLookupEnabled : existing.branding.guestLookupEnabled,
   };
 
   const { valid, errors } = validateBrandingInput(input);
@@ -269,6 +271,7 @@ export async function PUT(request: NextRequest) {
       returnLifecycleStyles: input.returnLifecycleStyles,
       refundStatusLabels: input.refundStatusLabels,
       alwaysShowGuestLookup: input.alwaysShowGuestLookup,
+      guestLookupEnabled: input.guestLookupEnabled,
     },
   });
 
