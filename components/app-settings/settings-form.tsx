@@ -287,13 +287,10 @@ export function SettingsForm({
     setOpenStatusKey((prev) => (prev === key ? null : key))
   }
 
-  // Same collapsed-by-default pattern as sidebar links above, applied to
-  // the returns-policy category list — keeps a long category list scannable.
-  const [openCategoryIndex, setOpenCategoryIndex] = useState<number | null>(null)
+  // Same collapsed-by-default pattern as sidebar links above — kept for
+  // return-status cards. Policy categories stay fully expanded; a filter
+  // handles long lists without a nested scroll / accordion.
   const [categoryFilter, setCategoryFilter] = useState("")
-  function toggleCategoryOpen(index: number) {
-    setOpenCategoryIndex((prev) => (prev === index ? null : index))
-  }
 
   function set<K extends keyof BrandingInput>(key: K, value: BrandingInput[K]) {
     setForm((f) => {
@@ -379,18 +376,10 @@ export function SettingsForm({
     })
   }
   function addCategory() {
-    setForm((f) => {
-      const newIndex = f.policyCategories.length
-      setOpenCategoryIndex(newIndex)
-      return { ...f, policyCategories: [...f.policyCategories, { title: "", desc: "" }] }
-    })
+    setForm((f) => ({ ...f, policyCategories: [...f.policyCategories, { title: "", desc: "" }] }))
   }
   function removeCategory(index: number) {
     setForm((f) => ({ ...f, policyCategories: f.policyCategories.filter((_, i) => i !== index) }))
-    setOpenCategoryIndex((prev) => {
-      if (prev === null || prev === index) return null
-      return prev > index ? prev - 1 : prev
-    })
   }
   function moveCategory(index: number, direction: -1 | 1) {
     const target = index + direction
@@ -399,12 +388,6 @@ export function SettingsForm({
       const next = [...f.policyCategories]
       ;[next[index], next[target]] = [next[target], next[index]]
       return { ...f, policyCategories: next }
-    })
-    setOpenCategoryIndex((prev) => {
-      if (target < 0 || target >= form.policyCategories.length) return prev
-      if (prev === index) return target
-      if (prev === target) return index
-      return prev
     })
   }
 
@@ -1318,7 +1301,8 @@ export function SettingsForm({
               {form.policyBodyMode === "categories" ? (
                 <s-stack direction="block" gap="base">
                   <s-paragraph color="subdued">
-                    {form.policyCategories.length} categor{form.policyCategories.length === 1 ? "y" : "ies"} — expand one at a time. Use search when the list gets long.
+                    {form.policyCategories.length} categor{form.policyCategories.length === 1 ? "y" : "ies"}.
+                    {form.policyCategories.length > 4 ? " Filter the list to find one quickly." : ""}
                   </s-paragraph>
                   {form.policyCategories.length > 4 ? (
                     <s-text-field
@@ -1328,44 +1312,33 @@ export function SettingsForm({
                       onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCategoryFilter(e.target.value)}
                     ></s-text-field>
                   ) : null}
-                  <div style={{ maxHeight: 360, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
                   {form.policyCategories.map((cat, i) => {
                     const q = categoryFilter.trim().toLowerCase()
                     if (q && !(cat.title || "").toLowerCase().includes(q) && !(cat.desc || "").toLowerCase().includes(q)) {
                       return null
                     }
-                    const isOpen = openCategoryIndex === i
                     return (
                       <s-box key={i} padding="base" border="base" borderRadius="base">
                         <s-stack direction="block" gap="small">
-                          <s-stack direction="inline" gap="small-300" alignItems="center">
-                            <s-button onClick={() => toggleCategoryOpen(i)}>{isOpen ? "Collapse" : "Expand"}</s-button>
-                            <s-text>{cat.title || "(untitled category)"}</s-text>
+                          <s-text-field
+                            label="Category title"
+                            value={cat.title}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateCategory(i, { title: e.target.value })}
+                          ></s-text-field>
+                          <s-text-field
+                            label="Category description"
+                            value={cat.desc}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateCategory(i, { desc: e.target.value })}
+                          ></s-text-field>
+                          <s-stack direction="inline" gap="small-300">
+                            <s-button onClick={() => moveCategory(i, -1)} disabled={i === 0}>Move up</s-button>
+                            <s-button onClick={() => moveCategory(i, 1)} disabled={i === form.policyCategories.length - 1}>Move down</s-button>
+                            <s-button tone="critical" onClick={() => removeCategory(i)}>Remove</s-button>
                           </s-stack>
-                          {isOpen && (
-                            <>
-                              <s-text-field
-                                label="Category title"
-                                value={cat.title}
-                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateCategory(i, { title: e.target.value })}
-                              ></s-text-field>
-                              <s-text-field
-                                label="Category description"
-                                value={cat.desc}
-                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateCategory(i, { desc: e.target.value })}
-                              ></s-text-field>
-                              <s-stack direction="inline" gap="small-300">
-                                <s-button onClick={() => moveCategory(i, -1)} disabled={i === 0}>Move up</s-button>
-                                <s-button onClick={() => moveCategory(i, 1)} disabled={i === form.policyCategories.length - 1}>Move down</s-button>
-                                <s-button tone="critical" onClick={() => removeCategory(i)}>Remove</s-button>
-                              </s-stack>
-                            </>
-                          )}
                         </s-stack>
                       </s-box>
                     )
                   })}
-                  </div>
                   <s-button onClick={addCategory}>Add category</s-button>
                   {errors.policyCategories && <s-paragraph tone="critical">{errors.policyCategories}</s-paragraph>}
                 </s-stack>
