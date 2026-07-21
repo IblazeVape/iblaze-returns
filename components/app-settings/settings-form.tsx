@@ -497,104 +497,124 @@ export function SettingsForm({
       </s-section>
 
       {activeTab === "branding" && (
-        <s-section heading="Branding">
-          <s-stack direction="block" gap="base">
-            <s-text-field
-              label="Brand name"
-              name="name"
-              value={form.name}
-              placeholder="Your Store"
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("name", e.target.value)}
-            ></s-text-field>
+        <>
+          <s-section heading="Store identity">
+            <s-stack direction="block" gap="base">
+              <s-paragraph tone="subdued">
+                Core brand details used across the returns portal — sidebar, header, and emails.
+              </s-paragraph>
 
-            <s-stack direction="inline" gap="base" alignItems="center">
-              {form.logoUrl && (
-                // key forces a fresh <img> (and fresh error state) whenever the
-                // URL changes, so a broken new URL doesn't keep showing a stale
-                // "broken image" state from a previous one.
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  key={form.logoUrl}
-                  src={form.logoUrl}
-                  alt="Current logo"
-                  style={{ width: 40, height: 40, objectFit: "contain", borderRadius: 6, border: "1px solid #d1d5db" }}
-                  onError={(e) => {
-                    e.currentTarget.style.display = "none"
-                    setErrors((err) => ({ ...err, logoUrl: "This image URL didn't load. Try a different one." }))
-                  }}
-                />
-              )}
-              <s-button onClick={() => handleChooseFromLibrary("logoUrl")} disabled={loadingLibraryField !== null}>
-                {loadingLibraryField === "logoUrl" ? "Loading…" : "Choose from Shopify"}
-              </s-button>
+              <s-text-field
+                label="Brand name"
+                name="name"
+                value={form.name}
+                placeholder="Your Store"
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("name", e.target.value)}
+              ></s-text-field>
+
+              <s-stack direction="inline" gap="base" alignItems="center">
+                {form.logoUrl && (
+                  // key forces a fresh <img> (and fresh error state) whenever the
+                  // URL changes, so a broken new URL doesn't keep showing a stale
+                  // "broken image" state from a previous one.
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    key={form.logoUrl}
+                    src={form.logoUrl}
+                    alt="Current logo"
+                    style={{ width: 40, height: 40, objectFit: "contain", borderRadius: 6, border: "1px solid #d1d5db" }}
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none"
+                      setErrors((err) => ({ ...err, logoUrl: "This image URL didn't load. Try a different one." }))
+                    }}
+                  />
+                )}
+                <s-button onClick={() => handleChooseFromLibrary("logoUrl")} disabled={loadingLibraryField !== null}>
+                  {loadingLibraryField === "logoUrl" ? "Loading…" : "Choose from Shopify"}
+                </s-button>
+              </s-stack>
+              <s-url-field
+                label="Or paste a logo URL"
+                name="logoUrl"
+                value={form.logoUrl}
+                placeholder="https://cdn.shopify.com/your-logo.png"
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("logoUrl", e.target.value)}
+              ></s-url-field>
+              {errors.logoUrl && <s-paragraph tone="critical">{errors.logoUrl}</s-paragraph>}
+
+              <s-color-field
+                label="Accent color"
+                name="accentColor"
+                value={form.accentColor}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("accentColor", e.target.value)}
+              ></s-color-field>
+              {errors.accentColor && <s-paragraph tone="critical">{errors.accentColor}</s-paragraph>}
+
+              <s-url-field
+                label="Storefront URL"
+                name="storefrontUrl"
+                value={form.storefrontUrl}
+                placeholder="https://your-store.com"
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("storefrontUrl", e.target.value)}
+              ></s-url-field>
+              <s-paragraph tone="subdued">Where the sidebar logo and the header&apos;s store link send customers — usually your live storefront domain, not your myshopify.com admin URL.</s-paragraph>
+              {errors.storefrontUrl && <s-paragraph tone="critical">{errors.storefrontUrl}</s-paragraph>}
+
+              <s-email-field
+                label="Support email"
+                name="supportEmail"
+                value={form.supportEmail}
+                placeholder="help@your-store.com"
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("supportEmail", e.target.value)}
+              ></s-email-field>
+              <s-paragraph tone="subdued">Only shown after a customer submits a return that includes an item still in transit (a split-shipment order where the rest has already arrived), as a &quot;contact us if that item has a delivery issue&quot; line.</s-paragraph>
+              {errors.supportEmail && <s-paragraph tone="critical">{errors.supportEmail}</s-paragraph>}
             </s-stack>
-            <s-url-field
-              label="Or paste a logo URL"
-              name="logoUrl"
-              value={form.logoUrl}
-              placeholder="https://cdn.shopify.com/your-logo.png"
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("logoUrl", e.target.value)}
-            ></s-url-field>
-            {errors.logoUrl && <s-paragraph tone="critical">{errors.logoUrl}</s-paragraph>}
+          </s-section>
 
-            <s-color-field
-              label="Accent color"
-              name="accentColor"
-              value={form.accentColor}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("accentColor", e.target.value)}
-            ></s-color-field>
-            {errors.accentColor && <s-paragraph tone="critical">{errors.accentColor}</s-paragraph>}
+          <s-section heading="Guest lookup screen">
+            <s-stack direction="block" gap="base">
+              <s-paragraph tone="subdued">
+                How the &quot;Find your order&quot; screen looks before a customer verifies an order.
+              </s-paragraph>
 
-            <s-url-field
-              label="Storefront URL"
-              name="storefrontUrl"
-              value={form.storefrontUrl}
-              placeholder="https://your-store.com"
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("storefrontUrl", e.target.value)}
-            ></s-url-field>
-            <s-paragraph tone="subdued">Where the sidebar logo and the header's store link send customers — usually your live storefront domain, not your myshopify.com admin URL.</s-paragraph>
-            {errors.storefrontUrl && <s-paragraph tone="critical">{errors.storefrontUrl}</s-paragraph>}
+              <s-select
+                label="Background"
+                name="guestBackgroundStyle"
+                value={form.guestBackgroundStyle}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => set("guestBackgroundStyle", e.target.value as "none" | "shapeGrid" | "dotField")}
+              >
+                <s-option value="none">None</s-option>
+                <s-option value="shapeGrid">Shape grid (animated squares)</s-option>
+                <s-option value="dotField">Dot field (interactive dots)</s-option>
+              </s-select>
+              <s-paragraph tone="subdued">Animated background behind the lookup card.</s-paragraph>
 
-            <s-email-field
-              label="Support email"
-              name="supportEmail"
-              value={form.supportEmail}
-              placeholder="help@your-store.com"
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("supportEmail", e.target.value)}
-            ></s-email-field>
-            <s-paragraph tone="subdued">Only shown after a customer submits a return that includes an item still in transit (a split-shipment order where the rest has already arrived), as a "contact us if that item has a delivery issue" line.</s-paragraph>
-            {errors.supportEmail && <s-paragraph tone="critical">{errors.supportEmail}</s-paragraph>}
+              <s-select
+                label="Layout"
+                name="guestLookupLayout"
+                value={form.guestLookupLayout}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                  set("guestLookupLayout", e.target.value as "classic" | "split")
+                }
+              >
+                <s-option value="classic">Classic — form only</s-option>
+                <s-option value="split">Split — image left, form right</s-option>
+              </s-select>
+              <s-paragraph tone="subdued">
+                Classic is the original centered form. Split adds a branded image panel beside the form (desktop) or above it (mobile).
+              </s-paragraph>
+              {errors.guestLookupLayout && <s-paragraph tone="critical">{errors.guestLookupLayout}</s-paragraph>}
+            </s-stack>
+          </s-section>
 
-            <s-select
-              label="Guest lookup background"
-              name="guestBackgroundStyle"
-              value={form.guestBackgroundStyle}
-              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => set("guestBackgroundStyle", e.target.value as "none" | "shapeGrid" | "dotField")}
-            >
-              <s-option value="none">None</s-option>
-              <s-option value="shapeGrid">Shape grid (animated squares)</s-option>
-              <s-option value="dotField">Dot field (interactive dots)</s-option>
-            </s-select>
-            <s-paragraph tone="subdued">An animated background behind the "Find your order" guest lookup screen, before a customer signs in.</s-paragraph>
+          {form.guestLookupLayout === "split" && (
+            <s-section heading="Guest lookup panel">
+              <s-stack direction="block" gap="base">
+                <s-paragraph tone="subdued">
+                  Left-side image panel copy and artwork for the split layout.
+                </s-paragraph>
 
-            <s-select
-              label="Guest lookup layout"
-              name="guestLookupLayout"
-              value={form.guestLookupLayout}
-              onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-                set("guestLookupLayout", e.target.value as "classic" | "split")
-              }
-            >
-              <s-option value="classic">Classic — form only</s-option>
-              <s-option value="split">Split — image left, form right</s-option>
-            </s-select>
-            <s-paragraph tone="subdued">
-              Classic is the original centered form. Split adds a branded image panel beside the form (desktop) or above it (mobile).
-            </s-paragraph>
-            {errors.guestLookupLayout && <s-paragraph tone="critical">{errors.guestLookupLayout}</s-paragraph>}
-
-            {form.guestLookupLayout === "split" && (
-              <>
                 <s-text-field
                   label="Panel headline"
                   name="guestLookupHeadline"
@@ -711,10 +731,10 @@ export function SettingsForm({
                     {errors.guestLookupLogoUrl && <s-paragraph tone="critical">{errors.guestLookupLogoUrl}</s-paragraph>}
                   </>
                 )}
-              </>
-            )}
-          </s-stack>
-        </s-section>
+              </s-stack>
+            </s-section>
+          )}
+        </>
       )}
 
       {activeTab === "returns" && (
