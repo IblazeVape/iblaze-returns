@@ -2917,7 +2917,8 @@ function HygienePolicy({
       ? "h-7 px-2 text-xs shrink-0"
       : "bg-[var(--brand)] hover:bg-[var(--brand)]/90 text-white shrink-0"
 
-  // External policy: open the merchant URL in a new tab and accept — no dialog.
+  // External policy: open the merchant URL in a new tab — no dialog, and
+  // do not dismiss the policy bar (that strip stays available as a permanent link).
   if (useExternal) {
     return (
       <Button
@@ -2930,10 +2931,6 @@ function HygienePolicy({
           href={externalUrl}
           target="_blank"
           rel="noopener noreferrer"
-          onClick={() => {
-            onAccept()
-            portalToast.success(acceptedMessage)
-          }}
         >
           {buttonText}
           {link ? <ChevronRight className="size-3.5 shrink-0" /> : <ExternalLink className="size-3.5 shrink-0" />}
@@ -3243,7 +3240,10 @@ function OrderDetail({
     productImageLinksEnabled, statusFilterEnabled, ineligibleMessageEnabled,
     eligibleLabel, ineligibleLabel, returnLifecycleMessages, returnLifecycleStyles, refundStatusLabels,
   } = branding
-  const [policyAccepted, setPolicyAccepted] = useState(!requirePolicyAcceptance)
+  const isExternalPolicy = policyPresentation === "externalLink" && !!policyExternalUrl
+  // External policy is a permanent link strip — selection is not gated on accept.
+  // Dialog mode still requires an explicit accept before items can be selected.
+  const [policyAccepted, setPolicyAccepted] = useState(!requirePolicyAcceptance || isExternalPolicy)
   const [selectedItems, setSelectedItems]   = useState<Record<string, { selected: boolean; quantity: number; reason: string; description: string }>>({})
   const [submitting, setSubmitting]   = useState(false)
   const [submitted, setSubmitted]     = useState(false)
@@ -3650,12 +3650,16 @@ function OrderDetail({
 
           {!order.cancelledAt && (
             <>
-            {hasEligible && requirePolicyAcceptance && !policyAccepted && (
+            {hasEligible && requirePolicyAcceptance && (isExternalPolicy || !policyAccepted) && (
               <div className="flex items-center justify-between gap-3 border-b bg-muted/20 px-3 py-2.5">
                 <div className="flex min-w-0 items-center gap-2 overflow-hidden">
-                  <Lock className="size-3.5 shrink-0 text-foreground" aria-hidden />
+                  {isExternalPolicy ? (
+                    <Info className="size-3.5 shrink-0 text-foreground" aria-hidden />
+                  ) : (
+                    <Lock className="size-3.5 shrink-0 text-foreground" aria-hidden />
+                  )}
                   <span className="truncate text-xs font-medium leading-snug text-foreground">
-                    Accept our returns policy to select items to return
+                    {policySubheading || "Review our returns policy before selecting items to return."}
                   </span>
                 </div>
                 <HygienePolicy

@@ -1289,12 +1289,20 @@ export function SettingsForm({
                     label="Review button text"
                     name="policyReviewButtonLabel"
                     value={form.policyReviewButtonLabel}
-                    placeholder="Review & Accept"
+                    placeholder="Read policy"
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policyReviewButtonLabel", e.target.value)}
                   ></s-text-field>
                   {errors.policyReviewButtonLabel && <s-paragraph tone="critical">{errors.policyReviewButtonLabel}</s-paragraph>}
+                  <s-text-field
+                    label="Policy banner text"
+                    name="policySubheading"
+                    value={form.policySubheading}
+                    placeholder="Review our returns policy before selecting items to return."
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policySubheading", e.target.value)}
+                  ></s-text-field>
+                  {errors.policySubheading && <s-paragraph tone="critical">{errors.policySubheading}</s-paragraph>}
                   <s-paragraph tone="subdued">
-                    Clicking this button opens your policy page in a new tab and marks the policy as accepted so the customer can select items.
+                    Shown next to the button on the order page. The button opens your policy URL in a new tab and stays visible — it does not hide after click.
                   </s-paragraph>
                 </>
               ) : null}
@@ -1311,7 +1319,7 @@ export function SettingsForm({
               {errors.policyReviewButtonLabel && <s-paragraph tone="critical">{errors.policyReviewButtonLabel}</s-paragraph>}
 
               <s-text-field
-                label="Dialog heading"
+                label="Policy dialog heading"
                 name="policyHeading"
                 value={form.policyHeading}
                 placeholder="iBlaze Returns Policy"
@@ -1320,12 +1328,15 @@ export function SettingsForm({
               {errors.policyHeading && <s-paragraph tone="critical">{errors.policyHeading}</s-paragraph>}
 
               <s-text-field
-                label="Dialog subheading"
+                label="Policy banner / dialog intro"
                 name="policySubheading"
                 value={form.policySubheading}
                 placeholder="Review our returns policy before selecting items to return."
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policySubheading", e.target.value)}
               ></s-text-field>
+              <s-paragraph tone="subdued">
+                Shown on the order page next to the review button, and again as the intro inside the policy dialog.
+              </s-paragraph>
               {errors.policySubheading && <s-paragraph tone="critical">{errors.policySubheading}</s-paragraph>}
 
               <s-text-field
@@ -1335,7 +1346,7 @@ export function SettingsForm({
                 placeholder="14 July 2026"
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policyLastUpdated", e.target.value)}
               ></s-text-field>
-              <s-paragraph tone="subdued">Shown under the dialog subheading. Leave blank to hide it. Free text — you control the date format.</s-paragraph>
+              <s-paragraph tone="subdued">Shown under the dialog intro. Leave blank to hide it. Free text — you control the date format.</s-paragraph>
               {errors.policyLastUpdated && <s-paragraph tone="critical">{errors.policyLastUpdated}</s-paragraph>}
 
               <s-stack direction="inline" gap="small-300">
