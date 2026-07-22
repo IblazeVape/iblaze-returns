@@ -1301,8 +1301,8 @@ export function SettingsForm({
               {form.policyBodyMode === "categories" ? (
                 <s-stack direction="block" gap="base">
                   <s-paragraph color="subdued">
-                    {form.policyCategories.length} categor{form.policyCategories.length === 1 ? "y" : "ies"}.
-                    {form.policyCategories.length > 4 ? " Filter the list to find one quickly." : ""}
+                    {form.policyCategories.length} categor{form.policyCategories.length === 1 ? "y" : "ies"} — edit inline in the table.
+                    {form.policyCategories.length > 4 ? " Filter when the list gets long." : ""}
                   </s-paragraph>
                   {form.policyCategories.length > 4 ? (
                     <s-text-field
@@ -1312,33 +1312,112 @@ export function SettingsForm({
                       onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCategoryFilter(e.target.value)}
                     ></s-text-field>
                   ) : null}
-                  {form.policyCategories.map((cat, i) => {
+                  <div style={{ overflowX: "auto", border: "1px solid var(--p-color-border, #e3e3e3)", borderRadius: 8 }}>
+                    <table
+                      style={{
+                        width: "100%",
+                        borderCollapse: "collapse",
+                        tableLayout: "fixed",
+                      }}
+                    >
+                      <thead>
+                        <tr style={{ background: "var(--p-color-bg-surface-secondary, #f7f7f7)", textAlign: "left" }}>
+                          <th style={{ padding: "10px 12px", fontSize: 12, fontWeight: 650, width: "28%" }}>Title</th>
+                          <th style={{ padding: "10px 12px", fontSize: 12, fontWeight: 650 }}>Description</th>
+                          <th style={{ padding: "10px 12px", fontSize: 12, fontWeight: 650, width: 132 }}> </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {form.policyCategories.map((cat, i) => {
+                          const q = categoryFilter.trim().toLowerCase()
+                          if (
+                            q &&
+                            !(cat.title || "").toLowerCase().includes(q) &&
+                            !(cat.desc || "").toLowerCase().includes(q)
+                          ) {
+                            return null
+                          }
+                          const rowBorder = "1px solid var(--p-color-border, #e3e3e3)"
+                          return (
+                            <tr key={i} style={{ borderTop: rowBorder }}>
+                              <td style={{ padding: "8px 12px", verticalAlign: "top" }}>
+                                <input
+                                  aria-label={`Category ${i + 1} title`}
+                                  value={cat.title}
+                                  placeholder="e.g. Vape Kits"
+                                  onChange={(e) => updateCategory(i, { title: e.target.value })}
+                                  style={{
+                                    width: "100%",
+                                    boxSizing: "border-box",
+                                    padding: "8px 10px",
+                                    border: "1px solid var(--p-color-border, #c9cccf)",
+                                    borderRadius: 8,
+                                    fontSize: 13,
+                                    background: "var(--p-color-bg-surface, #fff)",
+                                  }}
+                                />
+                              </td>
+                              <td style={{ padding: "8px 12px", verticalAlign: "top" }}>
+                                <input
+                                  aria-label={`Category ${i + 1} description`}
+                                  value={cat.desc}
+                                  placeholder="Short policy for this category"
+                                  onChange={(e) => updateCategory(i, { desc: e.target.value })}
+                                  style={{
+                                    width: "100%",
+                                    boxSizing: "border-box",
+                                    padding: "8px 10px",
+                                    border: "1px solid var(--p-color-border, #c9cccf)",
+                                    borderRadius: 8,
+                                    fontSize: 13,
+                                    background: "var(--p-color-bg-surface, #fff)",
+                                  }}
+                                />
+                              </td>
+                              <td style={{ padding: "8px 12px", verticalAlign: "top", whiteSpace: "nowrap" }}>
+                                <s-stack direction="inline" gap="small-200">
+                                  <s-button
+                                    variant="tertiary"
+                                    onClick={() => moveCategory(i, -1)}
+                                    disabled={i === 0}
+                                    accessibilityLabel={`Move category ${i + 1} up`}
+                                  >
+                                    ↑
+                                  </s-button>
+                                  <s-button
+                                    variant="tertiary"
+                                    onClick={() => moveCategory(i, 1)}
+                                    disabled={i === form.policyCategories.length - 1}
+                                    accessibilityLabel={`Move category ${i + 1} down`}
+                                  >
+                                    ↓
+                                  </s-button>
+                                  <s-button
+                                    variant="tertiary"
+                                    tone="critical"
+                                    onClick={() => removeCategory(i)}
+                                    accessibilityLabel={`Remove category ${i + 1}`}
+                                  >
+                                    Remove
+                                  </s-button>
+                                </s-stack>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  {categoryFilter.trim() &&
+                  form.policyCategories.every((cat) => {
                     const q = categoryFilter.trim().toLowerCase()
-                    if (q && !(cat.title || "").toLowerCase().includes(q) && !(cat.desc || "").toLowerCase().includes(q)) {
-                      return null
-                    }
                     return (
-                      <s-box key={i} padding="base" border="base" borderRadius="base">
-                        <s-stack direction="block" gap="small">
-                          <s-text-field
-                            label="Category title"
-                            value={cat.title}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateCategory(i, { title: e.target.value })}
-                          ></s-text-field>
-                          <s-text-field
-                            label="Category description"
-                            value={cat.desc}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateCategory(i, { desc: e.target.value })}
-                          ></s-text-field>
-                          <s-stack direction="inline" gap="small-300">
-                            <s-button onClick={() => moveCategory(i, -1)} disabled={i === 0}>Move up</s-button>
-                            <s-button onClick={() => moveCategory(i, 1)} disabled={i === form.policyCategories.length - 1}>Move down</s-button>
-                            <s-button tone="critical" onClick={() => removeCategory(i)}>Remove</s-button>
-                          </s-stack>
-                        </s-stack>
-                      </s-box>
+                      !(cat.title || "").toLowerCase().includes(q) &&
+                      !(cat.desc || "").toLowerCase().includes(q)
                     )
-                  })}
+                  }) ? (
+                    <s-paragraph tone="subdued">No categories match that filter.</s-paragraph>
+                  ) : null}
                   <s-button onClick={addCategory}>Add category</s-button>
                   {errors.policyCategories && <s-paragraph tone="critical">{errors.policyCategories}</s-paragraph>}
                 </s-stack>
