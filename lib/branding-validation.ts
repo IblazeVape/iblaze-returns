@@ -39,6 +39,7 @@ export type BrandingInput = {
   supportEmail: string;
   returnWindowDays: number;
   requirePolicyAcceptance: boolean;
+  returnReviewEnabled: boolean;
   storeLinkEnabled: boolean;
   storeLinkLabel: string;
   orderStatusLinkEnabled: boolean;

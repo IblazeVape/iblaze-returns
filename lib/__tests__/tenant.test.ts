@@ -48,6 +48,7 @@ describe("tenant store", () => {
     expect(t?.branding.logoUrl).toBe("");
     expect(t?.branding.accentColor).toBe("#000000");
     expect(t?.branding.requirePolicyAcceptance).toBe(true);
+    expect(t?.branding.returnReviewEnabled).toBe(true);
     expect(t?.branding.storeLinkEnabled).toBe(true);
     expect(t?.branding.storeLinkLabel).toBe("Store");
     expect(t?.branding.policyHeading).toBe("iBlaze Returns Policy");
@@ -90,6 +91,7 @@ describe("tenant store", () => {
         storefrontUrl: "https://acme-vapes.com",
         supportEmail: "help@acme-vapes.com",
         requirePolicyAcceptance: false,
+        returnReviewEnabled: false,
         storeLinkEnabled: false,
         storeLinkLabel: "Back to store",
         orderStatusLinkEnabled: false,
@@ -181,6 +183,7 @@ describe("tenant store", () => {
     expect(t?.branding.name).toBe("Acme Vapes");
     expect(t?.branding.supportEmail).toBe("help@acme-vapes.com");
     expect(t?.branding.requirePolicyAcceptance).toBe(false);
+    expect(t?.branding.returnReviewEnabled).toBe(false);
     expect(t?.branding.storeLinkEnabled).toBe(false);
     expect(t?.branding.storeLinkLabel).toBe("Back to store");
     expect(t?.branding.policyBodyMode).toBe("text");

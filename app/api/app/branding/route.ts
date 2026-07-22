@@ -82,6 +82,8 @@ export async function PUT(request: NextRequest) {
     returnWindowDays: typeof body.returnWindowDays === "number" ? body.returnWindowDays : existing.returnWindowDays,
     requirePolicyAcceptance:
       typeof body.requirePolicyAcceptance === "boolean" ? body.requirePolicyAcceptance : existing.branding.requirePolicyAcceptance,
+    returnReviewEnabled:
+      typeof body.returnReviewEnabled === "boolean" ? body.returnReviewEnabled : existing.branding.returnReviewEnabled,
     storeLinkEnabled: typeof body.storeLinkEnabled === "boolean" ? body.storeLinkEnabled : existing.branding.storeLinkEnabled,
     storeLinkLabel: typeof body.storeLinkLabel === "string" ? body.storeLinkLabel : existing.branding.storeLinkLabel,
     orderStatusLinkEnabled:
@@ -239,6 +241,7 @@ export async function PUT(request: NextRequest) {
       storefrontUrl: input.storefrontUrl,
       supportEmail: input.supportEmail,
       requirePolicyAcceptance: input.requirePolicyAcceptance,
+      returnReviewEnabled: input.returnReviewEnabled,
       storeLinkEnabled: input.storeLinkEnabled,
       storeLinkLabel: input.storeLinkLabel,
       orderStatusLinkEnabled: input.orderStatusLinkEnabled,

@@ -90,6 +90,8 @@ export type TenantBranding = {
   storefrontUrl: string;
   supportEmail: string;
   requirePolicyAcceptance: boolean;
+  /** When true, customers see a Review return step before submitting. */
+  returnReviewEnabled: boolean;
   storeLinkEnabled: boolean;
   storeLinkLabel: string;
   orderStatusLinkEnabled: boolean;
@@ -184,6 +186,7 @@ export const DEFAULT_TENANT_FIELDS = {
     storefrontUrl: "",
     supportEmail: "",
     requirePolicyAcceptance: true,
+    returnReviewEnabled: true,
     storeLinkEnabled: true,
     storeLinkLabel: "Store",
     orderStatusLinkEnabled: true,

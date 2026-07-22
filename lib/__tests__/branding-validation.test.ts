@@ -9,6 +9,7 @@ const VALID: BrandingInput = {
   supportEmail: "help@acme-vapes.com",
   returnWindowDays: 30,
   requirePolicyAcceptance: true,
+  returnReviewEnabled: true,
   storeLinkEnabled: true,
   storeLinkLabel: "Store",
   orderStatusLinkEnabled: true,

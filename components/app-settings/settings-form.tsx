@@ -64,7 +64,7 @@ const TAB_FIELDS: Record<SettingsTab, (keyof BrandingInput)[]> = {
     "toastPosition", "portalCustomScript",
   ],
   returns: [
-    "returnWindowDays", "requirePolicyAcceptance", "alwaysShowGuestLookup", "guestLookupEnabled",
+    "returnWindowDays", "requirePolicyAcceptance", "returnReviewEnabled", "alwaysShowGuestLookup", "guestLookupEnabled",
     "loggedInLookupRequirePostcode",
     "policyHeading", "policySubheading", "policyLastUpdated", "policyBodyMode", "policyCategories", "policyBodyText",
     "policyFooterNoteEnabled", "policyFooterNote", "policyAcceptedMessage", "policyDeclinedMessage",
@@ -97,7 +97,7 @@ const SETTINGS_MODAL_FIELDS: Record<string, (keyof BrandingInput)[]> = {
     "guestLookupOverlayOpacity", "guestLookupOverlayBlur", "guestLookupSnakeBorder",
     "guestLookupSideStyle", "guestLookupGradientFrom", "guestLookupGradientTo",
   ],
-  "returns-window-modal": ["returnWindowDays", "requirePolicyAcceptance"],
+  "returns-window-modal": ["returnWindowDays", "requirePolicyAcceptance", "returnReviewEnabled"],
   "returns-lookup-audience-modal": ["alwaysShowGuestLookup", "guestLookupEnabled", "loggedInLookupRequirePostcode"],
   "returns-policy-modal": [
     "policyHeading", "policySubheading", "policyLastUpdated", "policyBodyMode",
@@ -1183,8 +1183,8 @@ export function SettingsForm({
             <SettingsEditRow
               modalId="returns-window-modal"
               title="Return window"
-              description="How many days customers have to return items, and whether they must accept your policy before selecting products."
-              summary={`${form.returnWindowDays} days · ${form.requirePolicyAcceptance ? "Policy acceptance on" : "Policy acceptance off"}`}
+              description="How many days customers have to return items, whether they must accept your policy, and whether they review the return before submitting."
+              summary={`${form.returnWindowDays} days · ${form.requirePolicyAcceptance ? "Policy acceptance on" : "Policy acceptance off"} · ${form.returnReviewEnabled ? "Review step on" : "Review step off"}`}
               modalSize="large"
               errors={errors}
             >
@@ -1205,6 +1205,16 @@ export function SettingsForm({
                 checked={form.requirePolicyAcceptance}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("requirePolicyAcceptance", e.target.checked)}
               ></s-checkbox>
+
+              <s-checkbox
+                label="Show a Review return step before customers submit"
+                name="returnReviewEnabled"
+                checked={form.returnReviewEnabled}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("returnReviewEnabled", e.target.checked)}
+              ></s-checkbox>
+              <s-paragraph color="subdued">
+                When off, the primary button submits the return immediately (labeled Submit return) instead of opening a review screen.
+              </s-paragraph>
             </s-stack>
             </SettingsEditRow>
 

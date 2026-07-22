@@ -3190,6 +3190,7 @@ const RETURN_REVIEW_VARIANT: "A" | "B" = "B"
 type OrderDetailBranding = {
   supportEmail: string
   requirePolicyAcceptance: boolean
+  returnReviewEnabled: boolean
   policyHeading: string
   policySubheading: string
   policyLastUpdated: string
@@ -3231,7 +3232,7 @@ function OrderDetail({
   branding: OrderDetailBranding
 }) {
   const {
-    supportEmail, requirePolicyAcceptance, policyHeading, policySubheading, policyLastUpdated,
+    supportEmail, requirePolicyAcceptance, returnReviewEnabled, policyHeading, policySubheading, policyLastUpdated,
     policyBodyMode, policyCategories, policyBodyText, policyFooterNoteEnabled, policyFooterNote,
     policyAcceptedMessage, policyDeclinedMessage, policyPresentation, policyExternalUrl,
     policyReviewButtonLabel,
@@ -3514,7 +3515,7 @@ function OrderDetail({
 
         {/* ── Option B: inline review card — same table layout (Product, Variant, Qty, Total)
              used for order-item selection, so the review step matches it exactly ── */}
-        {RETURN_REVIEW_VARIANT === "B" && showReview && (
+        {returnReviewEnabled && RETURN_REVIEW_VARIANT === "B" && showReview && (
           <Card className={cn(C, "overflow-hidden")}>
             <div className="px-5 py-4 border-b bg-muted/20 flex items-center gap-2">
               <CheckCircle2 className="size-4 text-foreground" />
@@ -3568,7 +3569,7 @@ function OrderDetail({
         )}
 
         {/* ── Unified order + items card ── */}
-        <Card className={cn(C, "overflow-hidden flex flex-col", order.cancelledAt && "border-red-200", RETURN_REVIEW_VARIANT === "B" && showReview && "hidden")}>
+        <Card className={cn(C, "overflow-hidden flex flex-col", order.cancelledAt && "border-red-200", returnReviewEnabled && RETURN_REVIEW_VARIANT === "B" && showReview && "hidden")}>
           {/* Cancelled accent stripe */}
           {order.cancelledAt && <div className="h-1 bg-red-400 w-full" />}
 
@@ -4111,7 +4112,7 @@ function OrderDetail({
             <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
               <Button variant="ghost" size="sm" onClick={onBack} className="text-muted-foreground hidden min-[1025px]:inline-flex">Cancel</Button>
               {/* Option B: when in review mode the footer shows Confirm instead */}
-              {RETURN_REVIEW_VARIANT === "B" && showReview ? (
+              {returnReviewEnabled && RETURN_REVIEW_VARIANT === "B" && showReview ? (
                 <>
                   <Button variant="outline" size="sm" onClick={() => setShowReview(false)} className="text-xs">Back</Button>
                   <Button size="sm" className="bg-[var(--brand)] hover:bg-[var(--brand)]/90 text-white disabled:opacity-50 text-xs font-bold" disabled={submitting} onClick={submitReturn}>
@@ -4121,11 +4122,13 @@ function OrderDetail({
               ) : (
                 <Button size="sm" className="bg-[var(--brand)] hover:bg-[var(--brand)]/90 text-white disabled:opacity-50 text-xs font-bold"
                   disabled={!canSubmit || submitting}
-                  onClick={RETURN_REVIEW_VARIANT === "A" ? () => setShowReview(true) : RETURN_REVIEW_VARIANT === "B" ? () => setShowReview(true) : submitReturn}
+                  onClick={returnReviewEnabled ? () => setShowReview(true) : submitReturn}
                 >
                   {submitting
                     ? <><Spinner className="size-3.5" /><span className="hidden min-[1025px]:inline ml-1">Submitting...</span></>
-                    : <><RotateCcw className="size-3.5" /><span className="hidden min-[1025px]:inline ml-1">Review return</span></>}
+                    : returnReviewEnabled
+                      ? <><RotateCcw className="size-3.5" /><span className="hidden min-[1025px]:inline ml-1">Review return</span></>
+                      : <><CheckCircle2 className="size-3.5" /><span className="hidden min-[1025px]:inline ml-1">Submit return</span></>}
                 </Button>
               )}
             </div>
@@ -4135,7 +4138,7 @@ function OrderDetail({
       </AnimatePresence>
 
       {/* ── Option A: confirmation dialog ── */}
-      {RETURN_REVIEW_VARIANT === "A" && (
+      {returnReviewEnabled && RETURN_REVIEW_VARIANT === "A" && (
         <Dialog open={showReview} onOpenChange={setShowReview}>
           <DialogContent className="max-w-md sm:max-w-lg">
             <DialogHeader>
@@ -4215,7 +4218,7 @@ function DashboardClientInner() {
   const [activeSection, setActiveSection] = useState("#orders")
   const [branding, setBranding] = useState<TenantBranding>({
     name: "", logoUrl: "", accentColor: "#000000", storefrontUrl: "", supportEmail: "",
-    requirePolicyAcceptance: true, storeLinkEnabled: true, storeLinkLabel: "Store",
+    requirePolicyAcceptance: true, returnReviewEnabled: true, storeLinkEnabled: true, storeLinkLabel: "Store",
     orderStatusLinkEnabled: true, orderStatusLinkLabel: "Order Status",
     policyHeading: "iBlaze Returns Policy", policySubheading: "Review our returns policy before selecting items to return.",
     policyLastUpdated: "",
