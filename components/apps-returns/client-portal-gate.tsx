@@ -43,6 +43,7 @@ export type InitialBranding = {
   guestLookupGradientTo: string
   toastPosition: "top-left" | "top-center" | "top-right" | "bottom-left" | "bottom-center" | "bottom-right"
   portalCustomScript: string
+  loggedInLookupRequirePostcode: boolean
 }
 
 export type GateInitial =
@@ -234,14 +235,13 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
       // Merchant has alwaysShowGuestLookup on: even though the App Proxy
       // confirms this browser IS logged in, skip the auto full-history
       // session and show the lookup form instead — scoped to one order
-      // (like a guest), but no postcode needed since the store login itself
-      // is verified server-side against the looked-up order's customer ID
-      // (see loggedInOrderMatches in lib/guest-order-match.ts).
+      // (like a guest). Postcode is skipped by default (login is enough);
+      // merchants can require it via loggedInLookupRequirePostcode.
       return (
         <GuestPortalShell branding={initial.branding} title={initial.branding.name || "Returns"}>
           <PortalCustomScripts html={initial.branding.portalCustomScript} />
           <GuestLookupForm
-            requirePostcode={false}
+            requirePostcode={initial.branding.loggedInLookupRequirePostcode}
             layout={initial.branding.guestLookupLayout}
             brandName={initial.branding.name}
             logoUrl={

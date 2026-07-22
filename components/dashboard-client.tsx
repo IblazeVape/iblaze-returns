@@ -4229,6 +4229,7 @@ function DashboardClientInner() {
     refundStatusLabels: DEFAULT_TENANT_FIELDS.branding.refundStatusLabels,
     alwaysShowGuestLookup: false,
     guestLookupEnabled: true,
+    loggedInLookupRequirePostcode: false,
     policyPresentation: "dialog",
     policyExternalUrl: "",
     toastPosition: "top-right",

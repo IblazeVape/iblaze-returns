@@ -40,6 +40,7 @@ const PREVIEW_BRANDING: InitialBranding = {
   guestLookupGradientTo: "#334155",
   toastPosition: "top-right",
   portalCustomScript: "",
+  loggedInLookupRequirePostcode: false,
 };
 
 function GuestLookupDemoInner() {

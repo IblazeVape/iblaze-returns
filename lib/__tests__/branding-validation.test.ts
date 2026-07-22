@@ -87,6 +87,7 @@ const VALID: BrandingInput = {
   },
   alwaysShowGuestLookup: false,
   guestLookupEnabled: true,
+  loggedInLookupRequirePostcode: false,
   policyPresentation: "dialog",
   policyExternalUrl: "",
   toastPosition: "top-right",

@@ -90,6 +90,7 @@ export default async function AppProxyReturnsPage({
         guestLookupGradientTo: tenant.branding.guestLookupGradientTo,
         toastPosition: tenant.branding.toastPosition,
         portalCustomScript: tenant.branding.portalCustomScript,
+        loggedInLookupRequirePostcode: tenant.branding.loggedInLookupRequirePostcode,
       };
       initial = loggedInCustomerId
         ? { kind: "logged-in-lookup", branding }

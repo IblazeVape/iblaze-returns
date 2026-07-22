@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { guestOrderMatches, loggedInOrderMatches, normalizePostcode } from "@/lib/guest-order-match";
+import { guestOrderMatches, loggedInOrderMatches, normalizePostcode, shippingPostcodeMatches } from "@/lib/guest-order-match";
 
 const realOrder = {
   email: "Jane.Doe@Example.com",
@@ -74,5 +74,19 @@ describe("loggedInOrderMatches", () => {
 
   it("rejects a null order", () => {
     expect(loggedInOrderMatches(null, "jane.doe@example.com", "999")).toBe(false);
+  });
+});
+
+describe("shippingPostcodeMatches", () => {
+  it("matches normalized postcodes", () => {
+    expect(shippingPostcodeMatches(realOrderWithCustomer, "sw1a 1aa")).toBe(true);
+  });
+
+  it("rejects a wrong postcode", () => {
+    expect(shippingPostcodeMatches(realOrderWithCustomer, "E1 6AN")).toBe(false);
+  });
+
+  it("rejects empty postcode", () => {
+    expect(shippingPostcodeMatches(realOrderWithCustomer, "")).toBe(false);
   });
 });

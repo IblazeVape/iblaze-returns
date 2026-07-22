@@ -160,6 +160,8 @@ export type TenantBranding = {
   alwaysShowGuestLookup: boolean;
   /** When false, unauthenticated visitors are sent to Shopify login instead of the guest lookup form. */
   guestLookupEnabled: boolean;
+  /** When true, logged-in customers on the lookup form must also enter delivery postcode. */
+  loggedInLookupRequirePostcode: boolean;
   /** How customers review the returns policy before selecting items. */
   policyPresentation: "dialog" | "externalLink";
   /** External policy URL when policyPresentation is externalLink. */
@@ -263,6 +265,7 @@ export const DEFAULT_TENANT_FIELDS = {
     },
     alwaysShowGuestLookup: false,
     guestLookupEnabled: true,
+    loggedInLookupRequirePostcode: false,
     policyPresentation: "dialog",
     policyExternalUrl: "",
     toastPosition: "top-right",

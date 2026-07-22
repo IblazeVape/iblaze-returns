@@ -202,6 +202,10 @@ export async function PUT(request: NextRequest) {
       typeof body.alwaysShowGuestLookup === "boolean" ? body.alwaysShowGuestLookup : existing.branding.alwaysShowGuestLookup,
     guestLookupEnabled:
       typeof body.guestLookupEnabled === "boolean" ? body.guestLookupEnabled : existing.branding.guestLookupEnabled,
+    loggedInLookupRequirePostcode:
+      typeof body.loggedInLookupRequirePostcode === "boolean"
+        ? body.loggedInLookupRequirePostcode
+        : existing.branding.loggedInLookupRequirePostcode,
     policyPresentation:
       body.policyPresentation === "dialog" || body.policyPresentation === "externalLink"
         ? body.policyPresentation
@@ -285,6 +289,7 @@ export async function PUT(request: NextRequest) {
       refundStatusLabels: input.refundStatusLabels,
       alwaysShowGuestLookup: input.alwaysShowGuestLookup,
       guestLookupEnabled: input.guestLookupEnabled,
+      loggedInLookupRequirePostcode: input.loggedInLookupRequirePostcode,
       policyPresentation: input.policyPresentation,
       policyExternalUrl: input.policyExternalUrl,
       toastPosition: input.toastPosition,

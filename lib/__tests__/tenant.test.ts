@@ -168,6 +168,7 @@ describe("tenant store", () => {
         },
         alwaysShowGuestLookup: true,
         guestLookupEnabled: false,
+        loggedInLookupRequirePostcode: true,
         policyPresentation: "dialog",
         policyExternalUrl: "",
         toastPosition: "top-right",
@@ -208,6 +209,7 @@ describe("tenant store", () => {
     expect(t?.branding.returnLifecycleMessages.returnCompleted).toBe("Already returned.");
     expect(t?.branding.alwaysShowGuestLookup).toBe(true);
     expect(t?.branding.guestLookupEnabled).toBe(false);
+    expect(t?.branding.loggedInLookupRequirePostcode).toBe(true);
     expect(t?.branding.returnLifecycleStyles.notReturnable).toEqual({ label: "Window closed", heading: "Window expired", icon: "Lock", color: "#4F46E5" });
     expect(t?.branding.refundStatusLabels.partiallyRefunded).toBe("Partly refunded");
     expect(t?.branding.refundStatusLabels.refunded).toBe("Already refunded.");

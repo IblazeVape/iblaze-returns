@@ -93,6 +93,7 @@ export type BrandingInput = {
   refundStatusLabels: RefundStatusLabelsInput;
   alwaysShowGuestLookup: boolean;
   guestLookupEnabled: boolean;
+  loggedInLookupRequirePostcode: boolean;
   policyPresentation: "dialog" | "externalLink";
   policyExternalUrl: string;
   toastPosition: "top-left" | "top-center" | "top-right" | "bottom-left" | "bottom-center" | "bottom-right";
@@ -212,6 +213,9 @@ export function validateBrandingInput(
   }
   if (typeof input.alwaysShowGuestLookup !== "boolean") {
     errors.alwaysShowGuestLookup = "Must be true or false.";
+  }
+  if (typeof input.loggedInLookupRequirePostcode !== "boolean") {
+    errors.loggedInLookupRequirePostcode = "Must be true or false.";
   }
   if (input.storefrontUrl && !isValidUrl(input.storefrontUrl)) {
     errors.storefrontUrl = "Must be a valid URL.";

@@ -3,7 +3,7 @@ import { verifyAppProxySignature, parseProxyRequest } from "@/lib/app-proxy";
 import { getTenant } from "@/lib/tenant";
 import { shopifyAdmin } from "@/lib/shopify";
 import { redis } from "@/lib/redis";
-import { guestOrderMatches, loggedInOrderMatches } from "@/lib/guest-order-match";
+import { guestOrderMatches, loggedInOrderMatches, shippingPostcodeMatches } from "@/lib/guest-order-match";
 import { buildAppsReturnsSession } from "@/lib/apps-returns-session";
 
 export const dynamic = "force-dynamic";
@@ -24,10 +24,10 @@ const RATE_LIMIT_WINDOW_SECONDS = 15 * 60;
  *  - Logged into the store (logged_in_customer_id present — only reachable
  *    when the merchant's alwaysShowGuestLookup Settings toggle is on, see
  *    app/apps/returns/[[...slug]]/page.tsx): the order must belong to that
- *    exact customer AND the email must match. No postcode needed — the
- *    login itself is the third factor a guest doesn't have.
+ *    exact customer AND the email must match. Postcode is optional unless
+ *    the merchant enables loggedInLookupRequirePostcode.
  *  - Guest checkout (no logged_in_customer_id): order number + email +
- *    shipping postcode, always — not merchant-configurable.
+ *    shipping postcode, always.
  *
  * Rate-limited per shop+IP to prevent brute-forcing order numbers.
  */
@@ -54,7 +54,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "unknown store" }, { status: 404 });
   }
 
-  if (!loggedInCustomerId && !postcode) {
+  const requirePostcodeForLoggedIn = !!tenant.branding.loggedInLookupRequirePostcode;
+  const needsPostcode = !loggedInCustomerId || requirePostcodeForLoggedIn;
+
+  if (needsPostcode && !postcode) {
     return NextResponse.json({ error: "orderNumber, email and postcode are required" }, { status: 400 });
   }
 
@@ -93,14 +96,20 @@ export async function POST(request: NextRequest) {
 
     const order = data?.orders?.edges?.[0]?.node;
 
-    const matched = loggedInCustomerId
-      ? loggedInOrderMatches(order, email, loggedInCustomerId)
-      : guestOrderMatches(order, email, postcode);
+    let matched = false;
+    if (loggedInCustomerId) {
+      matched = loggedInOrderMatches(order, email, loggedInCustomerId);
+      if (matched && requirePostcodeForLoggedIn) {
+        matched = shippingPostcodeMatches(order, postcode);
+      }
+    } else {
+      matched = guestOrderMatches(order, email, postcode);
+    }
 
     if (!matched) {
       return NextResponse.json(
         {
-          error: loggedInCustomerId
+          error: loggedInCustomerId && !requirePostcodeForLoggedIn
             ? "No order found matching that order number and email on your account."
             : "No order found matching that order number, email and postcode.",
         },

@@ -64,6 +64,7 @@ const TAB_FIELDS: Record<SettingsTab, (keyof BrandingInput)[]> = {
   ],
   returns: [
     "returnWindowDays", "requirePolicyAcceptance", "alwaysShowGuestLookup", "guestLookupEnabled",
+    "loggedInLookupRequirePostcode",
     "policyHeading", "policySubheading", "policyLastUpdated", "policyBodyMode", "policyCategories", "policyBodyText",
     "policyFooterNoteEnabled", "policyFooterNote", "policyAcceptedMessage", "policyDeclinedMessage",
     "policyPresentation", "policyExternalUrl",
@@ -96,7 +97,7 @@ const SETTINGS_MODAL_FIELDS: Record<string, (keyof BrandingInput)[]> = {
     "guestLookupSideStyle", "guestLookupGradientFrom", "guestLookupGradientTo",
   ],
   "returns-window-modal": ["returnWindowDays", "requirePolicyAcceptance"],
-  "returns-lookup-audience-modal": ["alwaysShowGuestLookup", "guestLookupEnabled"],
+  "returns-lookup-audience-modal": ["alwaysShowGuestLookup", "guestLookupEnabled", "loggedInLookupRequirePostcode"],
   "returns-policy-modal": [
     "policyHeading", "policySubheading", "policyLastUpdated", "policyBodyMode",
     "policyCategories", "policyBodyText", "policyFooterNoteEnabled", "policyFooterNote",
@@ -1187,7 +1188,7 @@ export function SettingsForm({
                 !form.guestLookupEnabled
                   ? "Guests must log in"
                   : form.alwaysShowGuestLookup
-                    ? "Guest lookup on · everyone starts on Find your order"
+                    ? `Guest lookup on · everyone starts on Find your order${form.loggedInLookupRequirePostcode ? " · postcode required when logged in" : ""}`
                     : "Guest lookup on · logged-in customers see their orders"
               }
               modalSize="large"
@@ -1217,6 +1218,18 @@ export function SettingsForm({
                 Off = logged-in customers see their full order list. On = everyone starts on Find your order (layout &amp; photo are under Branding).
               </s-paragraph>
               {errors.alwaysShowGuestLookup && <s-paragraph tone="critical">{errors.alwaysShowGuestLookup}</s-paragraph>}
+
+              <s-checkbox
+                label="Require delivery postcode for logged-in customers on the lookup form"
+                name="loggedInLookupRequirePostcode"
+                checked={form.loggedInLookupRequirePostcode}
+                disabled={!form.alwaysShowGuestLookup}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("loggedInLookupRequirePostcode", e.target.checked)}
+              ></s-checkbox>
+              <s-paragraph tone="subdued">
+                Only applies when “Always show the order lookup form” is on. Off = logged-in customers enter order number and email only. On = they must also enter the delivery postcode (same as guests).
+              </s-paragraph>
+              {errors.loggedInLookupRequirePostcode && <s-paragraph tone="critical">{errors.loggedInLookupRequirePostcode}</s-paragraph>}
             </s-stack>
             </SettingsEditRow>
 
