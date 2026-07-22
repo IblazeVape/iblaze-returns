@@ -53,13 +53,24 @@ function GuestPortalShellInner({
   // can apply immediately on mount rather than waiting on an async fetch
   // like DashboardClient's equivalent effect does.
   useEffect(() => {
-    applyMerchantDefault(branding.defaultSidebarLayout, branding.sidebarLayoutSwitcherEnabled);
-  }, [applyMerchantDefault, branding.defaultSidebarLayout, branding.sidebarLayoutSwitcherEnabled]);
+    applyMerchantDefault(
+      branding.defaultSidebarLayout,
+      branding.sidebarEnabled && branding.sidebarLayoutSwitcherEnabled,
+    );
+  }, [
+    applyMerchantDefault,
+    branding.defaultSidebarLayout,
+    branding.sidebarEnabled,
+    branding.sidebarLayoutSwitcherEnabled,
+  ]);
+
+  const showSidebar = branding.sidebarEnabled && branding.lookupSidebarEnabled;
 
   return (
     <PortalShell
       hideIdentity
       accentColor={branding.accentColor}
+      showSidebar={showSidebar}
       branding={{
         name: branding.name,
         logoUrl: branding.logoUrl,

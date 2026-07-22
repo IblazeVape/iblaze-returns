@@ -58,6 +58,8 @@ export type BrandingInput = {
   sidebarNote: string;
   sidebarLayoutSwitcherEnabled: boolean;
   defaultSidebarLayout: "inset" | "sidebar";
+  sidebarEnabled: boolean;
+  lookupSidebarEnabled: boolean;
   headerSearchEnabled: boolean;
   headerSearchPlaceholder: string;
   tableSearchEnabled: boolean;

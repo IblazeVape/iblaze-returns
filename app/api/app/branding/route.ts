@@ -112,6 +112,10 @@ export async function PUT(request: NextRequest) {
       body.defaultSidebarLayout === "inset" || body.defaultSidebarLayout === "sidebar"
         ? body.defaultSidebarLayout
         : existing.branding.defaultSidebarLayout,
+    sidebarEnabled:
+      typeof body.sidebarEnabled === "boolean" ? body.sidebarEnabled : existing.branding.sidebarEnabled,
+    lookupSidebarEnabled:
+      typeof body.lookupSidebarEnabled === "boolean" ? body.lookupSidebarEnabled : existing.branding.lookupSidebarEnabled,
     headerSearchEnabled:
       typeof body.headerSearchEnabled === "boolean" ? body.headerSearchEnabled : existing.branding.headerSearchEnabled,
     headerSearchPlaceholder:
@@ -260,6 +264,8 @@ export async function PUT(request: NextRequest) {
       sidebarNote: input.sidebarNote,
       sidebarLayoutSwitcherEnabled: input.sidebarLayoutSwitcherEnabled,
       defaultSidebarLayout: input.defaultSidebarLayout,
+      sidebarEnabled: input.sidebarEnabled,
+      lookupSidebarEnabled: input.lookupSidebarEnabled,
       headerSearchEnabled: input.headerSearchEnabled,
       headerSearchPlaceholder: input.headerSearchPlaceholder,
       tableSearchEnabled: input.tableSearchEnabled,

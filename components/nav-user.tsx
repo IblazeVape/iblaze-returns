@@ -1,11 +1,19 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useLayoutEffect, useRef, useState } from "react"
+import { createPortal } from "react-dom"
 import { ChevronsUpDown, User as UserIcon } from "lucide-react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar"
 import { UserAccountMenuPanel } from "@/components/user-account-menu"
+import { useSidebarLayout } from "@/components/sidebar-layout-provider"
 
+/**
+ * Account menu in the sidebar footer. Portaled to document.body so the
+ * SidebarInset (overflow:hidden, later in the DOM) can't paint over it —
+ * that showed up as a dark rounded slab covering half the open menu when
+ * switching Inset/Sidebar on the Find your order screen.
+ */
 export function NavUser({
   user,
   avatarIcon = false,
@@ -16,14 +24,50 @@ export function NavUser({
   avatarIcon?: boolean
 }) {
   const [open, setOpen] = useState(false)
-  const containerRef = useRef<HTMLLIElement>(null)
+  const [coords, setCoords] = useState<{ left: number; bottom: number; width: number } | null>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
   const initial = user.name?.[0]?.toUpperCase() || "?"
+  const { layout } = useSidebarLayout()
+
+  // Close when the merchant/customer flips Inset ↔ Sidebar — the shell
+  // reflows and an open in-sidebar menu would otherwise sit under the inset.
+  useEffect(() => {
+    setOpen(false)
+  }, [layout])
+
+  useLayoutEffect(() => {
+    if (!open || !triggerRef.current) {
+      setCoords(null)
+      return
+    }
+
+    const update = () => {
+      const rect = triggerRef.current?.getBoundingClientRect()
+      if (!rect) return
+      setCoords({
+        left: rect.left,
+        bottom: window.innerHeight - rect.top + 8,
+        width: Math.max(rect.width, 224),
+      })
+    }
+
+    update()
+    window.addEventListener("resize", update)
+    window.addEventListener("scroll", update, true)
+    return () => {
+      window.removeEventListener("resize", update)
+      window.removeEventListener("scroll", update, true)
+    }
+  }, [open])
 
   useEffect(() => {
     if (!open) return
 
     const onPointerDown = (event: PointerEvent) => {
-      if (containerRef.current?.contains(event.target as Node)) return
+      const target = event.target as Node
+      if (triggerRef.current?.contains(target)) return
+      if (panelRef.current?.contains(target)) return
       setOpen(false)
     }
 
@@ -46,8 +90,9 @@ export function NavUser({
           open/close transition, and left stale, oversized blank space below
           this panel once it got shorter (removing "Sign out" for App Proxy
           sessions). A plain mount/unmount can't get stuck at a stale size. */}
-      <SidebarMenuItem ref={containerRef} className="relative">
+      <SidebarMenuItem className="relative">
         <SidebarMenuButton
+          ref={triggerRef}
           size="lg"
           data-state={open ? "open" : "closed"}
           aria-expanded={open}
@@ -65,11 +110,22 @@ export function NavUser({
           </div>
           <ChevronsUpDown className="ml-auto size-4 group-data-[collapsible=icon]:hidden" />
         </SidebarMenuButton>
-        {open && (
-          <div className="absolute bottom-full left-0 z-20 w-full pb-3 outline-hidden">
-            <UserAccountMenuPanel user={user} avatarIcon={avatarIcon} />
-          </div>
-        )}
+        {open &&
+          coords &&
+          createPortal(
+            <div
+              ref={panelRef}
+              className="fixed z-[200] outline-hidden"
+              style={{
+                left: coords.left,
+                bottom: coords.bottom,
+                width: coords.width,
+              }}
+            >
+              <UserAccountMenuPanel user={user} avatarIcon={avatarIcon} />
+            </div>,
+            document.body,
+          )}
       </SidebarMenuItem>
     </SidebarMenu>
   )

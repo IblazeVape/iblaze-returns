@@ -73,7 +73,7 @@ const TAB_FIELDS: Record<SettingsTab, (keyof BrandingInput)[]> = {
   navigation: [
     "storeLinkEnabled", "storeLinkLabel", "orderStatusLinkEnabled", "orderStatusLinkLabel",
     "sidebarLinks", "sidebarNote", "sidebarSubmenusExpandedByDefault", "sidebarLayoutSwitcherEnabled",
-    "defaultSidebarLayout", "sidebarDefaultOpenOnDesktop", "sidebarAvatarEnabled", "headerAvatarEnabled",
+    "defaultSidebarLayout", "sidebarEnabled", "lookupSidebarEnabled", "sidebarDefaultOpenOnDesktop", "sidebarAvatarEnabled", "headerAvatarEnabled",
   ],
   table: [
     "headerSearchEnabled", "headerSearchPlaceholder", "tableSearchEnabled", "tableSearchPlaceholder",
@@ -99,13 +99,16 @@ const SETTINGS_MODAL_FIELDS: Record<string, (keyof BrandingInput)[]> = {
   ],
   "returns-window-modal": ["returnWindowDays", "requirePolicyAcceptance", "returnReviewEnabled"],
   "returns-lookup-audience-modal": ["alwaysShowGuestLookup", "guestLookupEnabled", "loggedInLookupRequirePostcode"],
-  "returns-policy-modal": [
-    "policyHeading", "policySubheading", "policyLastUpdated", "policyBodyMode",
+  "returns-policy-experience-modal": [
+    "policyPresentation", "policyExternalUrl", "policyReviewButtonLabel", "policySubheading",
+  ],
+  "returns-policy-content-modal": [
+    "policyHeading", "policyLastUpdated", "policyBodyMode",
     "policyCategories", "policyBodyText", "policyFooterNoteEnabled", "policyFooterNote",
-    "policyPresentation", "policyExternalUrl", "policyReviewButtonLabel",
   ],
   "returns-confirm-modal": ["policyAcceptedMessage", "policyDeclinedMessage"],
   "nav-sidebar-layout-modal": [
+    "sidebarEnabled", "lookupSidebarEnabled",
     "sidebarLayoutSwitcherEnabled", "defaultSidebarLayout", "sidebarDefaultOpenOnDesktop",
     "sidebarAvatarEnabled",
   ],
@@ -174,6 +177,88 @@ function reorderIndexMap(length: number, from: number, to: number): number[] {
 }
 
 
+function hostFromUrl(url: string): string | null {
+  try {
+    return new URL(url).host
+  } catch {
+    return null
+  }
+}
+
+/** Group label above a cluster of related settings rows. */
+function SettingsSectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <s-box paddingBlockStart="small-200">
+      <s-heading>{children}</s-heading>
+    </s-box>
+  )
+}
+
+/** Live “what’s set now” line — optional logo/swatch, then short text parts. */
+function SettingsValueSummary({
+  leading,
+  parts,
+}: {
+  leading?: React.ReactNode
+  parts: (string | null | false | undefined)[]
+}) {
+  const text = parts.filter(Boolean).join(" · ")
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", minHeight: 20 }}>
+      {leading}
+      {text ? <span style={{ fontSize: 13, lineHeight: 1.4 }}>{text}</span> : null}
+    </div>
+  )
+}
+
+function AccentSwatch({ color }: { color: string }) {
+  return (
+    <span
+      aria-hidden
+      title={color}
+      style={{
+        display: "inline-block",
+        width: 14,
+        height: 14,
+        borderRadius: 4,
+        background: color || "#ccc",
+        border: "1px solid rgba(0,0,0,0.15)",
+        flexShrink: 0,
+      }}
+    />
+  )
+}
+
+/** Checkbox + its help line as one tight unit (avoids large stack gaps between rows). */
+function CheckboxWithHelp({
+  label,
+  name,
+  checked,
+  onChange,
+  help,
+  disabled,
+}: {
+  label: string
+  name: string
+  checked: boolean
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+  help?: string
+  disabled?: boolean
+}) {
+  return (
+    <s-stack direction="block" gap="small-100">
+      <s-checkbox
+        label={label}
+        name={name}
+        checked={checked}
+        disabled={disabled}
+        onChange={onChange}
+      ></s-checkbox>
+      {help ? <s-paragraph color="subdued">{help}</s-paragraph> : null}
+    </s-stack>
+  )
+}
+
 /** Summary row + Polaris modal editor — used by Branding-style settings panes. */
 function SettingsEditRow({
   modalId,
@@ -186,9 +271,9 @@ function SettingsEditRow({
 }: {
   modalId: string
   title: string
-  /** Plain-language list of what this section controls. */
+  /** One purpose sentence — what this controls for the customer / merchant. */
   description: string
-  summary: string
+  summary: React.ReactNode
   modalSize?: string
   errors: Partial<Record<keyof BrandingInput, string>>
   children: React.ReactNode
@@ -212,7 +297,7 @@ function SettingsEditRow({
           <s-stack direction="block" gap="small-200">
             <s-heading>{title}</s-heading>
             <s-paragraph color="subdued">{description}</s-paragraph>
-            <s-paragraph>{summary}</s-paragraph>
+            {typeof summary === "string" ? <s-paragraph>{summary}</s-paragraph> : summary}
             {hasError ? (
               <s-paragraph tone="critical">{uniqueErrors[0]}</s-paragraph>
             ) : null}
@@ -223,7 +308,9 @@ function SettingsEditRow({
         </s-stack>
       </s-box>
       <s-modal id={modalId} heading={title} size={modalSize}>
-        {children}
+        <div style={{ paddingBottom: 28 }}>
+          {children}
+        </div>
         <s-button slot="primary-action" variant="primary" commandFor={modalId} command="--hide">
           Done
         </s-button>
@@ -652,88 +739,45 @@ export function SettingsForm({
               Edit one area at a time. Changes stay in this form until you Save.
             </s-paragraph>
 
-            {/* Store identity row */}
-            {(() => {
-              const identityErrors = (SETTINGS_MODAL_FIELDS["branding-identity-modal"] ?? [])
-                .map((field) => errors[field])
-                .filter((msg): msg is string => Boolean(msg))
-              const identityError = [...new Set(identityErrors)][0]
-              return (
-            <s-box
-              padding="base"
-              border="base"
-              borderRadius="base"
-              background="base"
-              style={identityError ? { outline: "2px solid #c72a2a", outlineOffset: 0 } : undefined}
+            <SettingsSectionLabel>Brand</SettingsSectionLabel>
+            <SettingsEditRow
+              modalId="branding-identity-modal"
+              title="Brand"
+              description="Your brand name, logo, and colours on the customer portal."
+              summary={
+                <SettingsValueSummary
+                  leading={
+                    <>
+                      {form.logoUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          key={form.logoUrl}
+                          src={form.logoUrl}
+                          alt=""
+                          style={{ width: 20, height: 20, objectFit: "contain", borderRadius: 4, border: "1px solid #d1d5db" }}
+                        />
+                      ) : (
+                        <span
+                          aria-hidden
+                          style={{
+                            display: "inline-block",
+                            width: 20,
+                            height: 20,
+                            borderRadius: 4,
+                            border: "1px dashed rgba(0,0,0,0.25)",
+                            flexShrink: 0,
+                          }}
+                        />
+                      )}
+                      <AccentSwatch color={form.accentColor} />
+                    </>
+                  }
+                  parts={[form.name || "Untitled", form.supportEmail || null, hostFromUrl(form.storefrontUrl)]}
+                />
+              }
+              modalSize="large"
+              errors={errors}
             >
-              <s-stack direction="inline" gap="base" alignItems="center" justifyContent="space-between">
-                <s-stack direction="block" gap="small-200">
-                  <s-heading>Store identity</s-heading>
-                  <s-paragraph color="subdued">
-                    Brand name, logo, accent colour, storefront URL, and support email shown across the portal.
-                  </s-paragraph>
-                  <s-paragraph>
-                    {[form.name || "Untitled", form.accentColor || null, form.logoUrl ? "Logo set" : null]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </s-paragraph>
-                  {identityError ? <s-paragraph tone="critical">{identityError}</s-paragraph> : null}
-                </s-stack>
-                <s-button commandFor="branding-identity-modal" command="--show" variant={identityError ? "primary" : undefined}>
-                  {identityError ? "Fix" : "Edit"}
-                </s-button>
-              </s-stack>
-            </s-box>
-              )
-            })()}
-
-            {/* Find your order card row */}
-            {(() => {
-              const lookupErrors = (SETTINGS_MODAL_FIELDS["branding-lookup-modal"] ?? [])
-                .map((field) => errors[field])
-                .filter((msg): msg is string => Boolean(msg))
-              const lookupError = [...new Set(lookupErrors)][0]
-              return (
-            <s-box
-              padding="base"
-              border="base"
-              borderRadius="base"
-              background="base"
-              style={lookupError ? { outline: "2px solid #c72a2a", outlineOffset: 0 } : undefined}
-            >
-              <s-stack direction="inline" gap="base" alignItems="center" justifyContent="space-between">
-                <s-stack direction="block" gap="small-200">
-                  <s-heading>Find your order card</s-heading>
-                  <s-paragraph color="subdued">
-                    Layout, photo or gradient, headline, overlay, snake border, and page background for the order lookup screen.
-                  </s-paragraph>
-                  <s-paragraph>
-                    {[
-                      form.guestLookupLayout === "split"
-                        ? form.guestLookupSideStyle === "gradient"
-                          ? "Split gradient + form"
-                          : "Split photo + form"
-                        : "Classic form",
-                      form.guestLookupSnakeBorder ? "Snake border" : "Plain border",
-                      form.guestBackgroundStyle === "shapeGrid"
-                        ? "Shape grid"
-                        : form.guestBackgroundStyle === "dotField"
-                          ? "Dot field"
-                          : "No background",
-                    ].join(" · ")}
-                  </s-paragraph>
-                  {lookupError ? <s-paragraph tone="critical">{lookupError}</s-paragraph> : null}
-                </s-stack>
-                <s-button commandFor="branding-lookup-modal" command="--show" variant={lookupError ? "primary" : undefined}>
-                  {lookupError ? "Fix" : "Edit"}
-                </s-button>
-              </s-stack>
-            </s-box>
-              )
-            })()}
-
-            {/* ── Store identity modal ── */}
-            <s-modal id="branding-identity-modal" heading="Store identity" size="large">
               <s-stack direction="block" gap="base">
                 <s-text-field
                   label="Brand name"
@@ -799,13 +843,24 @@ export function SettingsForm({
                 ></s-email-field>
                 {errors.supportEmail && <s-paragraph tone="critical">{errors.supportEmail}</s-paragraph>}
               </s-stack>
-              <s-button slot="primary-action" variant="primary" commandFor="branding-identity-modal" command="--hide">
-                Done
-              </s-button>
-            </s-modal>
+            </SettingsEditRow>
 
-            {/* ── Find your order card modal ── */}
-            <s-modal id="branding-lookup-modal" heading="Find your order card" size="large-100">
+            <SettingsSectionLabel>Find your order screen</SettingsSectionLabel>
+            <SettingsEditRow
+              modalId="branding-lookup-modal"
+              title="Find your order screen"
+              description="How the Find your order screen looks when someone looks up a return."
+              summary={[
+                form.guestLookupLayout === "split"
+                  ? form.guestLookupSideStyle === "gradient"
+                    ? "Split layout with gradient"
+                    : "Split layout with photo"
+                  : "Classic form",
+                form.guestLookupSnakeBorder ? "Animated border" : null,
+              ].filter(Boolean).join(" · ")}
+              modalSize="large-100"
+              errors={errors}
+            >
               <s-stack direction="block" gap="large">
                 <s-stack direction="block" gap="base">
                   <s-heading>Layout</s-heading>
@@ -835,14 +890,13 @@ export function SettingsForm({
                     <s-option value="dotField">Dot field</s-option>
                   </s-select>
 
-                  <s-checkbox
-                    label="Animated snake border around the card"
+                  <CheckboxWithHelp
+                    label="Animated border around the card"
                     name="guestLookupSnakeBorder"
                     checked={form.guestLookupSnakeBorder}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      set("guestLookupSnakeBorder", e.target.checked)
-                    }
-                  ></s-checkbox>
+                    onChange={(e) => set("guestLookupSnakeBorder", e.target.checked)}
+                    help="A moving outline around the Find your order card."
+                  />
                 </s-stack>
 
                 {form.guestLookupLayout === "split" && (
@@ -1116,15 +1170,13 @@ export function SettingsForm({
                   </>
                 )}
               </s-stack>
-              <s-button slot="primary-action" variant="primary" commandFor="branding-lookup-modal" command="--hide">
-                Done
-              </s-button>
-            </s-modal>
+            </SettingsEditRow>
 
+            <SettingsSectionLabel>Messages & widgets</SettingsSectionLabel>
             <SettingsEditRow
               modalId="branding-portal-extras-modal"
-              title="Notifications & widgets"
-              description="Where toast messages appear, and optional custom HTML/script for chat widgets on the customer portal."
+              title="Messages & widgets"
+              description="Where short success and error messages appear, and optional chat or help widgets on the portal."
               summary={`${({
                 "top-left": "Toasts top-left",
                 "top-center": "Toasts top-centre",
@@ -1180,48 +1232,50 @@ export function SettingsForm({
             <s-paragraph color="subdued">
               Edit one area at a time. Changes stay in this form until you Save.
             </s-paragraph>
+
+            <SettingsSectionLabel>Rules</SettingsSectionLabel>
             <SettingsEditRow
               modalId="returns-window-modal"
               title="Return window"
-              description="How many days customers have to return items, whether they must accept your policy, and whether they review the return before submitting."
-              summary={`${form.returnWindowDays} days · ${form.requirePolicyAcceptance ? "Policy acceptance on" : "Policy acceptance off"} · ${form.returnReviewEnabled ? "Review step on" : "Review step off"}`}
+              description="How long customers have to return, and the steps they must complete before submitting."
+              summary={`${form.returnWindowDays} days · Policy acceptance ${form.requirePolicyAcceptance ? "on" : "off"} · Review step ${form.returnReviewEnabled ? "on" : "off"}`}
               modalSize="large"
               errors={errors}
             >
-            <s-stack direction="block" gap="base">
-              <s-number-field
-                label="Return window (days)"
-                name="returnWindowDays"
-                min={1}
-                max={365}
-                value={form.returnWindowDays}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("returnWindowDays", Number(e.target.value))}
-              ></s-number-field>
-              {errors.returnWindowDays && <s-paragraph tone="critical">{errors.returnWindowDays}</s-paragraph>}
+              <s-stack direction="block" gap="base">
+                <s-number-field
+                  label="Return window (days)"
+                  name="returnWindowDays"
+                  min={1}
+                  max={365}
+                  value={form.returnWindowDays}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("returnWindowDays", Number(e.target.value))}
+                ></s-number-field>
+                {errors.returnWindowDays && <s-paragraph tone="critical">{errors.returnWindowDays}</s-paragraph>}
 
-              <s-checkbox
-                label="Require customers to accept the returns policy before selecting items"
-                name="requirePolicyAcceptance"
-                checked={form.requirePolicyAcceptance}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("requirePolicyAcceptance", e.target.checked)}
-              ></s-checkbox>
-
-              <s-checkbox
-                label="Show a Review return step before customers submit"
-                name="returnReviewEnabled"
-                checked={form.returnReviewEnabled}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("returnReviewEnabled", e.target.checked)}
-              ></s-checkbox>
-              <s-paragraph color="subdued">
-                When off, the primary button submits the return immediately (labeled Submit return) instead of opening a review screen.
-              </s-paragraph>
-            </s-stack>
+                <s-stack direction="block" gap="small-200">
+                  <CheckboxWithHelp
+                    label="Require customers to accept the returns policy before selecting items"
+                    name="requirePolicyAcceptance"
+                    checked={form.requirePolicyAcceptance}
+                    onChange={(e) => set("requirePolicyAcceptance", e.target.checked)}
+                  />
+                  <CheckboxWithHelp
+                    label="Show a Review return step before customers submit"
+                    name="returnReviewEnabled"
+                    checked={form.returnReviewEnabled}
+                    onChange={(e) => set("returnReviewEnabled", e.target.checked)}
+                    help="When off, the primary button submits immediately (Submit return) instead of opening a review screen."
+                  />
+                </s-stack>
+              </s-stack>
             </SettingsEditRow>
 
+            <SettingsSectionLabel>Who can look up orders</SettingsSectionLabel>
             <SettingsEditRow
               modalId="returns-lookup-audience-modal"
-              title="Who sees the lookup form"
-              description="Whether guests can look up an order without logging in, whether logged-in customers always start on Find your order, and if they must enter a postcode."
+              title="Who can look up orders"
+              description="Who can look up an order, and what logged-in customers must enter."
               summary={
                 !form.guestLookupEnabled
                   ? "Guests must log in"
@@ -1232,238 +1286,255 @@ export function SettingsForm({
               modalSize="large"
               errors={errors}
             >
-            <s-stack direction="block" gap="base">
-              <s-checkbox
-                label="Allow guests to look up an order without logging in"
-                name="guestLookupEnabled"
-                checked={form.guestLookupEnabled}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("guestLookupEnabled", e.target.checked)}
-              ></s-checkbox>
-              <s-paragraph tone="subdued">
-                Off = visitors who aren&apos;t logged into your store are sent to Shopify login instead of the Find your order form.
-              </s-paragraph>
-              {errors.guestLookupEnabled && <s-paragraph tone="critical">{errors.guestLookupEnabled}</s-paragraph>}
+              <s-stack direction="block" gap="small-200">
+                <CheckboxWithHelp
+                  label="Allow guests to look up an order without logging in"
+                  name="guestLookupEnabled"
+                  checked={form.guestLookupEnabled}
+                  onChange={(e) => set("guestLookupEnabled", e.target.checked)}
+                  help="Off = visitors who aren't logged into your store are sent to Shopify login instead of the Find your order form."
+                />
+                {errors.guestLookupEnabled && <s-paragraph tone="critical">{errors.guestLookupEnabled}</s-paragraph>}
 
-              <s-divider></s-divider>
+                <s-divider></s-divider>
 
-              <s-checkbox
-                label="Always show the order lookup form, even for logged-in customers"
-                name="alwaysShowGuestLookup"
-                checked={form.alwaysShowGuestLookup}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("alwaysShowGuestLookup", e.target.checked)}
-              ></s-checkbox>
-              <s-paragraph tone="subdued">
-                Off = logged-in customers see their full order list. On = everyone starts on Find your order (layout &amp; photo are under Branding).
-              </s-paragraph>
-              {errors.alwaysShowGuestLookup && <s-paragraph tone="critical">{errors.alwaysShowGuestLookup}</s-paragraph>}
+                <CheckboxWithHelp
+                  label="Always show the order lookup form, even for logged-in customers"
+                  name="alwaysShowGuestLookup"
+                  checked={form.alwaysShowGuestLookup}
+                  onChange={(e) => set("alwaysShowGuestLookup", e.target.checked)}
+                  help="Off = logged-in customers see their full order list. On = everyone starts on Find your order (layout & photo are under Branding)."
+                />
+                {errors.alwaysShowGuestLookup && <s-paragraph tone="critical">{errors.alwaysShowGuestLookup}</s-paragraph>}
 
-              <s-checkbox
-                label="Require delivery postcode for logged-in customers on the lookup form"
-                name="loggedInLookupRequirePostcode"
-                checked={form.loggedInLookupRequirePostcode}
-                disabled={!form.alwaysShowGuestLookup}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("loggedInLookupRequirePostcode", e.target.checked)}
-              ></s-checkbox>
-              <s-paragraph tone="subdued">
-                Only applies when “Always show the order lookup form” is on. Off = logged-in customers enter order number and email only. On = they must also enter the delivery postcode (same as guests).
-              </s-paragraph>
-              {errors.loggedInLookupRequirePostcode && <s-paragraph tone="critical">{errors.loggedInLookupRequirePostcode}</s-paragraph>}
-            </s-stack>
+                <CheckboxWithHelp
+                  label="Require delivery postcode for logged-in customers on the lookup form"
+                  name="loggedInLookupRequirePostcode"
+                  checked={form.loggedInLookupRequirePostcode}
+                  disabled={!form.alwaysShowGuestLookup}
+                  onChange={(e) => set("loggedInLookupRequirePostcode", e.target.checked)}
+                  help='Only applies when “Always show the order lookup form” is on. Off = logged-in customers enter order number and email only. On = they must also enter the delivery postcode (same as guests).'
+                />
+                {errors.loggedInLookupRequirePostcode && <s-paragraph tone="critical">{errors.loggedInLookupRequirePostcode}</s-paragraph>}
+              </s-stack>
+            </SettingsEditRow>
+
+            <SettingsSectionLabel>Policy</SettingsSectionLabel>
+            <SettingsEditRow
+              modalId="returns-policy-experience-modal"
+              title="Policy experience"
+              description="How customers open your returns policy on the order page before selecting items."
+              summary={
+                form.policyPresentation === "externalLink"
+                  ? `Opens your website · ${hostFromUrl(form.policyExternalUrl) || form.policyExternalUrl || "URL required"} · button “${form.policyReviewButtonLabel || "Read policy"}”`
+                  : `In-app dialog · button “${form.policyReviewButtonLabel || "Review & Accept"}”`
+              }
+              modalSize="large"
+              errors={errors}
+            >
+              <s-stack direction="block" gap="base">
+                <s-select
+                  label="Policy experience"
+                  name="policyPresentation"
+                  value={form.policyPresentation}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                    set("policyPresentation", e.target.value as "dialog" | "externalLink")
+                  }
+                >
+                  <s-option value="dialog">In-app dialog (recommended)</s-option>
+                  <s-option value="externalLink">Link to an external policy page</s-option>
+                </s-select>
+                {errors.policyPresentation && <s-paragraph tone="critical">{errors.policyPresentation}</s-paragraph>}
+
+                {form.policyPresentation === "externalLink" ? (
+                  <>
+                    <s-url-field
+                      label="Policy page URL"
+                      name="policyExternalUrl"
+                      value={form.policyExternalUrl}
+                      placeholder="https://your-store.com/pages/returns-policy"
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policyExternalUrl", e.target.value)}
+                    ></s-url-field>
+                    {errors.policyExternalUrl && <s-paragraph tone="critical">{errors.policyExternalUrl}</s-paragraph>}
+                    <s-text-field
+                      label="Review button text"
+                      name="policyReviewButtonLabel"
+                      value={form.policyReviewButtonLabel}
+                      placeholder="Read policy"
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policyReviewButtonLabel", e.target.value)}
+                    ></s-text-field>
+                    {errors.policyReviewButtonLabel && <s-paragraph tone="critical">{errors.policyReviewButtonLabel}</s-paragraph>}
+                    <s-text-field
+                      label="Policy banner text"
+                      name="policySubheading"
+                      value={form.policySubheading}
+                      placeholder="Review our returns policy before selecting items to return."
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policySubheading", e.target.value)}
+                    ></s-text-field>
+                    {errors.policySubheading && <s-paragraph tone="critical">{errors.policySubheading}</s-paragraph>}
+                    <s-paragraph tone="subdued">
+                      Shown next to the button on the order page. The button opens your policy URL in a new tab and stays visible — it does not hide after click.
+                    </s-paragraph>
+                  </>
+                ) : (
+                  <>
+                    <s-text-field
+                      label="Review button text"
+                      name="policyReviewButtonLabel"
+                      value={form.policyReviewButtonLabel}
+                      placeholder="Review & Accept"
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policyReviewButtonLabel", e.target.value)}
+                    ></s-text-field>
+                    {errors.policyReviewButtonLabel && <s-paragraph tone="critical">{errors.policyReviewButtonLabel}</s-paragraph>}
+                    <s-text-field
+                      label="Policy banner / dialog intro"
+                      name="policySubheading"
+                      value={form.policySubheading}
+                      placeholder="Review our returns policy before selecting items to return."
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policySubheading", e.target.value)}
+                    ></s-text-field>
+                    <s-paragraph tone="subdued">
+                      Shown on the order page next to the review button, and again as the intro inside the policy dialog.
+                    </s-paragraph>
+                    {errors.policySubheading && <s-paragraph tone="critical">{errors.policySubheading}</s-paragraph>}
+                  </>
+                )}
+              </s-stack>
             </SettingsEditRow>
 
             <SettingsEditRow
-              modalId="returns-policy-modal"
-              title="Returns policy"
-              description="In-app dialog or external policy page, banner and button text, categories or free-text body, and footer note."
+              modalId="returns-policy-content-modal"
+              title="Policy content"
+              description="Heading, body, and footer shown in the in-app policy dialog."
               summary={
                 form.policyPresentation === "externalLink"
-                  ? `External link · ${form.policyExternalUrl || "URL required"}`
-                  : `${form.policyHeading || "Untitled"} · ${form.policyBodyMode === "text" ? "In-app free text" : `In-app · ${form.policyCategories.length} categor${form.policyCategories.length === 1 ? "y" : "ies"}`}`
+                  ? "Not used — policy opens on your website"
+                  : [
+                      form.policyHeading || "Untitled",
+                      form.policyBodyMode === "text"
+                        ? "Free text"
+                        : `${form.policyCategories.length} categor${form.policyCategories.length === 1 ? "y" : "ies"}`,
+                      form.policyFooterNoteEnabled ? "Footer on" : "Footer off",
+                    ].join(" · ")
               }
               modalSize="large-100"
               errors={errors}
             >
-            <s-stack direction="block" gap="base">
-              <s-paragraph tone="subdued">How customers review your policy before they can select items to return.</s-paragraph>
-
-              <s-select
-                label="Policy experience"
-                name="policyPresentation"
-                value={form.policyPresentation}
-                onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-                  set("policyPresentation", e.target.value as "dialog" | "externalLink")
-                }
-              >
-                <s-option value="dialog">In-app dialog (recommended)</s-option>
-                <s-option value="externalLink">Link to an external policy page</s-option>
-              </s-select>
-              {errors.policyPresentation && <s-paragraph tone="critical">{errors.policyPresentation}</s-paragraph>}
-
-              {form.policyPresentation === "externalLink" ? (
-                <>
-                  <s-url-field
-                    label="Policy page URL"
-                    name="policyExternalUrl"
-                    value={form.policyExternalUrl}
-                    placeholder="https://your-store.com/pages/returns-policy"
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policyExternalUrl", e.target.value)}
-                  ></s-url-field>
-                  {errors.policyExternalUrl && <s-paragraph tone="critical">{errors.policyExternalUrl}</s-paragraph>}
-                  <s-text-field
-                    label="Review button text"
-                    name="policyReviewButtonLabel"
-                    value={form.policyReviewButtonLabel}
-                    placeholder="Read policy"
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policyReviewButtonLabel", e.target.value)}
-                  ></s-text-field>
-                  {errors.policyReviewButtonLabel && <s-paragraph tone="critical">{errors.policyReviewButtonLabel}</s-paragraph>}
-                  <s-text-field
-                    label="Policy banner text"
-                    name="policySubheading"
-                    value={form.policySubheading}
-                    placeholder="Review our returns policy before selecting items to return."
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policySubheading", e.target.value)}
-                  ></s-text-field>
-                  {errors.policySubheading && <s-paragraph tone="critical">{errors.policySubheading}</s-paragraph>}
-                  <s-paragraph tone="subdued">
-                    Shown next to the button on the order page. The button opens your policy URL in a new tab and stays visible — it does not hide after click.
+              <s-stack direction="block" gap="base">
+                {form.policyPresentation === "externalLink" ? (
+                  <s-paragraph color="subdued">
+                    These fields only apply when Policy experience is set to in-app dialog. Your store currently opens the policy on your website.
                   </s-paragraph>
-                </>
-              ) : null}
+                ) : null}
 
-              {form.policyPresentation === "dialog" && (
-              <>
-              <s-text-field
-                label="Review button text"
-                name="policyReviewButtonLabel"
-                value={form.policyReviewButtonLabel}
-                placeholder="Review & Accept"
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policyReviewButtonLabel", e.target.value)}
-              ></s-text-field>
-              {errors.policyReviewButtonLabel && <s-paragraph tone="critical">{errors.policyReviewButtonLabel}</s-paragraph>}
+                <s-text-field
+                  label="Policy dialog heading"
+                  name="policyHeading"
+                  value={form.policyHeading}
+                  placeholder="iBlaze Returns Policy"
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policyHeading", e.target.value)}
+                ></s-text-field>
+                {errors.policyHeading && <s-paragraph tone="critical">{errors.policyHeading}</s-paragraph>}
 
-              <s-text-field
-                label="Policy dialog heading"
-                name="policyHeading"
-                value={form.policyHeading}
-                placeholder="iBlaze Returns Policy"
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policyHeading", e.target.value)}
-              ></s-text-field>
-              {errors.policyHeading && <s-paragraph tone="critical">{errors.policyHeading}</s-paragraph>}
+                <s-text-field
+                  label="Last updated"
+                  name="policyLastUpdated"
+                  value={form.policyLastUpdated}
+                  placeholder="14 July 2026"
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policyLastUpdated", e.target.value)}
+                ></s-text-field>
+                <s-paragraph tone="subdued">Shown under the dialog intro. Leave blank to hide it. Free text — you control the date format.</s-paragraph>
+                {errors.policyLastUpdated && <s-paragraph tone="critical">{errors.policyLastUpdated}</s-paragraph>}
 
-              <s-text-field
-                label="Policy banner / dialog intro"
-                name="policySubheading"
-                value={form.policySubheading}
-                placeholder="Review our returns policy before selecting items to return."
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policySubheading", e.target.value)}
-              ></s-text-field>
-              <s-paragraph tone="subdued">
-                Shown on the order page next to the review button, and again as the intro inside the policy dialog.
-              </s-paragraph>
-              {errors.policySubheading && <s-paragraph tone="critical">{errors.policySubheading}</s-paragraph>}
+                <s-stack direction="inline" gap="small-300">
+                  <s-button
+                    variant={form.policyBodyMode === "categories" ? "primary" : "secondary"}
+                    onClick={() => set("policyBodyMode", "categories")}
+                  >
+                    Category list
+                  </s-button>
+                  <s-button
+                    variant={form.policyBodyMode === "text" ? "primary" : "secondary"}
+                    onClick={() => set("policyBodyMode", "text")}
+                  >
+                    Free text
+                  </s-button>
+                </s-stack>
 
-              <s-text-field
-                label="Last updated"
-                name="policyLastUpdated"
-                value={form.policyLastUpdated}
-                placeholder="14 July 2026"
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policyLastUpdated", e.target.value)}
-              ></s-text-field>
-              <s-paragraph tone="subdued">Shown under the dialog intro. Leave blank to hide it. Free text — you control the date format.</s-paragraph>
-              {errors.policyLastUpdated && <s-paragraph tone="critical">{errors.policyLastUpdated}</s-paragraph>}
-
-              <s-stack direction="inline" gap="small-300">
-                <s-button
-                  variant={form.policyBodyMode === "categories" ? "primary" : "secondary"}
-                  onClick={() => set("policyBodyMode", "categories")}
-                >
-                  Category list
-                </s-button>
-                <s-button
-                  variant={form.policyBodyMode === "text" ? "primary" : "secondary"}
-                  onClick={() => set("policyBodyMode", "text")}
-                >
-                  Free text
-                </s-button>
-              </s-stack>
-
-              {form.policyBodyMode === "categories" ? (
-                <PolicyCategoriesTable
-                  categories={form.policyCategories}
-                  categoryIds={categoryIds}
-                  filter={categoryFilter}
-                  onFilterChange={setCategoryFilter}
-                  onUpdate={updateCategory}
-                  onAdd={addCategory}
-                  onRemove={removeCategory}
-                  onReorder={reorderCategories}
-                  error={errors.policyCategories}
-                />
-              ) : (
-                <>
-                  <s-text color="subdued">Policy body text</s-text>
-                  <RichTextEditor
-                    value={form.policyBodyText}
-                    onChange={(value) => set("policyBodyText", value)}
-                    placeholder="Write your full returns policy here instead of using category cards."
+                {form.policyBodyMode === "categories" ? (
+                  <PolicyCategoriesTable
+                    categories={form.policyCategories}
+                    categoryIds={categoryIds}
+                    filter={categoryFilter}
+                    onFilterChange={setCategoryFilter}
+                    onUpdate={updateCategory}
+                    onAdd={addCategory}
+                    onRemove={removeCategory}
+                    onReorder={reorderCategories}
+                    error={errors.policyCategories}
                   />
-                  {errors.policyBodyText && <s-paragraph tone="critical">{errors.policyBodyText}</s-paragraph>}
-                </>
-              )}
+                ) : (
+                  <>
+                    <s-text color="subdued">Policy body text</s-text>
+                    <RichTextEditor
+                      value={form.policyBodyText}
+                      onChange={(value) => set("policyBodyText", value)}
+                      placeholder="Write your full returns policy here instead of using category cards."
+                    />
+                    {errors.policyBodyText && <s-paragraph tone="critical">{errors.policyBodyText}</s-paragraph>}
+                  </>
+                )}
 
-              <s-checkbox
-                label="Show the footer note"
-                name="policyFooterNoteEnabled"
-                checked={form.policyFooterNoteEnabled}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policyFooterNoteEnabled", e.target.checked)}
-              ></s-checkbox>
-              <s-text-area
-                label="Footer note"
-                name="policyFooterNote"
-                value={form.policyFooterNote}
-                maxLength={300}
-                rows={2}
-                disabled={!form.policyFooterNoteEnabled}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("policyFooterNote", e.target.value)}
-              ></s-text-area>
-              {errors.policyFooterNote && <s-paragraph tone="critical">{errors.policyFooterNote}</s-paragraph>}
-              </>
-              )}
-            </s-stack>
+                <CheckboxWithHelp
+                  label="Show the footer note"
+                  name="policyFooterNoteEnabled"
+                  checked={form.policyFooterNoteEnabled}
+                  onChange={(e) => set("policyFooterNoteEnabled", e.target.checked)}
+                />
+                <s-text-area
+                  label="Footer note"
+                  name="policyFooterNote"
+                  value={form.policyFooterNote}
+                  maxLength={300}
+                  rows={2}
+                  disabled={!form.policyFooterNoteEnabled}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("policyFooterNote", e.target.value)}
+                ></s-text-area>
+                {errors.policyFooterNote && <s-paragraph tone="critical">{errors.policyFooterNote}</s-paragraph>}
+              </s-stack>
             </SettingsEditRow>
 
             <SettingsEditRow
               modalId="returns-confirm-modal"
               title="Confirmation messages"
-              description="Toast text shown after a customer accepts or declines the returns policy in the dialog."
-              summary={"Accept / decline toast messages"}
+              description="Short confirmation messages after a customer accepts or declines the in-app policy."
+              summary={`“${(form.policyAcceptedMessage || "Policy accepted").slice(0, 40)}” · “${(form.policyDeclinedMessage || "Policy declined").slice(0, 40)}”`}
               modalSize="large"
               errors={errors}
             >
-            <s-stack direction="block" gap="base">
-              <s-paragraph tone="subdued">Shown briefly as a toast after a customer accepts or declines the policy.</s-paragraph>
-              <s-text-field
-                label="Accepted message"
-                name="policyAcceptedMessage"
-                value={form.policyAcceptedMessage}
-                placeholder="Policy accepted"
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policyAcceptedMessage", e.target.value)}
-              ></s-text-field>
-              {errors.policyAcceptedMessage && <s-paragraph tone="critical">{errors.policyAcceptedMessage}</s-paragraph>}
-              <s-text-field
-                label="Declined message"
-                name="policyDeclinedMessage"
-                value={form.policyDeclinedMessage}
-                placeholder="Policy declined"
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policyDeclinedMessage", e.target.value)}
-              ></s-text-field>
-              {errors.policyDeclinedMessage && <s-paragraph tone="critical">{errors.policyDeclinedMessage}</s-paragraph>}
-            </s-stack>
+              <s-stack direction="block" gap="base">
+                <s-text-field
+                  label="Accepted message"
+                  name="policyAcceptedMessage"
+                  value={form.policyAcceptedMessage}
+                  placeholder="Policy accepted"
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policyAcceptedMessage", e.target.value)}
+                ></s-text-field>
+                {errors.policyAcceptedMessage && <s-paragraph tone="critical">{errors.policyAcceptedMessage}</s-paragraph>}
+                <s-text-field
+                  label="Declined message"
+                  name="policyDeclinedMessage"
+                  value={form.policyDeclinedMessage}
+                  placeholder="Policy declined"
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policyDeclinedMessage", e.target.value)}
+                ></s-text-field>
+                {errors.policyDeclinedMessage && <s-paragraph tone="critical">{errors.policyDeclinedMessage}</s-paragraph>}
+              </s-stack>
             </SettingsEditRow>
           </s-stack>
         </s-section>
       )}
+
 
       {activeTab === "navigation" && (
         <s-section heading="Navigation">
@@ -1471,96 +1542,130 @@ export function SettingsForm({
             <s-paragraph color="subdued">
               Edit one area at a time. Changes stay in this form until you Save.
             </s-paragraph>
+
+            <SettingsSectionLabel>Sidebar</SettingsSectionLabel>
             <SettingsEditRow
               modalId="nav-sidebar-layout-modal"
               title="Sidebar layout"
-              description="Inset vs sidebar style, whether customers can switch layouts, if the sidebar starts open, and the sidebar avatar."
-              summary={`${form.defaultSidebarLayout === "inset" ? "Inset" : "Sidebar"}${form.sidebarLayoutSwitcherEnabled ? " · switcher on" : ""}`}
+              description="Whether the portal shows a sidebar, and how it looks when it does."
+              summary={
+                !form.sidebarEnabled
+                  ? "Sidebar off everywhere"
+                  : [
+                      form.defaultSidebarLayout === "inset" ? "Inset" : "Sidebar",
+                      form.lookupSidebarEnabled ? null : "hidden on Find your order",
+                      form.sidebarLayoutSwitcherEnabled ? "switcher on" : null,
+                      form.sidebarDefaultOpenOnDesktop ? "starts open" : null,
+                    ].filter(Boolean).join(" · ")
+              }
               modalSize="large"
               errors={errors}
             >
-            <s-stack direction="block" gap="base">
-              <s-checkbox
-                label="Let customers switch between sidebar and inset layouts"
-                name="sidebarLayoutSwitcherEnabled"
-                checked={form.sidebarLayoutSwitcherEnabled}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("sidebarLayoutSwitcherEnabled", e.target.checked)}
-              ></s-checkbox>
-              <s-select
-                label={form.sidebarLayoutSwitcherEnabled ? "Default layout" : "Layout (fixed — switcher is off)"}
-                name="defaultSidebarLayout"
-                value={form.defaultSidebarLayout}
-                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => set("defaultSidebarLayout", e.target.value as "inset" | "sidebar")}
-              >
-                <s-option value="inset">Inset</s-option>
-                <s-option value="sidebar">Sidebar</s-option>
-              </s-select>
-              <s-checkbox
-                label="Sidebar starts open on desktop"
-                name="sidebarDefaultOpenOnDesktop"
-                checked={form.sidebarDefaultOpenOnDesktop}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("sidebarDefaultOpenOnDesktop", e.target.checked)}
-              ></s-checkbox>
-              <s-checkbox
-                label="Show the customer avatar in the sidebar footer"
-                name="sidebarAvatarEnabled"
-                checked={form.sidebarAvatarEnabled}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("sidebarAvatarEnabled", e.target.checked)}
-              ></s-checkbox>
-            </s-stack>
+              <s-stack direction="block" gap="small-200">
+                <CheckboxWithHelp
+                  label="Show the sidebar on the customer portal"
+                  name="sidebarEnabled"
+                  checked={form.sidebarEnabled}
+                  onChange={(e) => set("sidebarEnabled", e.target.checked)}
+                  help="When off, the sidebar is removed everywhere and the main content uses the full width."
+                />
+                <CheckboxWithHelp
+                  label="Show the sidebar on the Find your order screen"
+                  name="lookupSidebarEnabled"
+                  checked={form.lookupSidebarEnabled}
+                  disabled={!form.sidebarEnabled}
+                  onChange={(e) => set("lookupSidebarEnabled", e.target.checked)}
+                  help="When off, Find your order has no sidebar — the content expands to fill that space. Only applies when the portal sidebar is on."
+                />
+
+                <s-divider></s-divider>
+
+                <s-checkbox
+                  label="Let customers switch between sidebar and inset layouts"
+                  name="sidebarLayoutSwitcherEnabled"
+                  checked={form.sidebarLayoutSwitcherEnabled}
+                  disabled={!form.sidebarEnabled}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("sidebarLayoutSwitcherEnabled", e.target.checked)}
+                ></s-checkbox>
+                <s-select
+                  label={form.sidebarLayoutSwitcherEnabled ? "Default layout" : "Layout (fixed — switcher is off)"}
+                  name="defaultSidebarLayout"
+                  value={form.defaultSidebarLayout}
+                  disabled={!form.sidebarEnabled}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => set("defaultSidebarLayout", e.target.value as "inset" | "sidebar")}
+                >
+                  <s-option value="inset">Inset</s-option>
+                  <s-option value="sidebar">Sidebar</s-option>
+                </s-select>
+                <s-checkbox
+                  label="Sidebar starts open on desktop"
+                  name="sidebarDefaultOpenOnDesktop"
+                  checked={form.sidebarDefaultOpenOnDesktop}
+                  disabled={!form.sidebarEnabled}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("sidebarDefaultOpenOnDesktop", e.target.checked)}
+                ></s-checkbox>
+                <s-checkbox
+                  label="Show the customer avatar in the sidebar footer"
+                  name="sidebarAvatarEnabled"
+                  checked={form.sidebarAvatarEnabled}
+                  disabled={!form.sidebarEnabled}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("sidebarAvatarEnabled", e.target.checked)}
+                ></s-checkbox>
+              </s-stack>
             </SettingsEditRow>
 
             <SettingsEditRow
               modalId="nav-sidebar-links-modal"
               title="Sidebar links"
-              description="Custom sidebar links and sub-links (label, URL, icon), expand behaviour, and an optional note under the menu."
+              description="Links and an optional note in the portal sidebar."
               summary={`${form.sidebarLinks.length} link${form.sidebarLinks.length === 1 ? "" : "s"}${form.sidebarNote ? " · note set" : ""}`}
               modalSize="large-100"
               errors={errors}
             >
-            <s-stack direction="block" gap="base">
-              <SidebarLinksTable
-                links={form.sidebarLinks}
-                linkIds={sidebarLinkIds}
-                subLinkIds={sidebarSubLinkIds}
-                filter={sidebarLinkFilter}
-                onFilterChange={setSidebarLinkFilter}
-                iconNames={SIDEBAR_ICON_NAMES}
-                onUpdate={updateSidebarLink}
-                onAdd={addSidebarLink}
-                onRemove={removeSidebarLink}
-                onReorder={reorderSidebarLinks}
-                onAddSub={addSubLink}
-                onUpdateSub={updateSubLink}
-                onRemoveSub={removeSubLink}
-                onReorderSub={reorderSubLinks}
-                error={errors.sidebarLinks}
-              />
+              <s-stack direction="block" gap="base">
+                <SidebarLinksTable
+                  links={form.sidebarLinks}
+                  linkIds={sidebarLinkIds}
+                  subLinkIds={sidebarSubLinkIds}
+                  filter={sidebarLinkFilter}
+                  onFilterChange={setSidebarLinkFilter}
+                  iconNames={SIDEBAR_ICON_NAMES}
+                  onUpdate={updateSidebarLink}
+                  onAdd={addSidebarLink}
+                  onRemove={removeSidebarLink}
+                  onReorder={reorderSidebarLinks}
+                  onAddSub={addSubLink}
+                  onUpdateSub={updateSubLink}
+                  onRemoveSub={removeSubLink}
+                  onReorderSub={reorderSubLinks}
+                  error={errors.sidebarLinks}
+                />
 
-              <s-checkbox
-                label="Expand sub-links by default (uncheck to start collapsed until clicked)"
-                name="sidebarSubmenusExpandedByDefault"
-                checked={form.sidebarSubmenusExpandedByDefault}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("sidebarSubmenusExpandedByDefault", e.target.checked)}
-              ></s-checkbox>
+                <s-checkbox
+                  label="Expand sub-links by default (uncheck to start collapsed until clicked)"
+                  name="sidebarSubmenusExpandedByDefault"
+                  checked={form.sidebarSubmenusExpandedByDefault}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("sidebarSubmenusExpandedByDefault", e.target.checked)}
+                ></s-checkbox>
 
-              <s-text-area
-                label="Sidebar note"
-                name="sidebarNote"
-                value={form.sidebarNote}
-                maxLength={500}
-                rows={3}
-                placeholder="A short announcement instead of (or alongside) links. Wrap text in **double asterisks** for bold."
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("sidebarNote", e.target.value)}
-              ></s-text-area>
-              {errors.sidebarNote && <s-paragraph tone="critical">{errors.sidebarNote}</s-paragraph>}
-            </s-stack>
+                <s-text-area
+                  label="Sidebar note"
+                  name="sidebarNote"
+                  value={form.sidebarNote}
+                  maxLength={500}
+                  rows={3}
+                  placeholder="A short announcement instead of (or alongside) links. Wrap text in **double asterisks** for bold."
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("sidebarNote", e.target.value)}
+                ></s-text-area>
+                {errors.sidebarNote && <s-paragraph tone="critical">{errors.sidebarNote}</s-paragraph>}
+              </s-stack>
             </SettingsEditRow>
 
+            <SettingsSectionLabel>Header</SettingsSectionLabel>
             <SettingsEditRow
               modalId="nav-header-links-modal"
               title="Header"
-              description="Store link, order status link, and whether the customer account menu appears in the top bar."
+              description="Links and the account menu in the portal top bar."
               summary={[
                 form.storeLinkEnabled ? form.storeLinkLabel || "Store link" : null,
                 form.orderStatusLinkEnabled ? form.orderStatusLinkLabel || "Order status" : null,
@@ -1569,51 +1674,54 @@ export function SettingsForm({
               modalSize="large"
               errors={errors}
             >
-            <s-stack direction="block" gap="base">
-              <s-paragraph tone="subdued">Controls the top bar of the customer portal (not the sidebar).</s-paragraph>
-              <s-checkbox
-                label="Show Store link in the top bar"
-                name="storeLinkEnabled"
-                checked={form.storeLinkEnabled}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("storeLinkEnabled", e.target.checked)}
-              ></s-checkbox>
-              <s-text-field
-                label="Store link label"
-                name="storeLinkLabel"
-                value={form.storeLinkLabel}
-                placeholder="Store"
-                disabled={!form.storeLinkEnabled}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("storeLinkLabel", e.target.value)}
-              ></s-text-field>
-              {errors.storeLinkLabel && <s-paragraph tone="critical">{errors.storeLinkLabel}</s-paragraph>}
+              <s-stack direction="block" gap="base">
+                <s-stack direction="block" gap="small-200">
+                  <s-checkbox
+                    label="Show Store link in the top bar"
+                    name="storeLinkEnabled"
+                    checked={form.storeLinkEnabled}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("storeLinkEnabled", e.target.checked)}
+                  ></s-checkbox>
+                  <s-text-field
+                    label="Store link label"
+                    name="storeLinkLabel"
+                    value={form.storeLinkLabel}
+                    placeholder="Store"
+                    disabled={!form.storeLinkEnabled}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("storeLinkLabel", e.target.value)}
+                  ></s-text-field>
+                  {errors.storeLinkLabel && <s-paragraph tone="critical">{errors.storeLinkLabel}</s-paragraph>}
+                </s-stack>
 
-              <s-divider></s-divider>
+                <s-divider></s-divider>
 
-              <s-checkbox
-                label="Show an order status link in the header (when an order is open)"
-                name="orderStatusLinkEnabled"
-                checked={form.orderStatusLinkEnabled}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("orderStatusLinkEnabled", e.target.checked)}
-              ></s-checkbox>
-              <s-text-field
-                label="Order status link label"
-                name="orderStatusLinkLabel"
-                value={form.orderStatusLinkLabel}
-                placeholder="Order Status"
-                disabled={!form.orderStatusLinkEnabled}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("orderStatusLinkLabel", e.target.value)}
-              ></s-text-field>
-              {errors.orderStatusLinkLabel && <s-paragraph tone="critical">{errors.orderStatusLinkLabel}</s-paragraph>}
+                <s-stack direction="block" gap="small-200">
+                  <s-checkbox
+                    label="Show an order status link in the header (when an order is open)"
+                    name="orderStatusLinkEnabled"
+                    checked={form.orderStatusLinkEnabled}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("orderStatusLinkEnabled", e.target.checked)}
+                  ></s-checkbox>
+                  <s-text-field
+                    label="Order status link label"
+                    name="orderStatusLinkLabel"
+                    value={form.orderStatusLinkLabel}
+                    placeholder="Order Status"
+                    disabled={!form.orderStatusLinkEnabled}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("orderStatusLinkLabel", e.target.value)}
+                  ></s-text-field>
+                  {errors.orderStatusLinkLabel && <s-paragraph tone="critical">{errors.orderStatusLinkLabel}</s-paragraph>}
+                </s-stack>
 
-              <s-divider></s-divider>
-              <s-checkbox
-                label="Show customer account menu in the top bar"
-                name="headerAvatarEnabled"
-                checked={form.headerAvatarEnabled}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("headerAvatarEnabled", e.target.checked)}
-              ></s-checkbox>
-              <s-paragraph tone="subdued">The avatar / account menu on the right of the header when someone is signed in.</s-paragraph>
-            </s-stack>
+                <s-divider></s-divider>
+                <CheckboxWithHelp
+                  label="Show customer account menu in the top bar"
+                  name="headerAvatarEnabled"
+                  checked={form.headerAvatarEnabled}
+                  onChange={(e) => set("headerAvatarEnabled", e.target.checked)}
+                  help="The avatar / account menu on the right of the header when someone is signed in."
+                />
+              </s-stack>
             </SettingsEditRow>
           </s-stack>
         </s-section>
@@ -1625,42 +1733,44 @@ export function SettingsForm({
             <s-paragraph color="subdued">
               Edit one area at a time. Changes stay in this form until you Save.
             </s-paragraph>
+
+            <SettingsSectionLabel>Orders list</SettingsSectionLabel>
             <SettingsEditRow
               modalId="table-header-search-modal"
-              title="Order search (top bar)"
-              description="Whether customers can search their orders from the portal header, and the hint text inside that search box."
+              title="Order search"
+              description="Whether customers can search their orders from the top bar."
               summary={
                 form.headerSearchEnabled
-                  ? `Shows a search box in the top bar (placeholder: “${form.headerSearchPlaceholder || "Search orders..."}”)`
-                  : "No order search in the top bar"
+                  ? `On · “${form.headerSearchPlaceholder || "Search orders..."}”`
+                  : "Off"
               }
               modalSize="large"
               errors={errors}
             >
-            <s-stack direction="block" gap="base">
-              <s-paragraph tone="subdued">Lets customers search their orders from the portal header.</s-paragraph>
-              <s-checkbox
-                label="Show order search in the top bar"
-                name="headerSearchEnabled"
-                checked={form.headerSearchEnabled}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("headerSearchEnabled", e.target.checked)}
-              ></s-checkbox>
-              <s-text-field
-                label="Grey hint text inside the search box"
-                name="headerSearchPlaceholder"
-                value={form.headerSearchPlaceholder}
-                placeholder="Search orders..."
-                disabled={!form.headerSearchEnabled}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("headerSearchPlaceholder", e.target.value)}
-              ></s-text-field>
-              {errors.headerSearchPlaceholder && <s-paragraph tone="critical">{errors.headerSearchPlaceholder}</s-paragraph>}
-            </s-stack>
+              <s-stack direction="block" gap="base">
+                <s-checkbox
+                  label="Show order search in the top bar"
+                  name="headerSearchEnabled"
+                  checked={form.headerSearchEnabled}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("headerSearchEnabled", e.target.checked)}
+                ></s-checkbox>
+                <s-text-field
+                  label="Grey hint text inside the search box"
+                  name="headerSearchPlaceholder"
+                  value={form.headerSearchPlaceholder}
+                  placeholder="Search orders..."
+                  disabled={!form.headerSearchEnabled}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("headerSearchPlaceholder", e.target.value)}
+                ></s-text-field>
+                {errors.headerSearchPlaceholder && <s-paragraph tone="critical">{errors.headerSearchPlaceholder}</s-paragraph>}
+              </s-stack>
             </SettingsEditRow>
 
+            <SettingsSectionLabel>Order detail</SettingsSectionLabel>
             <SettingsEditRow
               modalId="table-order-items-modal"
-              title="Order detail & item list"
-              description="Product search, Eligible/Ineligible tabs, columns, rows per page, shipment cards, image links, and default My Orders view."
+              title="Order detail"
+              description="How products and tools appear when a customer opens an order."
               summary={`${form.defaultOrderView === "grid" ? "Grid cards" : "List rows"} · ${[
                 form.tableSearchEnabled && "product search",
                 form.tablePageSizeEnabled && "rows per page",
@@ -1669,237 +1779,243 @@ export function SettingsForm({
               modalSize="large-100"
               errors={errors}
             >
-            <s-stack direction="block" gap="base">
-              <s-paragraph tone="subdued">Controls how products appear when a customer opens an order.</s-paragraph>
-              <s-checkbox
-                label="Show search box to find a product or variant in the order"
-                name="tableSearchEnabled"
-                checked={form.tableSearchEnabled}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("tableSearchEnabled", e.target.checked)}
-              ></s-checkbox>
-              <s-text-field
-                label="Hint text inside the product search box"
-                name="tableSearchPlaceholder"
-                value={form.tableSearchPlaceholder}
-                placeholder="Search product or variant..."
-                disabled={!form.tableSearchEnabled}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("tableSearchPlaceholder", e.target.value)}
-              ></s-text-field>
-              {errors.tableSearchPlaceholder && <s-paragraph tone="critical">{errors.tableSearchPlaceholder}</s-paragraph>}
+              <s-stack direction="block" gap="base">
+                <s-stack direction="block" gap="small-200">
+                  <s-checkbox
+                    label="Show search box to find a product or variant in the order"
+                    name="tableSearchEnabled"
+                    checked={form.tableSearchEnabled}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("tableSearchEnabled", e.target.checked)}
+                  ></s-checkbox>
+                  <s-text-field
+                    label="Hint text inside the product search box"
+                    name="tableSearchPlaceholder"
+                    value={form.tableSearchPlaceholder}
+                    placeholder="Search product or variant..."
+                    disabled={!form.tableSearchEnabled}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("tableSearchPlaceholder", e.target.value)}
+                  ></s-text-field>
+                  {errors.tableSearchPlaceholder && <s-paragraph tone="critical">{errors.tableSearchPlaceholder}</s-paragraph>}
+                </s-stack>
 
-              <s-checkbox
-                label="Show a Filter button for items that can’t be returned"
-                name="tableFilterButtonEnabled"
-                checked={form.tableFilterButtonEnabled}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("tableFilterButtonEnabled", e.target.checked)}
-              ></s-checkbox>
-              <s-checkbox
-                label="Show Eligible / Ineligible tabs on the order"
-                name="statusFilterEnabled"
-                checked={form.statusFilterEnabled}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("statusFilterEnabled", e.target.checked)}
-              ></s-checkbox>
-              <s-text-field
-                label="Name for the ‘can be returned’ tab"
-                name="eligibleLabel"
-                value={form.eligibleLabel}
-                placeholder="Eligible"
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("eligibleLabel", e.target.value)}
-              ></s-text-field>
-              {errors.eligibleLabel && <s-paragraph tone="critical">{errors.eligibleLabel}</s-paragraph>}
-              <s-text-field
-                label="Name for the ‘can’t be returned’ tab"
-                name="ineligibleLabel"
-                value={form.ineligibleLabel}
-                placeholder="Ineligible"
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("ineligibleLabel", e.target.value)}
-              ></s-text-field>
-              {errors.ineligibleLabel && <s-paragraph tone="critical">{errors.ineligibleLabel}</s-paragraph>}
-              <s-checkbox
-                label={'Show the "These items can’t be selected here" message on the can’t-return tab'}
-                name="ineligibleMessageEnabled"
-                checked={form.ineligibleMessageEnabled}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("ineligibleMessageEnabled", e.target.checked)}
-              ></s-checkbox>
-              <s-select
-                label="How the My Orders list looks by default"
-                name="defaultOrderView"
-                value={form.defaultOrderView}
-                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => set("defaultOrderView", e.target.value as "list" | "grid")}
-              >
-                <s-option value="grid">Grid of order cards</s-option>
-                <s-option value="list">Simple list of rows</s-option>
-              </s-select>
-              <s-checkbox
-                label="Show a Columns button so customers can hide/show table columns"
-                name="tableColumnsButtonEnabled"
-                checked={form.tableColumnsButtonEnabled}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("tableColumnsButtonEnabled", e.target.checked)}
-              ></s-checkbox>
-              <s-checkbox
-                label="Show rows-per-page control (Show 10 / 25 / 50)"
-                name="tablePageSizeEnabled"
-                checked={form.tablePageSizeEnabled}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("tablePageSizeEnabled", e.target.checked)}
-              ></s-checkbox>
-              <s-paragraph tone="subdued">
-                When on, customers can choose how many product rows appear on each page of the order item table.
-              </s-paragraph>
-              <s-checkbox
-                label="Show shipment tracking cards above the item list"
-                name="shipmentCardsEnabled"
-                checked={form.shipmentCardsEnabled}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("shipmentCardsEnabled", e.target.checked)}
-              ></s-checkbox>
-              <s-checkbox
-                label="Make product images link to the storefront product page"
-                name="productImageLinksEnabled"
-                checked={form.productImageLinksEnabled}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("productImageLinksEnabled", e.target.checked)}
-              ></s-checkbox>
-            </s-stack>
+                <s-stack direction="block" gap="small-200">
+                  <s-checkbox
+                    label="Show a Filter button for items that can’t be returned"
+                    name="tableFilterButtonEnabled"
+                    checked={form.tableFilterButtonEnabled}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("tableFilterButtonEnabled", e.target.checked)}
+                  ></s-checkbox>
+                  <s-checkbox
+                    label="Show Eligible / Ineligible tabs on the order"
+                    name="statusFilterEnabled"
+                    checked={form.statusFilterEnabled}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("statusFilterEnabled", e.target.checked)}
+                  ></s-checkbox>
+                </s-stack>
+
+                <s-text-field
+                  label="Name for the ‘can be returned’ tab"
+                  name="eligibleLabel"
+                  value={form.eligibleLabel}
+                  placeholder="Eligible"
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("eligibleLabel", e.target.value)}
+                ></s-text-field>
+                {errors.eligibleLabel && <s-paragraph tone="critical">{errors.eligibleLabel}</s-paragraph>}
+                <s-text-field
+                  label="Name for the ‘can’t be returned’ tab"
+                  name="ineligibleLabel"
+                  value={form.ineligibleLabel}
+                  placeholder="Ineligible"
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("ineligibleLabel", e.target.value)}
+                ></s-text-field>
+                {errors.ineligibleLabel && <s-paragraph tone="critical">{errors.ineligibleLabel}</s-paragraph>}
+                <s-checkbox
+                  label={'Show the "These items can’t be selected here" message on the can’t-return tab'}
+                  name="ineligibleMessageEnabled"
+                  checked={form.ineligibleMessageEnabled}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("ineligibleMessageEnabled", e.target.checked)}
+                ></s-checkbox>
+                <s-select
+                  label="How the My Orders list looks by default"
+                  name="defaultOrderView"
+                  value={form.defaultOrderView}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => set("defaultOrderView", e.target.value as "list" | "grid")}
+                >
+                  <s-option value="grid">Grid of order cards</s-option>
+                  <s-option value="list">Simple list of rows</s-option>
+                </s-select>
+
+                <s-stack direction="block" gap="small-200">
+                  <s-checkbox
+                    label="Show a Columns button so customers can hide/show table columns"
+                    name="tableColumnsButtonEnabled"
+                    checked={form.tableColumnsButtonEnabled}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("tableColumnsButtonEnabled", e.target.checked)}
+                  ></s-checkbox>
+                  <CheckboxWithHelp
+                    label="Show rows-per-page control (Show 10 / 25 / 50)"
+                    name="tablePageSizeEnabled"
+                    checked={form.tablePageSizeEnabled}
+                    onChange={(e) => set("tablePageSizeEnabled", e.target.checked)}
+                    help="When on, customers can choose how many product rows appear on each page of the order item table."
+                  />
+                  <s-checkbox
+                    label="Show shipment tracking cards above the item list"
+                    name="shipmentCardsEnabled"
+                    checked={form.shipmentCardsEnabled}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("shipmentCardsEnabled", e.target.checked)}
+                  ></s-checkbox>
+                  <s-checkbox
+                    label="Make product images link to the storefront product page"
+                    name="productImageLinksEnabled"
+                    checked={form.productImageLinksEnabled}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("productImageLinksEnabled", e.target.checked)}
+                  ></s-checkbox>
+                </s-stack>
+              </s-stack>
             </SettingsEditRow>
 
+            <SettingsSectionLabel>Status messages</SettingsSectionLabel>
             <SettingsEditRow
               modalId="table-return-status-modal"
               title="Return status"
-              description="Label, heading, icon, colour, and message for each stage of a return (requested, in progress, completed, and more)."
-              summary={"Labels, icons & sentences for each return stage"}
+              description="How each return stage looks and what sentence customers see."
+              summary={`${RETURN_STATUS_CARDS.length} return stages`}
               modalSize="large-100"
               errors={errors}
             >
-            <s-stack direction="block" gap="base">
-              <s-text color="subdued">
-                The label, mobile heading, icon, and color shown for each stage of a return. Use {"{days}"} for the
-                return window length.
-              </s-text>
-              {RETURN_STATUS_CARDS.map(({ key, name }) => {
-                const isOpen = openStatusKey === key
-                const style = form.returnLifecycleStyles[key]
-                return (
-                  <s-box key={key} padding="base" border="base" borderRadius="base">
-                    <s-stack direction="block" gap="small">
-                      <s-stack direction="inline" gap="small-300" alignItems="center">
-                        <s-button onClick={() => toggleStatusOpen(key)}>{isOpen ? "Collapse" : "Expand"}</s-button>
-                        <s-text>{name} — "{style.label}"</s-text>
+              <s-stack direction="block" gap="base">
+                <s-text color="subdued">
+                  The label, mobile heading, icon, and color shown for each stage of a return. Use {"{days}"} for the
+                  return window length.
+                </s-text>
+                {RETURN_STATUS_CARDS.map(({ key, name }) => {
+                  const isOpen = openStatusKey === key
+                  const style = form.returnLifecycleStyles[key]
+                  return (
+                    <s-box key={key} padding="base" border="base" borderRadius="base">
+                      <s-stack direction="block" gap="small">
+                        <s-stack direction="inline" gap="small-300" alignItems="center">
+                          <s-button onClick={() => toggleStatusOpen(key)}>{isOpen ? "Collapse" : "Expand"}</s-button>
+                          <s-text>{name} — "{style.label}"</s-text>
+                        </s-stack>
+                        {isOpen && (
+                          <>
+                            <s-text-field
+                              label="Filter/badge label"
+                              value={style.label}
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setStatusStyle(key, "label", e.target.value)}
+                            ></s-text-field>
+                            <s-text-field
+                              label="Mobile accordion heading"
+                              value={style.heading}
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setStatusStyle(key, "heading", e.target.value)}
+                            ></s-text-field>
+                            <s-select
+                              label="Icon"
+                              value={style.icon}
+                              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setStatusStyle(key, "icon", e.target.value)}
+                            >
+                              {STATUS_ICON_NAMES.map((iconName) => (
+                                <s-option key={iconName} value={iconName}>{iconName}</s-option>
+                              ))}
+                            </s-select>
+                            <s-text-field
+                              label="Color (optional — leave blank for the portal's default color)"
+                              value={style.color}
+                              placeholder="#4F46E5"
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setStatusStyle(key, "color", e.target.value)}
+                            ></s-text-field>
+                            {key === "returnRequested" && (
+                              <s-text-area label="Sentence" value={form.returnLifecycleMessages.returnRequested} rows={2}
+                                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("returnRequested", e.target.value)}></s-text-area>
+                            )}
+                            {key === "returnInProgress" && (
+                              <s-text-area label="Sentence" value={form.returnLifecycleMessages.returnInProgress} rows={2}
+                                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("returnInProgress", e.target.value)}></s-text-area>
+                            )}
+                            {key === "returnDeclined" && (
+                              <s-paragraph tone="subdued">
+                                This status shows the actual decline reason from Shopify, verbatim — not a fixed
+                                sentence, so there's no message to edit here.
+                              </s-paragraph>
+                            )}
+                            {key === "returnCanceled" && (
+                              <s-text-area label="Sentence" value={form.returnLifecycleMessages.returnCanceled} rows={2}
+                                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("returnCanceled", e.target.value)}></s-text-area>
+                            )}
+                            {key === "returnCompleted" && (
+                              <s-text-area label="Sentence" value={form.returnLifecycleMessages.returnCompleted} rows={2}
+                                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("returnCompleted", e.target.value)}></s-text-area>
+                            )}
+                            {key === "notReturnable" && (
+                              <s-paragraph tone="subdued">
+                                This status covers several reasons (not yet delivered, final sale, outside the return
+                                window, or other) — edit each reason's sentence in "Not returnable reasons" below.
+                              </s-paragraph>
+                            )}
+                          </>
+                        )}
                       </s-stack>
-                      {isOpen && (
-                        <>
-                          <s-text-field
-                            label="Filter/badge label"
-                            value={style.label}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setStatusStyle(key, "label", e.target.value)}
-                          ></s-text-field>
-                          <s-text-field
-                            label="Mobile accordion heading"
-                            value={style.heading}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setStatusStyle(key, "heading", e.target.value)}
-                          ></s-text-field>
-                          <s-select
-                            label="Icon"
-                            value={style.icon}
-                            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setStatusStyle(key, "icon", e.target.value)}
-                          >
-                            {STATUS_ICON_NAMES.map((iconName) => (
-                              <s-option key={iconName} value={iconName}>{iconName}</s-option>
-                            ))}
-                          </s-select>
-                          <s-text-field
-                            label="Color (optional — leave blank for the portal's default color)"
-                            value={style.color}
-                            placeholder="#4F46E5"
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setStatusStyle(key, "color", e.target.value)}
-                          ></s-text-field>
-                          {key === "returnRequested" && (
-                            <s-text-area label="Sentence" value={form.returnLifecycleMessages.returnRequested} rows={2}
-                              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("returnRequested", e.target.value)}></s-text-area>
-                          )}
-                          {key === "returnInProgress" && (
-                            <s-text-area label="Sentence" value={form.returnLifecycleMessages.returnInProgress} rows={2}
-                              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("returnInProgress", e.target.value)}></s-text-area>
-                          )}
-                          {key === "returnDeclined" && (
-                            <s-paragraph tone="subdued">
-                              This status shows the actual decline reason from Shopify, verbatim — not a fixed
-                              sentence, so there's no message to edit here.
-                            </s-paragraph>
-                          )}
-                          {key === "returnCanceled" && (
-                            <s-text-area label="Sentence" value={form.returnLifecycleMessages.returnCanceled} rows={2}
-                              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("returnCanceled", e.target.value)}></s-text-area>
-                          )}
-                          {key === "returnCompleted" && (
-                            <s-text-area label="Sentence" value={form.returnLifecycleMessages.returnCompleted} rows={2}
-                              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("returnCompleted", e.target.value)}></s-text-area>
-                          )}
-                          {key === "notReturnable" && (
-                            <s-paragraph tone="subdued">
-                              This status covers several reasons (not yet delivered, final sale, outside the return
-                              window, or other) — edit each reason's sentence in "Not returnable reasons" below.
-                            </s-paragraph>
-                          )}
-                        </>
-                      )}
-                    </s-stack>
-                  </s-box>
-                )
-              })}
-              {errors.returnLifecycleMessages && <s-paragraph tone="critical">{errors.returnLifecycleMessages}</s-paragraph>}
-              {errors.returnLifecycleStyles && <s-paragraph tone="critical">{errors.returnLifecycleStyles}</s-paragraph>}
-            </s-stack>
+                    </s-box>
+                  )
+                })}
+                {errors.returnLifecycleMessages && <s-paragraph tone="critical">{errors.returnLifecycleMessages}</s-paragraph>}
+                {errors.returnLifecycleStyles && <s-paragraph tone="critical">{errors.returnLifecycleStyles}</s-paragraph>}
+              </s-stack>
             </SettingsEditRow>
 
             <SettingsEditRow
               modalId="table-not-returnable-modal"
-              title="Not returnable reasons"
-              description="Messages shown when items can’t be returned — still shipping, outside the return window, or final sale."
-              summary={"Sentences for shipping / window / final sale"}
+              title="Not returnable"
+              description="Messages when items can’t be returned yet or aren’t eligible."
+              summary="Shipping · window · final sale · other"
               modalSize="large-100"
               errors={errors}
             >
-            <s-stack direction="block" gap="base">
-              <s-text color="subdued">
-                The specific sentence shown under the "Not returnable" badge, depending on why the item can't be
-                returned right now.
-              </s-text>
-              <s-text-area label="Not yet shipped" value={form.returnLifecycleMessages.shippingConfirmed} rows={2}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("shippingConfirmed", e.target.value)}></s-text-area>
-              <s-text-area label="On its way" value={form.returnLifecycleMessages.shippingOnItsWay} rows={2}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("shippingOnItsWay", e.target.value)}></s-text-area>
-              <s-text-area label="Out for delivery" value={form.returnLifecycleMessages.shippingOutForDelivery} rows={2}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("shippingOutForDelivery", e.target.value)}></s-text-area>
-              <s-text-area label="Attempted delivery" value={form.returnLifecycleMessages.shippingAttemptedDelivery} rows={2}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("shippingAttemptedDelivery", e.target.value)}></s-text-area>
-              <s-text-area label="Outside the return window (with a closed date)" value={form.returnLifecycleMessages.outsideWindow} rows={2}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("outsideWindow", e.target.value)}></s-text-area>
-              <s-text-area label="Outside the return window (no closed date available)" value={form.returnLifecycleMessages.outsideWindowNoDate} rows={2}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("outsideWindowNoDate", e.target.value)}></s-text-area>
-              <s-text-area label="Final sale" value={form.returnLifecycleMessages.finalSale} rows={2}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("finalSale", e.target.value)}></s-text-area>
-              <s-text-area label="Other" value={form.returnLifecycleMessages.otherNotReturnable} rows={2}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("otherNotReturnable", e.target.value)}></s-text-area>
-            </s-stack>
+              <s-stack direction="block" gap="base">
+                <s-text color="subdued">
+                  The specific sentence shown under the "Not returnable" badge, depending on why the item can't be
+                  returned right now.
+                </s-text>
+                <s-text-area label="Not yet shipped" value={form.returnLifecycleMessages.shippingConfirmed} rows={2}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("shippingConfirmed", e.target.value)}></s-text-area>
+                <s-text-area label="On its way" value={form.returnLifecycleMessages.shippingOnItsWay} rows={2}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("shippingOnItsWay", e.target.value)}></s-text-area>
+                <s-text-area label="Out for delivery" value={form.returnLifecycleMessages.shippingOutForDelivery} rows={2}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("shippingOutForDelivery", e.target.value)}></s-text-area>
+                <s-text-area label="Attempted delivery" value={form.returnLifecycleMessages.shippingAttemptedDelivery} rows={2}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("shippingAttemptedDelivery", e.target.value)}></s-text-area>
+                <s-text-area label="Outside the return window (with a closed date)" value={form.returnLifecycleMessages.outsideWindow} rows={2}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("outsideWindow", e.target.value)}></s-text-area>
+                <s-text-area label="Outside the return window (no closed date available)" value={form.returnLifecycleMessages.outsideWindowNoDate} rows={2}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("outsideWindowNoDate", e.target.value)}></s-text-area>
+                <s-text-area label="Final sale" value={form.returnLifecycleMessages.finalSale} rows={2}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("finalSale", e.target.value)}></s-text-area>
+                <s-text-area label="Other" value={form.returnLifecycleMessages.otherNotReturnable} rows={2}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("otherNotReturnable", e.target.value)}></s-text-area>
+              </s-stack>
             </SettingsEditRow>
 
             <SettingsEditRow
               modalId="table-refund-modal"
-              title="Refund"
-              description="Labels shown next to items that are partly or fully refunded."
-              summary={"Partial & full refund labels"}
+              title="Refund labels"
+              description="Labels next to items that are partly or fully refunded."
+              summary={`“${form.refundStatusLabels.partiallyRefunded || "Partially refunded"}” · “${form.refundStatusLabels.refunded || "Refunded"}”`}
               modalSize="large"
               errors={errors}
             >
-            <s-stack direction="block" gap="base">
-              <s-text color="subdued">
-                Shown as a small extra fact next to the return status, when applicable. No label is shown when
-                nothing has been refunded.
-              </s-text>
-              <s-text-field label="Partially refunded" value={form.refundStatusLabels.partiallyRefunded}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRefundStatusLabel("partiallyRefunded", e.target.value)}></s-text-field>
-              <s-text-field label="Refunded" value={form.refundStatusLabels.refunded}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRefundStatusLabel("refunded", e.target.value)}></s-text-field>
-              {errors.refundStatusLabels && <s-paragraph tone="critical">{errors.refundStatusLabels}</s-paragraph>}
-            </s-stack>
+              <s-stack direction="block" gap="base">
+                <s-text color="subdued">
+                  Shown as a small extra fact next to the return status, when applicable. No label is shown when
+                  nothing has been refunded.
+                </s-text>
+                <s-text-field label="Partially refunded" value={form.refundStatusLabels.partiallyRefunded}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRefundStatusLabel("partiallyRefunded", e.target.value)}></s-text-field>
+                <s-text-field label="Refunded" value={form.refundStatusLabels.refunded}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRefundStatusLabel("refunded", e.target.value)}></s-text-field>
+                {errors.refundStatusLabels && <s-paragraph tone="critical">{errors.refundStatusLabels}</s-paragraph>}
+              </s-stack>
             </SettingsEditRow>
           </s-stack>
         </s-section>

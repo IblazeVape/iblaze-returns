@@ -6,6 +6,7 @@ import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
 import { setCachedAccentColor } from "@/lib/accent-color-cache"
+import { cn } from "@/lib/utils"
 
 /**
  * The one shell — sidebar + header — every screen of the portal renders
@@ -24,6 +25,8 @@ export function PortalShell({
   sidebarAvatarEnabled = true,
   headerAvatarEnabled = true,
   sidebarDefaultOpenOnDesktop = true,
+  /** When false, AppSidebar is omitted and the main column uses the full width. */
+  showSidebar = true,
   headerProps,
   children,
 }: {
@@ -60,6 +63,7 @@ export function PortalShell({
   headerAvatarEnabled?: boolean
   /** Whether the sidebar starts open or collapsed on desktop. */
   sidebarDefaultOpenOnDesktop?: boolean
+  showSidebar?: boolean
   headerProps: React.ComponentProps<typeof SiteHeader>
   children?: React.ReactNode
 }) {
@@ -95,9 +99,29 @@ export function PortalShell({
         } as React.CSSProperties
       }
     >
-      <AppSidebar variant={layout} user={user} onNavigate={onNavigate} activeSection={activeSection} branding={branding} avatarEnabled={sidebarAvatarEnabled} />
-      <SidebarInset className="min-w-0">
-        <SiteHeader {...headerProps} showAccountMenu={hideIdentity ? false : headerAvatarEnabled} />
+      {showSidebar ? (
+        <AppSidebar
+          variant={layout}
+          user={user}
+          onNavigate={onNavigate}
+          activeSection={activeSection}
+          branding={branding}
+          avatarEnabled={sidebarAvatarEnabled}
+        />
+      ) : null}
+      <SidebarInset
+        className={cn(
+          "min-w-0",
+          // Without a sidebar peer, inset margin/rounding still look intentional
+          // as a full-bleed card on desktop when the merchant uses inset layout.
+          !showSidebar && layout === "inset" && "min-[1025px]:m-2 min-[1025px]:rounded-xl min-[1025px]:shadow-xs dark:min-[1025px]:border dark:min-[1025px]:border-white/10",
+        )}
+      >
+        <SiteHeader
+          {...headerProps}
+          showSidebarToggle={showSidebar ? (headerProps.showSidebarToggle ?? true) : false}
+          showAccountMenu={hideIdentity ? false : headerAvatarEnabled}
+        />
         {children}
       </SidebarInset>
     </SidebarProvider>

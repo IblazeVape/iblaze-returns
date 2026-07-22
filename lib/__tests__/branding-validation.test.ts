@@ -28,6 +28,8 @@ const VALID: BrandingInput = {
   sidebarNote: "",
   sidebarLayoutSwitcherEnabled: true,
   defaultSidebarLayout: "inset",
+  sidebarEnabled: true,
+  lookupSidebarEnabled: true,
   headerSearchEnabled: true,
   headerSearchPlaceholder: "Search orders...",
   tableSearchEnabled: true,

@@ -113,6 +113,10 @@ export type TenantBranding = {
   sidebarNote: string;
   sidebarLayoutSwitcherEnabled: boolean;
   defaultSidebarLayout: SidebarLayout;
+  /** When false, the portal has no sidebar — the main content uses the full width. */
+  sidebarEnabled: boolean;
+  /** When false, Find your order / lookup screens hide the sidebar (inset fills the space). Ignored when sidebarEnabled is false. */
+  lookupSidebarEnabled: boolean;
   headerSearchEnabled: boolean;
   headerSearchPlaceholder: string;
   tableSearchEnabled: boolean;
@@ -210,6 +214,8 @@ export const DEFAULT_TENANT_FIELDS = {
     sidebarNote: "",
     sidebarLayoutSwitcherEnabled: true,
     defaultSidebarLayout: "inset",
+    sidebarEnabled: true,
+    lookupSidebarEnabled: true,
     headerSearchEnabled: true,
     headerSearchPlaceholder: "Search orders...",
     tableSearchEnabled: true,

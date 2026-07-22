@@ -57,6 +57,8 @@ describe("tenant store", () => {
     expect(t?.branding.sidebarLinks).toEqual([]);
     expect(t?.branding.sidebarLayoutSwitcherEnabled).toBe(true);
     expect(t?.branding.defaultSidebarLayout).toBe("inset");
+    expect(t?.branding.sidebarEnabled).toBe(true);
+    expect(t?.branding.lookupSidebarEnabled).toBe(true);
     expect(t?.branding.orderStatusLinkEnabled).toBe(true);
     expect(t?.branding.orderStatusLinkLabel).toBe("Order Status");
     expect(t?.branding.policyLastUpdated).toBe("");
@@ -110,6 +112,8 @@ describe("tenant store", () => {
         sidebarNote: "**Note:** processing may take 48h.",
         sidebarLayoutSwitcherEnabled: false,
         defaultSidebarLayout: "sidebar",
+        sidebarEnabled: false,
+        lookupSidebarEnabled: false,
         headerSearchEnabled: false,
         headerSearchPlaceholder: "Find an order...",
         tableSearchEnabled: false,
@@ -194,6 +198,8 @@ describe("tenant store", () => {
     ]);
     expect(t?.branding.sidebarLayoutSwitcherEnabled).toBe(false);
     expect(t?.branding.defaultSidebarLayout).toBe("sidebar");
+    expect(t?.branding.sidebarEnabled).toBe(false);
+    expect(t?.branding.lookupSidebarEnabled).toBe(false);
     expect(t?.branding.orderStatusLinkEnabled).toBe(false);
     expect(t?.branding.orderStatusLinkLabel).toBe("Track order");
     expect(t?.branding.policyLastUpdated).toBe("14 July 2026");

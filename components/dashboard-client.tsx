@@ -4226,6 +4226,7 @@ function DashboardClientInner() {
     policyFooterNoteEnabled: true, policyFooterNote: DEFAULT_POLICY_FOOTER_NOTE,
     policyAcceptedMessage: "Policy accepted", policyDeclinedMessage: "Policy declined",
     sidebarLinks: [], sidebarNote: "", sidebarLayoutSwitcherEnabled: true, defaultSidebarLayout: "inset",
+    sidebarEnabled: true, lookupSidebarEnabled: true,
     headerSearchEnabled: true, headerSearchPlaceholder: "Search orders...",
     tableSearchEnabled: true, tableSearchPlaceholder: "Search product or variant...",
     tableColumnsButtonEnabled: true, tableFilterButtonEnabled: true, tablePageSizeEnabled: true,
@@ -4336,7 +4337,10 @@ function DashboardClientInner() {
       .then(d => {
         if (d.branding) {
           setBranding(d.branding)
-          applyMerchantDefault(d.branding.defaultSidebarLayout, d.branding.sidebarLayoutSwitcherEnabled)
+          applyMerchantDefault(
+            d.branding.defaultSidebarLayout,
+            d.branding.sidebarEnabled && d.branding.sidebarLayoutSwitcherEnabled,
+          )
           if (d.branding.defaultOrderView) setView(d.branding.defaultOrderView)
           if (d.branding.accentColor) {
             setCachedAccentColor(d.branding.accentColor)
@@ -4467,6 +4471,7 @@ function DashboardClientInner() {
       onNavigate={s => { setActiveSection(s); setSelectedOrder(null) }}
       activeSection={activeSection}
       accentColor={branding.accentColor}
+      showSidebar={branding.sidebarEnabled}
       branding={{
         name: branding.name, logoUrl: branding.logoUrl, storefrontUrl: branding.storefrontUrl,
         sidebarLinks: branding.sidebarLinks, sidebarNote: branding.sidebarNote,

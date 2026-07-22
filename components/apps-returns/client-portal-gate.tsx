@@ -27,6 +27,8 @@ export type InitialBranding = {
   sidebarNote: string
   sidebarLayoutSwitcherEnabled: boolean
   defaultSidebarLayout: "inset" | "sidebar"
+  sidebarEnabled: boolean
+  lookupSidebarEnabled: boolean
   sidebarSubmenusExpandedByDefault: boolean
   guestBackgroundStyle: "none" | "shapeGrid" | "dotField"
   guestLookupLayout: "classic" | "split"

@@ -24,6 +24,8 @@ const PREVIEW_BRANDING: InitialBranding = {
   sidebarNote: "",
   sidebarLayoutSwitcherEnabled: false,
   defaultSidebarLayout: "inset",
+  sidebarEnabled: true,
+  lookupSidebarEnabled: true,
   sidebarSubmenusExpandedByDefault: false,
   guestBackgroundStyle: "shapeGrid",
   guestLookupLayout: "split",
