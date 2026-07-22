@@ -13,7 +13,7 @@ import {
   installAppsReturnsFetchPatch,
 } from "@/lib/apps-returns-client-session";
 import { setAppsReturnsPortal, setAppsReturnsIdentityKind, setGuestOrderContext } from "@/lib/apps-returns-portal-mode";
-import { setCachedAccentColor } from "@/lib/accent-color-cache";
+import { setCachedAccentColor, setCachedSidebarDefaultOpen } from "@/lib/accent-color-cache";
 import { setPortalToastPosition } from "@/lib/portal-toast";
 
 export type InitialBranding = {
@@ -29,6 +29,7 @@ export type InitialBranding = {
   defaultSidebarLayout: "inset" | "sidebar"
   sidebarEnabled: boolean
   lookupSidebarEnabled: boolean
+  sidebarDefaultOpenOnDesktop: boolean
   sidebarSubmenusExpandedByDefault: boolean
   guestBackgroundStyle: "none" | "shapeGrid" | "dotField"
   guestLookupLayout: "classic" | "split"
@@ -120,6 +121,12 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
       }
     }
     setPortalToastPosition(initial.branding.toastPosition);
+    if (
+      (initial.kind === "guest-or-login" || initial.kind === "logged-in-lookup") &&
+      typeof initial.branding.sidebarDefaultOpenOnDesktop === "boolean"
+    ) {
+      setCachedSidebarDefaultOpen(initial.branding.sidebarDefaultOpenOnDesktop);
+    }
   }
 
   useEffect(() => {
@@ -224,6 +231,7 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
               // shows the tenant's actual color immediately instead of
               // flashing neutral gray while it re-fetches branding itself.
               setCachedAccentColor(initial.branding.accentColor);
+              setCachedSidebarDefaultOpen(initial.branding.sidebarDefaultOpenOnDesktop);
               setPortalToastPosition(initial.branding.toastPosition);
               const numericOrderId = order.id.split("/").pop() ?? null;
               setGuestOrderContext(numericOrderId, handleLookupAnother);
@@ -264,6 +272,7 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
             onVerified={(token, order) => {
               storeAppsReturnsSession(token);
               setCachedAccentColor(initial.branding.accentColor);
+              setCachedSidebarDefaultOpen(initial.branding.sidebarDefaultOpenOnDesktop);
               setPortalToastPosition(initial.branding.toastPosition);
               const numericOrderId = order.id.split("/").pop() ?? null;
               setGuestOrderContext(numericOrderId, handleLookupAnother);

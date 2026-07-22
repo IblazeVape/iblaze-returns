@@ -29,7 +29,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { PolicyHtml } from "@/components/policy-html"
-import { getCachedAccentColor, setCachedAccentColor } from "@/lib/accent-color-cache"
+import { getCachedAccentColor, setCachedAccentColor, getCachedSidebarDefaultOpen, setCachedSidebarDefaultOpen } from "@/lib/accent-color-cache"
 import type { TenantBranding, ReturnLifecycleStyle, ReturnLifecycleStyles, ReturnLifecycleMessages, RefundStatusLabels } from "@/lib/tenant"
 import { DEFAULT_TENANT_FIELDS } from "@/lib/tenant"
 import { getStatusIcon as getIneligibleStatusIconComponent } from "@/lib/status-icons"
@@ -4244,7 +4244,7 @@ function DashboardClientInner() {
     guestLookupSideStyle: "image",
     guestLookupGradientFrom: "#0f172a",
     guestLookupGradientTo: "#334155",
-    defaultOrderView: "grid", sidebarDefaultOpenOnDesktop: true, statusFilterEnabled: true,
+    defaultOrderView: "grid", sidebarDefaultOpenOnDesktop: getCachedSidebarDefaultOpen() ?? true, statusFilterEnabled: true,
     ineligibleMessageEnabled: true, sidebarAvatarEnabled: true, headerAvatarEnabled: true,
     eligibleLabel: "Eligible", ineligibleLabel: "Ineligible",
     returnLifecycleMessages: DEFAULT_TENANT_FIELDS.branding.returnLifecycleMessages,
@@ -4345,6 +4345,9 @@ function DashboardClientInner() {
           if (d.branding.accentColor) {
             setCachedAccentColor(d.branding.accentColor)
             setAccentColorReady(true)
+          }
+          if (typeof d.branding.sidebarDefaultOpenOnDesktop === "boolean") {
+            setCachedSidebarDefaultOpen(d.branding.sidebarDefaultOpenOnDesktop)
           }
           if (d.branding.toastPosition) {
             setPortalToastPosition(d.branding.toastPosition)
@@ -4464,6 +4467,10 @@ function DashboardClientInner() {
 
   const user = { name: data?.firstName || "Customer", email: data?.email || "" }
   const orderHeaderStatus = selectedOrder ? getOrderHeaderStatusIcon(selectedOrder) : null
+  // Blurred PortalShell sits behind the Authenticating card — hide the
+  // sidebar there so it can't flash expanded (defaultOpen true) then snap
+  // shut once branding arrives with "starts open" off.
+  const showAuthOverlay = loading || (isGuestOrderContext() && !selectedOrder)
 
   const portalContent = (
     <PortalShell
@@ -4471,7 +4478,7 @@ function DashboardClientInner() {
       onNavigate={s => { setActiveSection(s); setSelectedOrder(null) }}
       activeSection={activeSection}
       accentColor={branding.accentColor}
-      showSidebar={branding.sidebarEnabled}
+      showSidebar={branding.sidebarEnabled && !showAuthOverlay}
       branding={{
         name: branding.name, logoUrl: branding.logoUrl, storefrontUrl: branding.storefrontUrl,
         sidebarLinks: branding.sidebarLinks, sidebarNote: branding.sidebarNote,

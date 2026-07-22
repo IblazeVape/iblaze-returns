@@ -76,6 +76,7 @@ export default async function AppProxyReturnsPage({
         defaultSidebarLayout: tenant.branding.defaultSidebarLayout,
         sidebarEnabled: tenant.branding.sidebarEnabled,
         lookupSidebarEnabled: tenant.branding.lookupSidebarEnabled,
+        sidebarDefaultOpenOnDesktop: tenant.branding.sidebarDefaultOpenOnDesktop,
         sidebarSubmenusExpandedByDefault: tenant.branding.sidebarSubmenusExpandedByDefault,
         guestBackgroundStyle: tenant.branding.guestBackgroundStyle,
         guestLookupLayout: tenant.branding.guestLookupLayout,

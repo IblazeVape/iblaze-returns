@@ -71,6 +71,7 @@ function GuestPortalShellInner({
       hideIdentity
       accentColor={branding.accentColor}
       showSidebar={showSidebar}
+      sidebarDefaultOpenOnDesktop={branding.sidebarDefaultOpenOnDesktop}
       branding={{
         name: branding.name,
         logoUrl: branding.logoUrl,
