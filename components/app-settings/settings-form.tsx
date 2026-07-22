@@ -178,6 +178,7 @@ function reorderIndexMap(length: number, from: number, to: number): number[] {
 function SettingsEditRow({
   modalId,
   title,
+  description,
   summary,
   modalSize = "large",
   errors,
@@ -185,6 +186,8 @@ function SettingsEditRow({
 }: {
   modalId: string
   title: string
+  /** Plain-language list of what this section controls. */
+  description: string
   summary: string
   modalSize?: string
   errors: Partial<Record<keyof BrandingInput, string>>
@@ -206,9 +209,10 @@ function SettingsEditRow({
         style={hasError ? { outline: "2px solid #c72a2a", outlineOffset: 0 } : undefined}
       >
         <s-stack direction="inline" gap="base" alignItems="center" justifyContent="space-between">
-          <s-stack direction="block" gap="none">
+          <s-stack direction="block" gap="small-200">
             <s-heading>{title}</s-heading>
-            <s-paragraph color="subdued">{summary}</s-paragraph>
+            <s-paragraph color="subdued">{description}</s-paragraph>
+            <s-paragraph>{summary}</s-paragraph>
             {hasError ? (
               <s-paragraph tone="critical">{uniqueErrors[0]}</s-paragraph>
             ) : null}
@@ -663,9 +667,12 @@ export function SettingsForm({
               style={identityError ? { outline: "2px solid #c72a2a", outlineOffset: 0 } : undefined}
             >
               <s-stack direction="inline" gap="base" alignItems="center" justifyContent="space-between">
-                <s-stack direction="block" gap="none">
+                <s-stack direction="block" gap="small-200">
                   <s-heading>Store identity</s-heading>
                   <s-paragraph color="subdued">
+                    Brand name, logo, accent colour, storefront URL, and support email shown across the portal.
+                  </s-paragraph>
+                  <s-paragraph>
                     {[form.name || "Untitled", form.accentColor || null, form.logoUrl ? "Logo set" : null]
                       .filter(Boolean)
                       .join(" · ")}
@@ -695,9 +702,12 @@ export function SettingsForm({
               style={lookupError ? { outline: "2px solid #c72a2a", outlineOffset: 0 } : undefined}
             >
               <s-stack direction="inline" gap="base" alignItems="center" justifyContent="space-between">
-                <s-stack direction="block" gap="none">
+                <s-stack direction="block" gap="small-200">
                   <s-heading>Find your order card</s-heading>
                   <s-paragraph color="subdued">
+                    Layout, photo or gradient, headline, overlay, snake border, and page background for the order lookup screen.
+                  </s-paragraph>
+                  <s-paragraph>
                     {[
                       form.guestLookupLayout === "split"
                         ? form.guestLookupSideStyle === "gradient"
@@ -1114,6 +1124,7 @@ export function SettingsForm({
             <SettingsEditRow
               modalId="branding-portal-extras-modal"
               title="Notifications & widgets"
+              description="Where toast messages appear, and optional custom HTML/script for chat widgets on the customer portal."
               summary={`${({
                 "top-left": "Toasts top-left",
                 "top-center": "Toasts top-centre",
@@ -1172,6 +1183,7 @@ export function SettingsForm({
             <SettingsEditRow
               modalId="returns-window-modal"
               title="Return window"
+              description="How many days customers have to return items, and whether they must accept your policy before selecting products."
               summary={`${form.returnWindowDays} days · ${form.requirePolicyAcceptance ? "Policy acceptance on" : "Policy acceptance off"}`}
               modalSize="large"
               errors={errors}
@@ -1199,6 +1211,7 @@ export function SettingsForm({
             <SettingsEditRow
               modalId="returns-lookup-audience-modal"
               title="Who sees the lookup form"
+              description="Whether guests can look up an order without logging in, whether logged-in customers always start on Find your order, and if they must enter a postcode."
               summary={
                 !form.guestLookupEnabled
                   ? "Guests must log in"
@@ -1251,6 +1264,7 @@ export function SettingsForm({
             <SettingsEditRow
               modalId="returns-policy-modal"
               title="Returns policy"
+              description="In-app dialog or external policy page, banner and button text, categories or free-text body, and footer note."
               summary={
                 form.policyPresentation === "externalLink"
                   ? `External link · ${form.policyExternalUrl || "URL required"}`
@@ -1412,6 +1426,7 @@ export function SettingsForm({
             <SettingsEditRow
               modalId="returns-confirm-modal"
               title="Confirmation messages"
+              description="Toast text shown after a customer accepts or declines the returns policy in the dialog."
               summary={"Accept / decline toast messages"}
               modalSize="large"
               errors={errors}
@@ -1449,6 +1464,7 @@ export function SettingsForm({
             <SettingsEditRow
               modalId="nav-sidebar-layout-modal"
               title="Sidebar layout"
+              description="Inset vs sidebar style, whether customers can switch layouts, if the sidebar starts open, and the sidebar avatar."
               summary={`${form.defaultSidebarLayout === "inset" ? "Inset" : "Sidebar"}${form.sidebarLayoutSwitcherEnabled ? " · switcher on" : ""}`}
               modalSize="large"
               errors={errors}
@@ -1487,6 +1503,7 @@ export function SettingsForm({
             <SettingsEditRow
               modalId="nav-sidebar-links-modal"
               title="Sidebar links"
+              description="Custom sidebar links and sub-links (label, URL, icon), expand behaviour, and an optional note under the menu."
               summary={`${form.sidebarLinks.length} link${form.sidebarLinks.length === 1 ? "" : "s"}${form.sidebarNote ? " · note set" : ""}`}
               modalSize="large-100"
               errors={errors}
@@ -1533,6 +1550,7 @@ export function SettingsForm({
             <SettingsEditRow
               modalId="nav-header-links-modal"
               title="Header"
+              description="Store link, order status link, and whether the customer account menu appears in the top bar."
               summary={[
                 form.storeLinkEnabled ? form.storeLinkLabel || "Store link" : null,
                 form.orderStatusLinkEnabled ? form.orderStatusLinkLabel || "Order status" : null,
@@ -1600,6 +1618,7 @@ export function SettingsForm({
             <SettingsEditRow
               modalId="table-header-search-modal"
               title="Order search (top bar)"
+              description="Whether customers can search their orders from the portal header, and the hint text inside that search box."
               summary={
                 form.headerSearchEnabled
                   ? `Shows a search box in the top bar (placeholder: “${form.headerSearchPlaceholder || "Search orders..."}”)`
@@ -1631,6 +1650,7 @@ export function SettingsForm({
             <SettingsEditRow
               modalId="table-order-items-modal"
               title="Order detail & item list"
+              description="Product search, Eligible/Ineligible tabs, columns, rows per page, shipment cards, image links, and default My Orders view."
               summary={`${form.defaultOrderView === "grid" ? "Grid cards" : "List rows"} · ${[
                 form.tableSearchEnabled && "product search",
                 form.tablePageSizeEnabled && "rows per page",
@@ -1733,6 +1753,7 @@ export function SettingsForm({
             <SettingsEditRow
               modalId="table-return-status-modal"
               title="Return status"
+              description="Label, heading, icon, colour, and message for each stage of a return (requested, in progress, completed, and more)."
               summary={"Labels, icons & sentences for each return stage"}
               modalSize="large-100"
               errors={errors}
@@ -1821,6 +1842,7 @@ export function SettingsForm({
             <SettingsEditRow
               modalId="table-not-returnable-modal"
               title="Not returnable reasons"
+              description="Messages shown when items can’t be returned — still shipping, outside the return window, or final sale."
               summary={"Sentences for shipping / window / final sale"}
               modalSize="large-100"
               errors={errors}
@@ -1852,6 +1874,7 @@ export function SettingsForm({
             <SettingsEditRow
               modalId="table-refund-modal"
               title="Refund"
+              description="Labels shown next to items that are partly or fully refunded."
               summary={"Partial & full refund labels"}
               modalSize="large"
               errors={errors}
