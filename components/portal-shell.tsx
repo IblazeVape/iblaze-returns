@@ -121,6 +121,8 @@ export function PortalShell({
           {...headerProps}
           showSidebarToggle={showSidebar ? (headerProps.showSidebarToggle ?? true) : false}
           showAccountMenu={hideIdentity ? false : headerAvatarEnabled}
+          brandLogoUrl={!showSidebar ? branding?.logoUrl : undefined}
+          brandName={!showSidebar ? branding?.name : undefined}
         />
         {children}
       </SidebarInset>

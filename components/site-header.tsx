@@ -38,6 +38,10 @@ interface SiteHeaderProps {
    * per-screen context (e.g. hidden on the order detail view regardless). */
   searchEnabled?: boolean
   searchPlaceholder?: string
+  /** When the sidebar is hidden, show this logo (or brandName) in the header
+   * so the store still has a brand mark where the title/store name sits. */
+  brandLogoUrl?: string
+  brandName?: string
 }
 
 function SidebarToggleControls({ mobileOnly = false }: { mobileOnly?: boolean }) {
@@ -76,10 +80,50 @@ export function SiteHeader({
   orderStatusLinkLabel = "Order Status",
   searchEnabled = true,
   searchPlaceholder = "Search orders...",
+  brandLogoUrl,
+  brandName,
 }: SiteHeaderProps) {
   const initial = firstName?.[0]?.toUpperCase() || "?"
   const user = { name: firstName || "Customer", email: email || "" }
   const effectiveOrderStatusUrl = orderStatusLinkEnabled ? orderStatusUrl : undefined
+  const titleIsBrandName =
+    typeof title === "string" && !!brandName && title.trim() === brandName.trim()
+  // Logo (preferred) or brand name text when the sidebar isn’t carrying the brand.
+  const showHeaderBrand = !!(brandLogoUrl?.trim() || brandName?.trim())
+  // Avoid “Logo + IblazeVape” when the page title is already the store name
+  // (e.g. Find your order with title set to branding.name).
+  const showPageTitle = !(showHeaderBrand && brandLogoUrl?.trim() && titleIsBrandName)
+
+  const brandMark = showHeaderBrand ? (
+    storefrontUrl ? (
+      <a
+        href={storefrontUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center gap-2 min-w-0 shrink-0 rounded-md hover:opacity-90 transition-opacity"
+      >
+        {brandLogoUrl?.trim() ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={brandLogoUrl}
+            alt={brandName || "Store"}
+            className="h-8 w-auto max-w-[140px] object-contain object-left"
+          />
+        ) : (
+          <span className="text-base font-semibold truncate">{brandName}</span>
+        )}
+      </a>
+    ) : brandLogoUrl?.trim() ? (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={brandLogoUrl}
+        alt={brandName || "Store"}
+        className="h-8 w-auto max-w-[140px] object-contain object-left shrink-0"
+      />
+    ) : (
+      <span className="text-base font-semibold truncate shrink-0">{brandName}</span>
+    )
+  ) : null
 
   return (
     <header className="flex h-12 shrink-0 items-center gap-2 border-b bg-white dark:bg-background z-40 relative">
@@ -93,12 +137,18 @@ export function SiteHeader({
         {showSidebarToggle && (
           <SidebarToggleControls mobileOnly={showSidebarToggle === "mobile-only"} />
         )}
-        <h1 className="text-base font-medium flex items-center gap-1.5 min-w-0">
-          {titleIcon && (
-            <titleIcon.icon className={cn("size-4 shrink-0 text-foreground", titleIcon.className)} aria-hidden />
-          )}
-          <span className="truncate">{title}</span>
-        </h1>
+        {brandMark}
+        {brandMark && showPageTitle ? (
+          <Separator orientation="vertical" className="mx-1 data-[orientation=vertical]:h-4" />
+        ) : null}
+        {showPageTitle ? (
+          <h1 className="text-base font-medium flex items-center gap-1.5 min-w-0">
+            {titleIcon && (
+              <titleIcon.icon className={cn("size-4 shrink-0 text-foreground", titleIcon.className)} aria-hidden />
+            )}
+            <span className="truncate">{title}</span>
+          </h1>
+        ) : null}
 
         {showSearch && searchEnabled && (
           <div className="ml-4 flex-1 max-w-sm">
