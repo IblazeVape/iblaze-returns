@@ -53,6 +53,7 @@ export function PortalShell({
     name: string
     logoUrl: string
     storefrontUrl: string
+    logoHeight?: number
     sidebarLinks?: { label: string; url: string; icon?: string; children?: { label: string; url: string; icon?: string }[] }[]
     sidebarNote?: string
     sidebarSubmenusExpandedByDefault?: boolean
@@ -96,6 +97,7 @@ export function PortalShell({
           "--sidebar-width-icon": "3.75rem",
           "--header-height": "3rem",
           "--brand": accentColor,
+          "--brand-logo-height": `${Math.min(64, Math.max(16, branding?.logoHeight || 32))}px`,
         } as React.CSSProperties
       }
     >
@@ -123,6 +125,7 @@ export function PortalShell({
           showAccountMenu={hideIdentity ? false : headerAvatarEnabled}
           brandLogoUrl={!showSidebar ? branding?.logoUrl : undefined}
           brandName={!showSidebar ? branding?.name : undefined}
+          brandLogoHeight={!showSidebar ? branding?.logoHeight : undefined}
         />
         {children}
       </SidebarInset>

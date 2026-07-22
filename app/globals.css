@@ -215,7 +215,7 @@
     overflow: visible !important; /* stop the wordmark from being clipped */
   }
   [data-state="collapsed"] .brand-logo-img {
-    width: 2rem !important;    /* 32px — matches the expanded logo size */
+    width: var(--brand-logo-height, 2rem) !important;
     height: auto !important;
     max-width: none !important;
   }

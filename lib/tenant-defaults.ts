@@ -86,6 +86,8 @@ export type RefundStatusLabels = Record<RefundStatus, string>;
 export type TenantBranding = {
   name: string;
   logoUrl: string;
+  /** Portal logo height in pixels (sidebar + header). Default 32. */
+  logoHeight: number;
   accentColor: string;
   storefrontUrl: string;
   supportEmail: string;
@@ -186,6 +188,7 @@ export const DEFAULT_TENANT_FIELDS = {
   branding: {
     name: "",
     logoUrl: "",
+    logoHeight: 32,
     accentColor: "#000000",
     storefrontUrl: "",
     supportEmail: "",

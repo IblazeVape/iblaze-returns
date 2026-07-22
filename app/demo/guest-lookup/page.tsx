@@ -16,6 +16,7 @@ import type { InitialBranding } from "@/components/apps-returns/client-portal-ga
 const PREVIEW_BRANDING: InitialBranding = {
   name: "iBlaze",
   logoUrl: "https://cdn.shopify.com/s/files/1/0941/5383/4761/files/IblazeLogo.png?v=14858",
+  logoHeight: 32,
   accentColor: "#111111",
   storefrontUrl: "https://iblazevape.co.uk",
   storeLinkEnabled: true,

@@ -40,7 +40,7 @@ type SettingsTab = "branding" | "returns" | "navigation" | "table" | "danger";
 
 const TAB_FIELDS: Record<SettingsTab, (keyof BrandingInput)[]> = {
   branding: [
-    "name", "logoUrl", "accentColor", "storefrontUrl", "supportEmail", "guestBackgroundStyle",
+    "name", "logoUrl", "logoHeight", "accentColor", "storefrontUrl", "supportEmail", "guestBackgroundStyle",
     "guestLookupLayout", "guestLookupHeadline", "guestLookupSubtext", "guestLookupHeroUrl",
     "guestLookupBrandDisplay", "guestLookupLogoUrl", "guestLookupOverlayOpacity", "guestLookupOverlayBlur",
     "guestLookupSnakeBorder", "guestLookupSideStyle", "guestLookupGradientFrom", "guestLookupGradientTo",
@@ -72,7 +72,7 @@ const TAB_FIELDS: Record<SettingsTab, (keyof BrandingInput)[]> = {
 
 /** Which settings modal owns which fields — used to highlight the row and auto-open the right modal on Save errors. */
 const SETTINGS_MODAL_FIELDS: Record<string, (keyof BrandingInput)[]> = {
-  "branding-identity-modal": ["name", "logoUrl", "accentColor", "storefrontUrl", "supportEmail"],
+  "branding-identity-modal": ["name", "logoUrl", "logoHeight", "accentColor", "storefrontUrl", "supportEmail"],
   "branding-portal-extras-modal": ["toastPosition", "portalCustomScript"],
   "branding-lookup-modal": [
     "guestBackgroundStyle", "guestLookupLayout", "guestLookupHeadline", "guestLookupSubtext",
@@ -780,6 +780,19 @@ export function SettingsForm({
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("logoUrl", e.target.value)}
                 ></s-url-field>
                 {errors.logoUrl && <s-paragraph tone="critical">{errors.logoUrl}</s-paragraph>}
+
+                <s-number-field
+                  label="Logo height (px)"
+                  name="logoHeight"
+                  min={16}
+                  max={64}
+                  value={form.logoHeight}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    set("logoHeight", Number(e.target.value))
+                  }
+                ></s-number-field>
+                <s-paragraph color="subdued">Sidebar and header logo size. Default is 32. Range 16–64.</s-paragraph>
+                {errors.logoHeight && <s-paragraph tone="critical">{errors.logoHeight}</s-paragraph>}
 
                 <s-color-field
                   label="Accent colour"

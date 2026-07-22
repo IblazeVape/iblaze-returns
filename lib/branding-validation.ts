@@ -34,6 +34,7 @@ export type RefundStatusLabelsInput = Record<RefundStatusInput, string>;
 export type BrandingInput = {
   name: string;
   logoUrl: string;
+  logoHeight: number;
   accentColor: string;
   storefrontUrl: string;
   supportEmail: string;
@@ -142,6 +143,9 @@ export function validateBrandingInput(
   }
   if (input.logoUrl && !isValidUrl(input.logoUrl)) {
     errors.logoUrl = "Must be a valid URL.";
+  }
+  if (!Number.isInteger(input.logoHeight) || input.logoHeight < 16 || input.logoHeight > 64) {
+    errors.logoHeight = "Must be a whole number from 16 to 64.";
   }
   if (input.guestLookupLayout !== "classic" && input.guestLookupLayout !== "split") {
     errors.guestLookupLayout = "Must be classic or split.";

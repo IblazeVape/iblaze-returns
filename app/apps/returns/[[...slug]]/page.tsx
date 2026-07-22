@@ -66,6 +66,7 @@ export default async function AppProxyReturnsPage({
       const branding: InitialBranding = {
         name: tenant.branding.name,
         logoUrl: tenant.branding.logoUrl,
+        logoHeight: tenant.branding.logoHeight,
         accentColor: tenant.branding.accentColor,
         storefrontUrl: tenant.branding.storefrontUrl,
         storeLinkEnabled: tenant.branding.storeLinkEnabled,

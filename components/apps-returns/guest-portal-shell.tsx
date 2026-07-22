@@ -77,6 +77,7 @@ function GuestPortalShellInner({
       branding={{
         name: branding.name,
         logoUrl: branding.logoUrl,
+        logoHeight: branding.logoHeight,
         storefrontUrl: branding.storefrontUrl,
         sidebarLinks: branding.sidebarLinks,
         sidebarNote: branding.sidebarNote,

@@ -89,6 +89,7 @@ describe("tenant store", () => {
       branding: {
         name: "Acme Vapes",
         logoUrl: "https://cdn.shopify.com/acme-logo.png",
+        logoHeight: 40,
         accentColor: "#4F46E5",
         storefrontUrl: "https://acme-vapes.com",
         supportEmail: "help@acme-vapes.com",
@@ -250,5 +251,6 @@ describe("tenant store", () => {
     // New fields should default to empty strings (not undefined)
     expect(t?.branding.storefrontUrl).toBe("");
     expect(t?.branding.supportEmail).toBe("");
+    expect(t?.branding.logoHeight).toBe(32);
   });
 });

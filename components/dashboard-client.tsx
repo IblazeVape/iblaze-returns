@@ -4190,35 +4190,19 @@ function OrderDetail({
 // submitReturn) can see it without threading a prop through every layer.
 let DEMO_MODE = false
 
-export default function DashboardClient({
-  demo = false,
-  suppressAuthOverlay = false,
-  onReady,
-}: {
-  demo?: boolean
-  /** Parent already shows the authenticating blur (e.g. guest lookup handoff). */
-  suppressAuthOverlay?: boolean
-  /** Fires once when the portal is ready to reveal (orders loaded / guest order selected). */
-  onReady?: () => void
-} = {}) {
+export default function DashboardClient({ demo = false }: { demo?: boolean } = {}) {
   DEMO_MODE = demo
   return (
     <SidebarLayoutProvider>
       <Suspense>
-        <DashboardClientInner suppressAuthOverlay={suppressAuthOverlay} onReady={onReady} />
+        <DashboardClientInner />
       </Suspense>
     </SidebarLayoutProvider>
   )
 }
 
 
-function DashboardClientInner({
-  suppressAuthOverlay = false,
-  onReady,
-}: {
-  suppressAuthOverlay?: boolean
-  onReady?: () => void
-}) {
+function DashboardClientInner() {
   const searchParams = useSearchParams()
   const { applyMerchantDefault } = useSidebarLayout()
   const [data, setData]                   = useState<OrdersData | null>(null)
@@ -4233,7 +4217,7 @@ function DashboardClientInner({
   const [statusFilter, setStatusFilter]   = useState<string[]>([])
   const [activeSection, setActiveSection] = useState("#orders")
   const [branding, setBranding] = useState<TenantBranding>({
-    name: "", logoUrl: "", accentColor: "#000000", storefrontUrl: "", supportEmail: "",
+    name: "", logoUrl: "", logoHeight: 32, accentColor: "#000000", storefrontUrl: "", supportEmail: "",
     requirePolicyAcceptance: true, returnReviewEnabled: true, storeLinkEnabled: true, storeLinkLabel: "Store",
     orderStatusLinkEnabled: true, orderStatusLinkLabel: "Order Status",
     policyHeading: "iBlaze Returns Policy", policySubheading: "Review our returns policy before selecting items to return.",
@@ -4485,10 +4469,11 @@ function DashboardClientInner({
 
   const user = { name: data?.firstName || "Customer", email: data?.email || "" }
   const orderHeaderStatus = selectedOrder ? getOrderHeaderStatusIcon(selectedOrder) : null
-  // Blurred PortalShell sits behind the Authenticating card — hide the
-  // sidebar there so it can't flash expanded (defaultOpen true) then snap
-  // shut once branding arrives with "starts open" off.
-  const showAuthOverlay = loading || (isGuestOrderContext() && !selectedOrder)
+  const guestOrderContext = isGuestOrderContext()
+  // Destination content isn't ready yet (orders still fetching, or guest
+  // order not selected). Hide the sidebar in that window so it can't flash
+  // expanded then snap shut once branding arrives.
+  const awaitingDestination = loading || (guestOrderContext && !selectedOrder)
 
   const portalContent = (
     <PortalShell
@@ -4496,9 +4481,9 @@ function DashboardClientInner({
       onNavigate={s => { setActiveSection(s); setSelectedOrder(null) }}
       activeSection={activeSection}
       accentColor={branding.accentColor}
-      showSidebar={branding.sidebarEnabled && !showAuthOverlay}
+      showSidebar={branding.sidebarEnabled && !awaitingDestination}
       branding={{
-        name: branding.name, logoUrl: branding.logoUrl, storefrontUrl: branding.storefrontUrl,
+        name: branding.name, logoUrl: branding.logoUrl, logoHeight: branding.logoHeight, storefrontUrl: branding.storefrontUrl,
         sidebarLinks: branding.sidebarLinks, sidebarNote: branding.sidebarNote,
         sidebarSubmenusExpandedByDefault: branding.sidebarSubmenusExpandedByDefault,
       }}
@@ -4673,26 +4658,36 @@ function DashboardClientInner({
     </PortalShell>
   )
 
-  // Guest verified one order but auto-select hasn't matched it into
-  // `selectedOrder` yet — without this, there's a visible flash of the
-  // empty "My Orders" list before it flips to the order detail.
-  const portalReady = !loading && !(isGuestOrderContext() && !selectedOrder)
-
-  useLayoutEffect(() => {
-    if (portalReady) onReady?.()
-  }, [portalReady, onReady])
-
-  if (!portalReady) {
-    // Parent (guest lookup handoff) already paints the Find your order page
-    // behind the Authenticating card — don't also paint My Orders here, or
-    // the blur briefly shows a completely different page style.
-    if (suppressAuthOverlay) {
-      return <PortalCustomScripts html={branding.portalCustomScript} />
+  // After guest lookup selects the searched order, hold Authenticating a
+  // beat so that order page (not Find your order / empty My Orders) is
+  // what’s visible behind the blur before it lifts.
+  const [guestOrderReveal, setGuestOrderReveal] = useState(false)
+  useEffect(() => {
+    if (!guestOrderContext || !selectedOrder || loading) {
+      setGuestOrderReveal(false)
+      return
     }
+    const t = window.setTimeout(() => setGuestOrderReveal(true), 320)
+    return () => window.clearTimeout(t)
+  }, [guestOrderContext, selectedOrder, loading])
+
+  const showAuthOverlay =
+    awaitingDestination ||
+    (guestOrderContext && !!selectedOrder && !guestOrderReveal)
+
+  if (showAuthOverlay) {
+    // Guest still fetching: plain backdrop (never empty My Orders).
+    // Guest with order selected (hold): that order page behind the blur.
+    // Logged-in loading: orders portal behind the blur.
+    const showDestinationBehindBlur = !guestOrderContext || !!selectedOrder
     return (
       <div className="relative overflow-hidden" style={{ height: "100dvh", width: "100vw" }}>
         <PortalCustomScripts html={branding.portalCustomScript} />
-        <div className="pointer-events-none select-none blur-xs brightness-95 h-full w-full">{portalContent}</div>
+        {showDestinationBehindBlur ? (
+          <div className="pointer-events-none select-none blur-xs brightness-95 h-full w-full">{portalContent}</div>
+        ) : (
+          <div className="h-full w-full bg-background" aria-hidden />
+        )}
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/40 backdrop-blur-xs">
             <Card className="w-full max-w-xs mx-4 shadow-xl">
               <div className="flex flex-col items-center justify-center gap-3 py-8 px-6">

@@ -21,6 +21,8 @@ type SidebarBranding = {
   name: string
   logoUrl: string
   storefrontUrl: string
+  /** Logo height in px (default 32). */
+  logoHeight?: number
   sidebarLinks?: SidebarLinkData[]
   sidebarNote?: string
   sidebarSubmenusExpandedByDefault?: boolean
@@ -131,12 +133,13 @@ function SidebarCustomLinks({
   )
 }
 
-function SidebarBrandHeader({ branding }: { branding?: { name: string; logoUrl: string; storefrontUrl: string } }) {
+function SidebarBrandHeader({ branding }: { branding?: SidebarBranding }) {
   const { state } = useSidebar()
   const isCollapsed = state === "collapsed"
   const storeUrl = branding?.storefrontUrl || "https://iblazevape.co.uk"
-  const logoUrl = branding?.logoUrl || "https://cdn.shopify.com/s/files/1/0941/5383/4761/files/IblazeLogo.png?v=14858"
+  const logoUrl = branding?.logoUrl?.trim() || ""
   const brandName = branding?.name || "iBlaze Returns"
+  const logoHeight = Math.min(64, Math.max(16, branding?.logoHeight || 32))
 
   return (
     <SidebarHeader
@@ -156,15 +159,28 @@ function SidebarBrandHeader({ branding }: { branding?: { name: string; logoUrl: 
             <a
               href={storeUrl}
               target="_blank"
-              className="flex items-center group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:overflow-hidden"
+              className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:overflow-hidden"
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={logoUrl}
-                className="size-8 shrink-0 object-contain object-center brand-logo-img"
-                alt={brandName}
-              />
-              <span className="text-base font-semibold group-data-[collapsible=icon]:hidden">{brandName}</span>
+              {logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={logoUrl}
+                  className="shrink-0 object-contain object-center brand-logo-img"
+                  style={{ height: logoHeight, width: "auto", maxWidth: 140 }}
+                  alt={brandName}
+                />
+              ) : null}
+              {/* When there’s no logo, keep the name visible even in the
+                  collapsed rail so the store isn’t a blank icon slot. */}
+              <span
+                className={cn(
+                  "text-base font-semibold truncate",
+                  logoUrl && "group-data-[collapsible=icon]:hidden",
+                  !logoUrl && isCollapsed && "text-xs text-center leading-tight whitespace-normal",
+                )}
+              >
+                {brandName}
+              </span>
             </a>
           </SidebarMenuButton>
         </SidebarMenuItem>

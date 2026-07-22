@@ -42,6 +42,8 @@ interface SiteHeaderProps {
    * so the store still has a brand mark where the title/store name sits. */
   brandLogoUrl?: string
   brandName?: string
+  /** Logo height in px (merchant Brand setting). Default 32. */
+  brandLogoHeight?: number
 }
 
 function SidebarToggleControls({ mobileOnly = false }: { mobileOnly?: boolean }) {
@@ -82,6 +84,7 @@ export function SiteHeader({
   searchPlaceholder = "Search orders...",
   brandLogoUrl,
   brandName,
+  brandLogoHeight = 32,
 }: SiteHeaderProps) {
   const initial = firstName?.[0]?.toUpperCase() || "?"
   const user = { name: firstName || "Customer", email: email || "" }
@@ -90,9 +93,12 @@ export function SiteHeader({
     typeof title === "string" && !!brandName && title.trim() === brandName.trim()
   // Logo (preferred) or brand name text when the sidebar isn’t carrying the brand.
   const showHeaderBrand = !!(brandLogoUrl?.trim() || brandName?.trim())
-  // Avoid “Logo + IblazeVape” when the page title is already the store name
-  // (e.g. Find your order with title set to branding.name).
-  const showPageTitle = !(showHeaderBrand && brandLogoUrl?.trim() && titleIsBrandName)
+  // Avoid “IblazeVape | IblazeVape” when the page title is already the store
+  // name — whether the brand mark is a logo image OR the text fallback
+  // (Find your order sets title to branding.name).
+  const showPageTitle = !(showHeaderBrand && titleIsBrandName)
+  const logoHeight = Math.min(64, Math.max(16, brandLogoHeight || 32))
+  const logoImgClass = "w-auto max-w-[160px] object-contain object-left shrink-0"
 
   const brandMark = showHeaderBrand ? (
     storefrontUrl ? (
@@ -107,7 +113,8 @@ export function SiteHeader({
           <img
             src={brandLogoUrl}
             alt={brandName || "Store"}
-            className="h-8 w-auto max-w-[140px] object-contain object-left"
+            className={logoImgClass}
+            style={{ height: logoHeight }}
           />
         ) : (
           <span className="text-base font-semibold truncate">{brandName}</span>
@@ -118,7 +125,8 @@ export function SiteHeader({
       <img
         src={brandLogoUrl}
         alt={brandName || "Store"}
-        className="h-8 w-auto max-w-[140px] object-contain object-left shrink-0"
+        className={logoImgClass}
+        style={{ height: logoHeight }}
       />
     ) : (
       <span className="text-base font-semibold truncate shrink-0">{brandName}</span>

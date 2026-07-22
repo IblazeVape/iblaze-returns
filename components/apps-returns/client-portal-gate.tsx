@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import DashboardClient from "@/components/dashboard-client";
 import { GuestLookupForm } from "@/components/apps-returns/guest-lookup-form";
 import { GuestPortalShell } from "@/components/apps-returns/guest-portal-shell";
@@ -15,13 +15,11 @@ import {
 import { setAppsReturnsPortal, setAppsReturnsIdentityKind, setGuestOrderContext } from "@/lib/apps-returns-portal-mode";
 import { setCachedAccentColor, setCachedSidebarDefaultOpen } from "@/lib/accent-color-cache";
 import { setPortalToastPosition } from "@/lib/portal-toast";
-import { Card } from "@/components/ui/card";
-import { Spinner } from "@/components/ui/spinner";
-import { cn } from "@/lib/utils";
 
 export type InitialBranding = {
   name: string
   logoUrl: string
+  logoHeight: number
   accentColor: string
   storefrontUrl: string
   storeLinkEnabled: boolean
@@ -95,10 +93,6 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
   const [ready, setReady] = useState(false);
   const [signingIn, setSigningIn] = useState(false);
   const [error, setError] = useState("");
-  // After guest/logged-in lookup verifies an order, keep Find your order
-  // blurred behind Authenticating until DashboardClient has the order page
-  // ready — otherwise the blur flashes empty "My Orders" (wrong style).
-  const [lookupHandoff, setLookupHandoff] = useState(false);
 
   // Set synchronously during render, not in the effect below: GuestPortalShell
   // (via AppSidebar) can render on this very first pass — for "guest-or-login"
@@ -176,29 +170,22 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
   function handleLookupAnother() {
     clearStoredAppsReturnsSession();
     setGuestOrderContext(null, null);
-    setLookupHandoff(false);
     setReady(false);
   }
 
-  const finishLookupHandoff = useCallback(() => {
-    setLookupHandoff(false);
-  }, []);
-
-  function beginLookupHandoff(token: string, orderId: string, branding: InitialBranding) {
+  function openVerifiedOrder(token: string, orderId: string, branding: InitialBranding) {
     storeAppsReturnsSession(token);
-    // We already have the real accent color server-side (it came
-    // down in `initial.branding`) — seed the cache DashboardClient
-    // reads on its first paint so its "Authenticating" overlay
-    // shows the tenant's actual color immediately instead of
-    // flashing neutral gray while it re-fetches branding itself.
+    // Seed the cache DashboardClient reads on its first paint so its
+    // Authenticating overlay shows the tenant's actual color immediately.
     setCachedAccentColor(branding.accentColor);
     setCachedSidebarDefaultOpen(branding.sidebarDefaultOpenOnDesktop);
     setPortalToastPosition(branding.toastPosition);
     const numericOrderId = orderId.split("/").pop() ?? null;
     setGuestOrderContext(numericOrderId, handleLookupAnother);
-    setLookupHandoff(true);
     setReady(true);
   }
+
+  if (ready) return <DashboardClient />;
 
   if (error) {
     return <Notice title="Couldn't sign you in" body={error} />;
@@ -208,62 +195,6 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
     const accent =
       initial.kind === "logged-in" ? initial.branding.accentColor : undefined;
     return <AuthenticatingCard accentColor={accent} />;
-  }
-
-  // Lookup → order handoff: keep Find your order behind the blur while the
-  // order page loads. Same DashboardClient instance stays mounted when the
-  // overlay clears (no remount / refetch flash).
-  if (ready) {
-    const showLookupBackdrop =
-      lookupHandoff &&
-      (initial.kind === "guest-or-login" || initial.kind === "logged-in-lookup");
-    const accent =
-      showLookupBackdrop && "branding" in initial ? initial.branding.accentColor : undefined;
-
-    return (
-      <div className="relative overflow-hidden" style={{ height: "100dvh", width: "100vw" }}>
-        {showLookupBackdrop ? (
-          <>
-            <div className="pointer-events-none select-none blur-xs brightness-95 absolute inset-0 h-full w-full">
-              <LookupScreen
-                branding={initial.branding}
-                loginUrl={
-                  initial.kind === "guest-or-login"
-                    ? `/customer_authentication/login?return_to=${encodeURIComponent("/apps/returns")}`
-                    : undefined
-                }
-                requirePostcode={
-                  initial.kind === "logged-in-lookup"
-                    ? initial.branding.loggedInLookupRequirePostcode
-                    : true
-                }
-                onVerified={() => {}}
-              />
-            </div>
-            <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/40 backdrop-blur-xs">
-              <Card className="w-full max-w-xs mx-4 shadow-xl">
-                <div className="flex flex-col items-center justify-center gap-3 py-8 px-6">
-                  <div
-                    className={cn("size-10 rounded-full flex items-center justify-center", !accent && "bg-muted")}
-                    style={accent ? { backgroundColor: `${accent}1a` } : undefined}
-                  >
-                    <Spinner className={cn("size-5", !accent && "text-muted-foreground")} style={accent ? { color: accent } : undefined} />
-                  </div>
-                  <div className="text-center">
-                    <p className="font-semibold text-sm">Authenticating</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">Verifying your session securely...</p>
-                  </div>
-                </div>
-              </Card>
-            </div>
-          </>
-        ) : null}
-        <DashboardClient
-          suppressAuthOverlay={showLookupBackdrop}
-          onReady={showLookupBackdrop ? finishLookupHandoff : undefined}
-        />
-      </div>
-    );
   }
 
   switch (initial.kind) {
@@ -293,7 +224,7 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
         <LookupScreen
           branding={initial.branding}
           loginUrl={loginUrl}
-          onVerified={(token, order) => beginLookupHandoff(token, order.id, initial.branding)}
+          onVerified={(token, order) => openVerifiedOrder(token, order.id, initial.branding)}
         />
       );
     }
@@ -307,7 +238,7 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
         <LookupScreen
           branding={initial.branding}
           requirePostcode={initial.branding.loggedInLookupRequirePostcode}
-          onVerified={(token, order) => beginLookupHandoff(token, order.id, initial.branding)}
+          onVerified={(token, order) => openVerifiedOrder(token, order.id, initial.branding)}
         />
       );
   }

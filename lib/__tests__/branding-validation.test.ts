@@ -4,6 +4,7 @@ import { validateBrandingInput, type BrandingInput } from "@/lib/branding-valida
 const VALID: BrandingInput = {
   name: "Acme Vapes",
   logoUrl: "https://cdn.shopify.com/acme-logo.png",
+  logoHeight: 32,
   accentColor: "#4F46E5",
   storefrontUrl: "https://acme-vapes.com",
   supportEmail: "help@acme-vapes.com",

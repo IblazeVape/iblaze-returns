@@ -76,6 +76,7 @@ export async function PUT(request: NextRequest) {
   const input: BrandingInput = {
     name: typeof body.name === "string" ? body.name : existing.branding.name,
     logoUrl: typeof body.logoUrl === "string" ? body.logoUrl : existing.branding.logoUrl,
+    logoHeight: typeof body.logoHeight === "number" ? body.logoHeight : existing.branding.logoHeight,
     accentColor: typeof body.accentColor === "string" ? body.accentColor : existing.branding.accentColor,
     storefrontUrl: typeof body.storefrontUrl === "string" ? body.storefrontUrl : existing.branding.storefrontUrl,
     supportEmail: typeof body.supportEmail === "string" ? body.supportEmail : existing.branding.supportEmail,
@@ -241,6 +242,7 @@ export async function PUT(request: NextRequest) {
     branding: {
       name: input.name,
       logoUrl: input.logoUrl,
+      logoHeight: input.logoHeight,
       accentColor: input.accentColor,
       storefrontUrl: input.storefrontUrl,
       supportEmail: input.supportEmail,
