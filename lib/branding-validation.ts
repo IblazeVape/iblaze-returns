@@ -96,6 +96,7 @@ export type BrandingInput = {
   loggedInLookupRequirePostcode: boolean;
   policyPresentation: "dialog" | "externalLink";
   policyExternalUrl: string;
+  policyReviewButtonLabel: string;
   toastPosition: "top-left" | "top-center" | "top-right" | "bottom-left" | "bottom-center" | "bottom-right";
   portalCustomScript: string;
 };
@@ -200,6 +201,11 @@ export function validateBrandingInput(
     }
   } else if (input.policyExternalUrl && !isValidUrl(input.policyExternalUrl)) {
     errors.policyExternalUrl = "Must be a valid URL.";
+  }
+  if (!input.policyReviewButtonLabel.trim()) {
+    errors.policyReviewButtonLabel = "Enter button text.";
+  } else if (input.policyReviewButtonLabel.length > STORE_LINK_LABEL_MAX_LENGTH) {
+    errors.policyReviewButtonLabel = `Must be ${STORE_LINK_LABEL_MAX_LENGTH} characters or fewer.`;
   }
   const toastPositions = ["top-left","top-center","top-right","bottom-left","bottom-center","bottom-right"] as const;
   if (!toastPositions.includes(input.toastPosition as typeof toastPositions[number])) {

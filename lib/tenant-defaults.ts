@@ -166,6 +166,8 @@ export type TenantBranding = {
   policyPresentation: "dialog" | "externalLink";
   /** External policy URL when policyPresentation is externalLink. */
   policyExternalUrl: string;
+  /** Label for the Review & Accept button (dialog trigger or external link). */
+  policyReviewButtonLabel: string;
   /** Sonner toast corner/edge for customer portal messages. */
   toastPosition: "top-left" | "top-center" | "top-right" | "bottom-left" | "bottom-center" | "bottom-right";
   /** Optional HTML/JS snippet injected into the customer portal (chat widgets, etc.). */
@@ -268,6 +270,7 @@ export const DEFAULT_TENANT_FIELDS = {
     loggedInLookupRequirePostcode: false,
     policyPresentation: "dialog",
     policyExternalUrl: "",
+    policyReviewButtonLabel: "Review & Accept",
     toastPosition: "top-right",
     portalCustomScript: "",
   } satisfies TenantBranding,

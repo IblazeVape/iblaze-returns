@@ -68,7 +68,7 @@ const TAB_FIELDS: Record<SettingsTab, (keyof BrandingInput)[]> = {
     "loggedInLookupRequirePostcode",
     "policyHeading", "policySubheading", "policyLastUpdated", "policyBodyMode", "policyCategories", "policyBodyText",
     "policyFooterNoteEnabled", "policyFooterNote", "policyAcceptedMessage", "policyDeclinedMessage",
-    "policyPresentation", "policyExternalUrl",
+    "policyPresentation", "policyExternalUrl", "policyReviewButtonLabel",
   ],
   navigation: [
     "storeLinkEnabled", "storeLinkLabel", "orderStatusLinkEnabled", "orderStatusLinkLabel",
@@ -102,7 +102,7 @@ const SETTINGS_MODAL_FIELDS: Record<string, (keyof BrandingInput)[]> = {
   "returns-policy-modal": [
     "policyHeading", "policySubheading", "policyLastUpdated", "policyBodyMode",
     "policyCategories", "policyBodyText", "policyFooterNoteEnabled", "policyFooterNote",
-    "policyPresentation", "policyExternalUrl",
+    "policyPresentation", "policyExternalUrl", "policyReviewButtonLabel",
   ],
   "returns-confirm-modal": ["policyAcceptedMessage", "policyDeclinedMessage"],
   "nav-sidebar-layout-modal": [
@@ -1280,14 +1280,31 @@ export function SettingsForm({
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policyExternalUrl", e.target.value)}
                   ></s-url-field>
                   {errors.policyExternalUrl && <s-paragraph tone="critical">{errors.policyExternalUrl}</s-paragraph>}
+                  <s-text-field
+                    label="Review button text"
+                    name="policyReviewButtonLabel"
+                    value={form.policyReviewButtonLabel}
+                    placeholder="Review & Accept"
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policyReviewButtonLabel", e.target.value)}
+                  ></s-text-field>
+                  {errors.policyReviewButtonLabel && <s-paragraph tone="critical">{errors.policyReviewButtonLabel}</s-paragraph>}
                   <s-paragraph tone="subdued">
-                    Customers still get a small Accept / Decline step. The full policy opens on your site in a new tab.
+                    Clicking this button opens your policy page in a new tab and marks the policy as accepted so the customer can select items.
                   </s-paragraph>
                 </>
               ) : null}
 
               {form.policyPresentation === "dialog" && (
               <>
+              <s-text-field
+                label="Review button text"
+                name="policyReviewButtonLabel"
+                value={form.policyReviewButtonLabel}
+                placeholder="Review & Accept"
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policyReviewButtonLabel", e.target.value)}
+              ></s-text-field>
+              {errors.policyReviewButtonLabel && <s-paragraph tone="critical">{errors.policyReviewButtonLabel}</s-paragraph>}
+
               <s-text-field
                 label="Dialog heading"
                 name="policyHeading"

@@ -212,6 +212,10 @@ export async function PUT(request: NextRequest) {
         : existing.branding.policyPresentation,
     policyExternalUrl:
       typeof body.policyExternalUrl === "string" ? body.policyExternalUrl : existing.branding.policyExternalUrl,
+    policyReviewButtonLabel:
+      typeof body.policyReviewButtonLabel === "string"
+        ? body.policyReviewButtonLabel
+        : existing.branding.policyReviewButtonLabel,
     toastPosition:
       body.toastPosition === "top-left" || body.toastPosition === "top-center" || body.toastPosition === "top-right"
       || body.toastPosition === "bottom-left" || body.toastPosition === "bottom-center" || body.toastPosition === "bottom-right"
@@ -292,6 +296,7 @@ export async function PUT(request: NextRequest) {
       loggedInLookupRequirePostcode: input.loggedInLookupRequirePostcode,
       policyPresentation: input.policyPresentation,
       policyExternalUrl: input.policyExternalUrl,
+      policyReviewButtonLabel: input.policyReviewButtonLabel,
       toastPosition: input.toastPosition,
       portalCustomScript: input.portalCustomScript,
     },

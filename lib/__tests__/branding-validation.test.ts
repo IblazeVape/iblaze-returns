@@ -90,6 +90,7 @@ const VALID: BrandingInput = {
   loggedInLookupRequirePostcode: false,
   policyPresentation: "dialog",
   policyExternalUrl: "",
+  policyReviewButtonLabel: "Review & Accept",
   toastPosition: "top-right",
   portalCustomScript: "",
 };

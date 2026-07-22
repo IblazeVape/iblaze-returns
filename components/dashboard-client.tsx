@@ -2887,6 +2887,7 @@ function HygienePolicy({
   declinedMessage = "Policy declined",
   presentation = "dialog",
   externalUrl = "",
+  reviewButtonLabel = "Review & Accept",
 }: {
   onAccept: () => void
   onDecline: () => void
@@ -2904,24 +2905,57 @@ function HygienePolicy({
   declinedMessage?: string
   presentation?: "dialog" | "externalLink"
   externalUrl?: string
+  reviewButtonLabel?: string
 }) {
   const useExternal = presentation === "externalLink" && !!externalUrl
   const isDesktop = useMediaQuery("(min-width: 768px)")
+  const buttonText = (reviewButtonLabel || "Review & Accept").trim() || "Review & Accept"
+
+  const triggerClassName = link
+    ? "h-auto shrink-0 gap-0.5 px-2 py-1 text-xs font-medium leading-snug text-muted-foreground hover:text-foreground"
+    : compact
+      ? "h-7 px-2 text-xs shrink-0"
+      : "bg-[var(--brand)] hover:bg-[var(--brand)]/90 text-white shrink-0"
+
+  // External policy: open the merchant URL in a new tab and accept — no dialog.
+  if (useExternal) {
+    return (
+      <Button
+        asChild
+        variant={link ? "ghost" : compact ? "outline" : "default"}
+        size="sm"
+        className={triggerClassName}
+      >
+        <a
+          href={externalUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => {
+            onAccept()
+            portalToast.success(acceptedMessage)
+          }}
+        >
+          {buttonText}
+          {link ? <ChevronRight className="size-3.5 shrink-0" /> : <ExternalLink className="size-3.5 shrink-0" />}
+        </a>
+      </Button>
+    )
+  }
 
   const trigger = link
     ? (
       <Button
         variant="ghost"
         size="sm"
-        className="h-auto shrink-0 gap-0.5 px-2 py-1 text-xs font-medium leading-snug text-muted-foreground hover:text-foreground"
+        className={triggerClassName}
       >
-        Review &amp; Accept
+        {buttonText}
         <ChevronRight className="size-3.5 shrink-0" />
       </Button>
     )
     : compact
-      ? <Button size="sm" variant="outline" className="h-7 px-2 text-xs shrink-0">Review &amp; Accept</Button>
-      : <Button size="sm" className="bg-[var(--brand)] hover:bg-[var(--brand)]/90 text-white shrink-0">Review &amp; Accept</Button>
+      ? <Button size="sm" variant="outline" className={triggerClassName}>{buttonText}</Button>
+      : <Button size="sm" className={triggerClassName}>{buttonText}</Button>
 
   if (isDesktop) {
     return (
@@ -2934,18 +2968,7 @@ function HygienePolicy({
             {lastUpdated && <p className="text-xs text-muted-foreground">Last updated: {lastUpdated}</p>}
           </DialogHeader>
           <div className="overflow-y-auto overflow-x-hidden max-h-[50vh] styled-scroll px-6 py-4">
-            {useExternal ? (
-              <div className="space-y-3 text-sm">
-                <p className="text-muted-foreground leading-relaxed">
-                  Read our returns policy on our website, then come back here to accept.
-                </p>
-                <Button asChild variant="outline" className="w-full">
-                  <a href={externalUrl} target="_blank" rel="noopener noreferrer">Open returns policy</a>
-                </Button>
-              </div>
-            ) : (
-              <HygienePolicyList itemPx="px-0" bodyMode={bodyMode} categories={categories} bodyText={bodyText} footerNoteEnabled={footerNoteEnabled} footerNote={footerNote} />
-            )}
+            <HygienePolicyList itemPx="px-0" bodyMode={bodyMode} categories={categories} bodyText={bodyText} footerNoteEnabled={footerNoteEnabled} footerNote={footerNote} />
           </div>
           <div className="flex gap-2 px-6 pb-6 pt-4">
             <DialogClose asChild>
@@ -2971,18 +2994,7 @@ function HygienePolicy({
         </DrawerHeader>
         <Separator />
         <div className="overflow-y-auto overflow-x-hidden max-h-[45vh] styled-scroll px-4 py-3">
-          {useExternal ? (
-            <div className="space-y-3 text-sm">
-              <p className="text-muted-foreground leading-relaxed">
-                Read our returns policy on our website, then come back here to accept.
-              </p>
-              <Button asChild variant="outline" className="w-full">
-                <a href={externalUrl} target="_blank" rel="noopener noreferrer">Open returns policy</a>
-              </Button>
-            </div>
-          ) : (
-            <HygienePolicyList itemPx="px-0" bodyMode={bodyMode} categories={categories} bodyText={bodyText} footerNoteEnabled={footerNoteEnabled} footerNote={footerNote} />
-          )}
+          <HygienePolicyList itemPx="px-0" bodyMode={bodyMode} categories={categories} bodyText={bodyText} footerNoteEnabled={footerNoteEnabled} footerNote={footerNote} />
         </div>
         <DrawerFooter className="pt-2">
           <div className="flex gap-2">
@@ -3193,6 +3205,7 @@ type OrderDetailBranding = {
   policyDeclinedMessage: string
   policyPresentation: "dialog" | "externalLink"
   policyExternalUrl: string
+  policyReviewButtonLabel: string
   tableSearchEnabled: boolean
   tableSearchPlaceholder: string
   tableColumnsButtonEnabled: boolean
@@ -3224,6 +3237,7 @@ function OrderDetail({
     supportEmail, requirePolicyAcceptance, policyHeading, policySubheading, policyLastUpdated,
     policyBodyMode, policyCategories, policyBodyText, policyFooterNoteEnabled, policyFooterNote,
     policyAcceptedMessage, policyDeclinedMessage, policyPresentation, policyExternalUrl,
+    policyReviewButtonLabel,
     tableSearchEnabled, tableSearchPlaceholder,
     tableColumnsButtonEnabled, tableFilterButtonEnabled, tablePageSizeEnabled, shipmentCardsEnabled,
     productImageLinksEnabled, statusFilterEnabled, ineligibleMessageEnabled,
@@ -3660,6 +3674,7 @@ function OrderDetail({
                   declinedMessage={policyDeclinedMessage}
                   presentation={policyPresentation}
                   externalUrl={policyExternalUrl}
+                  reviewButtonLabel={policyReviewButtonLabel}
                 />
               </div>
             )}
@@ -4232,6 +4247,7 @@ function DashboardClientInner() {
     loggedInLookupRequirePostcode: false,
     policyPresentation: "dialog",
     policyExternalUrl: "",
+    policyReviewButtonLabel: "Review & Accept",
     toastPosition: "top-right",
     portalCustomScript: "",
   })
