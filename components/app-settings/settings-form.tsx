@@ -602,10 +602,15 @@ export function SettingsForm({
               className="styled-scroll"
               style={{
                 display: "flex",
+                alignItems: "flex-end",
                 gap: 20,
                 borderBottom: "1px solid #e1e3e5",
                 overflowX: "auto",
+                overflowY: "hidden",
+                overscrollBehaviorY: "none",
                 WebkitOverflowScrolling: "touch",
+                // Keep the tab strip one row tall — horizontal scroll only.
+                maxHeight: 42,
               }}
             >
               {TABS.map((tab) => (
