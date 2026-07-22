@@ -6,6 +6,7 @@ import type { TenantBranding } from "@/lib/tenant"
 import { SIDEBAR_ICON_NAMES } from "@/lib/sidebar-icons"
 import { STATUS_ICON_NAMES } from "@/lib/status-icons"
 import { RichTextEditor } from "@/components/app-settings/rich-text-editor"
+import { PolicyCategoriesTable, newCategoryRowId, reorderList } from "@/components/app-settings/policy-categories-table"
 import { DEFAULT_TENANT_FIELDS } from "@/lib/tenant-defaults"
 import { migrateMarkdownIfNeeded } from "@/lib/markdown-to-html"
 import { GUEST_LOOKUP_GRADIENT_PRESETS, matchGuestLookupGradientPreset } from "@/lib/guest-lookup-gradients"
@@ -288,9 +289,11 @@ export function SettingsForm({
   }
 
   // Same collapsed-by-default pattern as sidebar links above — kept for
-  // return-status cards. Policy categories stay fully expanded; a filter
-  // handles long lists without a nested scroll / accordion.
+  // return-status cards. Policy categories use a compact drag-sortable table.
   const [categoryFilter, setCategoryFilter] = useState("")
+  const [categoryIds, setCategoryIds] = useState(() =>
+    initialForm.current.policyCategories.map(() => newCategoryRowId())
+  )
 
   function set<K extends keyof BrandingInput>(key: K, value: BrandingInput[K]) {
     setForm((f) => {
@@ -376,19 +379,19 @@ export function SettingsForm({
     })
   }
   function addCategory() {
+    setCategoryIds((ids) => [...ids, newCategoryRowId()])
     setForm((f) => ({ ...f, policyCategories: [...f.policyCategories, { title: "", desc: "" }] }))
   }
   function removeCategory(index: number) {
+    setCategoryIds((ids) => ids.filter((_, i) => i !== index))
     setForm((f) => ({ ...f, policyCategories: f.policyCategories.filter((_, i) => i !== index) }))
   }
-  function moveCategory(index: number, direction: -1 | 1) {
-    const target = index + direction
-    setForm((f) => {
-      if (target < 0 || target >= f.policyCategories.length) return f
-      const next = [...f.policyCategories]
-      ;[next[index], next[target]] = [next[target], next[index]]
-      return { ...f, policyCategories: next }
-    })
+  function reorderCategories(fromIndex: number, toIndex: number) {
+    setCategoryIds((ids) => reorderList(ids, fromIndex, toIndex))
+    setForm((f) => ({
+      ...f,
+      policyCategories: reorderList(f.policyCategories, fromIndex, toIndex),
+    }))
   }
 
   function updateSidebarLink(index: number, patch: Partial<SidebarLinkInput>) {
@@ -499,6 +502,8 @@ export function SettingsForm({
 
   function handleDiscard() {
     setForm(initialForm.current)
+    setCategoryIds(initialForm.current.policyCategories.map(() => newCategoryRowId()))
+    setCategoryFilter("")
     setErrors({})
     setStatus("idle")
     if (typeof shopify !== "undefined") shopify.saveBar.hide(SAVE_BAR_ID)
@@ -516,7 +521,10 @@ export function SettingsForm({
       return
     }
     setConfirming(null)
-    setForm({ ...DEFAULT_TENANT_FIELDS.branding, returnWindowDays: DEFAULT_TENANT_FIELDS.returnWindowDays })
+    const next = { ...DEFAULT_TENANT_FIELDS.branding, returnWindowDays: DEFAULT_TENANT_FIELDS.returnWindowDays }
+    setForm(next)
+    setCategoryIds(next.policyCategories.map(() => newCategoryRowId()))
+    setCategoryFilter("")
     setErrors({})
     // Not saved yet — the save bar's own dirty-check (comparing against
     // initialForm.current) picks this up and shows Save/Discard as normal.
@@ -536,6 +544,8 @@ export function SettingsForm({
       const next: BrandingInput = { ...data.branding, returnWindowDays: data.returnWindowDays }
       initialForm.current = next
       setForm(next)
+      setCategoryIds(next.policyCategories.map(() => newCategoryRowId()))
+      setCategoryFilter("")
       setErrors({})
       setStatus("idle")
       if (typeof shopify !== "undefined") {
@@ -1299,128 +1309,17 @@ export function SettingsForm({
               </s-stack>
 
               {form.policyBodyMode === "categories" ? (
-                <s-stack direction="block" gap="base">
-                  <s-paragraph color="subdued">
-                    {form.policyCategories.length} categor{form.policyCategories.length === 1 ? "y" : "ies"} — edit inline in the table.
-                    {form.policyCategories.length > 4 ? " Filter when the list gets long." : ""}
-                  </s-paragraph>
-                  {form.policyCategories.length > 4 ? (
-                    <s-text-field
-                      label="Filter categories"
-                      value={categoryFilter}
-                      placeholder="Search by title…"
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCategoryFilter(e.target.value)}
-                    ></s-text-field>
-                  ) : null}
-                  <div style={{ overflowX: "auto", border: "1px solid var(--p-color-border, #e3e3e3)", borderRadius: 8 }}>
-                    <table
-                      style={{
-                        width: "100%",
-                        borderCollapse: "collapse",
-                        tableLayout: "fixed",
-                      }}
-                    >
-                      <thead>
-                        <tr style={{ background: "var(--p-color-bg-surface-secondary, #f7f7f7)", textAlign: "left" }}>
-                          <th style={{ padding: "10px 12px", fontSize: 12, fontWeight: 650, width: "28%" }}>Title</th>
-                          <th style={{ padding: "10px 12px", fontSize: 12, fontWeight: 650 }}>Description</th>
-                          <th style={{ padding: "10px 12px", fontSize: 12, fontWeight: 650, width: 132 }}> </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {form.policyCategories.map((cat, i) => {
-                          const q = categoryFilter.trim().toLowerCase()
-                          if (
-                            q &&
-                            !(cat.title || "").toLowerCase().includes(q) &&
-                            !(cat.desc || "").toLowerCase().includes(q)
-                          ) {
-                            return null
-                          }
-                          const rowBorder = "1px solid var(--p-color-border, #e3e3e3)"
-                          return (
-                            <tr key={i} style={{ borderTop: rowBorder }}>
-                              <td style={{ padding: "8px 12px", verticalAlign: "top" }}>
-                                <input
-                                  aria-label={`Category ${i + 1} title`}
-                                  value={cat.title}
-                                  placeholder="e.g. Vape Kits"
-                                  onChange={(e) => updateCategory(i, { title: e.target.value })}
-                                  style={{
-                                    width: "100%",
-                                    boxSizing: "border-box",
-                                    padding: "8px 10px",
-                                    border: "1px solid var(--p-color-border, #c9cccf)",
-                                    borderRadius: 8,
-                                    fontSize: 13,
-                                    background: "var(--p-color-bg-surface, #fff)",
-                                  }}
-                                />
-                              </td>
-                              <td style={{ padding: "8px 12px", verticalAlign: "top" }}>
-                                <input
-                                  aria-label={`Category ${i + 1} description`}
-                                  value={cat.desc}
-                                  placeholder="Short policy for this category"
-                                  onChange={(e) => updateCategory(i, { desc: e.target.value })}
-                                  style={{
-                                    width: "100%",
-                                    boxSizing: "border-box",
-                                    padding: "8px 10px",
-                                    border: "1px solid var(--p-color-border, #c9cccf)",
-                                    borderRadius: 8,
-                                    fontSize: 13,
-                                    background: "var(--p-color-bg-surface, #fff)",
-                                  }}
-                                />
-                              </td>
-                              <td style={{ padding: "8px 12px", verticalAlign: "top", whiteSpace: "nowrap" }}>
-                                <s-stack direction="inline" gap="small-200">
-                                  <s-button
-                                    variant="tertiary"
-                                    onClick={() => moveCategory(i, -1)}
-                                    disabled={i === 0}
-                                    accessibilityLabel={`Move category ${i + 1} up`}
-                                  >
-                                    ↑
-                                  </s-button>
-                                  <s-button
-                                    variant="tertiary"
-                                    onClick={() => moveCategory(i, 1)}
-                                    disabled={i === form.policyCategories.length - 1}
-                                    accessibilityLabel={`Move category ${i + 1} down`}
-                                  >
-                                    ↓
-                                  </s-button>
-                                  <s-button
-                                    variant="tertiary"
-                                    tone="critical"
-                                    onClick={() => removeCategory(i)}
-                                    accessibilityLabel={`Remove category ${i + 1}`}
-                                  >
-                                    Remove
-                                  </s-button>
-                                </s-stack>
-                              </td>
-                            </tr>
-                          )
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                  {categoryFilter.trim() &&
-                  form.policyCategories.every((cat) => {
-                    const q = categoryFilter.trim().toLowerCase()
-                    return (
-                      !(cat.title || "").toLowerCase().includes(q) &&
-                      !(cat.desc || "").toLowerCase().includes(q)
-                    )
-                  }) ? (
-                    <s-paragraph tone="subdued">No categories match that filter.</s-paragraph>
-                  ) : null}
-                  <s-button onClick={addCategory}>Add category</s-button>
-                  {errors.policyCategories && <s-paragraph tone="critical">{errors.policyCategories}</s-paragraph>}
-                </s-stack>
+                <PolicyCategoriesTable
+                  categories={form.policyCategories}
+                  categoryIds={categoryIds}
+                  filter={categoryFilter}
+                  onFilterChange={setCategoryFilter}
+                  onUpdate={updateCategory}
+                  onAdd={addCategory}
+                  onRemove={removeCategory}
+                  onReorder={reorderCategories}
+                  error={errors.policyCategories}
+                />
               ) : (
                 <>
                   <s-text color="subdued">Policy body text</s-text>
