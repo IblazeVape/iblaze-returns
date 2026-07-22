@@ -7,6 +7,7 @@ import { SIDEBAR_ICON_NAMES } from "@/lib/sidebar-icons"
 import { STATUS_ICON_NAMES } from "@/lib/status-icons"
 import { RichTextEditor } from "@/components/app-settings/rich-text-editor"
 import { PolicyCategoriesTable, newCategoryRowId, reorderList } from "@/components/app-settings/policy-categories-table"
+import { SidebarLinksTable, newSidebarLinkRowId } from "@/components/app-settings/sidebar-links-table"
 import { DEFAULT_TENANT_FIELDS } from "@/lib/tenant-defaults"
 import { migrateMarkdownIfNeeded } from "@/lib/markdown-to-html"
 import { GUEST_LOOKUP_GRADIENT_PRESETS, matchGuestLookupGradientPreset } from "@/lib/guest-lookup-gradients"
@@ -269,31 +270,23 @@ export function SettingsForm({
     const tab = new URLSearchParams(window.location.search).get("tab")
     return tab === "returns" || tab === "navigation" || tab === "table" || tab === "danger" ? tab : "branding"
   })
-  // Which sidebar-link rows are expanded — collapsed by default (existing
-  // links show a one-line summary) so the list stays scannable once a
-  // merchant has several links with sub-links. A newly added link opens
-  // automatically so it's immediately editable.
-  // Accordion, not independent toggles: opening one closes whichever else
-  // was open, for each of the three collapsible lists below (sidebar links,
-  // statuses, policy categories) — a merchant asked for this explicitly
-  // after finding it disorienting to have several long cards open at once.
-  const [openLinkIndex, setOpenLinkIndex] = useState<number | null>(null)
-  function toggleLinkOpen(index: number) {
-    setOpenLinkIndex((prev) => (prev === index ? null : index))
-  }
-
-  // Same collapsed-by-default pattern, applied to the per-status label/
-  // heading/icon/color/message cards — keeps the 14-status list scannable.
+  // Return-status cards stay accordion-style. Sidebar links + policy categories
+  // use compact drag-sortable tables instead.
   const [openStatusKey, setOpenStatusKey] = useState<ReturnLifecycleStatusInput | null>(null)
   function toggleStatusOpen(key: ReturnLifecycleStatusInput) {
     setOpenStatusKey((prev) => (prev === key ? null : key))
   }
 
-  // Same collapsed-by-default pattern as sidebar links above — kept for
-  // return-status cards. Policy categories use a compact drag-sortable table.
   const [categoryFilter, setCategoryFilter] = useState("")
   const [categoryIds, setCategoryIds] = useState(() =>
     initialForm.current.policyCategories.map(() => newCategoryRowId())
+  )
+  const [sidebarLinkFilter, setSidebarLinkFilter] = useState("")
+  const [sidebarLinkIds, setSidebarLinkIds] = useState(() =>
+    initialForm.current.sidebarLinks.map(() => newSidebarLinkRowId())
+  )
+  const [sidebarSubLinkIds, setSidebarSubLinkIds] = useState(() =>
+    initialForm.current.sidebarLinks.map((l) => (l.children ?? []).map(() => newSidebarLinkRowId()))
   )
 
   function set<K extends keyof BrandingInput>(key: K, value: BrandingInput[K]) {
@@ -399,36 +392,28 @@ export function SettingsForm({
     setForm((f) => ({ ...f, sidebarLinks: f.sidebarLinks.map((l, i) => (i === index ? { ...l, ...patch } : l)) }))
   }
   function addSidebarLink() {
-    setForm((f) => {
-      const newIndex = f.sidebarLinks.length
-      setOpenLinkIndex(newIndex)
-      return { ...f, sidebarLinks: [...f.sidebarLinks, { label: "", url: "" }] }
-    })
+    setSidebarLinkIds((ids) => [...ids, newSidebarLinkRowId()])
+    setSidebarSubLinkIds((ids) => [...ids, []])
+    setForm((f) => ({ ...f, sidebarLinks: [...f.sidebarLinks, { label: "", url: "" }] }))
   }
   function removeSidebarLink(index: number) {
+    setSidebarLinkIds((ids) => ids.filter((_, i) => i !== index))
+    setSidebarSubLinkIds((ids) => ids.filter((_, i) => i !== index))
     setForm((f) => ({ ...f, sidebarLinks: f.sidebarLinks.filter((_, i) => i !== index) }))
-    setOpenLinkIndex((prev) => {
-      if (prev === null || prev === index) return null
-      return prev > index ? prev - 1 : prev
-    })
   }
-  function moveSidebarLink(index: number, direction: -1 | 1) {
-    const target = index + direction
-    setForm((f) => {
-      if (target < 0 || target >= f.sidebarLinks.length) return f
-      const next = [...f.sidebarLinks]
-      ;[next[index], next[target]] = [next[target], next[index]]
-      return { ...f, sidebarLinks: next }
-    })
-    setOpenLinkIndex((prev) => {
-      if (target < 0 || target >= form.sidebarLinks.length) return prev
-      if (prev === index) return target
-      if (prev === target) return index
-      return prev
-    })
+  function reorderSidebarLinks(fromIndex: number, toIndex: number) {
+    setSidebarLinkIds((ids) => reorderList(ids, fromIndex, toIndex))
+    setSidebarSubLinkIds((ids) => reorderList(ids, fromIndex, toIndex))
+    setForm((f) => ({
+      ...f,
+      sidebarLinks: reorderList(f.sidebarLinks, fromIndex, toIndex),
+    }))
   }
 
   function addSubLink(parentIndex: number) {
+    setSidebarSubLinkIds((ids) =>
+      ids.map((row, i) => (i === parentIndex ? [...row, newSidebarLinkRowId()] : row))
+    )
     setForm((f) => ({
       ...f,
       sidebarLinks: f.sidebarLinks.map((l, i) =>
@@ -447,12 +432,34 @@ export function SettingsForm({
     }))
   }
   function removeSubLink(parentIndex: number, childIndex: number) {
+    setSidebarSubLinkIds((ids) =>
+      ids.map((row, i) => (i === parentIndex ? row.filter((_, ci) => ci !== childIndex) : row))
+    )
     setForm((f) => ({
       ...f,
       sidebarLinks: f.sidebarLinks.map((l, i) =>
         i === parentIndex ? { ...l, children: (l.children ?? []).filter((_, ci) => ci !== childIndex) } : l
       ),
     }))
+  }
+  function reorderSubLinks(parentIndex: number, fromIndex: number, toIndex: number) {
+    setSidebarSubLinkIds((ids) =>
+      ids.map((row, i) => (i === parentIndex ? reorderList(row, fromIndex, toIndex) : row))
+    )
+    setForm((f) => ({
+      ...f,
+      sidebarLinks: f.sidebarLinks.map((l, i) =>
+        i === parentIndex
+          ? { ...l, children: reorderList(l.children ?? [], fromIndex, toIndex) }
+          : l
+      ),
+    }))
+  }
+
+  function resetSidebarLinkRowIds(links: SidebarLinkInput[]) {
+    setSidebarLinkIds(links.map(() => newSidebarLinkRowId()))
+    setSidebarSubLinkIds(links.map((l) => (l.children ?? []).map(() => newSidebarLinkRowId())))
+    setSidebarLinkFilter("")
   }
 
   async function handleSave(e: React.SyntheticEvent) {
@@ -505,6 +512,7 @@ export function SettingsForm({
     setForm(initialForm.current)
     setCategoryIds(initialForm.current.policyCategories.map(() => newCategoryRowId()))
     setCategoryFilter("")
+    resetSidebarLinkRowIds(initialForm.current.sidebarLinks)
     setErrors({})
     setStatus("idle")
     if (typeof shopify !== "undefined") shopify.saveBar.hide(SAVE_BAR_ID)
@@ -526,6 +534,7 @@ export function SettingsForm({
     setForm(next)
     setCategoryIds(next.policyCategories.map(() => newCategoryRowId()))
     setCategoryFilter("")
+    resetSidebarLinkRowIds(next.sidebarLinks)
     setErrors({})
     // Not saved yet — the save bar's own dirty-check (comparing against
     // initialForm.current) picks this up and shows Save/Discard as normal.
@@ -547,6 +556,7 @@ export function SettingsForm({
       setForm(next)
       setCategoryIds(next.policyCategories.map(() => newCategoryRowId()))
       setCategoryFilter("")
+      resetSidebarLinkRowIds(next.sidebarLinks)
       setErrors({})
       setStatus("idle")
       if (typeof shopify !== "undefined") {
@@ -1449,78 +1459,23 @@ export function SettingsForm({
               errors={errors}
             >
             <s-stack direction="block" gap="base">
-              <s-paragraph tone="subdued">Extra links shown in the customer portal's sidebar, alongside Home and Orders. Open in a new tab. Each link can optionally have its own sub-links (a one-level submenu).</s-paragraph>
-              {form.sidebarLinks.map((link, i) => {
-                const isOpen = openLinkIndex === i
-                const subCount = link.children?.length ?? 0
-                return (
-                  <s-box key={i} padding="base" border="base" borderRadius="base">
-                    <s-stack direction="block" gap="small">
-                      <s-stack direction="inline" gap="small-300" alignItems="center">
-                        <s-button onClick={() => toggleLinkOpen(i)}>{isOpen ? "Collapse" : "Expand"}</s-button>
-                        <s-text>{link.label || "(untitled link)"}{subCount > 0 ? ` · ${subCount} sub-link${subCount === 1 ? "" : "s"}` : ""}</s-text>
-                      </s-stack>
-                      {isOpen && (
-                        <>
-                          <s-text-field
-                            label="Label"
-                            value={link.label}
-                            placeholder="FAQ"
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateSidebarLink(i, { label: e.target.value })}
-                          ></s-text-field>
-                          <s-url-field
-                            label="URL"
-                            value={link.url}
-                            placeholder="https://your-store.com/pages/faq"
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateSidebarLink(i, { url: e.target.value })}
-                          ></s-url-field>
-                          <s-select
-                            label="Icon (optional)"
-                            value={link.icon ?? ""}
-                            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => updateSidebarLink(i, { icon: e.target.value || undefined })}
-                          >
-                            <s-option value="">No icon</s-option>
-                            {SIDEBAR_ICON_NAMES.map((name) => (
-                              <s-option key={name} value={name}>{name}</s-option>
-                            ))}
-                          </s-select>
-
-                          {(link.children ?? []).length > 0 && (
-                            <s-stack direction="block" gap="small">
-                              <s-text tone="subdued">Sub-links</s-text>
-                              {link.children!.map((child, ci) => (
-                                <s-box key={ci} padding="small" border="base" borderRadius="base">
-                                  <s-stack direction="block" gap="small">
-                                    <s-text-field
-                                      label="Sub-link label"
-                                      value={child.label}
-                                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateSubLink(i, ci, { label: e.target.value })}
-                                    ></s-text-field>
-                                    <s-url-field
-                                      label="Sub-link URL"
-                                      value={child.url}
-                                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateSubLink(i, ci, { url: e.target.value })}
-                                    ></s-url-field>
-                                    <s-button tone="critical" onClick={() => removeSubLink(i, ci)}>Remove sub-link</s-button>
-                                  </s-stack>
-                                </s-box>
-                              ))}
-                            </s-stack>
-                          )}
-                          <s-stack direction="inline" gap="small-300">
-                            <s-button onClick={() => addSubLink(i)}>Add sub-link</s-button>
-                            <s-button onClick={() => moveSidebarLink(i, -1)} disabled={i === 0}>Move up</s-button>
-                            <s-button onClick={() => moveSidebarLink(i, 1)} disabled={i === form.sidebarLinks.length - 1}>Move down</s-button>
-                            <s-button tone="critical" onClick={() => removeSidebarLink(i)}>Remove</s-button>
-                          </s-stack>
-                        </>
-                      )}
-                    </s-stack>
-                  </s-box>
-                )
-              })}
-              <s-button onClick={addSidebarLink}>Add link</s-button>
-              {errors.sidebarLinks && <s-paragraph tone="critical">{errors.sidebarLinks}</s-paragraph>}
+              <SidebarLinksTable
+                links={form.sidebarLinks}
+                linkIds={sidebarLinkIds}
+                subLinkIds={sidebarSubLinkIds}
+                filter={sidebarLinkFilter}
+                onFilterChange={setSidebarLinkFilter}
+                iconNames={SIDEBAR_ICON_NAMES}
+                onUpdate={updateSidebarLink}
+                onAdd={addSidebarLink}
+                onRemove={removeSidebarLink}
+                onReorder={reorderSidebarLinks}
+                onAddSub={addSubLink}
+                onUpdateSub={updateSubLink}
+                onRemoveSub={removeSubLink}
+                onReorderSub={reorderSubLinks}
+                error={errors.sidebarLinks}
+              />
 
               <s-checkbox
                 label="Expand sub-links by default (uncheck to start collapsed until clicked)"
