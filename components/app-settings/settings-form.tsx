@@ -1564,6 +1564,9 @@ export function SettingsForm({
                   disabled={!form.sidebarEnabled}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("sidebarAvatarEnabled", e.target.checked)}
                 ></s-checkbox>
+                <s-paragraph color="subdued">
+                  Applies on Find your order and the main portal whenever the sidebar is shown.
+                </s-paragraph>
               </s-stack>
             </SettingsEditRow>
 

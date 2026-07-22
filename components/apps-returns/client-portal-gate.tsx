@@ -30,7 +30,13 @@ export type InitialBranding = {
   sidebarEnabled: boolean
   lookupSidebarEnabled: boolean
   sidebarDefaultOpenOnDesktop: boolean
+  sidebarAvatarEnabled: boolean
+  headerAvatarEnabled: boolean
   sidebarSubmenusExpandedByDefault: boolean
+  orderStatusLinkEnabled: boolean
+  orderStatusLinkLabel: string
+  headerSearchEnabled: boolean
+  headerSearchPlaceholder: string
   guestBackgroundStyle: "none" | "shapeGrid" | "dotField"
   guestLookupLayout: "classic" | "split"
   guestLookupHeadline: string
