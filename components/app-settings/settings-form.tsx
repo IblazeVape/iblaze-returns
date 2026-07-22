@@ -4,30 +4,13 @@ import { useEffect, useRef, useState } from "react"
 import { validateBrandingInput, type BrandingInput, type PolicyCategoryInput, type SidebarLinkInput, type SidebarSubLinkInput, type ReturnLifecycleMessagesInput, type ReturnLifecycleStatusInput, type ReturnLifecycleStyleInput } from "@/lib/branding-validation"
 import type { TenantBranding } from "@/lib/tenant"
 import { SIDEBAR_ICON_NAMES } from "@/lib/sidebar-icons"
-import { STATUS_ICON_NAMES } from "@/lib/status-icons"
 import { RichTextEditor } from "@/components/app-settings/rich-text-editor"
 import { PolicyCategoriesTable, newCategoryRowId, reorderList } from "@/components/app-settings/policy-categories-table"
 import { SidebarLinksTable, newSidebarLinkRowId } from "@/components/app-settings/sidebar-links-table"
+import { ReturnStatusTable, RETURN_STATUS_ROWS } from "@/components/app-settings/return-status-table"
 import { DEFAULT_TENANT_FIELDS } from "@/lib/tenant-defaults"
 import { migrateMarkdownIfNeeded } from "@/lib/markdown-to-html"
 import { GUEST_LOOKUP_GRADIENT_PRESETS, matchGuestLookupGradientPreset } from "@/lib/guest-lookup-gradients"
-
-/** RETURN_STATUS_CARDS drives the "Return status" section (6 cards, each with
- * label/heading/icon/color, plus a per-status sentence for returnRequested,
- * returnInProgress, returnCanceled, and returnCompleted). returnDeclined has no
- * sentence field here since its text comes from the real Shopify decline reason,
- * not a static template. notReturnable's sentences live in a separate "Not
- * returnable reasons" section below (not per-card) since multiple reasons
- * (final sale, outside window, not yet delivered) can apply under that one status.
- */
-const RETURN_STATUS_CARDS: { key: ReturnLifecycleStatusInput; name: string }[] = [
-  { key: "notReturnable", name: "Not returnable" },
-  { key: "returnRequested", name: "Return requested" },
-  { key: "returnInProgress", name: "Return in progress" },
-  { key: "returnDeclined", name: "Return declined" },
-  { key: "returnCanceled", name: "Return canceled" },
-  { key: "returnCompleted", name: "Return completed" },
-]
 
 declare const shopify: {
   idToken: () => Promise<string>;
@@ -350,13 +333,7 @@ export function SettingsForm({
     const tab = new URLSearchParams(window.location.search).get("tab")
     return tab === "returns" || tab === "navigation" || tab === "table" || tab === "danger" ? tab : "branding"
   })
-  // Return-status cards stay accordion-style. Sidebar links + policy categories
-  // use compact drag-sortable tables instead.
-  const [openStatusKey, setOpenStatusKey] = useState<ReturnLifecycleStatusInput | null>(null)
-  function toggleStatusOpen(key: ReturnLifecycleStatusInput) {
-    setOpenStatusKey((prev) => (prev === key ? null : key))
-  }
-
+  // Sidebar links + policy categories + return statuses use compact tables.
   const [categoryFilter, setCategoryFilter] = useState("")
   const [categoryIds, setCategoryIds] = useState(() =>
     initialForm.current.policyCategories.map(() => newCategoryRowId())
@@ -1828,89 +1805,18 @@ export function SettingsForm({
               modalId="table-return-status-modal"
               title="Return status"
               description="How each return stage looks and what sentence customers see."
-              summary={`${RETURN_STATUS_CARDS.length} return stages`}
+              summary={`${RETURN_STATUS_ROWS.length} return stages`}
               modalSize="large-100"
               errors={errors}
             >
-              <s-stack direction="block" gap="base">
-                <s-text color="subdued">
-                  The label, mobile heading, icon, and color shown for each stage of a return. Use {"{days}"} for the
-                  return window length.
-                </s-text>
-                {RETURN_STATUS_CARDS.map(({ key, name }) => {
-                  const isOpen = openStatusKey === key
-                  const style = form.returnLifecycleStyles[key]
-                  return (
-                    <s-box key={key} padding="base" border="base" borderRadius="base">
-                      <s-stack direction="block" gap="small">
-                        <s-stack direction="inline" gap="small-300" alignItems="center">
-                          <s-button onClick={() => toggleStatusOpen(key)}>{isOpen ? "Collapse" : "Expand"}</s-button>
-                          <s-text>{name} — "{style.label}"</s-text>
-                        </s-stack>
-                        {isOpen && (
-                          <>
-                            <s-text-field
-                              label="Filter/badge label"
-                              value={style.label}
-                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setStatusStyle(key, "label", e.target.value)}
-                            ></s-text-field>
-                            <s-text-field
-                              label="Mobile accordion heading"
-                              value={style.heading}
-                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setStatusStyle(key, "heading", e.target.value)}
-                            ></s-text-field>
-                            <s-select
-                              label="Icon"
-                              value={style.icon}
-                              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setStatusStyle(key, "icon", e.target.value)}
-                            >
-                              {STATUS_ICON_NAMES.map((iconName) => (
-                                <s-option key={iconName} value={iconName}>{iconName}</s-option>
-                              ))}
-                            </s-select>
-                            <s-text-field
-                              label="Color (optional — leave blank for the portal's default color)"
-                              value={style.color}
-                              placeholder="#4F46E5"
-                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setStatusStyle(key, "color", e.target.value)}
-                            ></s-text-field>
-                            {key === "returnRequested" && (
-                              <s-text-area label="Sentence" value={form.returnLifecycleMessages.returnRequested} rows={2}
-                                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("returnRequested", e.target.value)}></s-text-area>
-                            )}
-                            {key === "returnInProgress" && (
-                              <s-text-area label="Sentence" value={form.returnLifecycleMessages.returnInProgress} rows={2}
-                                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("returnInProgress", e.target.value)}></s-text-area>
-                            )}
-                            {key === "returnDeclined" && (
-                              <s-paragraph tone="subdued">
-                                This status shows the actual decline reason from Shopify, verbatim — not a fixed
-                                sentence, so there's no message to edit here.
-                              </s-paragraph>
-                            )}
-                            {key === "returnCanceled" && (
-                              <s-text-area label="Sentence" value={form.returnLifecycleMessages.returnCanceled} rows={2}
-                                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("returnCanceled", e.target.value)}></s-text-area>
-                            )}
-                            {key === "returnCompleted" && (
-                              <s-text-area label="Sentence" value={form.returnLifecycleMessages.returnCompleted} rows={2}
-                                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("returnCompleted", e.target.value)}></s-text-area>
-                            )}
-                            {key === "notReturnable" && (
-                              <s-paragraph tone="subdued">
-                                This status covers several reasons (not yet delivered, final sale, outside the return
-                                window, or other) — edit each reason's sentence in "Not returnable reasons" below.
-                              </s-paragraph>
-                            )}
-                          </>
-                        )}
-                      </s-stack>
-                    </s-box>
-                  )
-                })}
-                {errors.returnLifecycleMessages && <s-paragraph tone="critical">{errors.returnLifecycleMessages}</s-paragraph>}
-                {errors.returnLifecycleStyles && <s-paragraph tone="critical">{errors.returnLifecycleStyles}</s-paragraph>}
-              </s-stack>
+              <ReturnStatusTable
+                styles={form.returnLifecycleStyles}
+                messages={form.returnLifecycleMessages}
+                onStyleChange={setStatusStyle}
+                onMessageChange={setReturnLifecycleMessage}
+                stylesError={errors.returnLifecycleStyles}
+                messagesError={errors.returnLifecycleMessages}
+              />
             </SettingsEditRow>
 
             <SettingsEditRow

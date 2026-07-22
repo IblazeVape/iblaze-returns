@@ -4190,19 +4190,35 @@ function OrderDetail({
 // submitReturn) can see it without threading a prop through every layer.
 let DEMO_MODE = false
 
-export default function DashboardClient({ demo = false }: { demo?: boolean } = {}) {
+export default function DashboardClient({
+  demo = false,
+  suppressAuthOverlay = false,
+  onReady,
+}: {
+  demo?: boolean
+  /** Parent already shows the authenticating blur (e.g. guest lookup handoff). */
+  suppressAuthOverlay?: boolean
+  /** Fires once when the portal is ready to reveal (orders loaded / guest order selected). */
+  onReady?: () => void
+} = {}) {
   DEMO_MODE = demo
   return (
     <SidebarLayoutProvider>
       <Suspense>
-        <DashboardClientInner />
+        <DashboardClientInner suppressAuthOverlay={suppressAuthOverlay} onReady={onReady} />
       </Suspense>
     </SidebarLayoutProvider>
   )
 }
 
 
-function DashboardClientInner() {
+function DashboardClientInner({
+  suppressAuthOverlay = false,
+  onReady,
+}: {
+  suppressAuthOverlay?: boolean
+  onReady?: () => void
+}) {
   const searchParams = useSearchParams()
   const { applyMerchantDefault } = useSidebarLayout()
   const [data, setData]                   = useState<OrdersData | null>(null)
@@ -4360,8 +4376,10 @@ function DashboardClientInner() {
   // Auto-select an order when ?order=<numericId> is in the URL (e.g. from Shopify
   // extension), or when a guest just verified exactly one order via the App
   // Proxy guest lookup form (they only ever have the one order to see).
+  // useLayoutEffect so guest handoff can reveal the order page without a
+  // paint of the empty "My Orders" list behind the authenticating blur.
   const autoOrderId = searchParams.get("order") ?? getGuestOrderId()
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!data || !autoOrderId) return
     const match = data.orders.find(o =>
       o.id.split("/").pop() === autoOrderId ||
@@ -4655,12 +4673,22 @@ function DashboardClientInner() {
     </PortalShell>
   )
 
-  // Guest verified one order but the auto-select effect hasn't matched it
-  // into `selectedOrder` yet (fires on the render right after `data` loads,
-  // not the same render) — without this, there's a visible flash of the
-  // (empty, nav-less) "My Orders" list before it flips to the order detail.
-  // Keep the same loading overlay up until the order is actually selected.
-  if (loading || (isGuestOrderContext() && !selectedOrder)) {
+  // Guest verified one order but auto-select hasn't matched it into
+  // `selectedOrder` yet — without this, there's a visible flash of the
+  // empty "My Orders" list before it flips to the order detail.
+  const portalReady = !loading && !(isGuestOrderContext() && !selectedOrder)
+
+  useLayoutEffect(() => {
+    if (portalReady) onReady?.()
+  }, [portalReady, onReady])
+
+  if (!portalReady) {
+    // Parent (guest lookup handoff) already paints the Find your order page
+    // behind the Authenticating card — don't also paint My Orders here, or
+    // the blur briefly shows a completely different page style.
+    if (suppressAuthOverlay) {
+      return <PortalCustomScripts html={branding.portalCustomScript} />
+    }
     return (
       <div className="relative overflow-hidden" style={{ height: "100dvh", width: "100vw" }}>
         <PortalCustomScripts html={branding.portalCustomScript} />
