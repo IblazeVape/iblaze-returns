@@ -99,12 +99,10 @@ const SETTINGS_MODAL_FIELDS: Record<string, (keyof BrandingInput)[]> = {
   ],
   "returns-window-modal": ["returnWindowDays", "requirePolicyAcceptance", "returnReviewEnabled"],
   "returns-lookup-audience-modal": ["alwaysShowGuestLookup", "guestLookupEnabled", "loggedInLookupRequirePostcode"],
-  "returns-policy-experience-modal": [
-    "policyPresentation", "policyExternalUrl", "policyReviewButtonLabel", "policySubheading",
-  ],
-  "returns-policy-content-modal": [
-    "policyHeading", "policyLastUpdated", "policyBodyMode",
+  "returns-policy-modal": [
+    "policyHeading", "policySubheading", "policyLastUpdated", "policyBodyMode",
     "policyCategories", "policyBodyText", "policyFooterNoteEnabled", "policyFooterNote",
+    "policyPresentation", "policyExternalUrl", "policyReviewButtonLabel",
   ],
   "returns-confirm-modal": ["policyAcceptedMessage", "policyDeclinedMessage"],
   "nav-sidebar-layout-modal": [
@@ -183,15 +181,6 @@ function hostFromUrl(url: string): string | null {
   } catch {
     return null
   }
-}
-
-/** Group label above a cluster of related settings rows. */
-function SettingsSectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <s-box paddingBlockStart="small-200">
-      <s-heading>{children}</s-heading>
-    </s-box>
-  )
 }
 
 /** Live “what’s set now” line — optional logo/swatch, then short text parts. */
@@ -738,8 +727,6 @@ export function SettingsForm({
             <s-paragraph color="subdued">
               Edit one area at a time. Changes stay in this form until you Save.
             </s-paragraph>
-
-            <SettingsSectionLabel>Brand</SettingsSectionLabel>
             <SettingsEditRow
               modalId="branding-identity-modal"
               title="Brand"
@@ -844,8 +831,6 @@ export function SettingsForm({
                 {errors.supportEmail && <s-paragraph tone="critical">{errors.supportEmail}</s-paragraph>}
               </s-stack>
             </SettingsEditRow>
-
-            <SettingsSectionLabel>Find your order screen</SettingsSectionLabel>
             <SettingsEditRow
               modalId="branding-lookup-modal"
               title="Find your order screen"
@@ -1171,8 +1156,6 @@ export function SettingsForm({
                 )}
               </s-stack>
             </SettingsEditRow>
-
-            <SettingsSectionLabel>Messages & widgets</SettingsSectionLabel>
             <SettingsEditRow
               modalId="branding-portal-extras-modal"
               title="Messages & widgets"
@@ -1232,8 +1215,6 @@ export function SettingsForm({
             <s-paragraph color="subdued">
               Edit one area at a time. Changes stay in this form until you Save.
             </s-paragraph>
-
-            <SettingsSectionLabel>Rules</SettingsSectionLabel>
             <SettingsEditRow
               modalId="returns-window-modal"
               title="Return window"
@@ -1270,8 +1251,6 @@ export function SettingsForm({
                 </s-stack>
               </s-stack>
             </SettingsEditRow>
-
-            <SettingsSectionLabel>Who can look up orders</SettingsSectionLabel>
             <SettingsEditRow
               modalId="returns-lookup-audience-modal"
               title="Who can look up orders"
@@ -1318,21 +1297,21 @@ export function SettingsForm({
                 {errors.loggedInLookupRequirePostcode && <s-paragraph tone="critical">{errors.loggedInLookupRequirePostcode}</s-paragraph>}
               </s-stack>
             </SettingsEditRow>
-
-            <SettingsSectionLabel>Policy</SettingsSectionLabel>
             <SettingsEditRow
-              modalId="returns-policy-experience-modal"
-              title="Policy experience"
-              description="How customers open your returns policy on the order page before selecting items."
+              modalId="returns-policy-modal"
+              title="Returns policy"
+              description="How customers review your returns policy before selecting items to return."
               summary={
                 form.policyPresentation === "externalLink"
-                  ? `Opens your website · ${hostFromUrl(form.policyExternalUrl) || form.policyExternalUrl || "URL required"} · button “${form.policyReviewButtonLabel || "Read policy"}”`
-                  : `In-app dialog · button “${form.policyReviewButtonLabel || "Review & Accept"}”`
+                  ? `External link · ${hostFromUrl(form.policyExternalUrl) || form.policyExternalUrl || "URL required"}`
+                  : `${form.policyHeading || "Untitled"} · ${form.policyBodyMode === "text" ? "Free text" : `${form.policyCategories.length} categor${form.policyCategories.length === 1 ? "y" : "ies"}`}`
               }
-              modalSize="large"
+              modalSize="large-100"
               errors={errors}
             >
               <s-stack direction="block" gap="base">
+                <s-paragraph tone="subdued">How customers review your policy before they can select items to return.</s-paragraph>
+
                 <s-select
                   label="Policy experience"
                   name="policyPresentation"
@@ -1376,7 +1355,9 @@ export function SettingsForm({
                       Shown next to the button on the order page. The button opens your policy URL in a new tab and stays visible — it does not hide after click.
                     </s-paragraph>
                   </>
-                ) : (
+                ) : null}
+
+                {form.policyPresentation === "dialog" && (
                   <>
                     <s-text-field
                       label="Review button text"
@@ -1386,6 +1367,16 @@ export function SettingsForm({
                       onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policyReviewButtonLabel", e.target.value)}
                     ></s-text-field>
                     {errors.policyReviewButtonLabel && <s-paragraph tone="critical">{errors.policyReviewButtonLabel}</s-paragraph>}
+
+                    <s-text-field
+                      label="Policy dialog heading"
+                      name="policyHeading"
+                      value={form.policyHeading}
+                      placeholder="iBlaze Returns Policy"
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policyHeading", e.target.value)}
+                    ></s-text-field>
+                    {errors.policyHeading && <s-paragraph tone="critical">{errors.policyHeading}</s-paragraph>}
+
                     <s-text-field
                       label="Policy banner / dialog intro"
                       name="policySubheading"
@@ -1397,110 +1388,74 @@ export function SettingsForm({
                       Shown on the order page next to the review button, and again as the intro inside the policy dialog.
                     </s-paragraph>
                     {errors.policySubheading && <s-paragraph tone="critical">{errors.policySubheading}</s-paragraph>}
-                  </>
-                )}
-              </s-stack>
-            </SettingsEditRow>
 
-            <SettingsEditRow
-              modalId="returns-policy-content-modal"
-              title="Policy content"
-              description="Heading, body, and footer shown in the in-app policy dialog."
-              summary={
-                form.policyPresentation === "externalLink"
-                  ? "Not used — policy opens on your website"
-                  : [
-                      form.policyHeading || "Untitled",
-                      form.policyBodyMode === "text"
-                        ? "Free text"
-                        : `${form.policyCategories.length} categor${form.policyCategories.length === 1 ? "y" : "ies"}`,
-                      form.policyFooterNoteEnabled ? "Footer on" : "Footer off",
-                    ].join(" · ")
-              }
-              modalSize="large-100"
-              errors={errors}
-            >
-              <s-stack direction="block" gap="base">
-                {form.policyPresentation === "externalLink" ? (
-                  <s-paragraph color="subdued">
-                    These fields only apply when Policy experience is set to in-app dialog. Your store currently opens the policy on your website.
-                  </s-paragraph>
-                ) : null}
+                    <s-text-field
+                      label="Last updated"
+                      name="policyLastUpdated"
+                      value={form.policyLastUpdated}
+                      placeholder="14 July 2026"
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policyLastUpdated", e.target.value)}
+                    ></s-text-field>
+                    <s-paragraph tone="subdued">Shown under the dialog intro. Leave blank to hide it. Free text — you control the date format.</s-paragraph>
+                    {errors.policyLastUpdated && <s-paragraph tone="critical">{errors.policyLastUpdated}</s-paragraph>}
 
-                <s-text-field
-                  label="Policy dialog heading"
-                  name="policyHeading"
-                  value={form.policyHeading}
-                  placeholder="iBlaze Returns Policy"
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policyHeading", e.target.value)}
-                ></s-text-field>
-                {errors.policyHeading && <s-paragraph tone="critical">{errors.policyHeading}</s-paragraph>}
+                    <s-stack direction="inline" gap="small-300">
+                      <s-button
+                        variant={form.policyBodyMode === "categories" ? "primary" : "secondary"}
+                        onClick={() => set("policyBodyMode", "categories")}
+                      >
+                        Category list
+                      </s-button>
+                      <s-button
+                        variant={form.policyBodyMode === "text" ? "primary" : "secondary"}
+                        onClick={() => set("policyBodyMode", "text")}
+                      >
+                        Free text
+                      </s-button>
+                    </s-stack>
 
-                <s-text-field
-                  label="Last updated"
-                  name="policyLastUpdated"
-                  value={form.policyLastUpdated}
-                  placeholder="14 July 2026"
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policyLastUpdated", e.target.value)}
-                ></s-text-field>
-                <s-paragraph tone="subdued">Shown under the dialog intro. Leave blank to hide it. Free text — you control the date format.</s-paragraph>
-                {errors.policyLastUpdated && <s-paragraph tone="critical">{errors.policyLastUpdated}</s-paragraph>}
+                    {form.policyBodyMode === "categories" ? (
+                      <PolicyCategoriesTable
+                        categories={form.policyCategories}
+                        categoryIds={categoryIds}
+                        filter={categoryFilter}
+                        onFilterChange={setCategoryFilter}
+                        onUpdate={updateCategory}
+                        onAdd={addCategory}
+                        onRemove={removeCategory}
+                        onReorder={reorderCategories}
+                        error={errors.policyCategories}
+                      />
+                    ) : (
+                      <>
+                        <s-text color="subdued">Policy body text</s-text>
+                        <RichTextEditor
+                          value={form.policyBodyText}
+                          onChange={(value) => set("policyBodyText", value)}
+                          placeholder="Write your full returns policy here instead of using category cards."
+                        />
+                        {errors.policyBodyText && <s-paragraph tone="critical">{errors.policyBodyText}</s-paragraph>}
+                      </>
+                    )}
 
-                <s-stack direction="inline" gap="small-300">
-                  <s-button
-                    variant={form.policyBodyMode === "categories" ? "primary" : "secondary"}
-                    onClick={() => set("policyBodyMode", "categories")}
-                  >
-                    Category list
-                  </s-button>
-                  <s-button
-                    variant={form.policyBodyMode === "text" ? "primary" : "secondary"}
-                    onClick={() => set("policyBodyMode", "text")}
-                  >
-                    Free text
-                  </s-button>
-                </s-stack>
-
-                {form.policyBodyMode === "categories" ? (
-                  <PolicyCategoriesTable
-                    categories={form.policyCategories}
-                    categoryIds={categoryIds}
-                    filter={categoryFilter}
-                    onFilterChange={setCategoryFilter}
-                    onUpdate={updateCategory}
-                    onAdd={addCategory}
-                    onRemove={removeCategory}
-                    onReorder={reorderCategories}
-                    error={errors.policyCategories}
-                  />
-                ) : (
-                  <>
-                    <s-text color="subdued">Policy body text</s-text>
-                    <RichTextEditor
-                      value={form.policyBodyText}
-                      onChange={(value) => set("policyBodyText", value)}
-                      placeholder="Write your full returns policy here instead of using category cards."
+                    <CheckboxWithHelp
+                      label="Show the footer note"
+                      name="policyFooterNoteEnabled"
+                      checked={form.policyFooterNoteEnabled}
+                      onChange={(e) => set("policyFooterNoteEnabled", e.target.checked)}
                     />
-                    {errors.policyBodyText && <s-paragraph tone="critical">{errors.policyBodyText}</s-paragraph>}
+                    <s-text-area
+                      label="Footer note"
+                      name="policyFooterNote"
+                      value={form.policyFooterNote}
+                      maxLength={300}
+                      rows={2}
+                      disabled={!form.policyFooterNoteEnabled}
+                      onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("policyFooterNote", e.target.value)}
+                    ></s-text-area>
+                    {errors.policyFooterNote && <s-paragraph tone="critical">{errors.policyFooterNote}</s-paragraph>}
                   </>
                 )}
-
-                <CheckboxWithHelp
-                  label="Show the footer note"
-                  name="policyFooterNoteEnabled"
-                  checked={form.policyFooterNoteEnabled}
-                  onChange={(e) => set("policyFooterNoteEnabled", e.target.checked)}
-                />
-                <s-text-area
-                  label="Footer note"
-                  name="policyFooterNote"
-                  value={form.policyFooterNote}
-                  maxLength={300}
-                  rows={2}
-                  disabled={!form.policyFooterNoteEnabled}
-                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("policyFooterNote", e.target.value)}
-                ></s-text-area>
-                {errors.policyFooterNote && <s-paragraph tone="critical">{errors.policyFooterNote}</s-paragraph>}
               </s-stack>
             </SettingsEditRow>
 
@@ -1542,8 +1497,6 @@ export function SettingsForm({
             <s-paragraph color="subdued">
               Edit one area at a time. Changes stay in this form until you Save.
             </s-paragraph>
-
-            <SettingsSectionLabel>Sidebar</SettingsSectionLabel>
             <SettingsEditRow
               modalId="nav-sidebar-layout-modal"
               title="Sidebar layout"
@@ -1660,8 +1613,6 @@ export function SettingsForm({
                 {errors.sidebarNote && <s-paragraph tone="critical">{errors.sidebarNote}</s-paragraph>}
               </s-stack>
             </SettingsEditRow>
-
-            <SettingsSectionLabel>Header</SettingsSectionLabel>
             <SettingsEditRow
               modalId="nav-header-links-modal"
               title="Header"
@@ -1733,8 +1684,6 @@ export function SettingsForm({
             <s-paragraph color="subdued">
               Edit one area at a time. Changes stay in this form until you Save.
             </s-paragraph>
-
-            <SettingsSectionLabel>Orders list</SettingsSectionLabel>
             <SettingsEditRow
               modalId="table-header-search-modal"
               title="Order search"
@@ -1765,8 +1714,6 @@ export function SettingsForm({
                 {errors.headerSearchPlaceholder && <s-paragraph tone="critical">{errors.headerSearchPlaceholder}</s-paragraph>}
               </s-stack>
             </SettingsEditRow>
-
-            <SettingsSectionLabel>Order detail</SettingsSectionLabel>
             <SettingsEditRow
               modalId="table-order-items-modal"
               title="Order detail"
@@ -1874,8 +1821,6 @@ export function SettingsForm({
                 </s-stack>
               </s-stack>
             </SettingsEditRow>
-
-            <SettingsSectionLabel>Status messages</SettingsSectionLabel>
             <SettingsEditRow
               modalId="table-return-status-modal"
               title="Return status"
