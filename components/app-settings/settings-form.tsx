@@ -12,16 +12,16 @@ import { DEFAULT_TENANT_FIELDS } from "@/lib/tenant-defaults"
 import { migrateMarkdownIfNeeded } from "@/lib/markdown-to-html"
 import { GUEST_LOOKUP_GRADIENT_PRESETS, matchGuestLookupGradientPreset } from "@/lib/guest-lookup-gradients"
 
-/** RETURN_STATUS_CARDS drives the "Return status" section (6 cards, each with
+/** RETURN_STATUS_CARDS drives the "Return status" section (7 cards, each with
  * label/heading/icon/color, plus a per-status sentence for returnRequested,
  * returnInProgress, returnCanceled, and returnCompleted). returnDeclined has no
  * sentence field here since its text comes from the real Shopify decline reason,
- * not a static template. notReturnable's sentences live in a separate "Not
- * returnable reasons" section below (not per-card) since multiple reasons
- * (final sale, outside window, not yet delivered) can apply under that one status.
+ * not a static template. awaitingDelivery and returnWindowClosed sentences live
+ * in their own settings rows below (multiple reasons under each status).
  */
 const RETURN_STATUS_CARDS: { key: ReturnLifecycleStatusInput; name: string }[] = [
-  { key: "notReturnable", name: "Not returnable" },
+  { key: "awaitingDelivery", name: "Awaiting delivery" },
+  { key: "returnWindowClosed", name: "Return window closed" },
   { key: "returnRequested", name: "Return requested" },
   { key: "returnInProgress", name: "Return in progress" },
   { key: "returnDeclined", name: "Return declined" },
@@ -122,7 +122,8 @@ const SETTINGS_MODAL_FIELDS: Record<string, (keyof BrandingInput)[]> = {
     "tableColumnsButtonEnabled", "tablePageSizeEnabled", "shipmentCardsEnabled", "productImageLinksEnabled",
   ],
   "table-return-status-modal": ["returnLifecycleStyles", "returnLifecycleMessages"],
-  "table-not-returnable-modal": ["returnLifecycleMessages"],
+  "table-awaiting-delivery-modal": ["returnLifecycleMessages"],
+  "table-return-window-closed-modal": ["returnLifecycleMessages"],
   "table-refund-modal": ["refundStatusLabels"],
 };
 
@@ -1953,10 +1954,16 @@ export function SettingsForm({
                               <s-text-area label="Sentence" value={form.returnLifecycleMessages.returnCompleted} rows={2}
                                 onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("returnCompleted", e.target.value)}></s-text-area>
                             )}
-                            {key === "notReturnable" && (
+                            {key === "awaitingDelivery" && (
                               <s-paragraph tone="subdued">
-                                This status covers several reasons (not yet delivered, final sale, outside the return
-                                window, or other) — edit each reason's sentence in "Not returnable reasons" below.
+                                This status covers several shipping stages (not shipped, on its way, out for delivery,
+                                attempted delivery) — edit each stage&apos;s sentence in &quot;Awaiting delivery&quot; below.
+                              </s-paragraph>
+                            )}
+                            {key === "returnWindowClosed" && (
+                              <s-paragraph tone="subdued">
+                                This status covers several reasons (outside the return window, final sale, or other) —
+                                edit each reason&apos;s sentence in &quot;Return window closed&quot; below.
                               </s-paragraph>
                             )}
                           </>
