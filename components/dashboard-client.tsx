@@ -4168,7 +4168,7 @@ function OrderDetail({
               <div className="px-4 py-2 border-t flex items-center justify-between text-xs text-muted-foreground">
                 <span>
                   {pageBoundaries
-                    ? <>Showing {(pageBoundaries[currentPage - 1] ?? 0) + 1}–{pageBoundaries[currentPage] ?? currentData.length} of {currentData.length} entries — pages may show fewer than {size} to keep each status together</>
+                    ? <>Showing {(pageBoundaries[currentPage - 1] ?? 0) + 1}–{pageBoundaries[currentPage] ?? currentData.length} of {currentData.length} entries</>
                     : <>Showing {Math.min((currentPage - 1) * size + 1, currentData.length)}–{Math.min(currentPage * size, currentData.length)} of {currentData.length} entries</>}
                 </span>
                 <div className="flex items-center gap-1.5">
