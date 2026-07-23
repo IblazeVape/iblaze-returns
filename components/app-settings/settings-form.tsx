@@ -771,6 +771,21 @@ export function SettingsForm({
                   >
                     {loadingLibraryField === "logoUrl" ? "Loading…" : "Browse Files for logo"}
                   </s-button>
+                  {form.logoUrl ? (
+                    <s-button
+                      variant="tertiary"
+                      onClick={() => {
+                        set("logoUrl", "")
+                        setErrors((err) => {
+                          const next = { ...err }
+                          delete next.logoUrl
+                          return next
+                        })
+                      }}
+                    >
+                      Remove logo
+                    </s-button>
+                  ) : null}
                 </s-stack>
                 <s-url-field
                   label="Logo URL"
@@ -779,6 +794,9 @@ export function SettingsForm({
                   placeholder="Leave blank to show brand name as text"
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("logoUrl", e.target.value)}
                 ></s-url-field>
+                <s-paragraph color="subdued">
+                  No logo = brand name as text in the sidebar and header. Save after removing.
+                </s-paragraph>
                 {errors.logoUrl && <s-paragraph tone="critical">{errors.logoUrl}</s-paragraph>}
 
                 <s-number-field

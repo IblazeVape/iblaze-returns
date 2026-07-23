@@ -4190,19 +4190,27 @@ function OrderDetail({
 // submitReturn) can see it without threading a prop through every layer.
 let DEMO_MODE = false
 
-export default function DashboardClient({ demo = false }: { demo?: boolean } = {}) {
+export default function DashboardClient({
+  demo = false,
+  /** Shown blurred behind Authenticating while a guest order is still loading
+   * (avoids a blank white flash between Find your order and the order page). */
+  authPlaceholder,
+}: {
+  demo?: boolean
+  authPlaceholder?: React.ReactNode
+} = {}) {
   DEMO_MODE = demo
   return (
     <SidebarLayoutProvider>
       <Suspense>
-        <DashboardClientInner />
+        <DashboardClientInner authPlaceholder={authPlaceholder} />
       </Suspense>
     </SidebarLayoutProvider>
   )
 }
 
 
-function DashboardClientInner() {
+function DashboardClientInner({ authPlaceholder }: { authPlaceholder?: React.ReactNode }) {
   const searchParams = useSearchParams()
   const { applyMerchantDefault } = useSidebarLayout()
   const [data, setData]                   = useState<OrdersData | null>(null)
@@ -4676,18 +4684,21 @@ function DashboardClientInner() {
     (guestOrderContext && !!selectedOrder && !guestOrderReveal)
 
   if (showAuthOverlay) {
-    // Guest still fetching: plain backdrop (never empty My Orders).
-    // Guest with order selected (hold): that order page behind the blur.
-    // Logged-in loading: orders portal behind the blur.
-    const showDestinationBehindBlur = !guestOrderContext || !!selectedOrder
+    // Backdrop priority for guest lookup:
+    //  1. Searched order page once selected (destination)
+    //  2. Else the previous Find your order screen (authPlaceholder) — not white
+    //  3. Else plain portal (logged-in loading)
+    const backdrop = selectedOrder
+      ? portalContent
+      : (guestOrderContext && authPlaceholder)
+        ? authPlaceholder
+        : portalContent
     return (
       <div className="relative overflow-hidden" style={{ height: "100dvh", width: "100vw" }}>
         <PortalCustomScripts html={branding.portalCustomScript} />
-        {showDestinationBehindBlur ? (
-          <div className="pointer-events-none select-none blur-xs brightness-95 h-full w-full">{portalContent}</div>
-        ) : (
-          <div className="h-full w-full bg-background" aria-hidden />
-        )}
+        <div className="pointer-events-none select-none blur-xs brightness-95 h-full w-full absolute inset-0">
+          {backdrop}
+        </div>
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/40 backdrop-blur-xs">
             <Card className="w-full max-w-xs mx-4 shadow-xl">
               <div className="flex flex-col items-center justify-center gap-3 py-8 px-6">

@@ -185,8 +185,6 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
     setReady(true);
   }
 
-  if (ready) return <DashboardClient />;
-
   if (error) {
     return <Notice title="Couldn't sign you in" body={error} />;
   }
@@ -196,6 +194,34 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
       initial.kind === "logged-in" ? initial.branding.accentColor : undefined;
     return <AuthenticatingCard accentColor={accent} />;
   }
+
+  // After lookup verifies an order, pass the Find your order screen as the
+  // auth placeholder so Authenticating never flashes a blank white page
+  // while the order loads — then DashboardClient swaps in the order page.
+  if (ready && (initial.kind === "guest-or-login" || initial.kind === "logged-in-lookup")) {
+    return (
+      <DashboardClient
+        authPlaceholder={
+          <LookupScreen
+            branding={initial.branding}
+            loginUrl={
+              initial.kind === "guest-or-login"
+                ? `/customer_authentication/login?return_to=${encodeURIComponent("/apps/returns")}`
+                : undefined
+            }
+            requirePostcode={
+              initial.kind === "logged-in-lookup"
+                ? initial.branding.loggedInLookupRequirePostcode
+                : true
+            }
+            onVerified={() => {}}
+          />
+        }
+      />
+    );
+  }
+
+  if (ready) return <DashboardClient />;
 
   switch (initial.kind) {
     case "unsigned":
