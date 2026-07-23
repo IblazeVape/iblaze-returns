@@ -3378,8 +3378,48 @@ function OrderDetail({
 
   const currentData   = (activeTab === "eligible" ? filteredEligible : filteredIneligible) as DisplayItem[]
   const size          = pageSize === "all" ? Math.max(currentData.length, 1) : parseInt(pageSize)
-  const totalPages    = Math.ceil(currentData.length / size) || 1
-  const paginatedData = currentData.slice((currentPage - 1) * size, currentPage * size)
+
+  // Ineligible-tab rows are grouped under one heading (e.g. "Return requested
+  // · 7 lines") — a plain flat slice can cut a group in half across two
+  // pages, showing the true full-group count in the heading on BOTH pages
+  // while only rendering a fraction of its rows under each. Compute page
+  // boundaries that only fall on a group edge, so a group is never split.
+  // Prefer backing off to the start of a would-be-split group (deferring it
+  // whole to the next page) so pages stay close to the target size; only
+  // extend forward through the group if backing off would leave the page
+  // empty (a single group bigger than the page size).
+  const pageBoundaries = useMemo(() => {
+    if (activeTab !== "ineligible") return null
+    const boundaries = [0]
+    let i = 0
+    while (i < currentData.length) {
+      let end = Math.min(i + size, currentData.length)
+      if (end < currentData.length) {
+        const splitKey = getIneligibleGroupKey(currentData[end - 1], order, returnWindowDays)
+        if (getIneligibleGroupKey(currentData[end], order, returnWindowDays) === splitKey) {
+          let groupStart = end
+          while (groupStart > i && getIneligibleGroupKey(currentData[groupStart - 1], order, returnWindowDays) === splitKey) {
+            groupStart--
+          }
+          if (groupStart > i) {
+            end = groupStart
+          } else {
+            while (end < currentData.length && getIneligibleGroupKey(currentData[end], order, returnWindowDays) === splitKey) {
+              end++
+            }
+          }
+        }
+      }
+      boundaries.push(end)
+      i = end
+    }
+    return boundaries
+  }, [activeTab, currentData, size, order, returnWindowDays])
+
+  const totalPages    = pageBoundaries ? Math.max(pageBoundaries.length - 1, 1) : (Math.ceil(currentData.length / size) || 1)
+  const paginatedData = pageBoundaries
+    ? currentData.slice(pageBoundaries[currentPage - 1] ?? 0, pageBoundaries[currentPage] ?? currentData.length)
+    : currentData.slice((currentPage - 1) * size, currentPage * size)
 
   useEffect(() => { setCurrentPage(1) }, [activeTab, searchQuery, pageSize, ineligibleStatusFilter])
   useEffect(() => { setIneligibleStatusFilter([]) }, [order.id])
