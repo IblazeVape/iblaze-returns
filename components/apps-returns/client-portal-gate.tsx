@@ -27,6 +27,14 @@ export type InitialBranding = {
   defaultSidebarLayout: "inset" | "sidebar"
   sidebarSubmenusExpandedByDefault: boolean
   guestBackgroundStyle: "none" | "shapeGrid" | "dotField"
+  guestLookupLayout: "classic" | "split"
+  guestLookupHeadline: string
+  guestLookupSubtext: string
+  guestLookupHeroUrl: string
+  guestLookupBrandDisplay: "logo" | "text" | "none"
+  guestLookupLogoUrl: string
+  guestLookupOverlayOpacity: number
+  guestLookupOverlayBlur: number
 }
 
 export type GateInitial =
@@ -154,8 +162,22 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
     case "guest-or-login": {
       const loginUrl = `/account/login?return_url=${encodeURIComponent("/apps/returns")}`;
       return (
-        <GuestPortalShell branding={initial.branding}>
+        <GuestPortalShell branding={initial.branding} title={initial.branding.name || "Returns"}>
           <GuestLookupForm
+            layout={initial.branding.guestLookupLayout}
+            brandName={initial.branding.name}
+            logoUrl={
+              initial.branding.guestLookupBrandDisplay === "logo"
+                ? (initial.branding.guestLookupLogoUrl || initial.branding.logoUrl)
+                : undefined
+            }
+            brandDisplay={initial.branding.guestLookupBrandDisplay}
+            heroImageUrl={initial.branding.guestLookupHeroUrl || undefined}
+            headline={initial.branding.guestLookupHeadline}
+            subtext={initial.branding.guestLookupSubtext}
+            overlayOpacity={initial.branding.guestLookupOverlayOpacity}
+            overlayBlur={initial.branding.guestLookupOverlayBlur}
+            loginUrl={loginUrl}
             onVerified={(token, order) => {
               storeAppsReturnsSession(token);
               // We already have the real accent color server-side (it came
@@ -169,10 +191,6 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
               setReady(true);
             }}
           />
-          <div className="text-xs text-muted-foreground">— or —</div>
-          <a href={loginUrl} className="text-sm font-semibold hover:underline underline-offset-2">
-            Log in to see all your orders
-          </a>
         </GuestPortalShell>
       );
     }
@@ -184,9 +202,22 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
       // is verified server-side against the looked-up order's customer ID
       // (see loggedInOrderMatches in lib/guest-order-match.ts).
       return (
-        <GuestPortalShell branding={initial.branding}>
+        <GuestPortalShell branding={initial.branding} title={initial.branding.name || "Returns"}>
           <GuestLookupForm
             requirePostcode={false}
+            layout={initial.branding.guestLookupLayout}
+            brandName={initial.branding.name}
+            logoUrl={
+              initial.branding.guestLookupBrandDisplay === "logo"
+                ? (initial.branding.guestLookupLogoUrl || initial.branding.logoUrl)
+                : undefined
+            }
+            brandDisplay={initial.branding.guestLookupBrandDisplay}
+            heroImageUrl={initial.branding.guestLookupHeroUrl || undefined}
+            headline={initial.branding.guestLookupHeadline}
+            subtext={initial.branding.guestLookupSubtext}
+            overlayOpacity={initial.branding.guestLookupOverlayOpacity}
+            overlayBlur={initial.branding.guestLookupOverlayBlur}
             onVerified={(token, order) => {
               storeAppsReturnsSession(token);
               setCachedAccentColor(initial.branding.accentColor);

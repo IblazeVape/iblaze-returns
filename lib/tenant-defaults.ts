@@ -130,6 +130,22 @@ export type TenantBranding = {
   productImageLinksEnabled: boolean;
   sidebarSubmenusExpandedByDefault: boolean;
   guestBackgroundStyle: "none" | "shapeGrid" | "dotField";
+  /** Guest order-lookup card layout: simple form vs image + form split. */
+  guestLookupLayout: "classic" | "split";
+  /** Left-panel headline on the guest order-lookup card (split layout). */
+  guestLookupHeadline: string;
+  /** Left-panel supporting line under the headline (split layout). */
+  guestLookupSubtext: string;
+  /** Optional hero image URL. Empty = built-in returns package image. */
+  guestLookupHeroUrl: string;
+  /** How the brand mark appears on the guest lookup hero panel. */
+  guestLookupBrandDisplay: "logo" | "text" | "none";
+  /** Optional panel logo override. Empty = fall back to logoUrl. */
+  guestLookupLogoUrl: string;
+  /** Black veil over the hero image (0–100). Higher = darker / easier text. */
+  guestLookupOverlayOpacity: number;
+  /** Backdrop blur on the hero image in pixels (0–24). */
+  guestLookupOverlayBlur: number;
   defaultOrderView: "list" | "grid";
   sidebarDefaultOpenOnDesktop: boolean;
   statusFilterEnabled: boolean;
@@ -188,6 +204,14 @@ export const DEFAULT_TENANT_FIELDS = {
     productImageLinksEnabled: true,
     sidebarSubmenusExpandedByDefault: true,
     guestBackgroundStyle: "none",
+    guestLookupLayout: "split",
+    guestLookupHeadline: "Return your order with ease",
+    guestLookupSubtext: "Look up your order in seconds — no account needed.",
+    guestLookupHeroUrl: "",
+    guestLookupBrandDisplay: "logo",
+    guestLookupLogoUrl: "",
+    guestLookupOverlayOpacity: 40,
+    guestLookupOverlayBlur: 0,
     defaultOrderView: "grid",
     sidebarDefaultOpenOnDesktop: true,
     statusFilterEnabled: true,

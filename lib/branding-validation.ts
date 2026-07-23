@@ -68,6 +68,14 @@ export type BrandingInput = {
   productImageLinksEnabled: boolean;
   sidebarSubmenusExpandedByDefault: boolean;
   guestBackgroundStyle: "none" | "shapeGrid" | "dotField";
+  guestLookupLayout: "classic" | "split";
+  guestLookupHeadline: string;
+  guestLookupSubtext: string;
+  guestLookupHeroUrl: string;
+  guestLookupBrandDisplay: "logo" | "text" | "none";
+  guestLookupLogoUrl: string;
+  guestLookupOverlayOpacity: number;
+  guestLookupOverlayBlur: number;
   defaultOrderView: "list" | "grid";
   sidebarDefaultOpenOnDesktop: boolean;
   statusFilterEnabled: boolean;
@@ -98,6 +106,8 @@ const SIDEBAR_LINK_LABEL_MAX_LENGTH = 30;
 const SIDEBAR_LINKS_MAX_COUNT = 100;
 const SIDEBAR_NOTE_MAX_LENGTH = 500;
 const SEARCH_PLACEHOLDER_MAX_LENGTH = 100;
+const GUEST_LOOKUP_HEADLINE_MAX_LENGTH = 80;
+const GUEST_LOOKUP_SUBTEXT_MAX_LENGTH = 160;
 
 function isValidUrl(value: string): boolean {
   try {
@@ -118,6 +128,42 @@ export function validateBrandingInput(
   }
   if (input.logoUrl && !isValidUrl(input.logoUrl)) {
     errors.logoUrl = "Must be a valid URL.";
+  }
+  if (input.guestLookupLayout !== "classic" && input.guestLookupLayout !== "split") {
+    errors.guestLookupLayout = "Must be classic or split.";
+  }
+  if (input.guestLookupHeroUrl && !isValidUrl(input.guestLookupHeroUrl)) {
+    errors.guestLookupHeroUrl = "Must be a valid URL.";
+  }
+  if (input.guestLookupLogoUrl && !isValidUrl(input.guestLookupLogoUrl)) {
+    errors.guestLookupLogoUrl = "Must be a valid URL.";
+  }
+  if (input.guestLookupHeadline.length > GUEST_LOOKUP_HEADLINE_MAX_LENGTH) {
+    errors.guestLookupHeadline = `Must be ${GUEST_LOOKUP_HEADLINE_MAX_LENGTH} characters or fewer.`;
+  }
+  if (input.guestLookupSubtext.length > GUEST_LOOKUP_SUBTEXT_MAX_LENGTH) {
+    errors.guestLookupSubtext = `Must be ${GUEST_LOOKUP_SUBTEXT_MAX_LENGTH} characters or fewer.`;
+  }
+  if (
+    input.guestLookupBrandDisplay !== "logo" &&
+    input.guestLookupBrandDisplay !== "text" &&
+    input.guestLookupBrandDisplay !== "none"
+  ) {
+    errors.guestLookupBrandDisplay = "Must be logo, text, or none.";
+  }
+  if (
+    !Number.isInteger(input.guestLookupOverlayOpacity) ||
+    input.guestLookupOverlayOpacity < 0 ||
+    input.guestLookupOverlayOpacity > 100
+  ) {
+    errors.guestLookupOverlayOpacity = "Must be a whole number from 0 to 100.";
+  }
+  if (
+    !Number.isInteger(input.guestLookupOverlayBlur) ||
+    input.guestLookupOverlayBlur < 0 ||
+    input.guestLookupOverlayBlur > 24
+  ) {
+    errors.guestLookupOverlayBlur = "Must be a whole number from 0 to 24.";
   }
   if (input.storefrontUrl && !isValidUrl(input.storefrontUrl)) {
     errors.storefrontUrl = "Must be a valid URL.";

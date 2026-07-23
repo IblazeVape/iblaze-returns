@@ -135,6 +135,30 @@ export async function PUT(request: NextRequest) {
       body.guestBackgroundStyle === "none" || body.guestBackgroundStyle === "shapeGrid" || body.guestBackgroundStyle === "dotField"
         ? body.guestBackgroundStyle
         : existing.branding.guestBackgroundStyle,
+    guestLookupLayout:
+      body.guestLookupLayout === "classic" || body.guestLookupLayout === "split"
+        ? body.guestLookupLayout
+        : existing.branding.guestLookupLayout,
+    guestLookupHeadline:
+      typeof body.guestLookupHeadline === "string" ? body.guestLookupHeadline : existing.branding.guestLookupHeadline,
+    guestLookupSubtext:
+      typeof body.guestLookupSubtext === "string" ? body.guestLookupSubtext : existing.branding.guestLookupSubtext,
+    guestLookupHeroUrl:
+      typeof body.guestLookupHeroUrl === "string" ? body.guestLookupHeroUrl : existing.branding.guestLookupHeroUrl,
+    guestLookupBrandDisplay:
+      body.guestLookupBrandDisplay === "logo" || body.guestLookupBrandDisplay === "text" || body.guestLookupBrandDisplay === "none"
+        ? body.guestLookupBrandDisplay
+        : existing.branding.guestLookupBrandDisplay,
+    guestLookupLogoUrl:
+      typeof body.guestLookupLogoUrl === "string" ? body.guestLookupLogoUrl : existing.branding.guestLookupLogoUrl,
+    guestLookupOverlayOpacity:
+      typeof body.guestLookupOverlayOpacity === "number" && Number.isFinite(body.guestLookupOverlayOpacity)
+        ? Math.round(body.guestLookupOverlayOpacity)
+        : existing.branding.guestLookupOverlayOpacity,
+    guestLookupOverlayBlur:
+      typeof body.guestLookupOverlayBlur === "number" && Number.isFinite(body.guestLookupOverlayBlur)
+        ? Math.round(body.guestLookupOverlayBlur)
+        : existing.branding.guestLookupOverlayBlur,
     defaultOrderView:
       body.defaultOrderView === "list" || body.defaultOrderView === "grid" ? body.defaultOrderView : existing.branding.defaultOrderView,
     sidebarDefaultOpenOnDesktop:
@@ -205,6 +229,14 @@ export async function PUT(request: NextRequest) {
       productImageLinksEnabled: input.productImageLinksEnabled,
       sidebarSubmenusExpandedByDefault: input.sidebarSubmenusExpandedByDefault,
       guestBackgroundStyle: input.guestBackgroundStyle,
+      guestLookupLayout: input.guestLookupLayout,
+      guestLookupHeadline: input.guestLookupHeadline,
+      guestLookupSubtext: input.guestLookupSubtext,
+      guestLookupHeroUrl: input.guestLookupHeroUrl,
+      guestLookupBrandDisplay: input.guestLookupBrandDisplay,
+      guestLookupLogoUrl: input.guestLookupLogoUrl,
+      guestLookupOverlayOpacity: input.guestLookupOverlayOpacity,
+      guestLookupOverlayBlur: input.guestLookupOverlayBlur,
       defaultOrderView: input.defaultOrderView,
       sidebarDefaultOpenOnDesktop: input.sidebarDefaultOpenOnDesktop,
       statusFilterEnabled: input.statusFilterEnabled,

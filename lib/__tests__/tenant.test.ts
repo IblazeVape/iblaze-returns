@@ -71,6 +71,8 @@ describe("tenant store", () => {
     expect(t?.branding.productImageLinksEnabled).toBe(true);
     expect(t?.branding.sidebarSubmenusExpandedByDefault).toBe(true);
     expect(t?.branding.guestBackgroundStyle).toBe("none");
+    expect(t?.branding.guestLookupLayout).toBe("split");
+    expect(t?.branding.guestLookupHeadline).toBe("Return your order with ease");
     expect(t?.branding.policyFooterNoteEnabled).toBe(true);
     expect(t?.branding.returnLifecycleStyles.awaitingDelivery.label).toBe("Awaiting delivery");
     expect(t?.branding.returnLifecycleStyles.returnWindowClosed.label).toBe("Return window closed");
@@ -118,6 +120,14 @@ describe("tenant store", () => {
         productImageLinksEnabled: false,
         sidebarSubmenusExpandedByDefault: false,
         guestBackgroundStyle: "dotField",
+        guestLookupLayout: "classic",
+        guestLookupHeadline: "Find your return",
+        guestLookupSubtext: "Enter your details below.",
+        guestLookupHeroUrl: "https://cdn.shopify.com/hero.png",
+        guestLookupBrandDisplay: "text",
+        guestLookupLogoUrl: "",
+        guestLookupOverlayOpacity: 40,
+        guestLookupOverlayBlur: 0,
         defaultOrderView: "list",
         sidebarDefaultOpenOnDesktop: false,
         statusFilterEnabled: false,
@@ -184,6 +194,9 @@ describe("tenant store", () => {
     expect(t?.branding.productImageLinksEnabled).toBe(false);
     expect(t?.branding.sidebarSubmenusExpandedByDefault).toBe(false);
     expect(t?.branding.guestBackgroundStyle).toBe("dotField");
+    expect(t?.branding.guestLookupLayout).toBe("classic");
+    expect(t?.branding.guestLookupHeadline).toBe("Find your return");
+    expect(t?.branding.guestLookupBrandDisplay).toBe("text");
     expect(t?.branding.policyFooterNoteEnabled).toBe(false);
     expect(t?.branding.returnLifecycleMessages.returnCompleted).toBe("Already returned.");
     expect(t?.branding.alwaysShowGuestLookup).toBe(true);
