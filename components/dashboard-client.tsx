@@ -2510,10 +2510,16 @@ function getIneligibleGroupKey(item: LineItem, order: Order, returnWindowDays: n
   if (item.returnStatus === "awaitingDelivery") {
     return `awaitingDelivery:${item.shippingStage ?? "confirmed"}`
   }
-  // Include refundStatus so a direct-refund-with-no-return row (returnStatus:
-  // "returnCompleted", refundStatus: "refunded") never silently merges with a
-  // genuinely-completed-return row that later also got refunded.
-  return `${item.returnStatus}:${item.closedReason ?? ""}:${item.refundStatus ?? ""}`
+  // refundStatus only changes the customer-facing message for returnCompleted
+  // (a direct refund with no Return record carries its own returnReason
+  // sentence and must never silently merge with a genuinely-completed
+  // return) — so it's only included in the key there. For every other
+  // status the message text doesn't depend on refund status, and including
+  // it anyway would fragment identical-message items into separate groups
+  // (e.g. two "Return requested" items, one of which happens to also carry
+  // an unrelated partial refund, showing as two blocks instead of one).
+  const refundPart = item.returnStatus === "returnCompleted" ? (item.refundStatus ?? "") : ""
+  return `${item.returnStatus}:${item.closedReason ?? ""}:${refundPart}`
 }
 
 function ineligibleTableColSpan(cols: { variant: boolean; qty: boolean; total: boolean }) {
