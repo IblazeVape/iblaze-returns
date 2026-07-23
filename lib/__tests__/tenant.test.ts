@@ -256,4 +256,41 @@ describe("tenant store", () => {
     expect(t?.branding.supportEmail).toBe("");
     expect(t?.branding.logoHeight).toBe(32);
   });
+
+  it("fills in missing returnLifecycleStyles keys for a tenant saved under the old pre-split status shape", async () => {
+    // Simulate a tenant record written before the notReturnable -> awaitingDelivery/
+    // returnWindowClosed split — its stored returnLifecycleStyles only has the old
+    // single "notReturnable" key and lacks the two new statuses entirely. A plain
+    // shallow spread of stored branding over defaults would wholesale replace the
+    // default's returnLifecycleStyles object, leaving the two new keys undefined
+    // and crashing any UI code that reads styles.awaitingDelivery.label.
+    const oldBrandingJson = JSON.stringify({
+      name: "Legacy Vapes",
+      returnLifecycleStyles: {
+        notReturnable: { label: "Not returnable", heading: "Not returnable", icon: "Lock", color: "" },
+        returnRequested: { label: "Requested", heading: "Requested", icon: "Eye", color: "" },
+        returnInProgress: { label: "In progress", heading: "In progress", icon: "RotateCcw", color: "" },
+        returnDeclined: { label: "Declined", heading: "Declined", icon: "CircleX", color: "" },
+        returnCanceled: { label: "Canceled", heading: "Canceled", icon: "XCircle", color: "" },
+        returnCompleted: { label: "Returned", heading: "Returned", icon: "CheckCircle2", color: "" },
+      },
+    });
+    store.set("tenant:legacy-status.myshopify.com", {
+      accessToken: "tok_legacy2",
+      installedAt: "2024-01-01T00:00:00Z",
+      scopes: "read_orders",
+      plan: "free",
+      returnWindowDays: 30,
+      branding: oldBrandingJson,
+    });
+
+    const t = await getTenant("legacy-status.myshopify.com");
+    // The two new statuses must fall back to defaults, not be undefined.
+    expect(t?.branding.returnLifecycleStyles.awaitingDelivery).toBeDefined();
+    expect(t?.branding.returnLifecycleStyles.awaitingDelivery.label).toBe("Awaiting delivery");
+    expect(t?.branding.returnLifecycleStyles.returnWindowClosed).toBeDefined();
+    expect(t?.branding.returnLifecycleStyles.returnWindowClosed.label).toBe("Return window closed");
+    // Existing customization for untouched statuses must still be preserved.
+    expect(t?.branding.returnLifecycleStyles.returnRequested.label).toBe("Requested");
+  });
 });

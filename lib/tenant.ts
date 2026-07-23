@@ -36,11 +36,28 @@ export async function getTenant(shop: string): Promise<Tenant | null> {
     scopes: String(r.scopes ?? ""),
     plan: String(r.plan ?? DEFAULT_TENANT_FIELDS.plan),
     returnWindowDays: Number(r.returnWindowDays ?? DEFAULT_TENANT_FIELDS.returnWindowDays),
-    branding: {
-      ...DEFAULT_TENANT_FIELDS.branding,
-      ...(typeof r.branding === "string"
+    branding: mergeBranding(
+      typeof r.branding === "string"
         ? JSON.parse(r.branding)
-        : (r.branding as Partial<Tenant["branding"]> | undefined) ?? {}),
+        : (r.branding as Partial<Tenant["branding"]> | undefined) ?? {},
+    ),
+  };
+}
+
+/** Shallow-spreads top-level branding fields, but deep-merges
+ * returnLifecycleStyles per status key. A plain shallow spread would let a
+ * tenant record saved under an older ReturnLifecycleStatus shape (e.g. the
+ * single "notReturnable" key, pre return-status-split) wholesale replace
+ * the current default's style map — silently dropping the newer status
+ * keys ("awaitingDelivery"/"returnWindowClosed") and crashing any code that
+ * reads styles[newKey].label. */
+function mergeBranding(stored: Partial<TenantBranding>): TenantBranding {
+  return {
+    ...DEFAULT_TENANT_FIELDS.branding,
+    ...stored,
+    returnLifecycleStyles: {
+      ...DEFAULT_TENANT_FIELDS.branding.returnLifecycleStyles,
+      ...(stored.returnLifecycleStyles ?? {}),
     },
   };
 }
@@ -55,9 +72,13 @@ export async function setTenant(
     ...(existing ?? {}),
     ...patch,
     branding: {
-      ...DEFAULT_TENANT_FIELDS.branding,
-      ...(existing?.branding ?? {}),
+      ...mergeBranding(existing?.branding ?? {}),
       ...(patch.branding ?? {}),
+      returnLifecycleStyles: {
+        ...DEFAULT_TENANT_FIELDS.branding.returnLifecycleStyles,
+        ...(existing?.branding.returnLifecycleStyles ?? {}),
+        ...(patch.branding?.returnLifecycleStyles ?? {}),
+      },
     },
     shop,
   };
