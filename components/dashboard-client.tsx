@@ -3378,48 +3378,14 @@ function OrderDetail({
 
   const currentData   = (activeTab === "eligible" ? filteredEligible : filteredIneligible) as DisplayItem[]
   const size          = pageSize === "all" ? Math.max(currentData.length, 1) : parseInt(pageSize)
-
-  // Ineligible-tab rows are grouped under one heading (e.g. "Return requested
-  // · 7 lines") — a plain flat slice can cut a group in half across two
-  // pages, showing the true full-group count in the heading on BOTH pages
-  // while only rendering a fraction of its rows under each. Compute page
-  // boundaries that only fall on a group edge, so a group is never split.
-  // Prefer backing off to the start of a would-be-split group (deferring it
-  // whole to the next page) so pages stay close to the target size; only
-  // extend forward through the group if backing off would leave the page
-  // empty (a single group bigger than the page size).
-  const pageBoundaries = useMemo(() => {
-    if (activeTab !== "ineligible") return null
-    const boundaries = [0]
-    let i = 0
-    while (i < currentData.length) {
-      let end = Math.min(i + size, currentData.length)
-      if (end < currentData.length) {
-        const splitKey = getIneligibleGroupKey(currentData[end - 1], order, returnWindowDays)
-        if (getIneligibleGroupKey(currentData[end], order, returnWindowDays) === splitKey) {
-          let groupStart = end
-          while (groupStart > i && getIneligibleGroupKey(currentData[groupStart - 1], order, returnWindowDays) === splitKey) {
-            groupStart--
-          }
-          if (groupStart > i) {
-            end = groupStart
-          } else {
-            while (end < currentData.length && getIneligibleGroupKey(currentData[end], order, returnWindowDays) === splitKey) {
-              end++
-            }
-          }
-        }
-      }
-      boundaries.push(end)
-      i = end
-    }
-    return boundaries
-  }, [activeTab, currentData, size, order, returnWindowDays])
-
-  const totalPages    = pageBoundaries ? Math.max(pageBoundaries.length - 1, 1) : (Math.ceil(currentData.length / size) || 1)
-  const paginatedData = pageBoundaries
-    ? currentData.slice(pageBoundaries[currentPage - 1] ?? 0, pageBoundaries[currentPage] ?? currentData.length)
-    : currentData.slice((currentPage - 1) * size, currentPage * size)
+  const totalPages    = Math.ceil(currentData.length / size) || 1
+  // Exactly `size` rows per page (matches the "Show N" control literally) —
+  // a group can therefore straddle a page boundary. Each page's group
+  // header shows only the count of that group's rows actually present on
+  // THIS page (see pageGroupRows below), not the group's full total, so the
+  // header always matches what's visibly rendered beneath it even when a
+  // group continues onto the next page as a second header.
+  const paginatedData = currentData.slice((currentPage - 1) * size, currentPage * size)
 
   useEffect(() => { setCurrentPage(1) }, [activeTab, searchQuery, pageSize, ineligibleStatusFilter])
   useEffect(() => { setIneligibleStatusFilter([]) }, [order.id])
@@ -4027,8 +3993,18 @@ function OrderDetail({
                     const showGroupHeader = activeTab === "ineligible" && (
                       rowIdx === 0 || getIneligibleGroupKey(paginatedData[rowIdx - 1], order, returnWindowDays) !== groupKey
                     )
+                    // Full group (across all pages) — needed for date/message
+                    // computation (e.g. the window-closed date must be
+                    // resolved from the group's actual delivery data, not
+                    // just whichever rows happen to be on this page).
                     const groupRows = activeTab === "ineligible"
                       ? filteredIneligible.filter(i => getIneligibleGroupKey(i, order, returnWindowDays) === groupKey)
+                      : []
+                    // This page's slice of the group — used ONLY for the
+                    // header's line/unit count, so it always matches what's
+                    // actually rendered beneath it on this page.
+                    const pageGroupRows = activeTab === "ineligible"
+                      ? paginatedData.filter(i => getIneligibleGroupKey(i, order, returnWindowDays) === groupKey)
                       : []
 
                     return (
@@ -4036,7 +4012,7 @@ function OrderDetail({
                         {showGroupHeader && (
                           <TableRow className="bg-muted/80 hover:bg-muted/80 border-b border-border/60">
                             <TableCell colSpan={ineligibleTableColSpan(colsVisible)} className="p-0 whitespace-normal">
-                              <IneligibleGroupSummary item={item} order={order} groupItems={groupRows} count={formatGroupCount(groupRows)} returnWindowDays={returnWindowDays} returnLifecycleMessages={returnLifecycleMessages} returnLifecycleStyles={returnLifecycleStyles} refundStatusLabels={refundStatusLabels} />
+                              <IneligibleGroupSummary item={item} order={order} groupItems={groupRows} count={formatGroupCount(pageGroupRows)} returnWindowDays={returnWindowDays} returnLifecycleMessages={returnLifecycleMessages} returnLifecycleStyles={returnLifecycleStyles} refundStatusLabels={refundStatusLabels} />
                             </TableCell>
                           </TableRow>
                         )}
@@ -4166,11 +4142,7 @@ function OrderDetail({
             </div>
             {pageSize !== "all" && currentData.length > size && (
               <div className="px-4 py-2 border-t flex items-center justify-between text-xs text-muted-foreground">
-                <span>
-                  {pageBoundaries
-                    ? <>Showing {(pageBoundaries[currentPage - 1] ?? 0) + 1}–{pageBoundaries[currentPage] ?? currentData.length} of {currentData.length} entries</>
-                    : <>Showing {Math.min((currentPage - 1) * size + 1, currentData.length)}–{Math.min(currentPage * size, currentData.length)} of {currentData.length} entries</>}
-                </span>
+                <span>Showing {Math.min((currentPage - 1) * size + 1, currentData.length)}–{Math.min(currentPage * size, currentData.length)} of {currentData.length} entries</span>
                 <div className="flex items-center gap-1.5">
                   <Button variant="outline" size="sm" className="h-7 px-2.5 text-xs" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>Previous</Button>
                   <Button variant="outline" size="sm" className="h-7 px-2.5 text-xs" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage >= totalPages}>Next</Button>
