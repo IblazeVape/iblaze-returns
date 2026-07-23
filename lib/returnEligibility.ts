@@ -120,6 +120,49 @@ export async function fetchRemainingFulfillmentLineItems(shop: string, fulfillme
   return extra;
 }
 
+/** Fetch a single return's line items beyond the first page — a return
+ * covering more than 5 line items (e.g. a customer returning many variants
+ * in one submission) silently dropped the rest, since the main order query
+ * only fetches returnLineItems(first: 5) with no follow-up. Items past the
+ * 5th then had no return record attached at all and fell through to
+ * "Eligible" even though Shopify shows them under an active return. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function fetchRemainingReturnLineItems(shop: string, returnId: string, after: string): Promise<any[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const extra: any[] = [];
+  let cursor: string | null = after;
+
+  while (cursor) {
+    const data = await shopifyAdmin(
+      shop,
+      `
+      query ReturnLineItems($id: ID!, $first: Int!, $after: String) {
+        return(id: $id) {
+          returnLineItems(first: $first, after: $after) {
+            pageInfo { hasNextPage endCursor }
+            edges {
+              node {
+                ... on ReturnLineItem {
+                  quantity
+                  fulfillmentLineItem { lineItem { id } }
+                }
+              }
+            }
+          }
+        }
+      }
+    `,
+      { id: returnId, first: PAGE, after: cursor }
+    );
+
+    extra.push(...(data?.return?.returnLineItems?.edges || []));
+    const pageInfo = data?.return?.returnLineItems?.pageInfo;
+    cursor = pageInfo?.hasNextPage ? pageInfo.endCursor : null;
+  }
+
+  return extra;
+}
+
 /** Fetch return records beyond the first page — orders with many returns (e.g. #1033) need this. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function fetchRemainingReturns(shop: string, orderId: string, after: string): Promise<any[]> {

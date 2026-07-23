@@ -3,7 +3,7 @@ import { validateSession, parseCookies } from "@/lib/auth";
 import { validateAppsReturnsSession, APPS_RETURNS_COOKIE_NAME } from "@/lib/apps-returns-session";
 import { shopifyAdmin, shopifyAdminRest } from "@/lib/shopify";
 import { getOrderReturnInfo, ReturnInfo } from "@/lib/customerAccount";
-import { getAdminReturnableInfo, fetchRemainingLineItems, fetchRemainingReturns, fetchRemainingFulfillmentLineItems } from "@/lib/returnEligibility";
+import { getAdminReturnableInfo, fetchRemainingLineItems, fetchRemainingReturns, fetchRemainingFulfillmentLineItems, fetchRemainingReturnLineItems } from "@/lib/returnEligibility";
 import { getRequestShop } from "@/lib/request-shop";
 import { withCors, corsPreflight } from "@/lib/cors";
 import { getTenant } from "@/lib/tenant";
@@ -145,6 +145,7 @@ async function handleGet(request: NextRequest): Promise<NextResponse> {
           node {
             id status decline { reason note }
             returnLineItems(first: 5) {
+              pageInfo { hasNextPage endCursor }
               edges {
                 node {
                   ... on ReturnLineItem {
@@ -360,6 +361,18 @@ async function handleGet(request: NextRequest): Promise<NextResponse> {
           if (fliPageInfo?.hasNextPage && fliPageInfo.endCursor) {
             const extraFLIs = await fetchRemainingFulfillmentLineItems(shop, f.id, fliPageInfo.endCursor);
             f.fulfillmentLineItems.edges.push(...extraFLIs);
+          }
+        }
+
+        // Paginate return line items for a single return covering >5 variants
+        // (a return with more than 5 line items would otherwise silently
+        // drop the rest, leaving them with no return record attached at all).
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        for (const ret of (order.returns?.edges || []) as any[]) {
+          const rliPageInfo = ret.node?.returnLineItems?.pageInfo;
+          if (rliPageInfo?.hasNextPage && rliPageInfo.endCursor) {
+            const extraRLIs = await fetchRemainingReturnLineItems(shop, ret.node.id, rliPageInfo.endCursor);
+            ret.node.returnLineItems.edges.push(...extraRLIs);
           }
         }
       })
