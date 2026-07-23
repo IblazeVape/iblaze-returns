@@ -1958,6 +1958,8 @@ export function SettingsForm({
                                   onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("returnCompletedPartialRefund", e.target.value)}></s-text-area>
                                 <s-text-area label="Not refunded yet" value={form.returnLifecycleMessages.returnCompletedNoRefund} rows={2}
                                   onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("returnCompletedNoRefund", e.target.value)}></s-text-area>
+                                <s-text-area label="Refund amount can't be confirmed (a merchant manually overrode the amount) — no {amount} placeholder here" value={form.returnLifecycleMessages.returnCompletedRefundUnverified} rows={2}
+                                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("returnCompletedRefundUnverified", e.target.value)}></s-text-area>
                               </>
                             )}
                             {key === "awaitingDelivery" && (

@@ -28,6 +28,7 @@ export type ReturnLifecycleMessagesInput = {
   returnCompleted: string;
   returnCompletedPartialRefund: string;
   returnCompletedNoRefund: string;
+  returnCompletedRefundUnverified: string;
 };
 
 export type RefundStatusInput = "notRefunded" | "partiallyRefunded" | "refunded";

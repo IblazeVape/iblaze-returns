@@ -67,8 +67,15 @@ interface LineItem {
   refundStatus?: "notRefunded" | "partiallyRefunded" | "refunded"
   /** Always present when refundStatus isn't "notRefunded" — null otherwise.
    * currency is the ISO code the customer actually paid/was refunded in
-   * (presentmentMoney), not necessarily the store's own currency. */
-  refund?: { totalRefunded: number; currency: string; lastRefundedAt: string | null } | null
+   * (presentmentMoney), not necessarily the store's own currency.
+   * state: "confirmed" — totalRefunded is a real, attributable amount, safe
+   * to show. "none" — no money moved at all (a merchant can mark an item
+   * returned without refunding it), also safe to state plainly.
+   * "unverifiable" — a merchant manually overrode the refund amount in
+   * Shopify to a non-zero discretionary figure; Shopify doesn't expose a
+   * real per-line-item breakdown in that case, so totalRefunded here is NOT
+   * the real amount and must never be shown to the customer as a number. */
+  refund?: { totalRefunded: number; currency: string; lastRefundedAt: string | null; state: "confirmed" | "none" | "unverifiable" } | null
   lineDeliveredAt?: string | null
   productHandle?: string | null
   image?: { url: string } | null
@@ -2627,11 +2634,18 @@ function getIneligibleGroupMessage(item: LineItem, order: Order, returnWindowDay
       if (item.returnReason) return item.returnReason
       // A closed return doesn't guarantee a refund happened (a merchant can
       // close it manually, or give store credit instead) — Sidekick-confirmed
-      // these three cases need distinct wording so a customer with only a
-      // partial refund, or none at all, isn't told they got the full amount.
-      const amount = item.refund ? formatMoney(item.refund.totalRefunded, item.refund.currency) : ""
-      if (item.refundStatus === "refunded") return fillMessagePlaceholders(messages.returnCompleted, { amount })
-      if (item.refundStatus === "partiallyRefunded") return fillMessagePlaceholders(messages.returnCompletedPartialRefund, { amount })
+      // these cases need distinct wording. item.refund.state (a MONEY fact)
+      // drives this, not item.refundStatus (a QUANTITY fact) — Shopify lets a
+      // merchant mark units "returned" while actually refunding a different
+      // amount (including £0), so the two can disagree; the money fact is
+      // what must never be misrepresented to the customer.
+      if (item.refund?.state === "unverifiable") return messages.returnCompletedRefundUnverified
+      if (item.refund?.state === "confirmed" && item.refund.totalRefunded > 0) {
+        const amount = formatMoney(item.refund.totalRefunded, item.refund.currency)
+        return item.refundStatus === "partiallyRefunded"
+          ? fillMessagePlaceholders(messages.returnCompletedPartialRefund, { amount })
+          : fillMessagePlaceholders(messages.returnCompleted, { amount })
+      }
       return messages.returnCompletedNoRefund
     }
     default:
@@ -4005,9 +4019,14 @@ function OrderDetail({
                                 <span className="text-[11px] text-muted-foreground">
                                   £{itemPrice.toFixed(2)} each{activeTab === "eligible" && (() => { const d = daysLeftToReturn(item.lineDeliveredAt, returnWindowDays); return d !== null ? <ReturnWindowBadge days={d} /> : null })()}
                                 </span>
-                                {item.refund && (
+                                {item.refund?.state === "confirmed" && item.refund.totalRefunded > 0 && (
                                   <span className="block text-[11px] text-muted-foreground">
                                     {formatMoney(item.refund.totalRefunded, item.refund.currency)} refunded{item.refund.lastRefundedAt ? ` on ${new Date(item.refund.lastRefundedAt).toLocaleDateString()}` : ""}
+                                  </span>
+                                )}
+                                {item.refund?.state === "unverifiable" && (
+                                  <span className="block text-[11px] text-muted-foreground">
+                                    A refund was processed — check your original payment method for the exact amount.
                                   </span>
                                 )}
                                 {activeTab === "eligible" && hasRetryableDecline(item.declinedReturnEntries) && (item.inTransitQuantity ?? 0) > 0 && (

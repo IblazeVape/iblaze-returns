@@ -87,6 +87,7 @@ const VALID: BrandingInput = {
     returnCompleted:            "These items have already been returned.",
     returnCompletedPartialRefund: "Partial refund issued.",
     returnCompletedNoRefund:    "Return processed.",
+    returnCompletedRefundUnverified: "Refund amount unverified.",
   },
   refundStatusLabels: {
     notRefunded: "",

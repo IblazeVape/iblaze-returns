@@ -19,7 +19,7 @@ const RETURN_LIFECYCLE_MESSAGE_KEYS = [
   "shippingConfirmed", "shippingOnItsWay", "shippingOutForDelivery", "shippingAttemptedDelivery",
   "outsideWindow", "outsideWindowNoDate", "finalSale", "otherNotReturnable",
   "returnRequested", "returnInProgress", "returnCanceled", "returnCompleted",
-  "returnCompletedPartialRefund", "returnCompletedNoRefund",
+  "returnCompletedPartialRefund", "returnCompletedNoRefund", "returnCompletedRefundUnverified",
 ] as const;
 
 const REFUND_STATUS_KEYS = ["notRefunded", "partiallyRefunded", "refunded"] as const;

@@ -173,6 +173,7 @@ describe("tenant store", () => {
           returnCompleted:            "Already returned.",
           returnCompletedPartialRefund: "Partially refunded.",
           returnCompletedNoRefund:    "Return processed, no refund yet.",
+          returnCompletedRefundUnverified: "Refund amount unverified.",
         },
         refundStatusLabels: {
           notRefunded: "",

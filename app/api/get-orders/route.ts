@@ -125,6 +125,9 @@ async function handleGet(request: NextRequest): Promise<NextResponse> {
       totalRefundedSet { shopMoney { amount } }
       refunds(first: 5) {
         createdAt
+        transactions(first: 10) {
+          edges { node { kind status amountSet { presentmentMoney { amount currencyCode } } } }
+        }
         refundLineItems(first: 5) {
           edges {
             node {
@@ -388,28 +391,58 @@ async function handleGet(request: NextRequest): Promise<NextResponse> {
       });
 
       // ── 1b. Refunded amount + most recent refund date per line item ───────
-      // Sums subtotal + tax (in the currency the customer actually paid/was
-      // refunded in — presentmentMoney, not the store's shopMoney) across ALL
-      // refund transactions that touched each line item, since a merchant can
-      // issue more than one partial refund against the same line over time.
-      type RefundAmount = { totalRefunded: number; currency: string; lastRefundedAt: string };
+      // Sidekick-confirmed quirk: refundLineItems.subtotalSet/totalTaxSet is
+      // the FACE VALUE of what was marked as returned, not the actual money
+      // paid back — a merchant can override the real refund amount (e.g. to
+      // £0, or a discretionary partial amount) via the "Manual" refund
+      // amount field, and Shopify does not expose a per-line-item split of
+      // the real transaction amount in that case. We detect an override by
+      // comparing each refund's suggested total (sum of its refundLineItems)
+      // against its actual transaction total (sum of REFUND-kind, SUCCESS
+      // transactions — SUGGESTED_REFUND is not real money movement).
+      //   - Match:            safe to attribute the per-line amounts directly ("confirmed").
+      //   - Actual total = 0: no money moved at all, and that fact IS knowable
+      //     with certainty even though the per-line split isn't ("none").
+      //   - Mismatch, non-zero: a discretionary amount was paid but which
+      //     line(s) it covers isn't knowable — don't fabricate a number ("unverifiable").
+      type RefundState = "confirmed" | "none" | "unverifiable";
+      type RefundAmount = { totalRefunded: number; currency: string; lastRefundedAt: string; state: RefundState };
       const refundAmountByLine: Record<string, RefundAmount> = {};
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (order.refunds || []).forEach((ref: any) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (ref.refundLineItems?.edges || []).forEach((rli: any) => {
+        const lineEntries = (ref.refundLineItems?.edges || []).map((rli: any) => {
           const id = rli.node.lineItem?.id;
-          if (!id) return;
           const subtotal = parseFloat(rli.node.subtotalSet?.presentmentMoney?.amount ?? "0");
           const tax = parseFloat(rli.node.totalTaxSet?.presentmentMoney?.amount ?? "0");
           const currency = rli.node.subtotalSet?.presentmentMoney?.currencyCode || "GBP";
           const amount = (Number.isFinite(subtotal) ? subtotal : 0) + (Number.isFinite(tax) ? tax : 0);
-          const existing = refundAmountByLine[id];
+          return { id, amount, currency };
+        }).filter((e: { id: string | undefined }) => !!e.id);
+
+        const suggestedTotal = lineEntries.reduce((s: number, e: { amount: number }) => s + e.amount, 0);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const actualTotal = (ref.transactions?.edges || [])
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .filter((t: any) => t.node.kind === "REFUND" && t.node.status === "SUCCESS")
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .reduce((s: number, t: any) => s + (parseFloat(t.node.amountSet?.presentmentMoney?.amount ?? "0") || 0), 0);
+        const matches = Math.abs(suggestedTotal - actualTotal) <= 0.01;
+        const refState: RefundState = matches ? "confirmed" : actualTotal <= 0.01 ? "none" : "unverifiable";
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        lineEntries.forEach((e: any) => {
+          const existing = refundAmountByLine[e.id];
+          const amountForLine = refState === "confirmed" ? e.amount : 0;
           if (existing) {
-            existing.totalRefunded += amount;
+            existing.totalRefunded += amountForLine;
+            // Worst-observed state wins across multiple refunds on the same line:
+            // unverifiable > none > confirmed.
+            if (refState === "unverifiable" || existing.state === "unverifiable") existing.state = "unverifiable";
+            else if (refState === "none" || existing.state === "none") existing.state = "none";
             if (ref.createdAt && ref.createdAt > existing.lastRefundedAt) existing.lastRefundedAt = ref.createdAt;
           } else {
-            refundAmountByLine[id] = { totalRefunded: amount, currency, lastRefundedAt: ref.createdAt || "" };
+            refundAmountByLine[e.id] = { totalRefunded: amountForLine, currency: e.currency, lastRefundedAt: ref.createdAt || "", state: refState };
           }
         });
       });
@@ -863,7 +896,7 @@ async function handleGet(request: NextRequest): Promise<NextResponse> {
           shippingStage,
           refundStatus,
           refund: refundAmount
-            ? { totalRefunded: refundAmount.totalRefunded, currency: refundAmount.currency, lastRefundedAt: refundAmount.lastRefundedAt || null }
+            ? { totalRefunded: refundAmount.totalRefunded, currency: refundAmount.currency, lastRefundedAt: refundAmount.lastRefundedAt || null, state: refundAmount.state }
             : null,
           lineDeliveredAt: delivery.latestDeliveredAt
             ? delivery.latestDeliveredAt.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })

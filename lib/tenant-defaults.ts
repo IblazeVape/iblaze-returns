@@ -95,6 +95,11 @@ export type ReturnLifecycleMessages = {
    * (e.g. store credit, exchange, or a refund still pending) — deliberately
    * cautious rather than implying money has moved. */
   returnCompletedNoRefund: string;
+  /** Shown when a merchant manually overrode the refund amount in Shopify
+   * (not accepting Shopify's suggested per-item breakdown) — Shopify doesn't
+   * expose a real per-line-item split of an overridden amount, so no {amount}
+   * placeholder here; never fabricate a number that can't be verified. */
+  returnCompletedRefundUnverified: string;
 };
 
 /** No icon/color/heading — refund is always shown as a small supporting
@@ -297,6 +302,7 @@ export const DEFAULT_TENANT_FIELDS = {
       returnCompleted:           "This return is complete and your refund of {amount} has been issued.",
       returnCompletedPartialRefund: "This return is complete. A partial refund of {amount} has been issued — contact us if you have questions about the remaining amount.",
       returnCompletedNoRefund:   "This return has been processed. If you're expecting a refund or store credit, please allow a few days or contact us for details.",
+      returnCompletedRefundUnverified: "A refund was processed for this return — check your original payment method for the exact amount, or contact us if you have questions.",
     },
     refundStatusLabels: {
       notRefunded: "",
