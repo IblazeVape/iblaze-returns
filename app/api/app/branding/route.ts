@@ -76,12 +76,15 @@ export async function PUT(request: NextRequest) {
   const input: BrandingInput = {
     name: typeof body.name === "string" ? body.name : existing.branding.name,
     logoUrl: typeof body.logoUrl === "string" ? body.logoUrl : existing.branding.logoUrl,
+    logoHeight: typeof body.logoHeight === "number" ? body.logoHeight : existing.branding.logoHeight,
     accentColor: typeof body.accentColor === "string" ? body.accentColor : existing.branding.accentColor,
     storefrontUrl: typeof body.storefrontUrl === "string" ? body.storefrontUrl : existing.branding.storefrontUrl,
     supportEmail: typeof body.supportEmail === "string" ? body.supportEmail : existing.branding.supportEmail,
     returnWindowDays: typeof body.returnWindowDays === "number" ? body.returnWindowDays : existing.returnWindowDays,
     requirePolicyAcceptance:
       typeof body.requirePolicyAcceptance === "boolean" ? body.requirePolicyAcceptance : existing.branding.requirePolicyAcceptance,
+    returnReviewEnabled:
+      typeof body.returnReviewEnabled === "boolean" ? body.returnReviewEnabled : existing.branding.returnReviewEnabled,
     storeLinkEnabled: typeof body.storeLinkEnabled === "boolean" ? body.storeLinkEnabled : existing.branding.storeLinkEnabled,
     storeLinkLabel: typeof body.storeLinkLabel === "string" ? body.storeLinkLabel : existing.branding.storeLinkLabel,
     orderStatusLinkEnabled:
@@ -110,6 +113,10 @@ export async function PUT(request: NextRequest) {
       body.defaultSidebarLayout === "inset" || body.defaultSidebarLayout === "sidebar"
         ? body.defaultSidebarLayout
         : existing.branding.defaultSidebarLayout,
+    sidebarEnabled:
+      typeof body.sidebarEnabled === "boolean" ? body.sidebarEnabled : existing.branding.sidebarEnabled,
+    lookupSidebarEnabled:
+      typeof body.lookupSidebarEnabled === "boolean" ? body.lookupSidebarEnabled : existing.branding.lookupSidebarEnabled,
     headerSearchEnabled:
       typeof body.headerSearchEnabled === "boolean" ? body.headerSearchEnabled : existing.branding.headerSearchEnabled,
     headerSearchPlaceholder:
@@ -159,6 +166,22 @@ export async function PUT(request: NextRequest) {
       typeof body.guestLookupOverlayBlur === "number" && Number.isFinite(body.guestLookupOverlayBlur)
         ? Math.round(body.guestLookupOverlayBlur)
         : existing.branding.guestLookupOverlayBlur,
+    guestLookupSnakeBorder:
+      typeof body.guestLookupSnakeBorder === "boolean"
+        ? body.guestLookupSnakeBorder
+        : existing.branding.guestLookupSnakeBorder,
+    guestLookupSideStyle:
+      body.guestLookupSideStyle === "image" || body.guestLookupSideStyle === "gradient"
+        ? body.guestLookupSideStyle
+        : existing.branding.guestLookupSideStyle,
+    guestLookupGradientFrom:
+      typeof body.guestLookupGradientFrom === "string"
+        ? body.guestLookupGradientFrom
+        : existing.branding.guestLookupGradientFrom,
+    guestLookupGradientTo:
+      typeof body.guestLookupGradientTo === "string"
+        ? body.guestLookupGradientTo
+        : existing.branding.guestLookupGradientTo,
     defaultOrderView:
       body.defaultOrderView === "list" || body.defaultOrderView === "grid" ? body.defaultOrderView : existing.branding.defaultOrderView,
     sidebarDefaultOpenOnDesktop:
@@ -184,6 +207,29 @@ export async function PUT(request: NextRequest) {
       : existing.branding.refundStatusLabels,
     alwaysShowGuestLookup:
       typeof body.alwaysShowGuestLookup === "boolean" ? body.alwaysShowGuestLookup : existing.branding.alwaysShowGuestLookup,
+    guestLookupEnabled:
+      typeof body.guestLookupEnabled === "boolean" ? body.guestLookupEnabled : existing.branding.guestLookupEnabled,
+    loggedInLookupRequirePostcode:
+      typeof body.loggedInLookupRequirePostcode === "boolean"
+        ? body.loggedInLookupRequirePostcode
+        : existing.branding.loggedInLookupRequirePostcode,
+    policyPresentation:
+      body.policyPresentation === "dialog" || body.policyPresentation === "externalLink"
+        ? body.policyPresentation
+        : existing.branding.policyPresentation,
+    policyExternalUrl:
+      typeof body.policyExternalUrl === "string" ? body.policyExternalUrl : existing.branding.policyExternalUrl,
+    policyReviewButtonLabel:
+      typeof body.policyReviewButtonLabel === "string"
+        ? body.policyReviewButtonLabel
+        : existing.branding.policyReviewButtonLabel,
+    toastPosition:
+      body.toastPosition === "top-left" || body.toastPosition === "top-center" || body.toastPosition === "top-right"
+      || body.toastPosition === "bottom-left" || body.toastPosition === "bottom-center" || body.toastPosition === "bottom-right"
+        ? body.toastPosition
+        : existing.branding.toastPosition,
+    portalCustomScript:
+      typeof body.portalCustomScript === "string" ? body.portalCustomScript : existing.branding.portalCustomScript,
   };
 
   const { valid, errors } = validateBrandingInput(input);
@@ -196,10 +242,12 @@ export async function PUT(request: NextRequest) {
     branding: {
       name: input.name,
       logoUrl: input.logoUrl,
+      logoHeight: input.logoHeight,
       accentColor: input.accentColor,
       storefrontUrl: input.storefrontUrl,
       supportEmail: input.supportEmail,
       requirePolicyAcceptance: input.requirePolicyAcceptance,
+      returnReviewEnabled: input.returnReviewEnabled,
       storeLinkEnabled: input.storeLinkEnabled,
       storeLinkLabel: input.storeLinkLabel,
       orderStatusLinkEnabled: input.orderStatusLinkEnabled,
@@ -218,6 +266,8 @@ export async function PUT(request: NextRequest) {
       sidebarNote: input.sidebarNote,
       sidebarLayoutSwitcherEnabled: input.sidebarLayoutSwitcherEnabled,
       defaultSidebarLayout: input.defaultSidebarLayout,
+      sidebarEnabled: input.sidebarEnabled,
+      lookupSidebarEnabled: input.lookupSidebarEnabled,
       headerSearchEnabled: input.headerSearchEnabled,
       headerSearchPlaceholder: input.headerSearchPlaceholder,
       tableSearchEnabled: input.tableSearchEnabled,
@@ -237,6 +287,10 @@ export async function PUT(request: NextRequest) {
       guestLookupLogoUrl: input.guestLookupLogoUrl,
       guestLookupOverlayOpacity: input.guestLookupOverlayOpacity,
       guestLookupOverlayBlur: input.guestLookupOverlayBlur,
+      guestLookupSnakeBorder: input.guestLookupSnakeBorder,
+      guestLookupSideStyle: input.guestLookupSideStyle,
+      guestLookupGradientFrom: input.guestLookupGradientFrom,
+      guestLookupGradientTo: input.guestLookupGradientTo,
       defaultOrderView: input.defaultOrderView,
       sidebarDefaultOpenOnDesktop: input.sidebarDefaultOpenOnDesktop,
       statusFilterEnabled: input.statusFilterEnabled,
@@ -249,6 +303,13 @@ export async function PUT(request: NextRequest) {
       returnLifecycleStyles: input.returnLifecycleStyles,
       refundStatusLabels: input.refundStatusLabels,
       alwaysShowGuestLookup: input.alwaysShowGuestLookup,
+      guestLookupEnabled: input.guestLookupEnabled,
+      loggedInLookupRequirePostcode: input.loggedInLookupRequirePostcode,
+      policyPresentation: input.policyPresentation,
+      policyExternalUrl: input.policyExternalUrl,
+      policyReviewButtonLabel: input.policyReviewButtonLabel,
+      toastPosition: input.toastPosition,
+      portalCustomScript: input.portalCustomScript,
     },
   });
 

@@ -14,11 +14,11 @@ import type { InitialBranding } from "@/components/apps-returns/client-portal-ga
  * unmistakably the same portal, not a separate page that happens to precede
  * it.
  *
- * The guest hasn't verified an order yet, so there's no identity to show
- * in the header (`hideIdentity`) — but the sidebar itself opens/collapses
- * normally, same as everywhere else in the portal, and reflects the same
- * merchant-configured sidebar links/note/layout settings DashboardClient
- * applies once a customer is signed in.
+ * Shell chrome (sidebar open state, avatar, layout, store link, etc.) uses
+ * the same merchant branding fields as the main portal. `hideIdentity` still
+ * suppresses the header account menu before an order is verified (there is
+ * no customer identity to show yet); the sidebar footer avatar follows
+ * `sidebarAvatarEnabled` like everywhere else.
  */
 export function GuestPortalShell({
   title = "Find your order",
@@ -53,16 +53,31 @@ function GuestPortalShellInner({
   // can apply immediately on mount rather than waiting on an async fetch
   // like DashboardClient's equivalent effect does.
   useEffect(() => {
-    applyMerchantDefault(branding.defaultSidebarLayout, branding.sidebarLayoutSwitcherEnabled);
-  }, [applyMerchantDefault, branding.defaultSidebarLayout, branding.sidebarLayoutSwitcherEnabled]);
+    applyMerchantDefault(
+      branding.defaultSidebarLayout,
+      branding.sidebarEnabled && branding.sidebarLayoutSwitcherEnabled,
+    );
+  }, [
+    applyMerchantDefault,
+    branding.defaultSidebarLayout,
+    branding.sidebarEnabled,
+    branding.sidebarLayoutSwitcherEnabled,
+  ]);
+
+  const showSidebar = branding.sidebarEnabled && branding.lookupSidebarEnabled;
 
   return (
     <PortalShell
       hideIdentity
       accentColor={branding.accentColor}
+      showSidebar={showSidebar}
+      sidebarDefaultOpenOnDesktop={branding.sidebarDefaultOpenOnDesktop}
+      sidebarAvatarEnabled={branding.sidebarAvatarEnabled}
+      headerAvatarEnabled={branding.headerAvatarEnabled}
       branding={{
         name: branding.name,
         logoUrl: branding.logoUrl,
+        logoHeight: branding.logoHeight,
         storefrontUrl: branding.storefrontUrl,
         sidebarLinks: branding.sidebarLinks,
         sidebarNote: branding.sidebarNote,
@@ -74,6 +89,10 @@ function GuestPortalShellInner({
         storefrontUrl: branding.storefrontUrl || undefined,
         storeLinkEnabled: branding.storeLinkEnabled,
         storeLinkLabel: branding.storeLinkLabel,
+        orderStatusLinkEnabled: branding.orderStatusLinkEnabled,
+        orderStatusLinkLabel: branding.orderStatusLinkLabel,
+        searchEnabled: branding.headerSearchEnabled,
+        searchPlaceholder: branding.headerSearchPlaceholder,
       }}
     >
       <div className="relative flex flex-1 flex-col items-center justify-center gap-4 px-4 py-10 overflow-hidden">

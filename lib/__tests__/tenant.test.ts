@@ -48,6 +48,7 @@ describe("tenant store", () => {
     expect(t?.branding.logoUrl).toBe("");
     expect(t?.branding.accentColor).toBe("#000000");
     expect(t?.branding.requirePolicyAcceptance).toBe(true);
+    expect(t?.branding.returnReviewEnabled).toBe(true);
     expect(t?.branding.storeLinkEnabled).toBe(true);
     expect(t?.branding.storeLinkLabel).toBe("Store");
     expect(t?.branding.policyHeading).toBe("iBlaze Returns Policy");
@@ -56,6 +57,8 @@ describe("tenant store", () => {
     expect(t?.branding.sidebarLinks).toEqual([]);
     expect(t?.branding.sidebarLayoutSwitcherEnabled).toBe(true);
     expect(t?.branding.defaultSidebarLayout).toBe("inset");
+    expect(t?.branding.sidebarEnabled).toBe(true);
+    expect(t?.branding.lookupSidebarEnabled).toBe(true);
     expect(t?.branding.orderStatusLinkEnabled).toBe(true);
     expect(t?.branding.orderStatusLinkLabel).toBe("Order Status");
     expect(t?.branding.policyLastUpdated).toBe("");
@@ -87,10 +90,12 @@ describe("tenant store", () => {
       branding: {
         name: "Acme Vapes",
         logoUrl: "https://cdn.shopify.com/acme-logo.png",
+        logoHeight: 40,
         accentColor: "#4F46E5",
         storefrontUrl: "https://acme-vapes.com",
         supportEmail: "help@acme-vapes.com",
         requirePolicyAcceptance: false,
+        returnReviewEnabled: false,
         storeLinkEnabled: false,
         storeLinkLabel: "Back to store",
         orderStatusLinkEnabled: false,
@@ -109,6 +114,8 @@ describe("tenant store", () => {
         sidebarNote: "**Note:** processing may take 48h.",
         sidebarLayoutSwitcherEnabled: false,
         defaultSidebarLayout: "sidebar",
+        sidebarEnabled: false,
+        lookupSidebarEnabled: false,
         headerSearchEnabled: false,
         headerSearchPlaceholder: "Find an order...",
         tableSearchEnabled: false,
@@ -128,6 +135,10 @@ describe("tenant store", () => {
         guestLookupLogoUrl: "",
         guestLookupOverlayOpacity: 40,
         guestLookupOverlayBlur: 0,
+        guestLookupSnakeBorder: false,
+        guestLookupSideStyle: "gradient",
+        guestLookupGradientFrom: "#111111",
+        guestLookupGradientTo: "#4F46E5",
         defaultOrderView: "list",
         sidebarDefaultOpenOnDesktop: false,
         statusFilterEnabled: false,
@@ -165,6 +176,13 @@ describe("tenant store", () => {
           refunded: "Already refunded.",
         },
         alwaysShowGuestLookup: true,
+        guestLookupEnabled: false,
+        loggedInLookupRequirePostcode: true,
+        policyPresentation: "dialog",
+        policyExternalUrl: "",
+        policyReviewButtonLabel: "Review & Accept",
+        toastPosition: "top-right",
+        portalCustomScript: "",
       },
     });
     const t = await getTenant("d.myshopify.com");
@@ -172,6 +190,7 @@ describe("tenant store", () => {
     expect(t?.branding.name).toBe("Acme Vapes");
     expect(t?.branding.supportEmail).toBe("help@acme-vapes.com");
     expect(t?.branding.requirePolicyAcceptance).toBe(false);
+    expect(t?.branding.returnReviewEnabled).toBe(false);
     expect(t?.branding.storeLinkEnabled).toBe(false);
     expect(t?.branding.storeLinkLabel).toBe("Back to store");
     expect(t?.branding.policyBodyMode).toBe("text");
@@ -182,6 +201,8 @@ describe("tenant store", () => {
     ]);
     expect(t?.branding.sidebarLayoutSwitcherEnabled).toBe(false);
     expect(t?.branding.defaultSidebarLayout).toBe("sidebar");
+    expect(t?.branding.sidebarEnabled).toBe(false);
+    expect(t?.branding.lookupSidebarEnabled).toBe(false);
     expect(t?.branding.orderStatusLinkEnabled).toBe(false);
     expect(t?.branding.orderStatusLinkLabel).toBe("Track order");
     expect(t?.branding.policyLastUpdated).toBe("14 July 2026");
@@ -202,6 +223,8 @@ describe("tenant store", () => {
     expect(t?.branding.alwaysShowGuestLookup).toBe(true);
     expect(t?.branding.returnLifecycleStyles.returnWindowClosed).toEqual({ label: "Window closed", heading: "Window expired", icon: "Lock", color: "#4F46E5" });
     expect(t?.branding.returnLifecycleStyles.awaitingDelivery).toEqual({ label: "Still coming", heading: "Still coming", icon: "Truck", color: "" });
+    expect(t?.branding.guestLookupEnabled).toBe(false);
+    expect(t?.branding.loggedInLookupRequirePostcode).toBe(true);
     expect(t?.branding.refundStatusLabels.partiallyRefunded).toBe("Partly refunded");
     expect(t?.branding.refundStatusLabels.refunded).toBe("Already refunded.");
   });
@@ -231,5 +254,6 @@ describe("tenant store", () => {
     // New fields should default to empty strings (not undefined)
     expect(t?.branding.storefrontUrl).toBe("");
     expect(t?.branding.supportEmail).toBe("");
+    expect(t?.branding.logoHeight).toBe(32);
   });
 });

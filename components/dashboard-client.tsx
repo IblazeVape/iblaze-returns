@@ -4,7 +4,8 @@ import * as React from "react"
 import { useEffect, useState, useMemo, useRef, useLayoutEffect, useCallback, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
-import { toast } from "sonner"
+import { portalToast, setPortalToastPosition } from "@/lib/portal-toast"
+import { PortalCustomScripts } from "@/components/apps-returns/portal-custom-scripts"
 import { ChevronRight, ChevronDown, LayoutGrid, List, ArrowLeft, RotateCcw, CheckCircle2, ShoppingBag, ShieldCheck, ExternalLink, Lock, Truck, Package, Search, MapPin, SlidersHorizontal, XCircle, CircleX, Columns2, Clock, BadgeCheck, HelpCircle, Eye, Info, type LucideIcon } from "lucide-react"
 
 import { PortalShell } from "@/components/portal-shell"
@@ -28,7 +29,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { PolicyHtml } from "@/components/policy-html"
-import { getCachedAccentColor, setCachedAccentColor } from "@/lib/accent-color-cache"
+import { getCachedAccentColor, setCachedAccentColor, getCachedSidebarDefaultOpen, setCachedSidebarDefaultOpen } from "@/lib/accent-color-cache"
 import type { TenantBranding, ReturnLifecycleStyle, ReturnLifecycleStyles, ReturnLifecycleMessages, RefundStatusLabels } from "@/lib/tenant"
 import { DEFAULT_TENANT_FIELDS } from "@/lib/tenant"
 import { getStatusIcon as getIneligibleStatusIconComponent } from "@/lib/status-icons"
@@ -2886,6 +2887,9 @@ function HygienePolicy({
   footerNote,
   acceptedMessage = "Policy accepted",
   declinedMessage = "Policy declined",
+  presentation = "dialog",
+  externalUrl = "",
+  reviewButtonLabel = "Review & Accept",
 }: {
   onAccept: () => void
   onDecline: () => void
@@ -2901,23 +2905,56 @@ function HygienePolicy({
   footerNote?: string
   acceptedMessage?: string
   declinedMessage?: string
+  presentation?: "dialog" | "externalLink"
+  externalUrl?: string
+  reviewButtonLabel?: string
 }) {
+  const useExternal = presentation === "externalLink" && !!externalUrl
   const isDesktop = useMediaQuery("(min-width: 768px)")
+  const buttonText = (reviewButtonLabel || "Review & Accept").trim() || "Review & Accept"
+
+  const triggerClassName = link
+    ? "h-auto shrink-0 gap-0.5 px-2 py-1 text-xs font-medium leading-snug text-muted-foreground hover:text-foreground"
+    : compact
+      ? "h-7 px-2 text-xs shrink-0"
+      : "bg-[var(--brand)] hover:bg-[var(--brand)]/90 text-white shrink-0"
+
+  // External policy: open the merchant URL in a new tab — no dialog, and
+  // do not dismiss the policy bar (that strip stays available as a permanent link).
+  if (useExternal) {
+    return (
+      <Button
+        asChild
+        variant={link ? "ghost" : compact ? "outline" : "default"}
+        size="sm"
+        className={triggerClassName}
+      >
+        <a
+          href={externalUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {buttonText}
+          {link ? <ChevronRight className="size-3.5 shrink-0" /> : <ExternalLink className="size-3.5 shrink-0" />}
+        </a>
+      </Button>
+    )
+  }
 
   const trigger = link
     ? (
       <Button
         variant="ghost"
         size="sm"
-        className="h-auto shrink-0 gap-0.5 px-2 py-1 text-xs font-medium leading-snug text-muted-foreground hover:text-foreground"
+        className={triggerClassName}
       >
-        Review &amp; Accept
+        {buttonText}
         <ChevronRight className="size-3.5 shrink-0" />
       </Button>
     )
     : compact
-      ? <Button size="sm" variant="outline" className="h-7 px-2 text-xs shrink-0">Review &amp; Accept</Button>
-      : <Button size="sm" className="bg-[var(--brand)] hover:bg-[var(--brand)]/90 text-white shrink-0">Review &amp; Accept</Button>
+      ? <Button size="sm" variant="outline" className={triggerClassName}>{buttonText}</Button>
+      : <Button size="sm" className={triggerClassName}>{buttonText}</Button>
 
   if (isDesktop) {
     return (
@@ -2929,15 +2966,15 @@ function HygienePolicy({
             <DialogDescription>{subheading}</DialogDescription>
             {lastUpdated && <p className="text-xs text-muted-foreground">Last updated: {lastUpdated}</p>}
           </DialogHeader>
-          <div className="overflow-y-auto overflow-x-hidden max-h-[50vh] styled-scroll">
-            <HygienePolicyList itemPx="px-6" bodyMode={bodyMode} categories={categories} bodyText={bodyText} footerNoteEnabled={footerNoteEnabled} footerNote={footerNote} />
+          <div className="overflow-y-auto overflow-x-hidden max-h-[50vh] styled-scroll px-6 py-4">
+            <HygienePolicyList itemPx="px-0" bodyMode={bodyMode} categories={categories} bodyText={bodyText} footerNoteEnabled={footerNoteEnabled} footerNote={footerNote} />
           </div>
           <div className="flex gap-2 px-6 pb-6 pt-4">
             <DialogClose asChild>
-              <Button className="flex-1 bg-[var(--brand)] hover:bg-[var(--brand)]/90 text-white" onClick={() => { onAccept(); toast.success(acceptedMessage) }}><CheckCircle2 className="size-4" /> I Accept</Button>
+              <Button className="flex-1 bg-[var(--brand)] hover:bg-[var(--brand)]/90 text-white" onClick={() => { onAccept(); portalToast.success(acceptedMessage) }}><CheckCircle2 className="size-4" /> I Accept</Button>
             </DialogClose>
             <DialogClose asChild>
-              <Button variant="outline" className="flex-1" onClick={() => { onDecline(); toast.warning(declinedMessage) }}>Decline</Button>
+              <Button variant="outline" className="flex-1" onClick={() => { onDecline(); portalToast.warning(declinedMessage) }}>Decline</Button>
             </DialogClose>
           </div>
         </DialogContent>
@@ -2955,16 +2992,16 @@ function HygienePolicy({
           {lastUpdated && <p className="text-xs text-muted-foreground">Last updated: {lastUpdated}</p>}
         </DrawerHeader>
         <Separator />
-        <div className="overflow-y-auto overflow-x-hidden max-h-[45vh] styled-scroll">
-          <HygienePolicyList itemPx="px-4" bodyMode={bodyMode} categories={categories} bodyText={bodyText} footerNoteEnabled={footerNoteEnabled} footerNote={footerNote} />
+        <div className="overflow-y-auto overflow-x-hidden max-h-[45vh] styled-scroll px-4 py-3">
+          <HygienePolicyList itemPx="px-0" bodyMode={bodyMode} categories={categories} bodyText={bodyText} footerNoteEnabled={footerNoteEnabled} footerNote={footerNote} />
         </div>
         <DrawerFooter className="pt-2">
           <div className="flex gap-2">
             <DrawerClose asChild>
-              <Button className="flex-1 bg-[var(--brand)] hover:bg-[var(--brand)]/90 text-white" onClick={() => { onAccept(); toast.success(acceptedMessage) }}><CheckCircle2 className="size-4" /> I Accept</Button>
+              <Button className="flex-1 bg-[var(--brand)] hover:bg-[var(--brand)]/90 text-white" onClick={() => { onAccept(); portalToast.success(acceptedMessage) }}><CheckCircle2 className="size-4" /> I Accept</Button>
             </DrawerClose>
             <DrawerClose asChild>
-              <Button variant="outline" className="flex-1" onClick={() => { onDecline(); toast.warning(declinedMessage) }}>Decline</Button>
+              <Button variant="outline" className="flex-1" onClick={() => { onDecline(); portalToast.warning(declinedMessage) }}>Decline</Button>
             </DrawerClose>
           </div>
         </DrawerFooter>
@@ -3155,6 +3192,7 @@ const RETURN_REVIEW_VARIANT: "A" | "B" = "B"
 type OrderDetailBranding = {
   supportEmail: string
   requirePolicyAcceptance: boolean
+  returnReviewEnabled: boolean
   policyHeading: string
   policySubheading: string
   policyLastUpdated: string
@@ -3165,6 +3203,9 @@ type OrderDetailBranding = {
   policyFooterNote: string
   policyAcceptedMessage: string
   policyDeclinedMessage: string
+  policyPresentation: "dialog" | "externalLink"
+  policyExternalUrl: string
+  policyReviewButtonLabel: string
   tableSearchEnabled: boolean
   tableSearchPlaceholder: string
   tableColumnsButtonEnabled: boolean
@@ -3193,14 +3234,19 @@ function OrderDetail({
   branding: OrderDetailBranding
 }) {
   const {
-    supportEmail, requirePolicyAcceptance, policyHeading, policySubheading, policyLastUpdated,
+    supportEmail, requirePolicyAcceptance, returnReviewEnabled, policyHeading, policySubheading, policyLastUpdated,
     policyBodyMode, policyCategories, policyBodyText, policyFooterNoteEnabled, policyFooterNote,
-    policyAcceptedMessage, policyDeclinedMessage, tableSearchEnabled, tableSearchPlaceholder,
+    policyAcceptedMessage, policyDeclinedMessage, policyPresentation, policyExternalUrl,
+    policyReviewButtonLabel,
+    tableSearchEnabled, tableSearchPlaceholder,
     tableColumnsButtonEnabled, tableFilterButtonEnabled, tablePageSizeEnabled, shipmentCardsEnabled,
     productImageLinksEnabled, statusFilterEnabled, ineligibleMessageEnabled,
     eligibleLabel, ineligibleLabel, returnLifecycleMessages, returnLifecycleStyles, refundStatusLabels,
   } = branding
-  const [policyAccepted, setPolicyAccepted] = useState(!requirePolicyAcceptance)
+  const isExternalPolicy = policyPresentation === "externalLink" && !!policyExternalUrl
+  // External policy is a permanent link strip — selection is not gated on accept.
+  // Dialog mode still requires an explicit accept before items can be selected.
+  const [policyAccepted, setPolicyAccepted] = useState(!requirePolicyAcceptance || isExternalPolicy)
   const [selectedItems, setSelectedItems]   = useState<Record<string, { selected: boolean; quantity: number; reason: string; description: string }>>({})
   const [submitting, setSubmitting]   = useState(false)
   const [submitted, setSubmitted]     = useState(false)
@@ -3366,15 +3412,15 @@ function OrderDetail({
         setSubmitted(true)
         setTimeout(() => { window.location.href = orderStatusUrl }, 3000)
       } else if (res.status === 401) {
-        toast.error("Session expired", { description: "Please log in again to submit your return." })
+        portalToast.error("Session expired", { description: "Please log in again to submit your return." })
         setTimeout(() => { window.location.href = isAppsReturnsPortal() ? "/apps/returns" : "/" }, 1500)
       } else if (result.code === "ELIGIBILITY_CHANGED") {
-        toast.error("Eligibility changed", { description: "Some items are no longer eligible. Refreshing your order..." })
+        portalToast.error("Eligibility changed", { description: "Some items are no longer eligible. Refreshing your order..." })
         setTimeout(() => window.location.reload(), 2000)
       } else {
-        toast.error("Submission failed", { description: result.error || "Something went wrong." })
+        portalToast.error("Submission failed", { description: result.error || "Something went wrong." })
       }
-    } catch { toast.error("Network error", { description: "Please check your connection." }) }
+    } catch { portalToast.error("Network error", { description: "Please check your connection." }) }
     finally { setSubmitting(false) }
   }
 
@@ -3471,7 +3517,7 @@ function OrderDetail({
 
         {/* ── Option B: inline review card — same table layout (Product, Variant, Qty, Total)
              used for order-item selection, so the review step matches it exactly ── */}
-        {RETURN_REVIEW_VARIANT === "B" && showReview && (
+        {returnReviewEnabled && RETURN_REVIEW_VARIANT === "B" && showReview && (
           <Card className={cn(C, "overflow-hidden")}>
             <div className="px-5 py-4 border-b bg-muted/20 flex items-center gap-2">
               <CheckCircle2 className="size-4 text-foreground" />
@@ -3525,7 +3571,7 @@ function OrderDetail({
         )}
 
         {/* ── Unified order + items card ── */}
-        <Card className={cn(C, "overflow-hidden flex flex-col", order.cancelledAt && "border-red-200", RETURN_REVIEW_VARIANT === "B" && showReview && "hidden")}>
+        <Card className={cn(C, "overflow-hidden flex flex-col", order.cancelledAt && "border-red-200", returnReviewEnabled && RETURN_REVIEW_VARIANT === "B" && showReview && "hidden")}>
           {/* Cancelled accent stripe */}
           {order.cancelledAt && <div className="h-1 bg-red-400 w-full" />}
 
@@ -3607,12 +3653,16 @@ function OrderDetail({
 
           {!order.cancelledAt && (
             <>
-            {hasEligible && requirePolicyAcceptance && !policyAccepted && (
+            {hasEligible && requirePolicyAcceptance && (isExternalPolicy || !policyAccepted) && (
               <div className="flex items-center justify-between gap-3 border-b bg-muted/20 px-3 py-2.5">
                 <div className="flex min-w-0 items-center gap-2 overflow-hidden">
-                  <Lock className="size-3.5 shrink-0 text-foreground" aria-hidden />
+                  {isExternalPolicy ? (
+                    <Info className="size-3.5 shrink-0 text-foreground" aria-hidden />
+                  ) : (
+                    <Lock className="size-3.5 shrink-0 text-foreground" aria-hidden />
+                  )}
                   <span className="truncate text-xs font-medium leading-snug text-foreground">
-                    Accept our returns policy to select items to return
+                    {policySubheading || "Review our returns policy before selecting items to return."}
                   </span>
                 </div>
                 <HygienePolicy
@@ -3629,6 +3679,9 @@ function OrderDetail({
                   footerNote={policyFooterNote}
                   acceptedMessage={policyAcceptedMessage}
                   declinedMessage={policyDeclinedMessage}
+                  presentation={policyPresentation}
+                  externalUrl={policyExternalUrl}
+                  reviewButtonLabel={policyReviewButtonLabel}
                 />
               </div>
             )}
@@ -4061,7 +4114,7 @@ function OrderDetail({
             <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
               <Button variant="ghost" size="sm" onClick={onBack} className="text-muted-foreground hidden min-[1025px]:inline-flex">Cancel</Button>
               {/* Option B: when in review mode the footer shows Confirm instead */}
-              {RETURN_REVIEW_VARIANT === "B" && showReview ? (
+              {returnReviewEnabled && RETURN_REVIEW_VARIANT === "B" && showReview ? (
                 <>
                   <Button variant="outline" size="sm" onClick={() => setShowReview(false)} className="text-xs">Back</Button>
                   <Button size="sm" className="bg-[var(--brand)] hover:bg-[var(--brand)]/90 text-white disabled:opacity-50 text-xs font-bold" disabled={submitting} onClick={submitReturn}>
@@ -4071,11 +4124,13 @@ function OrderDetail({
               ) : (
                 <Button size="sm" className="bg-[var(--brand)] hover:bg-[var(--brand)]/90 text-white disabled:opacity-50 text-xs font-bold"
                   disabled={!canSubmit || submitting}
-                  onClick={RETURN_REVIEW_VARIANT === "A" ? () => setShowReview(true) : RETURN_REVIEW_VARIANT === "B" ? () => setShowReview(true) : submitReturn}
+                  onClick={returnReviewEnabled ? () => setShowReview(true) : submitReturn}
                 >
                   {submitting
                     ? <><Spinner className="size-3.5" /><span className="hidden min-[1025px]:inline ml-1">Submitting...</span></>
-                    : <><RotateCcw className="size-3.5" /><span className="hidden min-[1025px]:inline ml-1">Review return</span></>}
+                    : returnReviewEnabled
+                      ? <><RotateCcw className="size-3.5" /><span className="hidden min-[1025px]:inline ml-1">Review return</span></>
+                      : <><CheckCircle2 className="size-3.5" /><span className="hidden min-[1025px]:inline ml-1">Submit return</span></>}
                 </Button>
               )}
             </div>
@@ -4085,7 +4140,7 @@ function OrderDetail({
       </AnimatePresence>
 
       {/* ── Option A: confirmation dialog ── */}
-      {RETURN_REVIEW_VARIANT === "A" && (
+      {returnReviewEnabled && RETURN_REVIEW_VARIANT === "A" && (
         <Dialog open={showReview} onOpenChange={setShowReview}>
           <DialogContent className="max-w-md sm:max-w-lg">
             <DialogHeader>
@@ -4137,19 +4192,27 @@ function OrderDetail({
 // submitReturn) can see it without threading a prop through every layer.
 let DEMO_MODE = false
 
-export default function DashboardClient({ demo = false }: { demo?: boolean } = {}) {
+export default function DashboardClient({
+  demo = false,
+  /** Shown blurred behind Authenticating while a guest order is still loading
+   * (avoids a blank white flash between Find your order and the order page). */
+  authPlaceholder,
+}: {
+  demo?: boolean
+  authPlaceholder?: React.ReactNode
+} = {}) {
   DEMO_MODE = demo
   return (
     <SidebarLayoutProvider>
       <Suspense>
-        <DashboardClientInner />
+        <DashboardClientInner authPlaceholder={authPlaceholder} />
       </Suspense>
     </SidebarLayoutProvider>
   )
 }
 
 
-function DashboardClientInner() {
+function DashboardClientInner({ authPlaceholder }: { authPlaceholder?: React.ReactNode }) {
   const searchParams = useSearchParams()
   const { applyMerchantDefault } = useSidebarLayout()
   const [data, setData]                   = useState<OrdersData | null>(null)
@@ -4164,8 +4227,8 @@ function DashboardClientInner() {
   const [statusFilter, setStatusFilter]   = useState<string[]>([])
   const [activeSection, setActiveSection] = useState("#orders")
   const [branding, setBranding] = useState<TenantBranding>({
-    name: "", logoUrl: "", accentColor: "#000000", storefrontUrl: "", supportEmail: "",
-    requirePolicyAcceptance: true, storeLinkEnabled: true, storeLinkLabel: "Store",
+    name: "", logoUrl: "", logoHeight: 32, accentColor: "#000000", storefrontUrl: "", supportEmail: "",
+    requirePolicyAcceptance: true, returnReviewEnabled: true, storeLinkEnabled: true, storeLinkLabel: "Store",
     orderStatusLinkEnabled: true, orderStatusLinkLabel: "Order Status",
     policyHeading: "iBlaze Returns Policy", policySubheading: "Review our returns policy before selecting items to return.",
     policyLastUpdated: "",
@@ -4173,6 +4236,7 @@ function DashboardClientInner() {
     policyFooterNoteEnabled: true, policyFooterNote: DEFAULT_POLICY_FOOTER_NOTE,
     policyAcceptedMessage: "Policy accepted", policyDeclinedMessage: "Policy declined",
     sidebarLinks: [], sidebarNote: "", sidebarLayoutSwitcherEnabled: true, defaultSidebarLayout: "inset",
+    sidebarEnabled: true, lookupSidebarEnabled: true,
     headerSearchEnabled: true, headerSearchPlaceholder: "Search orders...",
     tableSearchEnabled: true, tableSearchPlaceholder: "Search product or variant...",
     tableColumnsButtonEnabled: true, tableFilterButtonEnabled: true, tablePageSizeEnabled: true,
@@ -4186,13 +4250,24 @@ function DashboardClientInner() {
     guestLookupLogoUrl: "",
     guestLookupOverlayOpacity: 40,
     guestLookupOverlayBlur: 0,
-    defaultOrderView: "grid", sidebarDefaultOpenOnDesktop: true, statusFilterEnabled: true,
+    guestLookupSnakeBorder: true,
+    guestLookupSideStyle: "image",
+    guestLookupGradientFrom: "#0f172a",
+    guestLookupGradientTo: "#334155",
+    defaultOrderView: "grid", sidebarDefaultOpenOnDesktop: getCachedSidebarDefaultOpen() ?? true, statusFilterEnabled: true,
     ineligibleMessageEnabled: true, sidebarAvatarEnabled: true, headerAvatarEnabled: true,
     eligibleLabel: "Eligible", ineligibleLabel: "Ineligible",
     returnLifecycleMessages: DEFAULT_TENANT_FIELDS.branding.returnLifecycleMessages,
     returnLifecycleStyles: DEFAULT_TENANT_FIELDS.branding.returnLifecycleStyles,
     refundStatusLabels: DEFAULT_TENANT_FIELDS.branding.refundStatusLabels,
     alwaysShowGuestLookup: false,
+    guestLookupEnabled: true,
+    loggedInLookupRequirePostcode: false,
+    policyPresentation: "dialog",
+    policyExternalUrl: "",
+    policyReviewButtonLabel: "Review & Accept",
+    toastPosition: "top-right",
+    portalCustomScript: "",
   })
   // False until accentColor holds a real (cached or fetched) tenant value —
   // the "#000000" placeholder above is a type-safe default, not a real
@@ -4210,8 +4285,13 @@ function DashboardClientInner() {
   // read, just via useLayoutEffect since this one needs to beat first paint.
   useLayoutEffect(() => {
     const cached = getCachedAccentColor()
-    if (cached) {
-      setBranding((b) => ({ ...b, accentColor: cached }))
+    const fromCss =
+      typeof document !== "undefined"
+        ? document.documentElement.style.getPropertyValue("--brand").trim()
+        : ""
+    const seed = cached || fromCss
+    if (seed) {
+      setBranding((b) => ({ ...b, accentColor: seed }))
       setAccentColorReady(true)
     }
   }, [])
@@ -4267,11 +4347,20 @@ function DashboardClientInner() {
       .then(d => {
         if (d.branding) {
           setBranding(d.branding)
-          applyMerchantDefault(d.branding.defaultSidebarLayout, d.branding.sidebarLayoutSwitcherEnabled)
+          applyMerchantDefault(
+            d.branding.defaultSidebarLayout,
+            d.branding.sidebarEnabled && d.branding.sidebarLayoutSwitcherEnabled,
+          )
           if (d.branding.defaultOrderView) setView(d.branding.defaultOrderView)
           if (d.branding.accentColor) {
             setCachedAccentColor(d.branding.accentColor)
             setAccentColorReady(true)
+          }
+          if (typeof d.branding.sidebarDefaultOpenOnDesktop === "boolean") {
+            setCachedSidebarDefaultOpen(d.branding.sidebarDefaultOpenOnDesktop)
+          }
+          if (d.branding.toastPosition) {
+            setPortalToastPosition(d.branding.toastPosition)
           }
         }
       })
@@ -4281,8 +4370,10 @@ function DashboardClientInner() {
   // Auto-select an order when ?order=<numericId> is in the URL (e.g. from Shopify
   // extension), or when a guest just verified exactly one order via the App
   // Proxy guest lookup form (they only ever have the one order to see).
+  // useLayoutEffect so guest handoff can reveal the order page without a
+  // paint of the empty "My Orders" list behind the authenticating blur.
   const autoOrderId = searchParams.get("order") ?? getGuestOrderId()
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!data || !autoOrderId) return
     const match = data.orders.find(o =>
       o.id.split("/").pop() === autoOrderId ||
@@ -4388,6 +4479,11 @@ function DashboardClientInner() {
 
   const user = { name: data?.firstName || "Customer", email: data?.email || "" }
   const orderHeaderStatus = selectedOrder ? getOrderHeaderStatusIcon(selectedOrder) : null
+  const guestOrderContext = isGuestOrderContext()
+  // Destination content isn't ready yet (orders still fetching, or guest
+  // order not selected). Hide the sidebar in that window so it can't flash
+  // expanded then snap shut once branding arrives.
+  const awaitingDestination = loading || (guestOrderContext && !selectedOrder)
 
   const portalContent = (
     <PortalShell
@@ -4395,8 +4491,9 @@ function DashboardClientInner() {
       onNavigate={s => { setActiveSection(s); setSelectedOrder(null) }}
       activeSection={activeSection}
       accentColor={branding.accentColor}
+      showSidebar={branding.sidebarEnabled && !awaitingDestination}
       branding={{
-        name: branding.name, logoUrl: branding.logoUrl, storefrontUrl: branding.storefrontUrl,
+        name: branding.name, logoUrl: branding.logoUrl, logoHeight: branding.logoHeight, storefrontUrl: branding.storefrontUrl,
         sidebarLinks: branding.sidebarLinks, sidebarNote: branding.sidebarNote,
         sidebarSubmenusExpandedByDefault: branding.sidebarSubmenusExpandedByDefault,
       }}
@@ -4571,15 +4668,39 @@ function DashboardClientInner() {
     </PortalShell>
   )
 
-  // Guest verified one order but the auto-select effect hasn't matched it
-  // into `selectedOrder` yet (fires on the render right after `data` loads,
-  // not the same render) — without this, there's a visible flash of the
-  // (empty, nav-less) "My Orders" list before it flips to the order detail.
-  // Keep the same loading overlay up until the order is actually selected.
-  if (loading || (isGuestOrderContext() && !selectedOrder)) {
+  // After guest lookup selects the searched order, hold Authenticating a
+  // beat so that order page (not Find your order / empty My Orders) is
+  // what’s visible behind the blur before it lifts.
+  const [guestOrderReveal, setGuestOrderReveal] = useState(false)
+  useEffect(() => {
+    if (!guestOrderContext || !selectedOrder || loading) {
+      setGuestOrderReveal(false)
+      return
+    }
+    const t = window.setTimeout(() => setGuestOrderReveal(true), 320)
+    return () => window.clearTimeout(t)
+  }, [guestOrderContext, selectedOrder, loading])
+
+  const showAuthOverlay =
+    awaitingDestination ||
+    (guestOrderContext && !!selectedOrder && !guestOrderReveal)
+
+  if (showAuthOverlay) {
+    // Backdrop priority for guest lookup:
+    //  1. Searched order page once selected (destination)
+    //  2. Else the previous Find your order screen (authPlaceholder) — not white
+    //  3. Else plain portal (logged-in loading)
+    const backdrop = selectedOrder
+      ? portalContent
+      : (guestOrderContext && authPlaceholder)
+        ? authPlaceholder
+        : portalContent
     return (
       <div className="relative overflow-hidden" style={{ height: "100dvh", width: "100vw" }}>
-        <div className="pointer-events-none select-none blur-xs brightness-95 h-full w-full">{portalContent}</div>
+        <PortalCustomScripts html={branding.portalCustomScript} />
+        <div className="pointer-events-none select-none blur-xs brightness-95 h-full w-full absolute inset-0">
+          {backdrop}
+        </div>
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/40 backdrop-blur-xs">
             <Card className="w-full max-w-xs mx-4 shadow-xl">
               <div className="flex flex-col items-center justify-center gap-3 py-8 px-6">
@@ -4606,5 +4727,10 @@ function DashboardClientInner() {
     )
   }
 
-  return portalContent
+  return (
+    <>
+      <PortalCustomScripts html={branding.portalCustomScript} />
+      {portalContent}
+    </>
+  )
 }

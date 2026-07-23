@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import DashboardClient from "@/components/dashboard-client";
 import { GuestLookupForm } from "@/components/apps-returns/guest-lookup-form";
 import { GuestPortalShell } from "@/components/apps-returns/guest-portal-shell";
 import { AuthenticatingCard } from "@/components/apps-returns/authenticating-card";
+import { PortalCustomScripts } from "@/components/apps-returns/portal-custom-scripts";
 import { setHideLegacySignOut } from "@/components/user-account-menu";
 import {
   storeAppsReturnsSession,
@@ -12,11 +13,13 @@ import {
   installAppsReturnsFetchPatch,
 } from "@/lib/apps-returns-client-session";
 import { setAppsReturnsPortal, setAppsReturnsIdentityKind, setGuestOrderContext } from "@/lib/apps-returns-portal-mode";
-import { setCachedAccentColor } from "@/lib/accent-color-cache";
+import { setCachedAccentColor, setCachedSidebarDefaultOpen } from "@/lib/accent-color-cache";
+import { setPortalToastPosition } from "@/lib/portal-toast";
 
 export type InitialBranding = {
   name: string
   logoUrl: string
+  logoHeight: number
   accentColor: string
   storefrontUrl: string
   storeLinkEnabled: boolean
@@ -25,7 +28,16 @@ export type InitialBranding = {
   sidebarNote: string
   sidebarLayoutSwitcherEnabled: boolean
   defaultSidebarLayout: "inset" | "sidebar"
+  sidebarEnabled: boolean
+  lookupSidebarEnabled: boolean
+  sidebarDefaultOpenOnDesktop: boolean
+  sidebarAvatarEnabled: boolean
+  headerAvatarEnabled: boolean
   sidebarSubmenusExpandedByDefault: boolean
+  orderStatusLinkEnabled: boolean
+  orderStatusLinkLabel: string
+  headerSearchEnabled: boolean
+  headerSearchPlaceholder: string
   guestBackgroundStyle: "none" | "shapeGrid" | "dotField"
   guestLookupLayout: "classic" | "split"
   guestLookupHeadline: string
@@ -35,14 +47,22 @@ export type InitialBranding = {
   guestLookupLogoUrl: string
   guestLookupOverlayOpacity: number
   guestLookupOverlayBlur: number
+  guestLookupSnakeBorder: boolean
+  guestLookupSideStyle: "image" | "gradient"
+  guestLookupGradientFrom: string
+  guestLookupGradientTo: string
+  toastPosition: "top-left" | "top-center" | "top-right" | "bottom-left" | "bottom-center" | "bottom-right"
+  portalCustomScript: string
+  loggedInLookupRequirePostcode: boolean
 }
 
 export type GateInitial =
   | { kind: "unsigned" }
   | { kind: "not-set-up"; shop: string }
-  | { kind: "logged-in" }
+  | { kind: "logged-in"; branding: Pick<InitialBranding, "accentColor" | "toastPosition" | "portalCustomScript"> }
   | { kind: "logged-in-lookup"; branding: InitialBranding }
-  | { kind: "guest-or-login"; branding: InitialBranding };
+  | { kind: "guest-or-login"; branding: InitialBranding }
+  | { kind: "guest-login-required" };
 
 /**
  * Client-side identity resolution + portal rendering for the App Proxy
@@ -93,6 +113,29 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
     : null
   );
 
+  // Seed accent + toast position as soon as we have server branding — before
+  // paint of AuthenticatingCard / GuestPortalShell so a freshly changed accent
+  // never flashes the previous cached (or default) colour.
+  if (
+    initial.kind === "logged-in" ||
+    initial.kind === "guest-or-login" ||
+    initial.kind === "logged-in-lookup"
+  ) {
+    if (initial.branding.accentColor) {
+      setCachedAccentColor(initial.branding.accentColor);
+      if (typeof document !== "undefined") {
+        document.documentElement.style.setProperty("--brand", initial.branding.accentColor);
+      }
+    }
+    setPortalToastPosition(initial.branding.toastPosition);
+    if (
+      (initial.kind === "guest-or-login" || initial.kind === "logged-in-lookup") &&
+      typeof initial.branding.sidebarDefaultOpenOnDesktop === "boolean"
+    ) {
+      setCachedSidebarDefaultOpen(initial.branding.sidebarDefaultOpenOnDesktop);
+    }
+  }
+
   useEffect(() => {
     installAppsReturnsFetchPatch();
 
@@ -130,15 +173,55 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
     setReady(false);
   }
 
-  if (ready) return <DashboardClient />;
+  function openVerifiedOrder(token: string, orderId: string, branding: InitialBranding) {
+    storeAppsReturnsSession(token);
+    // Seed the cache DashboardClient reads on its first paint so its
+    // Authenticating overlay shows the tenant's actual color immediately.
+    setCachedAccentColor(branding.accentColor);
+    setCachedSidebarDefaultOpen(branding.sidebarDefaultOpenOnDesktop);
+    setPortalToastPosition(branding.toastPosition);
+    const numericOrderId = orderId.split("/").pop() ?? null;
+    setGuestOrderContext(numericOrderId, handleLookupAnother);
+    setReady(true);
+  }
 
   if (error) {
     return <Notice title="Couldn't sign you in" body={error} />;
   }
 
   if (signingIn) {
-    return <AuthenticatingCard />;
+    const accent =
+      initial.kind === "logged-in" ? initial.branding.accentColor : undefined;
+    return <AuthenticatingCard accentColor={accent} />;
   }
+
+  // After lookup verifies an order, pass the Find your order screen as the
+  // auth placeholder so Authenticating never flashes a blank white page
+  // while the order loads — then DashboardClient swaps in the order page.
+  if (ready && (initial.kind === "guest-or-login" || initial.kind === "logged-in-lookup")) {
+    return (
+      <DashboardClient
+        authPlaceholder={
+          <LookupScreen
+            branding={initial.branding}
+            loginUrl={
+              initial.kind === "guest-or-login"
+                ? `/customer_authentication/login?return_to=${encodeURIComponent("/apps/returns")}`
+                : undefined
+            }
+            requirePostcode={
+              initial.kind === "logged-in-lookup"
+                ? initial.branding.loggedInLookupRequirePostcode
+                : true
+            }
+            onVerified={() => {}}
+          />
+        }
+      />
+    );
+  }
+
+  if (ready) return <DashboardClient />;
 
   switch (initial.kind) {
     case "unsigned":
@@ -158,77 +241,84 @@ export function ClientPortalGate({ initial }: { initial: GateInitial }) {
     case "logged-in":
       // useEffect above is about to fire the session fetch; signingIn covers
       // the visible state a beat later. Avoid a flash of guest UI here.
-      return <AuthenticatingCard />;
+      return <AuthenticatingCard accentColor={initial.branding.accentColor} />;
+    case "guest-login-required":
+      return <RedirectToStoreLogin />;
     case "guest-or-login": {
-      const loginUrl = `/account/login?return_url=${encodeURIComponent("/apps/returns")}`;
+      const loginUrl = `/customer_authentication/login?return_to=${encodeURIComponent("/apps/returns")}`;
       return (
-        <GuestPortalShell branding={initial.branding} title={initial.branding.name || "Returns"}>
-          <GuestLookupForm
-            layout={initial.branding.guestLookupLayout}
-            brandName={initial.branding.name}
-            logoUrl={
-              initial.branding.guestLookupBrandDisplay === "logo"
-                ? (initial.branding.guestLookupLogoUrl || initial.branding.logoUrl)
-                : undefined
-            }
-            brandDisplay={initial.branding.guestLookupBrandDisplay}
-            heroImageUrl={initial.branding.guestLookupHeroUrl || undefined}
-            headline={initial.branding.guestLookupHeadline}
-            subtext={initial.branding.guestLookupSubtext}
-            overlayOpacity={initial.branding.guestLookupOverlayOpacity}
-            overlayBlur={initial.branding.guestLookupOverlayBlur}
-            loginUrl={loginUrl}
-            onVerified={(token, order) => {
-              storeAppsReturnsSession(token);
-              // We already have the real accent color server-side (it came
-              // down in `initial.branding`) — seed the cache DashboardClient
-              // reads on its first paint so its "Authenticating" overlay
-              // shows the tenant's actual color immediately instead of
-              // flashing neutral gray while it re-fetches branding itself.
-              setCachedAccentColor(initial.branding.accentColor);
-              const numericOrderId = order.id.split("/").pop() ?? null;
-              setGuestOrderContext(numericOrderId, handleLookupAnother);
-              setReady(true);
-            }}
-          />
-        </GuestPortalShell>
+        <LookupScreen
+          branding={initial.branding}
+          loginUrl={loginUrl}
+          onVerified={(token, order) => openVerifiedOrder(token, order.id, initial.branding)}
+        />
       );
     }
     case "logged-in-lookup":
       // Merchant has alwaysShowGuestLookup on: even though the App Proxy
       // confirms this browser IS logged in, skip the auto full-history
       // session and show the lookup form instead — scoped to one order
-      // (like a guest), but no postcode needed since the store login itself
-      // is verified server-side against the looked-up order's customer ID
-      // (see loggedInOrderMatches in lib/guest-order-match.ts).
+      // (like a guest). Postcode is skipped by default (login is enough);
+      // merchants can require it via loggedInLookupRequirePostcode.
       return (
-        <GuestPortalShell branding={initial.branding} title={initial.branding.name || "Returns"}>
-          <GuestLookupForm
-            requirePostcode={false}
-            layout={initial.branding.guestLookupLayout}
-            brandName={initial.branding.name}
-            logoUrl={
-              initial.branding.guestLookupBrandDisplay === "logo"
-                ? (initial.branding.guestLookupLogoUrl || initial.branding.logoUrl)
-                : undefined
-            }
-            brandDisplay={initial.branding.guestLookupBrandDisplay}
-            heroImageUrl={initial.branding.guestLookupHeroUrl || undefined}
-            headline={initial.branding.guestLookupHeadline}
-            subtext={initial.branding.guestLookupSubtext}
-            overlayOpacity={initial.branding.guestLookupOverlayOpacity}
-            overlayBlur={initial.branding.guestLookupOverlayBlur}
-            onVerified={(token, order) => {
-              storeAppsReturnsSession(token);
-              setCachedAccentColor(initial.branding.accentColor);
-              const numericOrderId = order.id.split("/").pop() ?? null;
-              setGuestOrderContext(numericOrderId, handleLookupAnother);
-              setReady(true);
-            }}
-          />
-        </GuestPortalShell>
+        <LookupScreen
+          branding={initial.branding}
+          requirePostcode={initial.branding.loggedInLookupRequirePostcode}
+          onVerified={(token, order) => openVerifiedOrder(token, order.id, initial.branding)}
+        />
       );
   }
+}
+
+function LookupScreen({
+  branding,
+  loginUrl,
+  requirePostcode = true,
+  onVerified,
+}: {
+  branding: InitialBranding
+  loginUrl?: string
+  requirePostcode?: boolean
+  onVerified: (token: string, order: { id: string }) => void
+}) {
+  return (
+    <GuestPortalShell branding={branding} title={branding.name || "Returns"}>
+      <PortalCustomScripts html={branding.portalCustomScript} />
+      <GuestLookupForm
+        requirePostcode={requirePostcode}
+        layout={branding.guestLookupLayout}
+        brandName={branding.name}
+        logoUrl={
+          branding.guestLookupBrandDisplay === "logo"
+            ? (branding.guestLookupLogoUrl || branding.logoUrl)
+            : undefined
+        }
+        brandDisplay={branding.guestLookupBrandDisplay}
+        heroImageUrl={branding.guestLookupHeroUrl || undefined}
+        headline={branding.guestLookupHeadline}
+        subtext={branding.guestLookupSubtext}
+        overlayOpacity={branding.guestLookupOverlayOpacity}
+        overlayBlur={branding.guestLookupOverlayBlur}
+        snakeBorder={branding.guestLookupSnakeBorder}
+        sideStyle={branding.guestLookupSideStyle}
+        gradientFrom={branding.guestLookupGradientFrom}
+        gradientTo={branding.guestLookupGradientTo}
+        loginUrl={loginUrl}
+        onVerified={onVerified}
+      />
+    </GuestPortalShell>
+  );
+}
+
+/** Guest lookup disabled — jump to Shopify login, then return_to brings them back to the portal. */
+function RedirectToStoreLogin() {
+  useLayoutEffect(() => {
+    // New Customer Accounts: /customer_authentication/login?return_to=… (relative path only).
+    // Legacy /account/login?return_url= often dumps people on the account orders page instead.
+    const loginUrl = `/customer_authentication/login?return_to=${encodeURIComponent("/apps/returns")}`;
+    window.location.replace(loginUrl);
+  }, []);
+  return null;
 }
 
 function Notice({ title, body }: { title: string; body: string }) {

@@ -94,10 +94,14 @@ export type RefundStatusLabels = Record<RefundStatus, string>;
 export type TenantBranding = {
   name: string;
   logoUrl: string;
+  /** Portal logo height in pixels (sidebar + header). Default 32. */
+  logoHeight: number;
   accentColor: string;
   storefrontUrl: string;
   supportEmail: string;
   requirePolicyAcceptance: boolean;
+  /** When true, customers see a Review return step before submitting. */
+  returnReviewEnabled: boolean;
   storeLinkEnabled: boolean;
   storeLinkLabel: string;
   orderStatusLinkEnabled: boolean;
@@ -119,6 +123,10 @@ export type TenantBranding = {
   sidebarNote: string;
   sidebarLayoutSwitcherEnabled: boolean;
   defaultSidebarLayout: SidebarLayout;
+  /** When false, the portal has no sidebar — the main content uses the full width. */
+  sidebarEnabled: boolean;
+  /** When false, Find your order / lookup screens hide the sidebar (inset fills the space). Ignored when sidebarEnabled is false. */
+  lookupSidebarEnabled: boolean;
   headerSearchEnabled: boolean;
   headerSearchPlaceholder: string;
   tableSearchEnabled: boolean;
@@ -146,6 +154,14 @@ export type TenantBranding = {
   guestLookupOverlayOpacity: number;
   /** Backdrop blur on the hero image in pixels (0–24). */
   guestLookupOverlayBlur: number;
+  /** Animated conic “snake” border around the lookup card. */
+  guestLookupSnakeBorder: boolean;
+  /** Split left panel: photo or colour gradient. */
+  guestLookupSideStyle: "image" | "gradient";
+  /** Gradient start colour (hex) when side style is gradient. */
+  guestLookupGradientFrom: string;
+  /** Gradient end colour (hex) when side style is gradient. */
+  guestLookupGradientTo: string;
   defaultOrderView: "list" | "grid";
   sidebarDefaultOpenOnDesktop: boolean;
   statusFilterEnabled: boolean;
@@ -158,6 +174,20 @@ export type TenantBranding = {
   returnLifecycleMessages: ReturnLifecycleMessages;
   refundStatusLabels: RefundStatusLabels;
   alwaysShowGuestLookup: boolean;
+  /** When false, unauthenticated visitors are sent to Shopify login instead of the guest lookup form. */
+  guestLookupEnabled: boolean;
+  /** When true, logged-in customers on the lookup form must also enter delivery postcode. */
+  loggedInLookupRequirePostcode: boolean;
+  /** How customers review the returns policy before selecting items. */
+  policyPresentation: "dialog" | "externalLink";
+  /** External policy URL when policyPresentation is externalLink. */
+  policyExternalUrl: string;
+  /** Label for the Review & Accept button (dialog trigger or external link). */
+  policyReviewButtonLabel: string;
+  /** Sonner toast corner/edge for customer portal messages. */
+  toastPosition: "top-left" | "top-center" | "top-right" | "bottom-left" | "bottom-center" | "bottom-right";
+  /** Optional HTML/JS snippet injected into the customer portal (chat widgets, etc.). */
+  portalCustomScript: string;
 };
 
 export const DEFAULT_TENANT_FIELDS = {
@@ -166,10 +196,12 @@ export const DEFAULT_TENANT_FIELDS = {
   branding: {
     name: "",
     logoUrl: "",
+    logoHeight: 32,
     accentColor: "#000000",
     storefrontUrl: "",
     supportEmail: "",
     requirePolicyAcceptance: true,
+    returnReviewEnabled: true,
     storeLinkEnabled: true,
     storeLinkLabel: "Store",
     orderStatusLinkEnabled: true,
@@ -193,6 +225,8 @@ export const DEFAULT_TENANT_FIELDS = {
     sidebarNote: "",
     sidebarLayoutSwitcherEnabled: true,
     defaultSidebarLayout: "inset",
+    sidebarEnabled: true,
+    lookupSidebarEnabled: true,
     headerSearchEnabled: true,
     headerSearchPlaceholder: "Search orders...",
     tableSearchEnabled: true,
@@ -212,6 +246,10 @@ export const DEFAULT_TENANT_FIELDS = {
     guestLookupLogoUrl: "",
     guestLookupOverlayOpacity: 40,
     guestLookupOverlayBlur: 0,
+    guestLookupSnakeBorder: true,
+    guestLookupSideStyle: "image",
+    guestLookupGradientFrom: "#0f172a",
+    guestLookupGradientTo: "#334155",
     defaultOrderView: "grid",
     sidebarDefaultOpenOnDesktop: true,
     statusFilterEnabled: true,
@@ -249,5 +287,12 @@ export const DEFAULT_TENANT_FIELDS = {
       refunded: "Refunded",
     },
     alwaysShowGuestLookup: false,
+    guestLookupEnabled: true,
+    loggedInLookupRequirePostcode: false,
+    policyPresentation: "dialog",
+    policyExternalUrl: "",
+    policyReviewButtonLabel: "Review & Accept",
+    toastPosition: "top-right",
+    portalCustomScript: "",
   } satisfies TenantBranding,
 };

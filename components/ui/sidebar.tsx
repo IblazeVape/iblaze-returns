@@ -69,10 +69,18 @@ function SidebarProvider({
   const isMobile = useIsMobile()
   const [openMobile, setOpenMobile] = React.useState(false)
   const [_open, _setOpen] = React.useState(defaultOpen)
+  const userToggledOpen = React.useRef(false)
+  // Merchant setting can arrive after mount (DashboardClient branding fetch).
+  // Keep in sync until the customer toggles the sidebar themselves.
+  React.useEffect(() => {
+    if (userToggledOpen.current) return
+    _setOpen(defaultOpen)
+  }, [defaultOpen])
   const open = openProp ?? _open
   const setOpen = React.useCallback(
     (value: boolean | ((value: boolean) => boolean)) => {
       const openState = typeof value === "function" ? value(open) : value
+      userToggledOpen.current = true
       if (setOpenProp) {
         setOpenProp(openState)
       } else {

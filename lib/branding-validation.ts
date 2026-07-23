@@ -34,11 +34,13 @@ export type RefundStatusLabelsInput = Record<RefundStatusInput, string>;
 export type BrandingInput = {
   name: string;
   logoUrl: string;
+  logoHeight: number;
   accentColor: string;
   storefrontUrl: string;
   supportEmail: string;
   returnWindowDays: number;
   requirePolicyAcceptance: boolean;
+  returnReviewEnabled: boolean;
   storeLinkEnabled: boolean;
   storeLinkLabel: string;
   orderStatusLinkEnabled: boolean;
@@ -57,6 +59,8 @@ export type BrandingInput = {
   sidebarNote: string;
   sidebarLayoutSwitcherEnabled: boolean;
   defaultSidebarLayout: "inset" | "sidebar";
+  sidebarEnabled: boolean;
+  lookupSidebarEnabled: boolean;
   headerSearchEnabled: boolean;
   headerSearchPlaceholder: string;
   tableSearchEnabled: boolean;
@@ -76,6 +80,10 @@ export type BrandingInput = {
   guestLookupLogoUrl: string;
   guestLookupOverlayOpacity: number;
   guestLookupOverlayBlur: number;
+  guestLookupSnakeBorder: boolean;
+  guestLookupSideStyle: "image" | "gradient";
+  guestLookupGradientFrom: string;
+  guestLookupGradientTo: string;
   defaultOrderView: "list" | "grid";
   sidebarDefaultOpenOnDesktop: boolean;
   statusFilterEnabled: boolean;
@@ -88,6 +96,13 @@ export type BrandingInput = {
   returnLifecycleMessages: ReturnLifecycleMessagesInput;
   refundStatusLabels: RefundStatusLabelsInput;
   alwaysShowGuestLookup: boolean;
+  guestLookupEnabled: boolean;
+  loggedInLookupRequirePostcode: boolean;
+  policyPresentation: "dialog" | "externalLink";
+  policyExternalUrl: string;
+  policyReviewButtonLabel: string;
+  toastPosition: "top-left" | "top-center" | "top-right" | "bottom-left" | "bottom-center" | "bottom-right";
+  portalCustomScript: string;
 };
 
 const HEX_COLOR_RE = /^#[0-9a-fA-F]{6}$/;
@@ -129,6 +144,9 @@ export function validateBrandingInput(
   if (input.logoUrl && !isValidUrl(input.logoUrl)) {
     errors.logoUrl = "Must be a valid URL.";
   }
+  if (!Number.isInteger(input.logoHeight) || input.logoHeight < 16 || input.logoHeight > 64) {
+    errors.logoHeight = "Must be a whole number from 16 to 64.";
+  }
   if (input.guestLookupLayout !== "classic" && input.guestLookupLayout !== "split") {
     errors.guestLookupLayout = "Must be classic or split.";
   }
@@ -164,6 +182,53 @@ export function validateBrandingInput(
     input.guestLookupOverlayBlur > 24
   ) {
     errors.guestLookupOverlayBlur = "Must be a whole number from 0 to 24.";
+  }
+
+  if (typeof input.guestLookupSnakeBorder !== "boolean") {
+    errors.guestLookupSnakeBorder = "Must be true or false.";
+  }
+  if (input.guestLookupSideStyle !== "image" && input.guestLookupSideStyle !== "gradient") {
+    errors.guestLookupSideStyle = "Must be image or gradient.";
+  }
+  if (!HEX_COLOR_RE.test(input.guestLookupGradientFrom)) {
+    errors.guestLookupGradientFrom = "Must be a hex color like #0F172A.";
+  }
+  if (!HEX_COLOR_RE.test(input.guestLookupGradientTo)) {
+    errors.guestLookupGradientTo = "Must be a hex color like #334155.";
+  }
+
+  if (input.policyPresentation !== "dialog" && input.policyPresentation !== "externalLink") {
+    errors.policyPresentation = "Must be dialog or externalLink.";
+  }
+  if (input.policyPresentation === "externalLink") {
+    if (!input.policyExternalUrl) {
+      errors.policyExternalUrl = "Enter a policy URL, or switch back to the in-app dialog.";
+    } else if (!isValidUrl(input.policyExternalUrl)) {
+      errors.policyExternalUrl = "Must be a valid URL.";
+    }
+  } else if (input.policyExternalUrl && !isValidUrl(input.policyExternalUrl)) {
+    errors.policyExternalUrl = "Must be a valid URL.";
+  }
+  if (!input.policyReviewButtonLabel.trim()) {
+    errors.policyReviewButtonLabel = "Enter button text.";
+  } else if (input.policyReviewButtonLabel.length > STORE_LINK_LABEL_MAX_LENGTH) {
+    errors.policyReviewButtonLabel = `Must be ${STORE_LINK_LABEL_MAX_LENGTH} characters or fewer.`;
+  }
+  const toastPositions = ["top-left","top-center","top-right","bottom-left","bottom-center","bottom-right"] as const;
+  if (!toastPositions.includes(input.toastPosition as typeof toastPositions[number])) {
+    errors.toastPosition = "Pick a toast position.";
+  }
+  if (input.portalCustomScript.length > 20000) {
+    errors.portalCustomScript = "Must be 20000 characters or fewer.";
+  }
+  if (typeof input.guestLookupEnabled !== "boolean") {
+    errors.guestLookupEnabled = "Must be true or false.";
+  }
+  if (typeof input.alwaysShowGuestLookup !== "boolean") {
+    errors.alwaysShowGuestLookup = "Must be true or false.";
+  }
+  if (typeof input.loggedInLookupRequirePostcode !== "boolean") {
+    errors.loggedInLookupRequirePostcode = "Must be true or false.";
   }
   if (input.storefrontUrl && !isValidUrl(input.storefrontUrl)) {
     errors.storefrontUrl = "Must be a valid URL.";

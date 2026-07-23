@@ -16,6 +16,7 @@ import type { InitialBranding } from "@/components/apps-returns/client-portal-ga
 const PREVIEW_BRANDING: InitialBranding = {
   name: "iBlaze",
   logoUrl: "https://cdn.shopify.com/s/files/1/0941/5383/4761/files/IblazeLogo.png?v=14858",
+  logoHeight: 32,
   accentColor: "#111111",
   storefrontUrl: "https://iblazevape.co.uk",
   storeLinkEnabled: true,
@@ -24,7 +25,16 @@ const PREVIEW_BRANDING: InitialBranding = {
   sidebarNote: "",
   sidebarLayoutSwitcherEnabled: false,
   defaultSidebarLayout: "inset",
+  sidebarEnabled: true,
+  lookupSidebarEnabled: true,
+  sidebarDefaultOpenOnDesktop: false,
+  sidebarAvatarEnabled: true,
+  headerAvatarEnabled: true,
   sidebarSubmenusExpandedByDefault: false,
+  orderStatusLinkEnabled: true,
+  orderStatusLinkLabel: "Order Status",
+  headerSearchEnabled: false,
+  headerSearchPlaceholder: "Search orders...",
   guestBackgroundStyle: "shapeGrid",
   guestLookupLayout: "split",
   guestLookupHeadline: "Return your order with ease",
@@ -34,6 +44,13 @@ const PREVIEW_BRANDING: InitialBranding = {
   guestLookupLogoUrl: "",
   guestLookupOverlayOpacity: 40,
   guestLookupOverlayBlur: 0,
+  guestLookupSnakeBorder: true,
+  guestLookupSideStyle: "image",
+  guestLookupGradientFrom: "#0f172a",
+  guestLookupGradientTo: "#334155",
+  toastPosition: "top-right",
+  portalCustomScript: "",
+  loggedInLookupRequirePostcode: false,
 };
 
 function GuestLookupDemoInner() {
@@ -51,6 +68,10 @@ function GuestLookupDemoInner() {
         subtext={PREVIEW_BRANDING.guestLookupSubtext}
         overlayOpacity={PREVIEW_BRANDING.guestLookupOverlayOpacity}
         overlayBlur={PREVIEW_BRANDING.guestLookupOverlayBlur}
+        snakeBorder={PREVIEW_BRANDING.guestLookupSnakeBorder}
+        sideStyle={PREVIEW_BRANDING.guestLookupSideStyle}
+        gradientFrom={PREVIEW_BRANDING.guestLookupGradientFrom}
+        gradientTo={PREVIEW_BRANDING.guestLookupGradientTo}
         loginUrl="#login-preview"
         onVerified={() => {}}
       />

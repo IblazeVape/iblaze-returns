@@ -21,9 +21,9 @@ function normalizeEmail(v: string): string {
  * Two-factor guest-order match: email (case-insensitive) AND postcode
  * (whitespace/case-insensitive) must both match the order's real Shopify
  * data. Either factor missing/mismatched fails the whole match — this is the
- * hardening beyond email-only lookup. Always required for logged-out guests
- * (not merchant-configurable — see loggedInOrderMatches for the logged-in
- * path, which is the only one that skips postcode).
+ * hardening beyond email-only lookup. Always required for logged-out guests.
+ * Logged-in customers skip postcode unless the merchant enables
+ * loggedInLookupRequirePostcode (see shippingPostcodeMatches).
  */
 export function guestOrderMatches(
   order: ShopifyOrderForMatch | null | undefined,
@@ -41,6 +41,17 @@ export function guestOrderMatches(
   const postcodeMatches = orderZip === normalizePostcode(candidatePostcode);
 
   return emailMatches && postcodeMatches;
+}
+
+/** Delivery postcode check only — used when a logged-in lookup also requires postcode. */
+export function shippingPostcodeMatches(
+  order: ShopifyOrderForMatch | null | undefined,
+  candidatePostcode: string
+): boolean {
+  if (!order) return false;
+  const orderZip = order.shippingAddress?.zip ? normalizePostcode(order.shippingAddress.zip) : null;
+  if (!orderZip || !candidatePostcode.trim()) return false;
+  return orderZip === normalizePostcode(candidatePostcode);
 }
 
 /**

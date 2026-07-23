@@ -5,6 +5,8 @@ import { useSidebarLayout } from "@/components/sidebar-layout-provider"
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
+import { setCachedAccentColor } from "@/lib/accent-color-cache"
+import { cn } from "@/lib/utils"
 
 /**
  * The one shell — sidebar + header — every screen of the portal renders
@@ -23,6 +25,8 @@ export function PortalShell({
   sidebarAvatarEnabled = true,
   headerAvatarEnabled = true,
   sidebarDefaultOpenOnDesktop = true,
+  /** When false, AppSidebar is omitted and the main column uses the full width. */
+  showSidebar = true,
   headerProps,
   children,
 }: {
@@ -49,6 +53,7 @@ export function PortalShell({
     name: string
     logoUrl: string
     storefrontUrl: string
+    logoHeight?: number
     sidebarLinks?: { label: string; url: string; icon?: string; children?: { label: string; url: string; icon?: string }[] }[]
     sidebarNote?: string
     sidebarSubmenusExpandedByDefault?: boolean
@@ -59,6 +64,7 @@ export function PortalShell({
   headerAvatarEnabled?: boolean
   /** Whether the sidebar starts open or collapsed on desktop. */
   sidebarDefaultOpenOnDesktop?: boolean
+  showSidebar?: boolean
   headerProps: React.ComponentProps<typeof SiteHeader>
   children?: React.ReactNode
 }) {
@@ -75,10 +81,11 @@ export function PortalShell({
   // inside PortalShell itself (inline styles have higher specificity than
   // the inherited value from an ancestor), so it's kept for that fast path.
   React.useEffect(() => {
+    if (!accentColor) return
     document.documentElement.style.setProperty("--brand", accentColor)
-    return () => {
-      document.documentElement.style.removeProperty("--brand")
-    }
+    setCachedAccentColor(accentColor)
+    // Do not remove --brand on unmount — GuestPortalShell → DashboardClient
+    // remounts the shell and clearing here flashes the default spinner colour.
   }, [accentColor])
 
   return (
@@ -90,12 +97,36 @@ export function PortalShell({
           "--sidebar-width-icon": "3.75rem",
           "--header-height": "3rem",
           "--brand": accentColor,
+          "--brand-logo-height": `${Math.min(64, Math.max(16, branding?.logoHeight || 32))}px`,
         } as React.CSSProperties
       }
     >
-      <AppSidebar variant={layout} user={user} onNavigate={onNavigate} activeSection={activeSection} branding={branding} avatarEnabled={sidebarAvatarEnabled} />
-      <SidebarInset className="min-w-0">
-        <SiteHeader {...headerProps} showAccountMenu={hideIdentity ? false : headerAvatarEnabled} />
+      {showSidebar ? (
+        <AppSidebar
+          variant={layout}
+          user={user}
+          onNavigate={onNavigate}
+          activeSection={activeSection}
+          branding={branding}
+          avatarEnabled={sidebarAvatarEnabled}
+        />
+      ) : null}
+      <SidebarInset
+        className={cn(
+          "min-w-0",
+          // Without a sidebar peer, inset margin/rounding still look intentional
+          // as a full-bleed card on desktop when the merchant uses inset layout.
+          !showSidebar && layout === "inset" && "min-[1025px]:m-2 min-[1025px]:rounded-xl min-[1025px]:shadow-xs dark:min-[1025px]:border dark:min-[1025px]:border-white/10",
+        )}
+      >
+        <SiteHeader
+          {...headerProps}
+          showSidebarToggle={showSidebar ? (headerProps.showSidebarToggle ?? true) : false}
+          showAccountMenu={hideIdentity ? false : headerAvatarEnabled}
+          brandLogoUrl={!showSidebar ? branding?.logoUrl : undefined}
+          brandName={!showSidebar ? branding?.name : undefined}
+          brandLogoHeight={!showSidebar ? branding?.logoHeight : undefined}
+        />
         {children}
       </SidebarInset>
     </SidebarProvider>

@@ -48,11 +48,25 @@ export default async function AppProxyReturnsPage({
     if (!tenant?.accessToken) {
       initial = { kind: "not-set-up", shop };
     } else if (loggedInCustomerId && !tenant.branding.alwaysShowGuestLookup) {
-      initial = { kind: "logged-in" };
+      // Pass accent (+ toast/script) so AuthenticatingCard paints the real
+      // brand colour immediately — no wait for /api/branding after mint.
+      initial = {
+        kind: "logged-in",
+        branding: {
+          accentColor: tenant.branding.accentColor,
+          toastPosition: tenant.branding.toastPosition,
+          portalCustomScript: tenant.branding.portalCustomScript,
+        },
+      };
+    } else if (!loggedInCustomerId && !tenant.branding.guestLookupEnabled) {
+      // Merchant disabled guest lookup — clientside redirect to store login
+      // (App Proxy rewrites server Location headers, so we cannot 302 here).
+      initial = { kind: "guest-login-required" };
     } else {
       const branding: InitialBranding = {
         name: tenant.branding.name,
         logoUrl: tenant.branding.logoUrl,
+        logoHeight: tenant.branding.logoHeight,
         accentColor: tenant.branding.accentColor,
         storefrontUrl: tenant.branding.storefrontUrl,
         storeLinkEnabled: tenant.branding.storeLinkEnabled,
@@ -61,7 +75,16 @@ export default async function AppProxyReturnsPage({
         sidebarNote: tenant.branding.sidebarNote,
         sidebarLayoutSwitcherEnabled: tenant.branding.sidebarLayoutSwitcherEnabled,
         defaultSidebarLayout: tenant.branding.defaultSidebarLayout,
+        sidebarEnabled: tenant.branding.sidebarEnabled,
+        lookupSidebarEnabled: tenant.branding.lookupSidebarEnabled,
+        sidebarDefaultOpenOnDesktop: tenant.branding.sidebarDefaultOpenOnDesktop,
+        sidebarAvatarEnabled: tenant.branding.sidebarAvatarEnabled,
+        headerAvatarEnabled: tenant.branding.headerAvatarEnabled,
         sidebarSubmenusExpandedByDefault: tenant.branding.sidebarSubmenusExpandedByDefault,
+        orderStatusLinkEnabled: tenant.branding.orderStatusLinkEnabled,
+        orderStatusLinkLabel: tenant.branding.orderStatusLinkLabel,
+        headerSearchEnabled: tenant.branding.headerSearchEnabled,
+        headerSearchPlaceholder: tenant.branding.headerSearchPlaceholder,
         guestBackgroundStyle: tenant.branding.guestBackgroundStyle,
         guestLookupLayout: tenant.branding.guestLookupLayout,
         guestLookupHeadline: tenant.branding.guestLookupHeadline,
@@ -71,6 +94,13 @@ export default async function AppProxyReturnsPage({
         guestLookupLogoUrl: tenant.branding.guestLookupLogoUrl,
         guestLookupOverlayOpacity: tenant.branding.guestLookupOverlayOpacity,
         guestLookupOverlayBlur: tenant.branding.guestLookupOverlayBlur,
+        guestLookupSnakeBorder: tenant.branding.guestLookupSnakeBorder,
+        guestLookupSideStyle: tenant.branding.guestLookupSideStyle,
+        guestLookupGradientFrom: tenant.branding.guestLookupGradientFrom,
+        guestLookupGradientTo: tenant.branding.guestLookupGradientTo,
+        toastPosition: tenant.branding.toastPosition,
+        portalCustomScript: tenant.branding.portalCustomScript,
+        loggedInLookupRequirePostcode: tenant.branding.loggedInLookupRequirePostcode,
       };
       initial = loggedInCustomerId
         ? { kind: "logged-in-lookup", branding }

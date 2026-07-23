@@ -38,6 +38,12 @@ interface SiteHeaderProps {
    * per-screen context (e.g. hidden on the order detail view regardless). */
   searchEnabled?: boolean
   searchPlaceholder?: string
+  /** When the sidebar is hidden, show this logo (or brandName) in the header
+   * so the store still has a brand mark where the title/store name sits. */
+  brandLogoUrl?: string
+  brandName?: string
+  /** Logo height in px (merchant Brand setting). Default 32. */
+  brandLogoHeight?: number
 }
 
 function SidebarToggleControls({ mobileOnly = false }: { mobileOnly?: boolean }) {
@@ -76,10 +82,56 @@ export function SiteHeader({
   orderStatusLinkLabel = "Order Status",
   searchEnabled = true,
   searchPlaceholder = "Search orders...",
+  brandLogoUrl,
+  brandName,
+  brandLogoHeight = 32,
 }: SiteHeaderProps) {
   const initial = firstName?.[0]?.toUpperCase() || "?"
   const user = { name: firstName || "Customer", email: email || "" }
   const effectiveOrderStatusUrl = orderStatusLinkEnabled ? orderStatusUrl : undefined
+  const titleIsBrandName =
+    typeof title === "string" && !!brandName && title.trim() === brandName.trim()
+  // Logo (preferred) or brand name text when the sidebar isn’t carrying the brand.
+  const showHeaderBrand = !!(brandLogoUrl?.trim() || brandName?.trim())
+  // Avoid “IblazeVape | IblazeVape” when the page title is already the store
+  // name — whether the brand mark is a logo image OR the text fallback
+  // (Find your order sets title to branding.name).
+  const showPageTitle = !(showHeaderBrand && titleIsBrandName)
+  const logoHeight = Math.min(64, Math.max(16, brandLogoHeight || 32))
+  const logoImgClass = "w-auto max-w-[160px] object-contain object-left shrink-0"
+
+  const brandMark = showHeaderBrand ? (
+    storefrontUrl ? (
+      <a
+        href={storefrontUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center gap-2 min-w-0 shrink-0 rounded-md hover:opacity-90 transition-opacity"
+      >
+        {brandLogoUrl?.trim() ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={brandLogoUrl}
+            alt={brandName || "Store"}
+            className={logoImgClass}
+            style={{ height: logoHeight }}
+          />
+        ) : (
+          <span className="text-base font-semibold truncate">{brandName}</span>
+        )}
+      </a>
+    ) : brandLogoUrl?.trim() ? (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={brandLogoUrl}
+        alt={brandName || "Store"}
+        className={logoImgClass}
+        style={{ height: logoHeight }}
+      />
+    ) : (
+      <span className="text-base font-semibold truncate shrink-0">{brandName}</span>
+    )
+  ) : null
 
   return (
     <header className="flex h-12 shrink-0 items-center gap-2 border-b bg-white dark:bg-background z-40 relative">
@@ -93,12 +145,18 @@ export function SiteHeader({
         {showSidebarToggle && (
           <SidebarToggleControls mobileOnly={showSidebarToggle === "mobile-only"} />
         )}
-        <h1 className="text-base font-medium flex items-center gap-1.5 min-w-0">
-          {titleIcon && (
-            <titleIcon.icon className={cn("size-4 shrink-0 text-foreground", titleIcon.className)} aria-hidden />
-          )}
-          <span className="truncate">{title}</span>
-        </h1>
+        {brandMark}
+        {brandMark && showPageTitle ? (
+          <Separator orientation="vertical" className="mx-1 data-[orientation=vertical]:h-4" />
+        ) : null}
+        {showPageTitle ? (
+          <h1 className="text-base font-medium flex items-center gap-1.5 min-w-0">
+            {titleIcon && (
+              <titleIcon.icon className={cn("size-4 shrink-0 text-foreground", titleIcon.className)} aria-hidden />
+            )}
+            <span className="truncate">{title}</span>
+          </h1>
+        ) : null}
 
         {showSearch && searchEnabled && (
           <div className="ml-4 flex-1 max-w-sm">
@@ -114,7 +172,7 @@ export function SiteHeader({
           </div>
         )}
 
-        <div className="ml-auto flex items-center gap-2 min-[1025px]:gap-4">
+        <div className="ml-auto flex items-center gap-1 min-[1025px]:gap-1">
 
           {/* ── Desktop: all links inline ── */}
           {effectiveOrderStatusUrl && (
@@ -122,7 +180,7 @@ export function SiteHeader({
               href={effectiveOrderStatusUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="hidden min-[1025px]:flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="hidden min-[1025px]:flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm text-muted-foreground transition-[background-color,color] duration-200 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
             >
               <Package className="size-3.5" />
               {orderStatusLinkLabel}
@@ -133,7 +191,7 @@ export function SiteHeader({
               href={storefrontUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="hidden min-[1025px]:flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="hidden min-[1025px]:flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm text-muted-foreground transition-[background-color,color] duration-200 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
             >
               <Home className="size-3.5" />
               {storeLinkLabel}
@@ -174,7 +232,7 @@ export function SiteHeader({
               href={storefrontUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="min-[1025px]:hidden flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="min-[1025px]:hidden flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-[background-color,color] duration-200 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
             >
               <Home className="size-4" />
               <span className="text-xs font-medium">{storeLinkLabel}</span>
@@ -185,7 +243,7 @@ export function SiteHeader({
               href={effectiveOrderStatusUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="min-[1025px]:hidden flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="min-[1025px]:hidden flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-[background-color,color] duration-200 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
             >
               <Package className="size-4" />
               <span className="text-xs font-medium">{orderStatusLinkLabel}</span>
