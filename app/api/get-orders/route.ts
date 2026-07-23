@@ -553,9 +553,17 @@ async function handleGet(request: NextRequest): Promise<NextResponse> {
         if (directRefund > 0) directRefundQtyByLine[lid] = directRefund;
       }
 
+      // A cancelled fulfillment (e.g. the merchant cancelled and re-fulfilled
+      // as separate shipments) stays in order.fulfillments — Shopify doesn't
+      // drop it from the connection — so it must be filtered out explicitly,
+      // otherwise it shows as a phantom shipment card with stale item counts
+      // and its own tracking info even though nothing was actually shipped.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const activeFulfillments = (order.fulfillments || []).filter((f: any) => f.displayStatus !== "CANCELED");
+
       // ── 3. Build shipments with tracking ─────────────────────────────────
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const shipments = (order.fulfillments || []).map((f: any) => ({
+      const shipments = activeFulfillments.map((f: any) => ({
         id: f.id,
         displayStatus: f.displayStatus,
         shippedAt: f.createdAt ? new Date(f.createdAt).toISOString() : null,
@@ -590,7 +598,7 @@ async function handleGet(request: NextRequest): Promise<NextResponse> {
       let latestDelivery = null as Date | null;
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      for (const f of (order.fulfillments || [])) {
+      for (const f of activeFulfillments) {
         const s = f.displayStatus;
         const isDelivered = s === "DELIVERED";
         const isConfirmed = s === "CONFIRMED" || s === "SUBMITTED" || s === "LABEL_PURCHASED" || s === "LABEL_PRINTED";
