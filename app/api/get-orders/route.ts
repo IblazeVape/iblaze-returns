@@ -580,7 +580,13 @@ async function handleGet(request: NextRequest): Promise<NextResponse> {
           id: e.node.lineItem.id,
           quantity: e.node.quantity,
         })),
-      }));
+      // Sort by dispatch date — Shopify's fulfillments connection order isn't
+      // guaranteed to match creation order (e.g. after a cancel-and-refulfill,
+      // the new fulfillment can come back before the older one), so relying
+      // on array position for "Shipment 1"/"Shipment 2" numbering could label
+      // a later shipment as earlier than one that actually shipped first.
+      })).sort((a: { shippedAt: string | null }, b: { shippedAt: string | null }) =>
+        (a.shippedAt ?? "").localeCompare(b.shippedAt ?? ""));
 
       // ── 4. Per-line-item delivery state ───────────────────────────────────
       type LineDelivery = {
