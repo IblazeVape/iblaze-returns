@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
+import { useMediaQuery } from "@/hooks/use-media-query";
 
 /**
  * Guest order lookup form for the App Proxy portal.
@@ -42,6 +43,7 @@ export function GuestLookupForm({
   requirePostcode = true,
   description,
   layout = "split",
+  layoutMobile = "classic",
   brandName,
   logoUrl,
   loginUrl,
@@ -61,6 +63,8 @@ export function GuestLookupForm({
   requirePostcode?: boolean;
   description?: string;
   layout?: GuestLookupLayout;
+  /** Layout below the 720px breakpoint. Defaults to classic. */
+  layoutMobile?: GuestLookupLayout;
   brandName?: string;
   logoUrl?: string;
   loginUrl?: string;
@@ -76,6 +80,8 @@ export function GuestLookupForm({
   gradientTo?: string;
   interactive?: boolean;
 }) {
+  const isDesktop = useMediaQuery("(min-width: 720px)");
+  const effectiveLayout = isDesktop ? layout : layoutMobile;
   const [orderNumber, setOrderNumber] = useState("");
   const [email, setEmail] = useState("");
   const [postcode, setPostcode] = useState("");
@@ -318,7 +324,7 @@ export function GuestLookupForm({
     <div
       className={cn(
         "relative w-full overflow-hidden rounded-2xl p-px shadow-xl",
-        layout === "classic" ? "max-w-md" : "max-w-4xl",
+        effectiveLayout === "classic" ? "max-w-md" : "max-w-4xl",
         lockUi && "pointer-events-none select-none",
       )}
       aria-hidden={lockUi || undefined}
@@ -342,7 +348,7 @@ export function GuestLookupForm({
       ) : null}
 
       <div className="relative overflow-hidden rounded-[15px] bg-card text-card-foreground">
-        {layout === "classic" ? classicInner : splitInner}
+        {effectiveLayout === "classic" ? classicInner : splitInner}
       </div>
     </div>
   );

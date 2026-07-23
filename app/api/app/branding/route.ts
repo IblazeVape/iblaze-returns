@@ -146,6 +146,10 @@ export async function PUT(request: NextRequest) {
       body.guestLookupLayout === "classic" || body.guestLookupLayout === "split"
         ? body.guestLookupLayout
         : existing.branding.guestLookupLayout,
+    guestLookupLayoutMobile:
+      body.guestLookupLayoutMobile === "classic" || body.guestLookupLayoutMobile === "split"
+        ? body.guestLookupLayoutMobile
+        : existing.branding.guestLookupLayoutMobile,
     guestLookupHeadline:
       typeof body.guestLookupHeadline === "string" ? body.guestLookupHeadline : existing.branding.guestLookupHeadline,
     guestLookupSubtext:
@@ -280,6 +284,7 @@ export async function PUT(request: NextRequest) {
       sidebarSubmenusExpandedByDefault: input.sidebarSubmenusExpandedByDefault,
       guestBackgroundStyle: input.guestBackgroundStyle,
       guestLookupLayout: input.guestLookupLayout,
+      guestLookupLayoutMobile: input.guestLookupLayoutMobile,
       guestLookupHeadline: input.guestLookupHeadline,
       guestLookupSubtext: input.guestLookupSubtext,
       guestLookupHeroUrl: input.guestLookupHeroUrl,

@@ -37,6 +37,7 @@ const PREVIEW_BRANDING: InitialBranding = {
   headerSearchPlaceholder: "Search orders...",
   guestBackgroundStyle: "shapeGrid",
   guestLookupLayout: "split",
+  guestLookupLayoutMobile: "classic",
   guestLookupHeadline: "Return your order with ease",
   guestLookupSubtext: "Look up your order in seconds — no account needed.",
   guestLookupHeroUrl: "",
@@ -61,6 +62,7 @@ function GuestLookupDemoInner() {
     <GuestPortalShell branding={PREVIEW_BRANDING} title={PREVIEW_BRANDING.name}>
       <GuestLookupForm
         layout={layout}
+        layoutMobile={searchParams.get("mobile") === "split" ? "split" : "classic"}
         brandName={PREVIEW_BRANDING.name}
         logoUrl={PREVIEW_BRANDING.logoUrl}
         brandDisplay="logo"

@@ -75,6 +75,7 @@ describe("tenant store", () => {
     expect(t?.branding.sidebarSubmenusExpandedByDefault).toBe(true);
     expect(t?.branding.guestBackgroundStyle).toBe("none");
     expect(t?.branding.guestLookupLayout).toBe("split");
+    expect(t?.branding.guestLookupLayoutMobile).toBe("classic");
     expect(t?.branding.guestLookupHeadline).toBe("Return your order with ease");
     expect(t?.branding.policyFooterNoteEnabled).toBe(true);
     expect(t?.branding.returnLifecycleStyles.awaitingDelivery.label).toBe("Awaiting delivery");
@@ -128,6 +129,7 @@ describe("tenant store", () => {
         sidebarSubmenusExpandedByDefault: false,
         guestBackgroundStyle: "dotField",
         guestLookupLayout: "classic",
+        guestLookupLayoutMobile: "classic",
         guestLookupHeadline: "Find your return",
         guestLookupSubtext: "Enter your details below.",
         guestLookupHeroUrl: "https://cdn.shopify.com/hero.png",
@@ -216,6 +218,7 @@ describe("tenant store", () => {
     expect(t?.branding.sidebarSubmenusExpandedByDefault).toBe(false);
     expect(t?.branding.guestBackgroundStyle).toBe("dotField");
     expect(t?.branding.guestLookupLayout).toBe("classic");
+    expect(t?.branding.guestLookupLayoutMobile).toBe("classic");
     expect(t?.branding.guestLookupHeadline).toBe("Find your return");
     expect(t?.branding.guestLookupBrandDisplay).toBe("text");
     expect(t?.branding.policyFooterNoteEnabled).toBe(false);
@@ -255,6 +258,7 @@ describe("tenant store", () => {
     expect(t?.branding.storefrontUrl).toBe("");
     expect(t?.branding.supportEmail).toBe("");
     expect(t?.branding.logoHeight).toBe(32);
+    expect(t?.branding.guestLookupLayoutMobile).toBe("classic");
   });
 
   it("fills in missing returnLifecycleStyles keys for a tenant saved under the old pre-split status shape", async () => {

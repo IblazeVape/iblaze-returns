@@ -40,6 +40,7 @@ export type InitialBranding = {
   headerSearchPlaceholder: string
   guestBackgroundStyle: "none" | "shapeGrid" | "dotField"
   guestLookupLayout: "classic" | "split"
+  guestLookupLayoutMobile: "classic" | "split"
   guestLookupHeadline: string
   guestLookupSubtext: string
   guestLookupHeroUrl: string
@@ -287,6 +288,7 @@ function LookupScreen({
       <GuestLookupForm
         requirePostcode={requirePostcode}
         layout={branding.guestLookupLayout}
+        layoutMobile={branding.guestLookupLayoutMobile}
         brandName={branding.name}
         logoUrl={
           branding.guestLookupBrandDisplay === "logo"

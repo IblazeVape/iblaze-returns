@@ -4,13 +4,30 @@ import { useEffect, useRef, useState } from "react"
 import { validateBrandingInput, type BrandingInput, type PolicyCategoryInput, type SidebarLinkInput, type SidebarSubLinkInput, type ReturnLifecycleMessagesInput, type ReturnLifecycleStatusInput, type ReturnLifecycleStyleInput } from "@/lib/branding-validation"
 import type { TenantBranding } from "@/lib/tenant"
 import { SIDEBAR_ICON_NAMES } from "@/lib/sidebar-icons"
+import { STATUS_ICON_NAMES } from "@/lib/status-icons"
 import { RichTextEditor } from "@/components/app-settings/rich-text-editor"
 import { PolicyCategoriesTable, newCategoryRowId, reorderList } from "@/components/app-settings/policy-categories-table"
 import { SidebarLinksTable, newSidebarLinkRowId } from "@/components/app-settings/sidebar-links-table"
-import { ReturnStatusTable, RETURN_STATUS_ROWS } from "@/components/app-settings/return-status-table"
 import { DEFAULT_TENANT_FIELDS } from "@/lib/tenant-defaults"
 import { migrateMarkdownIfNeeded } from "@/lib/markdown-to-html"
 import { GUEST_LOOKUP_GRADIENT_PRESETS, matchGuestLookupGradientPreset } from "@/lib/guest-lookup-gradients"
+
+/** RETURN_STATUS_CARDS drives the "Return status" section (7 cards, each with
+ * label/heading/icon/color, plus a per-status sentence for returnRequested,
+ * returnInProgress, returnCanceled, and returnCompleted). returnDeclined has no
+ * sentence field here since its text comes from the real Shopify decline reason,
+ * not a static template. awaitingDelivery and returnWindowClosed sentences live
+ * in their own settings rows below (multiple reasons under each status).
+ */
+const RETURN_STATUS_CARDS: { key: ReturnLifecycleStatusInput; name: string }[] = [
+  { key: "awaitingDelivery", name: "Awaiting delivery" },
+  { key: "returnWindowClosed", name: "Return window closed" },
+  { key: "returnRequested", name: "Return requested" },
+  { key: "returnInProgress", name: "Return in progress" },
+  { key: "returnDeclined", name: "Return declined" },
+  { key: "returnCanceled", name: "Return canceled" },
+  { key: "returnCompleted", name: "Return completed" },
+]
 
 declare const shopify: {
   idToken: () => Promise<string>;
@@ -41,7 +58,7 @@ type SettingsTab = "branding" | "returns" | "navigation" | "table" | "danger";
 const TAB_FIELDS: Record<SettingsTab, (keyof BrandingInput)[]> = {
   branding: [
     "name", "logoUrl", "logoHeight", "accentColor", "storefrontUrl", "supportEmail", "guestBackgroundStyle",
-    "guestLookupLayout", "guestLookupHeadline", "guestLookupSubtext", "guestLookupHeroUrl",
+    "guestLookupLayout", "guestLookupLayoutMobile", "guestLookupHeadline", "guestLookupSubtext", "guestLookupHeroUrl",
     "guestLookupBrandDisplay", "guestLookupLogoUrl", "guestLookupOverlayOpacity", "guestLookupOverlayBlur",
     "guestLookupSnakeBorder", "guestLookupSideStyle", "guestLookupGradientFrom", "guestLookupGradientTo",
     "toastPosition", "portalCustomScript",
@@ -75,7 +92,7 @@ const SETTINGS_MODAL_FIELDS: Record<string, (keyof BrandingInput)[]> = {
   "branding-identity-modal": ["name", "logoUrl", "logoHeight", "accentColor", "storefrontUrl", "supportEmail"],
   "branding-portal-extras-modal": ["toastPosition", "portalCustomScript"],
   "branding-lookup-modal": [
-    "guestBackgroundStyle", "guestLookupLayout", "guestLookupHeadline", "guestLookupSubtext",
+    "guestBackgroundStyle", "guestLookupLayout", "guestLookupLayoutMobile", "guestLookupHeadline", "guestLookupSubtext",
     "guestLookupHeroUrl", "guestLookupBrandDisplay", "guestLookupLogoUrl",
     "guestLookupOverlayOpacity", "guestLookupOverlayBlur", "guestLookupSnakeBorder",
     "guestLookupSideStyle", "guestLookupGradientFrom", "guestLookupGradientTo",
@@ -105,7 +122,8 @@ const SETTINGS_MODAL_FIELDS: Record<string, (keyof BrandingInput)[]> = {
     "tableColumnsButtonEnabled", "tablePageSizeEnabled", "shipmentCardsEnabled", "productImageLinksEnabled",
   ],
   "table-return-status-modal": ["returnLifecycleStyles", "returnLifecycleMessages"],
-  "table-not-returnable-modal": ["returnLifecycleMessages"],
+  "table-awaiting-delivery-modal": ["returnLifecycleMessages"],
+  "table-return-window-closed-modal": ["returnLifecycleMessages"],
   "table-refund-modal": ["refundStatusLabels"],
 };
 
@@ -333,7 +351,13 @@ export function SettingsForm({
     const tab = new URLSearchParams(window.location.search).get("tab")
     return tab === "returns" || tab === "navigation" || tab === "table" || tab === "danger" ? tab : "branding"
   })
-  // Sidebar links + policy categories + return statuses use compact tables.
+  // Return-status cards stay accordion-style. Sidebar links + policy categories
+  // use compact drag-sortable tables instead.
+  const [openStatusKey, setOpenStatusKey] = useState<ReturnLifecycleStatusInput | null>(null)
+  function toggleStatusOpen(key: ReturnLifecycleStatusInput) {
+    setOpenStatusKey((prev) => (prev === key ? null : key))
+  }
+
   const [categoryFilter, setCategoryFilter] = useState("")
   const [categoryIds, setCategoryIds] = useState(() =>
     initialForm.current.policyCategories.map(() => newCategoryRowId())
@@ -774,6 +798,7 @@ export function SettingsForm({
                   {form.logoUrl ? (
                     <s-button
                       variant="tertiary"
+                      tone="critical"
                       onClick={() => {
                         set("logoUrl", "")
                         setErrors((err) => {
@@ -783,7 +808,7 @@ export function SettingsForm({
                         })
                       }}
                     >
-                      Remove logo
+                      Remove
                     </s-button>
                   ) : null}
                 </s-stack>
@@ -844,11 +869,8 @@ export function SettingsForm({
               title="Find your order screen"
               description="How the Find your order screen looks when someone looks up a return."
               summary={[
-                form.guestLookupLayout === "split"
-                  ? form.guestLookupSideStyle === "gradient"
-                    ? "Split layout with gradient"
-                    : "Split layout with photo"
-                  : "Classic form",
+                `Desktop ${form.guestLookupLayout === "split" ? "split" : "classic"}`,
+                `Mobile ${form.guestLookupLayoutMobile === "split" ? "split" : "classic"}`,
                 form.guestLookupSnakeBorder ? "Animated border" : null,
               ].filter(Boolean).join(" · ")}
               modalSize="large-100"
@@ -858,7 +880,7 @@ export function SettingsForm({
                 <s-stack direction="block" gap="base">
                   <s-heading>Layout</s-heading>
                   <s-select
-                    label="Card style"
+                    label="Desktop"
                     name="guestLookupLayout"
                     value={form.guestLookupLayout}
                     onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -869,6 +891,24 @@ export function SettingsForm({
                     <s-option value="split">Split — photo + form</s-option>
                   </s-select>
                   {errors.guestLookupLayout && <s-paragraph tone="critical">{errors.guestLookupLayout}</s-paragraph>}
+
+                  <s-select
+                    label="Mobile"
+                    name="guestLookupLayoutMobile"
+                    value={form.guestLookupLayoutMobile}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                      set("guestLookupLayoutMobile", e.target.value as "classic" | "split")
+                    }}
+                  >
+                    <s-option value="classic">Classic — form only</s-option>
+                    <s-option value="split">Split — photo above form</s-option>
+                  </s-select>
+                  <s-paragraph color="subdued">
+                    Mobile switches at about phone/tablet width. Use classic on mobile if the photo panel feels too tall.
+                  </s-paragraph>
+                  {errors.guestLookupLayoutMobile && (
+                    <s-paragraph tone="critical">{errors.guestLookupLayoutMobile}</s-paragraph>
+                  )}
 
                   <s-select
                     label="Page background"
@@ -892,7 +932,7 @@ export function SettingsForm({
                   />
                 </s-stack>
 
-                {form.guestLookupLayout === "split" && (
+                {(form.guestLookupLayout === "split" || form.guestLookupLayoutMobile === "split") && (
                   <>
                     <s-divider></s-divider>
                     <s-stack direction="block" gap="base">
@@ -1144,9 +1184,19 @@ export function SettingsForm({
                               {loadingLibraryField === "guestLookupLogoUrl" ? "Loading…" : "Browse Files for corner logo"}
                             </s-button>
                             {form.guestLookupLogoUrl ? (
-                              <s-button variant="tertiary" onClick={() => set("guestLookupLogoUrl", "")}>
-                                {form.logoUrl ? "Use store logo" : "Clear"}
-                              </s-button>
+                              form.logoUrl ? (
+                                <s-button variant="tertiary" onClick={() => set("guestLookupLogoUrl", "")}>
+                                  Use store logo
+                                </s-button>
+                              ) : (
+                                <s-button
+                                  variant="tertiary"
+                                  tone="critical"
+                                  onClick={() => set("guestLookupLogoUrl", "")}
+                                >
+                                  Remove
+                                </s-button>
+                              )
                             ) : null}
                           </s-stack>
                           <s-url-field
@@ -1836,18 +1886,95 @@ export function SettingsForm({
               modalId="table-return-status-modal"
               title="Return status"
               description="How each return stage looks and what sentence customers see."
-              summary={`${RETURN_STATUS_ROWS.length} return stages`}
+              summary={`${RETURN_STATUS_CARDS.length} return stages`}
               modalSize="large-100"
               errors={errors}
             >
-              <ReturnStatusTable
-                styles={form.returnLifecycleStyles}
-                messages={form.returnLifecycleMessages}
-                onStyleChange={setStatusStyle}
-                onMessageChange={setReturnLifecycleMessage}
-                stylesError={errors.returnLifecycleStyles}
-                messagesError={errors.returnLifecycleMessages}
-              />
+            <s-stack direction="block" gap="base">
+              <s-text color="subdued">
+                The label, mobile heading, icon, and color shown for each stage of a return. Use {"{days}"} for the
+                return window length.
+              </s-text>
+              {RETURN_STATUS_CARDS.map(({ key, name }) => {
+                  const isOpen = openStatusKey === key
+                  const style = form.returnLifecycleStyles[key]
+                  return (
+                    <s-box key={key} padding="base" border="base" borderRadius="base">
+                      <s-stack direction="block" gap="small">
+                        <s-stack direction="inline" gap="small-300" alignItems="center">
+                          <s-button onClick={() => toggleStatusOpen(key)}>{isOpen ? "Collapse" : "Expand"}</s-button>
+                          <s-text>{name} — "{style.label}"</s-text>
+                        </s-stack>
+                        {isOpen && (
+                          <>
+                            <s-text-field
+                              label="Filter/badge label"
+                              value={style.label}
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setStatusStyle(key, "label", e.target.value)}
+                            ></s-text-field>
+                            <s-text-field
+                              label="Mobile accordion heading"
+                              value={style.heading}
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setStatusStyle(key, "heading", e.target.value)}
+                            ></s-text-field>
+                            <s-select
+                              label="Icon"
+                              value={style.icon}
+                              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setStatusStyle(key, "icon", e.target.value)}
+                            >
+                              {STATUS_ICON_NAMES.map((iconName) => (
+                                <s-option key={iconName} value={iconName}>{iconName}</s-option>
+                              ))}
+                            </s-select>
+                            <s-text-field
+                              label="Color (optional — leave blank for the portal's default color)"
+                              value={style.color}
+                              placeholder="#4F46E5"
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setStatusStyle(key, "color", e.target.value)}
+                            ></s-text-field>
+                            {key === "returnRequested" && (
+                              <s-text-area label="Sentence" value={form.returnLifecycleMessages.returnRequested} rows={2}
+                                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("returnRequested", e.target.value)}></s-text-area>
+                            )}
+                            {key === "returnInProgress" && (
+                              <s-text-area label="Sentence" value={form.returnLifecycleMessages.returnInProgress} rows={2}
+                                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("returnInProgress", e.target.value)}></s-text-area>
+                            )}
+                            {key === "returnDeclined" && (
+                              <s-paragraph tone="subdued">
+                                This status shows the actual decline reason from Shopify, verbatim — not a fixed
+                                sentence, so there's no message to edit here.
+                              </s-paragraph>
+                            )}
+                            {key === "returnCanceled" && (
+                              <s-text-area label="Sentence" value={form.returnLifecycleMessages.returnCanceled} rows={2}
+                                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("returnCanceled", e.target.value)}></s-text-area>
+                            )}
+                            {key === "returnCompleted" && (
+                              <s-text-area label="Sentence" value={form.returnLifecycleMessages.returnCompleted} rows={2}
+                                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("returnCompleted", e.target.value)}></s-text-area>
+                            )}
+                            {key === "awaitingDelivery" && (
+                              <s-paragraph tone="subdued">
+                                This status covers several shipping stages (not shipped, on its way, out for delivery,
+                                attempted delivery) — edit each stage&apos;s sentence in &quot;Awaiting delivery&quot; below.
+                              </s-paragraph>
+                            )}
+                            {key === "returnWindowClosed" && (
+                              <s-paragraph tone="subdued">
+                                This status covers several reasons (outside the return window, final sale, or other) —
+                                edit each reason&apos;s sentence in &quot;Return window closed&quot; below.
+                              </s-paragraph>
+                            )}
+                          </>
+                        )}
+                      </s-stack>
+                    </s-box>
+                  )
+                })}
+                {errors.returnLifecycleMessages && <s-paragraph tone="critical">{errors.returnLifecycleMessages}</s-paragraph>}
+                {errors.returnLifecycleStyles && <s-paragraph tone="critical">{errors.returnLifecycleStyles}</s-paragraph>}
+              </s-stack>
             </SettingsEditRow>
 
             <SettingsEditRow

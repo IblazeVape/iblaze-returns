@@ -87,6 +87,7 @@ export default async function AppProxyReturnsPage({
         headerSearchPlaceholder: tenant.branding.headerSearchPlaceholder,
         guestBackgroundStyle: tenant.branding.guestBackgroundStyle,
         guestLookupLayout: tenant.branding.guestLookupLayout,
+        guestLookupLayoutMobile: tenant.branding.guestLookupLayoutMobile,
         guestLookupHeadline: tenant.branding.guestLookupHeadline,
         guestLookupSubtext: tenant.branding.guestLookupSubtext,
         guestLookupHeroUrl: tenant.branding.guestLookupHeroUrl,
