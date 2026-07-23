@@ -26,6 +26,8 @@ export type ReturnLifecycleMessagesInput = {
   returnInProgress: string;
   returnCanceled: string;
   returnCompleted: string;
+  returnCompletedPartialRefund: string;
+  returnCompletedNoRefund: string;
 };
 
 export type RefundStatusInput = "notRefunded" | "partiallyRefunded" | "refunded";

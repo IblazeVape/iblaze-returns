@@ -82,7 +82,19 @@ export type ReturnLifecycleMessages = {
   returnRequested: string;
   returnInProgress: string;
   returnCanceled: string;
+  /** Shown when the return is completed AND the refund status is
+   * "refunded" — the only combination where a refund can be confirmed with
+   * certainty. Supports {amount}. */
   returnCompleted: string;
+  /** Shown when the return is completed but only some of it has been
+   * refunded so far — deliberately distinct from returnCompleted so a
+   * customer with a partial refund isn't told they got the full amount.
+   * Supports {amount}. */
+  returnCompletedPartialRefund: string;
+  /** Shown when the return is completed but nothing has been refunded yet
+   * (e.g. store credit, exchange, or a refund still pending) — deliberately
+   * cautious rather than implying money has moved. */
+  returnCompletedNoRefund: string;
 };
 
 /** No icon/color/heading — refund is always shown as a small supporting
@@ -282,7 +294,9 @@ export const DEFAULT_TENANT_FIELDS = {
       returnRequested:           "We've received your return request.",
       returnInProgress:          "Your return is in progress.",
       returnCanceled:            "This return request was canceled.",
-      returnCompleted:           "These items have already been returned.",
+      returnCompleted:           "This return is complete and your refund of {amount} has been issued.",
+      returnCompletedPartialRefund: "This return is complete. A partial refund of {amount} has been issued — contact us if you have questions about the remaining amount.",
+      returnCompletedNoRefund:   "This return has been processed. If you're expecting a refund or store credit, please allow a few days or contact us for details.",
     },
     refundStatusLabels: {
       notRefunded: "",

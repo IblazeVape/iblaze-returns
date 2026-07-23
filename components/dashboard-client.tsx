@@ -65,6 +65,10 @@ interface LineItem {
   closedReason?: ReturnClosedReason | null
   shippingStage?: ShippingStage | null
   refundStatus?: "notRefunded" | "partiallyRefunded" | "refunded"
+  /** Always present when refundStatus isn't "notRefunded" — null otherwise.
+   * currency is the ISO code the customer actually paid/was refunded in
+   * (presentmentMoney), not necessarily the store's own currency. */
+  refund?: { totalRefunded: number; currency: string; lastRefundedAt: string | null } | null
   lineDeliveredAt?: string | null
   productHandle?: string | null
   image?: { url: string } | null
@@ -2578,6 +2582,17 @@ function fillMessagePlaceholders(template: string, tokens: Record<string, string
   return Object.entries(tokens).reduce((s, [key, value]) => s.split(`{${key}}`).join(value), template)
 }
 
+/** Formats a refund amount in the currency the customer actually paid/was
+ * refunded in (item.refund.currency, from presentmentMoney) — never assumes
+ * the store's own currency, since Shopify Markets can differ per order. */
+function formatMoney(amount: number, currency: string): string {
+  try {
+    return new Intl.NumberFormat(undefined, { style: "currency", currency }).format(amount)
+  } catch {
+    return `${currency} ${amount.toFixed(2)}`
+  }
+}
+
 function getIneligibleGroupMessage(item: LineItem, order: Order, returnWindowDays: number, messages: ReturnLifecycleMessages, groupItems?: LineItem[]): string {
   const days = String(returnWindowDays)
   switch (item.returnStatus) {
@@ -2604,12 +2619,21 @@ function getIneligibleGroupMessage(item: LineItem, order: Order, returnWindowDay
       return resolveDeclineMessage(item.returnReason || "Your return request was declined.")
     case "returnCanceled":
       return messages.returnCanceled
-    case "returnCompleted":
+    case "returnCompleted": {
       // Genuine completed returns push returnReason: "" and fall through to the
-      // generic copy. Direct refunds with no Return record (see the
-      // directRefundQty push above) carry a specific, correct sentence — prefer
-      // it when present.
-      return item.returnReason || messages.returnCompleted
+      // status-specific copy below. Direct refunds with no Return record (see
+      // the directRefundQty push above) carry a specific, correct sentence —
+      // prefer it when present, since it's not a genuine completed return at all.
+      if (item.returnReason) return item.returnReason
+      // A closed return doesn't guarantee a refund happened (a merchant can
+      // close it manually, or give store credit instead) — Sidekick-confirmed
+      // these three cases need distinct wording so a customer with only a
+      // partial refund, or none at all, isn't told they got the full amount.
+      const amount = item.refund ? formatMoney(item.refund.totalRefunded, item.refund.currency) : ""
+      if (item.refundStatus === "refunded") return fillMessagePlaceholders(messages.returnCompleted, { amount })
+      if (item.refundStatus === "partiallyRefunded") return fillMessagePlaceholders(messages.returnCompletedPartialRefund, { amount })
+      return messages.returnCompletedNoRefund
+    }
     default:
       return messages.otherNotReturnable
   }
@@ -3981,6 +4005,11 @@ function OrderDetail({
                                 <span className="text-[11px] text-muted-foreground">
                                   £{itemPrice.toFixed(2)} each{activeTab === "eligible" && (() => { const d = daysLeftToReturn(item.lineDeliveredAt, returnWindowDays); return d !== null ? <ReturnWindowBadge days={d} /> : null })()}
                                 </span>
+                                {item.refund && (
+                                  <span className="block text-[11px] text-muted-foreground">
+                                    {formatMoney(item.refund.totalRefunded, item.refund.currency)} refunded{item.refund.lastRefundedAt ? ` on ${new Date(item.refund.lastRefundedAt).toLocaleDateString()}` : ""}
+                                  </span>
+                                )}
                                 {activeTab === "eligible" && hasRetryableDecline(item.declinedReturnEntries) && (item.inTransitQuantity ?? 0) > 0 && (
                                   <p className="text-[11px] text-blue-600 leading-snug mt-0.5">
                                     Still in transit — try again once it has been delivered.

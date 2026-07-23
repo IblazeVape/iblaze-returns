@@ -124,8 +124,16 @@ async function handleGet(request: NextRequest): Promise<NextResponse> {
       totalPriceSet { shopMoney { amount currencyCode } }
       totalRefundedSet { shopMoney { amount } }
       refunds(first: 5) {
+        createdAt
         refundLineItems(first: 5) {
-          edges { node { quantity lineItem { id } } }
+          edges {
+            node {
+              quantity
+              lineItem { id }
+              subtotalSet { presentmentMoney { amount currencyCode } }
+              totalTaxSet { presentmentMoney { amount currencyCode } }
+            }
+          }
         }
       }
       returns(first: 5) {
@@ -376,6 +384,33 @@ async function handleGet(request: NextRequest): Promise<NextResponse> {
         (ref.refundLineItems?.edges || []).forEach((rli: any) => {
           const id = rli.node.lineItem?.id;
           if (id) refundedQuantities[id] = (refundedQuantities[id] || 0) + rli.node.quantity;
+        });
+      });
+
+      // ── 1b. Refunded amount + most recent refund date per line item ───────
+      // Sums subtotal + tax (in the currency the customer actually paid/was
+      // refunded in — presentmentMoney, not the store's shopMoney) across ALL
+      // refund transactions that touched each line item, since a merchant can
+      // issue more than one partial refund against the same line over time.
+      type RefundAmount = { totalRefunded: number; currency: string; lastRefundedAt: string };
+      const refundAmountByLine: Record<string, RefundAmount> = {};
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (order.refunds || []).forEach((ref: any) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (ref.refundLineItems?.edges || []).forEach((rli: any) => {
+          const id = rli.node.lineItem?.id;
+          if (!id) return;
+          const subtotal = parseFloat(rli.node.subtotalSet?.presentmentMoney?.amount ?? "0");
+          const tax = parseFloat(rli.node.totalTaxSet?.presentmentMoney?.amount ?? "0");
+          const currency = rli.node.subtotalSet?.presentmentMoney?.currencyCode || "GBP";
+          const amount = (Number.isFinite(subtotal) ? subtotal : 0) + (Number.isFinite(tax) ? tax : 0);
+          const existing = refundAmountByLine[id];
+          if (existing) {
+            existing.totalRefunded += amount;
+            if (ref.createdAt && ref.createdAt > existing.lastRefundedAt) existing.lastRefundedAt = ref.createdAt;
+          } else {
+            refundAmountByLine[id] = { totalRefunded: amount, currency, lastRefundedAt: ref.createdAt || "" };
+          }
         });
       });
 
@@ -799,6 +834,12 @@ async function handleGet(request: NextRequest): Promise<NextResponse> {
           : refQty >= item.quantity ? "refunded"
           : "partiallyRefunded";
 
+        // Always present (never conditionally omitted) so the API tells the
+        // truth about the line item's state and the UI decides what to
+        // render — a null totalRefunded/lastRefundedAt for notRefunded is
+        // the "nothing happened yet" case, not a missing-data gap.
+        const refundAmount = refundAmountByLine[item.id] ?? null;
+
         return {
           ...item,
           productHandle: item.product?.handle || null,
@@ -821,6 +862,9 @@ async function handleGet(request: NextRequest): Promise<NextResponse> {
           closedReason,
           shippingStage,
           refundStatus,
+          refund: refundAmount
+            ? { totalRefunded: refundAmount.totalRefunded, currency: refundAmount.currency, lastRefundedAt: refundAmount.lastRefundedAt || null }
+            : null,
           lineDeliveredAt: delivery.latestDeliveredAt
             ? delivery.latestDeliveredAt.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
             : null,

@@ -1951,8 +1951,14 @@ export function SettingsForm({
                                 onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("returnCanceled", e.target.value)}></s-text-area>
                             )}
                             {key === "returnCompleted" && (
-                              <s-text-area label="Sentence" value={form.returnLifecycleMessages.returnCompleted} rows={2}
-                                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("returnCompleted", e.target.value)}></s-text-area>
+                              <>
+                                <s-text-area label="Fully refunded — use {amount} for the refunded amount" value={form.returnLifecycleMessages.returnCompleted} rows={2}
+                                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("returnCompleted", e.target.value)}></s-text-area>
+                                <s-text-area label="Partially refunded so far — use {amount} for the refunded amount" value={form.returnLifecycleMessages.returnCompletedPartialRefund} rows={2}
+                                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("returnCompletedPartialRefund", e.target.value)}></s-text-area>
+                                <s-text-area label="Not refunded yet" value={form.returnLifecycleMessages.returnCompletedNoRefund} rows={2}
+                                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("returnCompletedNoRefund", e.target.value)}></s-text-area>
+                              </>
                             )}
                             {key === "awaitingDelivery" && (
                               <s-paragraph tone="subdued">

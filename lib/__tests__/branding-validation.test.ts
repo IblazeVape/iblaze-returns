@@ -85,6 +85,8 @@ const VALID: BrandingInput = {
     returnInProgress:           "Your return is in progress.",
     returnCanceled:             "This return request was canceled.",
     returnCompleted:            "These items have already been returned.",
+    returnCompletedPartialRefund: "Partial refund issued.",
+    returnCompletedNoRefund:    "Return processed.",
   },
   refundStatusLabels: {
     notRefunded: "",
