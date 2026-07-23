@@ -45,12 +45,13 @@ export async function getTenant(shop: string): Promise<Tenant | null> {
 }
 
 /** Shallow-spreads top-level branding fields, but deep-merges
- * returnLifecycleStyles per status key. A plain shallow spread would let a
- * tenant record saved under an older ReturnLifecycleStatus shape (e.g. the
- * single "notReturnable" key, pre return-status-split) wholesale replace
- * the current default's style map — silently dropping the newer status
- * keys ("awaitingDelivery"/"returnWindowClosed") and crashing any code that
- * reads styles[newKey].label. */
+ * returnLifecycleStyles per status key and returnLifecycleMessages per
+ * message key. A plain shallow spread would let a tenant record saved
+ * before either object grew new keys (e.g. the single "notReturnable" style
+ * key pre return-status-split, or the returnCompletedPartialRefund /
+ * returnCompletedNoRefund messages added later) wholesale replace the
+ * current defaults — silently dropping the newer keys and crashing any code
+ * that reads styles[newKey].label or calls .trim() on a missing message. */
 function mergeBranding(stored: Partial<TenantBranding>): TenantBranding {
   return {
     ...DEFAULT_TENANT_FIELDS.branding,
@@ -58,6 +59,10 @@ function mergeBranding(stored: Partial<TenantBranding>): TenantBranding {
     returnLifecycleStyles: {
       ...DEFAULT_TENANT_FIELDS.branding.returnLifecycleStyles,
       ...(stored.returnLifecycleStyles ?? {}),
+    },
+    returnLifecycleMessages: {
+      ...DEFAULT_TENANT_FIELDS.branding.returnLifecycleMessages,
+      ...(stored.returnLifecycleMessages ?? {}),
     },
   };
 }
@@ -78,6 +83,11 @@ export async function setTenant(
         ...DEFAULT_TENANT_FIELDS.branding.returnLifecycleStyles,
         ...(existing?.branding.returnLifecycleStyles ?? {}),
         ...(patch.branding?.returnLifecycleStyles ?? {}),
+      },
+      returnLifecycleMessages: {
+        ...DEFAULT_TENANT_FIELDS.branding.returnLifecycleMessages,
+        ...(existing?.branding.returnLifecycleMessages ?? {}),
+        ...(patch.branding?.returnLifecycleMessages ?? {}),
       },
     },
     shop,

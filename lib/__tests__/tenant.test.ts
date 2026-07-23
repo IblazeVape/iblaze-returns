@@ -299,4 +299,47 @@ describe("tenant store", () => {
     // Existing customization for untouched statuses must still be preserved.
     expect(t?.branding.returnLifecycleStyles.returnRequested.label).toBe("Requested");
   });
+
+  it("fills in missing returnLifecycleMessages keys for a tenant saved before the refund-status split", async () => {
+    // Simulate a tenant record written before returnCompletedPartialRefund/
+    // returnCompletedNoRefund existed — its stored returnLifecycleMessages
+    // only has the original keys. Same shallow-spread bug as the styles
+    // case above: without a per-key merge, the two new message keys come
+    // back undefined, and any code that calls .trim() on them (e.g.
+    // validateBrandingInput) crashes instead of falling back to a default.
+    const oldBrandingJson = JSON.stringify({
+      name: "Legacy Vapes 2",
+      returnLifecycleMessages: {
+        shippingConfirmed: "Preparing.",
+        shippingOnItsWay: "On its way.",
+        shippingOutForDelivery: "Out for delivery.",
+        shippingAttemptedDelivery: "Attempted.",
+        outsideWindow: "Expired.",
+        outsideWindowNoDate: "Expired.",
+        finalSale: "Final sale.",
+        otherNotReturnable: "Not eligible.",
+        returnRequested: "Requested.",
+        returnInProgress: "In progress.",
+        returnCanceled: "Canceled.",
+        returnCompleted: "Custom completed message.",
+      },
+    });
+    store.set("tenant:legacy-messages.myshopify.com", {
+      accessToken: "tok_legacy3",
+      installedAt: "2024-01-01T00:00:00Z",
+      scopes: "read_orders",
+      plan: "free",
+      returnWindowDays: 30,
+      branding: oldBrandingJson,
+    });
+
+    const t = await getTenant("legacy-messages.myshopify.com");
+    // The two new messages must fall back to defaults, not be undefined.
+    expect(t?.branding.returnLifecycleMessages.returnCompletedPartialRefund).toBeDefined();
+    expect(typeof t?.branding.returnLifecycleMessages.returnCompletedPartialRefund).toBe("string");
+    expect(t?.branding.returnLifecycleMessages.returnCompletedNoRefund).toBeDefined();
+    expect(typeof t?.branding.returnLifecycleMessages.returnCompletedNoRefund).toBe("string");
+    // Existing customization for untouched messages must still be preserved.
+    expect(t?.branding.returnLifecycleMessages.returnCompleted).toBe("Custom completed message.");
+  });
 });
