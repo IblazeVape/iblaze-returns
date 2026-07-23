@@ -3524,7 +3524,12 @@ function OrderDetail({
                   const fmt = (d: string) => new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
                   const deliveredDate = shipment.deliveredAt ? fmt(shipment.deliveredAt) : null
                   const shippedDate   = shipment.shippedAt   ? fmt(shipment.shippedAt)   : null
-                  const cardCls = cn("snap-start border rounded-lg p-4 bg-card shadow-xs flex flex-col gap-3", order.shipments.length === 1 ? "w-full" : "w-[85vw] shrink-0 sm:shrink sm:flex-1 sm:w-auto sm:min-w-[260px]")
+                  // Fixed width on desktop (not flex-1) so cards stay a
+                  // comfortable, readable size instead of squeezing down to
+                  // fit every shipment in the visible row — beyond ~3
+                  // shipments, the row scrolls horizontally rather than
+                  // cramming more cards into the same space.
+                  const cardCls = cn("snap-start border rounded-lg p-4 bg-card shadow-xs flex flex-col gap-3", order.shipments.length === 1 ? "w-full" : "w-[85vw] shrink-0 sm:w-[300px] sm:shrink-0")
                   return (
                     <div key={shipment.id} className={cardCls}>
                       <div className="flex items-center justify-between gap-2">
