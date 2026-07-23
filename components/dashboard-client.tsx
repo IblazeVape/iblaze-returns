@@ -4166,7 +4166,11 @@ function OrderDetail({
             </div>
             {pageSize !== "all" && currentData.length > size && (
               <div className="px-4 py-2 border-t flex items-center justify-between text-xs text-muted-foreground">
-                <span>Showing {Math.min((currentPage - 1) * size + 1, currentData.length)}–{Math.min(currentPage * size, currentData.length)} of {currentData.length} entries</span>
+                <span>
+                  {pageBoundaries
+                    ? <>Showing {(pageBoundaries[currentPage - 1] ?? 0) + 1}–{pageBoundaries[currentPage] ?? currentData.length} of {currentData.length} entries — pages may show fewer than {size} to keep each status together</>
+                    : <>Showing {Math.min((currentPage - 1) * size + 1, currentData.length)}–{Math.min(currentPage * size, currentData.length)} of {currentData.length} entries</>}
+                </span>
                 <div className="flex items-center gap-1.5">
                   <Button variant="outline" size="sm" className="h-7 px-2.5 text-xs" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>Previous</Button>
                   <Button variant="outline" size="sm" className="h-7 px-2.5 text-xs" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage >= totalPages}>Next</Button>
