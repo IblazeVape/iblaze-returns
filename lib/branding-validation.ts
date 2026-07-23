@@ -73,6 +73,7 @@ export type BrandingInput = {
   sidebarSubmenusExpandedByDefault: boolean;
   guestBackgroundStyle: "none" | "shapeGrid" | "dotField";
   guestLookupLayout: "classic" | "split";
+  guestLookupLayoutMobile: "classic" | "split";
   guestLookupHeadline: string;
   guestLookupSubtext: string;
   guestLookupHeroUrl: string;
@@ -149,6 +150,9 @@ export function validateBrandingInput(
   }
   if (input.guestLookupLayout !== "classic" && input.guestLookupLayout !== "split") {
     errors.guestLookupLayout = "Must be classic or split.";
+  }
+  if (input.guestLookupLayoutMobile !== "classic" && input.guestLookupLayoutMobile !== "split") {
+    errors.guestLookupLayoutMobile = "Must be classic or split.";
   }
   if (input.guestLookupHeroUrl && !isValidUrl(input.guestLookupHeroUrl)) {
     errors.guestLookupHeroUrl = "Must be a valid URL.";

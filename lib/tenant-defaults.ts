@@ -140,6 +140,8 @@ export type TenantBranding = {
   guestBackgroundStyle: "none" | "shapeGrid" | "dotField";
   /** Guest order-lookup card layout: simple form vs image + form split. */
   guestLookupLayout: "classic" | "split";
+  /** Layout on small screens (below the split breakpoint). */
+  guestLookupLayoutMobile: "classic" | "split";
   /** Left-panel headline on the guest order-lookup card (split layout). */
   guestLookupHeadline: string;
   /** Left-panel supporting line under the headline (split layout). */
@@ -239,6 +241,7 @@ export const DEFAULT_TENANT_FIELDS = {
     sidebarSubmenusExpandedByDefault: true,
     guestBackgroundStyle: "none",
     guestLookupLayout: "split",
+    guestLookupLayoutMobile: "classic",
     guestLookupHeadline: "Return your order with ease",
     guestLookupSubtext: "Look up your order in seconds — no account needed.",
     guestLookupHeroUrl: "",

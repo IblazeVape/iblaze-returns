@@ -4243,6 +4243,7 @@ function DashboardClientInner({ authPlaceholder }: { authPlaceholder?: React.Rea
     shipmentCardsEnabled: true, productImageLinksEnabled: true, sidebarSubmenusExpandedByDefault: true,
     guestBackgroundStyle: "none",
     guestLookupLayout: "split",
+    guestLookupLayoutMobile: "classic",
     guestLookupHeadline: "Return your order with ease",
     guestLookupSubtext: "Look up your order in seconds — no account needed.",
     guestLookupHeroUrl: "",
