@@ -2632,19 +2632,26 @@ function getIneligibleGroupMessage(item: LineItem, order: Order, returnWindowDay
       // the directRefundQty push above) carry a specific, correct sentence —
       // prefer it when present, since it's not a genuine completed return at all.
       if (item.returnReason) return item.returnReason
-      // A closed return doesn't guarantee a refund happened (a merchant can
-      // close it manually, or give store credit instead) — Sidekick-confirmed
-      // these cases need distinct wording. item.refund.state (a MONEY fact)
-      // drives this, not item.refundStatus (a QUANTITY fact) — Shopify lets a
-      // merchant mark units "returned" while actually refunding a different
-      // amount (including £0), so the two can disagree; the money fact is
-      // what must never be misrepresented to the customer.
-      if (item.refund?.state === "unverifiable") return messages.returnCompletedRefundUnverified
-      if (item.refund?.state === "confirmed" && item.refund.totalRefunded > 0) {
-        const amount = formatMoney(item.refund.totalRefunded, item.refund.currency)
-        return item.refundStatus === "partiallyRefunded"
-          ? fillMessagePlaceholders(messages.returnCompletedPartialRefund, { amount })
-          : fillMessagePlaceholders(messages.returnCompleted, { amount })
+      // This is a GROUP-level message (one heading covers every row under
+      // it), so {amount} and the full-vs-partial verdict must summarize the
+      // whole group, not just the one representative item — a group can
+      // combine several line items whose individual refund amounts differ
+      // (e.g. a 2-unit line only £4-of-£8 refunded, sitting next to two
+      // 1-unit lines fully refunded at £4 each). Also: item.refund.state (a
+      // MONEY fact) drives the full-vs-partial call, not item.refundStatus
+      // (a QUANTITY fact) — Shopify lets a merchant mark units "returned"
+      // while refunding a different amount, so the two can disagree; the
+      // money fact is what must never be misrepresented to the customer.
+      const items = groupItems && groupItems.length > 0 ? groupItems : [item]
+      if (items.some(i => i.refund?.state === "unverifiable")) return messages.returnCompletedRefundUnverified
+      const totalRefunded = items.reduce((sum, i) => sum + (i.refund?.state === "confirmed" ? i.refund.totalRefunded : 0), 0)
+      const totalWorth = items.reduce((sum, i) => sum + (i.unitPrice ?? 0) * i.quantity, 0)
+      const currency = items.find(i => i.refund?.state === "confirmed")?.refund?.currency ?? "GBP"
+      if (totalRefunded > 0) {
+        const amount = formatMoney(totalRefunded, currency)
+        return totalRefunded + 0.01 >= totalWorth
+          ? fillMessagePlaceholders(messages.returnCompleted, { amount })
+          : fillMessagePlaceholders(messages.returnCompletedPartialRefund, { amount })
       }
       return messages.returnCompletedNoRefund
     }
