@@ -3521,24 +3521,32 @@ function OrderDetail({
         )}
 
         {/* ── Shipments & tracking ── */}
-        {shipmentCardsEnabled && !order.cancelledAt && order.shipments && order.shipments.length > 0 && (
+        {shipmentCardsEnabled && !order.cancelledAt && order.shipments && order.shipments.length > 0 && (() => {
+          // Flex-grow inside a horizontally-scrolling container proved
+          // unreliable for guaranteeing cards fill 100% of the row (still
+          // left a gap with 4 cards in practice). CSS grid's 1fr columns
+          // are a more predictable way to force equal-width columns that
+          // sum to exactly the container's width, so use a fixed grid (no
+          // scroll needed) up to a comfortable count, and only fall back to
+          // the fixed-min-width horizontal-scroll row beyond that.
+          const shipmentCount = order.shipments.length
+          const useGrid = shipmentCount <= 4
+          return (
           <div>
-            <div className="overflow-x-auto styled-scroll">
-              <div className="flex gap-3 snap-x">
+            <div className={useGrid ? "" : "overflow-x-auto styled-scroll"}>
+              <div
+                className={useGrid ? "grid gap-3" : "flex gap-3 snap-x"}
+                style={useGrid ? { gridTemplateColumns: `repeat(${shipmentCount}, 1fr)` } : undefined}
+              >
                 {order.shipments.map((shipment, idx) => {
                   const isDelivered   = shipment.displayStatus === "DELIVERED"
                   const fmt = (d: string) => new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
                   const deliveredDate = shipment.deliveredAt ? fmt(shipment.deliveredAt) : null
                   const shippedDate   = shipment.shippedAt   ? fmt(shipment.shippedAt)   : null
-                  // Grow to fill the row when there's room (e.g. only 2-4
-                  // shipments on a wide screen, or at a high browser zoom
-                  // level which effectively widens the row) — no upper cap,
-                  // so a handful of cards always use the full row width
-                  // instead of leaving space blank. Floor how narrow a card
-                  // can shrink so beyond ~4-5 shipments the row hits the
-                  // floor and scrolls horizontally instead of cramming more
-                  // cards into the same space.
-                  const cardCls = cn("snap-start border rounded-lg p-4 bg-card shadow-xs flex flex-col gap-3", order.shipments.length === 1 ? "w-full" : "w-[85vw] shrink-0 sm:w-auto sm:flex-1 sm:shrink sm:min-w-[260px]")
+                  const cardCls = cn(
+                    "snap-start border rounded-lg p-4 bg-card shadow-xs flex flex-col gap-3",
+                    useGrid ? "w-full min-w-0" : "w-[85vw] shrink-0 sm:w-[260px] sm:shrink-0"
+                  )
                   return (
                     <div key={shipment.id} className={cardCls}>
                       <div className="flex items-center justify-between gap-2">
@@ -3571,7 +3579,8 @@ function OrderDetail({
               </div>
             </div>
           </div>
-        )}
+          )
+        })()}
 
         {/* ── Option B: inline review card — same table layout (Product, Variant, Qty, Total)
              used for order-item selection, so the review step matches it exactly ── */}
