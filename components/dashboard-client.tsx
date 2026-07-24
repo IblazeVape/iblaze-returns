@@ -3142,6 +3142,30 @@ function StatusLabel({ order }: { order: Order }) {
   )
 }
 
+/** Thin visual strip summarizing shipment progress at a glance — only shown
+ * when an order spans more than one stage (matches the same condition that
+ * gates the colored text breakdown below it), using the same 3 buckets and
+ * colors as that text so the two stay consistent. */
+function ShipmentProgressBar({ order }: { order: Order }) {
+  const breakdown = getOrderFulfillmentBreakdown(order)
+  if (!breakdown) return null
+  const notYetShipped = order.confirmedCount + order.notDispatchedCount
+  const total = order.deliveredCount + order.dispatchedCount + notYetShipped
+  if (total <= 0) return null
+  const segments = [
+    { count: order.deliveredCount, className: "bg-green-500" },
+    { count: order.dispatchedCount, className: "bg-slate-400" },
+    { count: notYetShipped, className: "bg-zinc-300" },
+  ].filter(s => s.count > 0)
+  return (
+    <div className="w-full h-1 flex overflow-hidden" role="img" aria-label={breakdown}>
+      {segments.map((s, i) => (
+        <div key={i} className={s.className} style={{ width: `${(s.count / total) * 100}%` }} />
+      ))}
+    </div>
+  )
+}
+
 function OrderCard({ order, onClick, index = 0 }: { order: Order; onClick: () => void; index?: number }) {
   const allUniqueImages = order.processedItems.map(i => i.image?.url).filter((u, i, a) => u && a.indexOf(u) === i) as string[]
   const uniqueImages = allUniqueImages.slice(0, 3)
@@ -3172,6 +3196,7 @@ function OrderCard({ order, onClick, index = 0 }: { order: Order; onClick: () =>
         </div>
         <p className="text-xs text-muted-foreground">Ordered {fmt(order.createdAt)} &bull; {order.totalUnits} item{order.totalUnits !== 1 ? "s" : ""}</p>
       </div>
+      <ShipmentProgressBar order={order} />
       {/* Images footer */}
       <div className="w-full px-4 py-2.5 border-t border-border bg-muted/60 flex items-center gap-1.5 shrink-0">
         <div className="flex items-center flex-1 min-w-0">
