@@ -3523,19 +3523,22 @@ function OrderDetail({
         {/* ── Shipments & tracking ── */}
         {shipmentCardsEnabled && !order.cancelledAt && order.shipments && order.shipments.length > 0 && (
           <div>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto styled-scroll">
               <div className="flex gap-3 snap-x">
                 {order.shipments.map((shipment, idx) => {
                   const isDelivered   = shipment.displayStatus === "DELIVERED"
                   const fmt = (d: string) => new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
                   const deliveredDate = shipment.deliveredAt ? fmt(shipment.deliveredAt) : null
                   const shippedDate   = shipment.shippedAt   ? fmt(shipment.shippedAt)   : null
-                  // Fixed width on desktop (not flex-1) so cards stay a
-                  // comfortable, readable size instead of squeezing down to
-                  // fit every shipment in the visible row — beyond ~3
-                  // shipments, the row scrolls horizontally rather than
-                  // cramming more cards into the same space.
-                  const cardCls = cn("snap-start border rounded-lg p-4 bg-card shadow-xs flex flex-col gap-3", order.shipments.length === 1 ? "w-full" : "w-[85vw] shrink-0 sm:w-[300px] sm:shrink-0")
+                  // Grow to fill the row when there's room (e.g. only 2-3
+                  // shipments on a wide screen), but cap how wide a card can
+                  // get and floor how narrow it can shrink — beyond ~3-4
+                  // shipments the row hits the floor and scrolls
+                  // horizontally instead of cramming more cards in, while a
+                  // handful of shipments still stretch to use the space
+                  // instead of leaving it blank (including at higher browser
+                  // zoom levels, which effectively widens the row).
+                  const cardCls = cn("snap-start border rounded-lg p-4 bg-card shadow-xs flex flex-col gap-3", order.shipments.length === 1 ? "w-full" : "w-[85vw] shrink-0 sm:w-auto sm:flex-1 sm:shrink sm:min-w-[260px] sm:max-w-[340px]")
                   return (
                     <div key={shipment.id} className={cardCls}>
                       <div className="flex items-center justify-between gap-2">
