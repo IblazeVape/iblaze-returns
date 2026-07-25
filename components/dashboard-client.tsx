@@ -3087,30 +3087,26 @@ function StatusLabel({ order }: { order: Order }) {
   )
   if (breakdown) {
     const notYetShipped = confirmedCount + notDispatchedCount
-    const coloured = [
-      deliveredCount > 0 && (
-        <span key="d" className="inline-flex items-center gap-0.5 text-green-600">
-          <CheckCircle2 className="size-3 shrink-0" aria-hidden />
-          {deliveredCount} delivered
-        </span>
-      ),
-      dispatchedCount > 0 && (
-        <span key="s" className="inline-flex items-center gap-0.5 text-slate-600">
-          <Truck className="size-3 shrink-0" aria-hidden />
-          {dispatchedCount} on its way
-        </span>
-      ),
-      notYetShipped > 0 && (
-        <span key="p" className="inline-flex items-center gap-0.5 text-zinc-900">
-          <Clock className="size-3 shrink-0" aria-hidden />
-          {notYetShipped} not yet shipped
-        </span>
-      ),
-    ].filter(Boolean)
+    const chips: { key: string; count: number; label: string; icon: LucideIcon; color: string }[] = [
+      { key: "d", count: deliveredCount, label: "Delivered", icon: CheckCircle2, color: "text-green-600" },
+      { key: "s", count: dispatchedCount, label: "On its way", icon: Truck, color: "text-slate-600" },
+      { key: "p", count: notYetShipped, label: "Not yet shipped", icon: Clock, color: "text-zinc-600" },
+    ].filter(c => c.count > 0)
     return (
-      <span className="text-[10px] font-medium shrink-0 flex items-center gap-0.5">
-        {coloured.map((el, i) => (
-          <React.Fragment key={i}>{i > 0 && <span className="text-muted-foreground"> · </span>}{el}</React.Fragment>
+      <span className="flex items-center gap-1 shrink-0">
+        {chips.map(c => (
+          <Tooltip key={c.key}>
+            <TooltipTrigger asChild>
+              <span
+                tabIndex={0}
+                className={cn("inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full border border-border bg-card focus:outline-hidden focus-visible:ring-1 focus-visible:ring-ring", c.color)}
+              >
+                <c.icon className="size-3 shrink-0" aria-hidden />
+                {c.count}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent side="top">{c.label}</TooltipContent>
+          </Tooltip>
         ))}
       </span>
     )
@@ -4737,9 +4733,18 @@ function DashboardClientInner({ authPlaceholder }: { authPlaceholder?: React.Rea
                 )}
               </div>
             ) : view === "grid" && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                {filteredOrders.map((o, i) => <OrderCard key={o.id} order={o} index={i} onClick={() => setSelectedOrder(o)} />)}
-              </div>
+              <>
+                {filteredOrders.some(o => getOrderFulfillmentBreakdown(o)) && (
+                  <div className="flex items-center gap-3 flex-wrap text-[11px] font-medium text-muted-foreground bg-muted/60 border border-border rounded-lg px-3 py-1.5">
+                    <span className="inline-flex items-center gap-1 text-green-600"><CheckCircle2 className="size-3" aria-hidden />Delivered</span>
+                    <span className="inline-flex items-center gap-1 text-slate-600"><Truck className="size-3" aria-hidden />On its way</span>
+                    <span className="inline-flex items-center gap-1 text-zinc-600"><Clock className="size-3" aria-hidden />Not yet shipped</span>
+                  </div>
+                )}
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {filteredOrders.map((o, i) => <OrderCard key={o.id} order={o} index={i} onClick={() => setSelectedOrder(o)} />)}
+                </div>
+              </>
             )}
 
             {view === "list" && !loading && (
