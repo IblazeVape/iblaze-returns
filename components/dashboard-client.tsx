@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { portalToast, setPortalToastPosition } from "@/lib/portal-toast"
 import { PortalCustomScripts } from "@/components/apps-returns/portal-custom-scripts"
-import { ChevronRight, ChevronDown, LayoutGrid, List, ArrowLeft, RotateCcw, CheckCircle2, ShoppingBag, ShieldCheck, ExternalLink, Lock, Truck, Package, Search, MapPin, SlidersHorizontal, XCircle, CircleX, Columns2, Clock, BadgeCheck, HelpCircle, Eye, Info, type LucideIcon } from "lucide-react"
+import { ChevronRight, ChevronDown, LayoutGrid, List, ArrowLeft, RotateCcw, CheckCircle2, ShoppingBag, ShieldCheck, ExternalLink, Lock, Truck, Package, Search, MapPin, SlidersHorizontal, XCircle, CircleX, Columns2, Clock, BadgeCheck, HelpCircle, Eye, Info, AlertCircle, type LucideIcon } from "lucide-react"
 
 import { PortalShell } from "@/components/portal-shell"
 import { SidebarLayoutProvider, useSidebarLayout } from "@/components/sidebar-layout-provider"
@@ -3074,7 +3074,7 @@ function orderGlowClass(order: Order): string {
 }
 
 function StatusLabel({ order }: { order: Order }) {
-  const { orderStatus, cancelledAt, deliveredCount, dispatchedCount, confirmedCount, notDispatchedCount } = order
+  const { orderStatus, cancelledAt, deliveredCount, dispatchedCount, confirmedCount, notDispatchedCount, outForDeliveryCount, attemptedDeliveryCount } = order
   const fmt = (d: string) => new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
   const deliveryDate = order.latestDelivery || order.earliestDelivery
   const breakdown = getOrderFulfillmentBreakdown(order)
@@ -3087,28 +3087,45 @@ function StatusLabel({ order }: { order: Order }) {
   )
   if (breakdown) {
     const notYetShipped = confirmedCount + notDispatchedCount
-    const chips: { key: string; count: number; label: string; icon: LucideIcon; color: string }[] = [
-      { key: "d", count: deliveredCount, label: "Delivered", icon: CheckCircle2, color: "text-green-600" },
-      { key: "s", count: dispatchedCount, label: "On its way", icon: Truck, color: "text-slate-600" },
-      { key: "p", count: notYetShipped, label: "Not yet shipped", icon: Clock, color: "text-zinc-600" },
-    ].filter(c => c.count > 0)
+    // All 5 real stages live in the popover; the trigger itself only ever
+    // shows the single most relevant one, so the card stays as uncrowded
+    // as a single-stage order regardless of how many stages are active.
+    const stages: { count: number; label: string; icon: LucideIcon; color: string }[] = [
+      { count: deliveredCount, label: "Delivered", icon: CheckCircle2, color: "text-green-600" },
+      { count: attemptedDeliveryCount, label: "Attempted delivery", icon: AlertCircle, color: "text-red-600" },
+      { count: outForDeliveryCount, label: "Out for delivery", icon: MapPin, color: "text-blue-600" },
+      { count: dispatchedCount, label: "On its way", icon: Truck, color: "text-slate-600" },
+      { count: notYetShipped, label: "Not yet shipped", icon: Clock, color: "text-zinc-600" },
+    ].filter(s => s.count > 0)
+    const headline = stages.find(s => s.label === "Attempted delivery") ?? stages[0]
     return (
-      <span className="flex items-center gap-1 shrink-0">
-        {chips.map(c => (
-          <Tooltip key={c.key}>
-            <TooltipTrigger asChild>
-              <span
-                tabIndex={0}
-                className={cn("inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full border border-border bg-card focus:outline-hidden focus-visible:ring-1 focus-visible:ring-ring", c.color)}
-              >
-                <c.icon className="size-3 shrink-0" aria-hidden />
-                {c.count}
-              </span>
-            </TooltipTrigger>
-            <TooltipContent side="top">{c.label}</TooltipContent>
-          </Tooltip>
-        ))}
-      </span>
+      <Popover>
+        <PopoverTrigger asChild>
+          <span
+            role="button"
+            tabIndex={0}
+            onClick={e => e.stopPropagation()}
+            aria-label="Show shipment breakdown"
+            className={cn("shrink-0 inline-flex items-center justify-center size-6 rounded-full border border-border bg-card hover:bg-muted transition-colors focus:outline-hidden focus-visible:ring-1 focus-visible:ring-ring cursor-pointer", headline.color)}
+          >
+            <headline.icon className="size-3.5 shrink-0" aria-hidden />
+          </span>
+        </PopoverTrigger>
+        <PopoverContent
+          className="w-48 p-2"
+          align="end"
+          onClick={e => e.stopPropagation()}
+        >
+          <div className="flex flex-col gap-0.5">
+            {stages.map((s, i) => (
+              <div key={i} className={cn("flex items-center gap-2 px-1.5 py-1 text-xs font-medium", s.color)}>
+                <s.icon className="size-3.5 shrink-0" aria-hidden />
+                {s.count} {s.label}
+              </div>
+            ))}
+          </div>
+        </PopoverContent>
+      </Popover>
     )
   }
 
