@@ -3160,6 +3160,10 @@ function OrderCard({ order, onClick, index = 0 }: { order: Order; onClick: () =>
   const total = parseFloat(order.totalPriceSet.shopMoney.amount)
   const fmt = (d: string) => new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
   const deliveryDate = order.latestDelivery || order.earliestDelivery
+  // The footer only ever carries a cancelled/single-stage label — when a
+  // multi-stage breakdown exists that label is null (the bar covers it),
+  // so the footer strip is skipped entirely rather than rendering empty.
+  const showFooter = !!order.cancelledAt || !getOrderFulfillmentBreakdown(order)
 
   const cancelled = !!order.cancelledAt
   return (
@@ -3174,6 +3178,23 @@ function OrderCard({ order, onClick, index = 0 }: { order: Order; onClick: () =>
         cancelled ? "border-border cursor-not-allowed" : cn("border-border", orderGlowClass(order))
       )}
     >
+      {/* Image strip */}
+      <div className="w-full h-16 border-b border-border bg-muted/60 flex items-center justify-center gap-2 shrink-0">
+        <div className="flex -space-x-2.5">
+          {uniqueImages.length > 0 ? uniqueImages.map((url, i) => (
+            <div key={i} className="w-11 h-11 rounded-md border-2 border-card dark:border-border bg-card overflow-hidden shadow-xs shrink-0">
+              <img src={url} alt="" className="w-full h-full object-cover" />
+            </div>
+          )) : (
+            <div className="w-11 h-11 rounded-md border-2 border-card dark:border-border bg-card overflow-hidden shadow-xs shrink-0">
+              <ProductImagePlaceholder iconClassName="size-4" />
+            </div>
+          )}
+        </div>
+        {extra > 0 && (
+          <span className="text-[10px] font-medium text-muted-foreground">+{extra}</span>
+        )}
+      </div>
       {/* Info section */}
       <div className="flex-1 px-4 pt-4 pb-3 flex flex-col gap-1.5">
         <div className="flex items-start justify-between gap-2">
@@ -3183,26 +3204,11 @@ function OrderCard({ order, onClick, index = 0 }: { order: Order; onClick: () =>
         <p className="text-xs text-muted-foreground">Ordered {fmt(order.createdAt)} &bull; {order.totalUnits} item{order.totalUnits !== 1 ? "s" : ""}</p>
       </div>
       <ShipmentProgressBar order={order} />
-      {/* Images footer */}
-      <div className="w-full px-4 py-2.5 border-t border-border bg-muted/60 flex items-center gap-1.5 shrink-0">
-        <div className="flex items-center flex-1 min-w-0">
-          <div className="flex -space-x-2">
-            {uniqueImages.length > 0 ? uniqueImages.map((url, i) => (
-              <div key={i} className="w-8 h-8 rounded-md border-2 border-muted dark:border-border bg-card overflow-hidden shadow-xs shrink-0">
-                <img src={url} alt="" className="w-full h-full object-cover" />
-              </div>
-            )) : (
-              <div className="w-8 h-8 rounded-md border-2 border-muted dark:border-border bg-card overflow-hidden shadow-xs shrink-0">
-                <ProductImagePlaceholder iconClassName="size-3" />
-              </div>
-            )}
-          </div>
-          {extra > 0 && (
-            <span className="text-[10px] font-medium text-muted-foreground ml-1.5">+{extra}</span>
-          )}
+      {showFooter && (
+        <div className="w-full px-4 py-2.5 border-t border-border bg-muted/60 flex items-center justify-end shrink-0">
+          <StatusLabel order={order} />
         </div>
-        <StatusLabel order={order} />
-      </div>
+      )}
     </motion.button>
     </div>
   )
