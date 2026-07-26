@@ -30,7 +30,7 @@ import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, Dr
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { PolicyHtml } from "@/components/policy-html"
 import { getCachedAccentColor, setCachedAccentColor, getCachedSidebarDefaultOpen, setCachedSidebarDefaultOpen } from "@/lib/accent-color-cache"
-import type { TenantBranding, ReturnLifecycleStyle, ReturnLifecycleStyles, ReturnLifecycleMessages, RefundStatusLabels } from "@/lib/tenant"
+import type { TenantBranding, ReturnLifecycleStyle, ReturnLifecycleStyles, ReturnLifecycleMessages, RefundStatusLabels, ShipmentStageStyles } from "@/lib/tenant"
 import { DEFAULT_TENANT_FIELDS } from "@/lib/tenant"
 import { getStatusIcon as getIneligibleStatusIconComponent } from "@/lib/status-icons"
 import { cn } from "@/lib/utils"
@@ -3073,7 +3073,7 @@ function orderGlowClass(order: Order): string {
   }
 }
 
-function StatusLabel({ order }: { order: Order }) {
+function StatusLabel({ order, stageStyles }: { order: Order; stageStyles: ShipmentStageStyles }) {
   const { orderStatus, cancelledAt, deliveredCount, dispatchedCount, confirmedCount, notDispatchedCount, outForDeliveryCount, attemptedDeliveryCount } = order
   const fmt = (d: string) => new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
   const deliveryDate = order.latestDelivery || order.earliestDelivery
@@ -3088,16 +3088,30 @@ function StatusLabel({ order }: { order: Order }) {
   if (breakdown) {
     const notYetShipped = confirmedCount + notDispatchedCount
     // All 5 real stages live in the popover; the trigger itself only ever
-    // shows the single most relevant one, so the card stays as uncrowded
-    // as a single-stage order regardless of how many stages are active.
+    // shows one summary, so the card stays as uncrowded as a single-stage
+    // order regardless of how many stages are active. Label/icon/color for
+    // each stage come from the merchant's shipmentStageStyles setting.
     const stages: { count: number; label: string; icon: LucideIcon; color: string }[] = [
-      { count: deliveredCount, label: "Delivered", icon: CheckCircle2, color: "text-green-600" },
-      { count: attemptedDeliveryCount, label: "Attempted delivery", icon: AlertCircle, color: "text-red-600" },
-      { count: outForDeliveryCount, label: "Out for delivery", icon: MapPin, color: "text-blue-600" },
-      { count: dispatchedCount, label: "On its way", icon: Truck, color: "text-slate-600" },
-      { count: notYetShipped, label: "Not yet shipped", icon: Clock, color: "text-zinc-600" },
+      { count: deliveredCount, ...stageStyles.delivered, icon: getIneligibleStatusIconComponent(stageStyles.delivered.icon) },
+      { count: attemptedDeliveryCount, ...stageStyles.attemptedDelivery, icon: getIneligibleStatusIconComponent(stageStyles.attemptedDelivery.icon) },
+      { count: outForDeliveryCount, ...stageStyles.outForDelivery, icon: getIneligibleStatusIconComponent(stageStyles.outForDelivery.icon) },
+      { count: dispatchedCount, ...stageStyles.onItsWay, icon: getIneligibleStatusIconComponent(stageStyles.onItsWay.icon) },
+      { count: notYetShipped, ...stageStyles.notYetShipped, icon: getIneligibleStatusIconComponent(stageStyles.notYetShipped.icon) },
     ].filter(s => s.count > 0)
-    const headline = stages.find(s => s.label === "Attempted delivery") ?? stages[0]
+    // Reuses the exact same status/icon/color the order detail page's own
+    // header uses (getOrderHeaderStatusIcon) — a "Partially delivered"
+    // order previously showed a plain green "Delivered" checkmark here,
+    // which read as fully complete when 9 of 17 units hadn't shipped yet.
+    // Attempted delivery still takes priority as the one actionable flag.
+    const headerMeta = getOrderHeaderStatusIcon(order)
+    // hexColor is set only for a merchant-customized stage color; the
+    // "Partially delivered"/"On its way" fallback reuses the order detail
+    // page's own Tailwind classes instead, so hexColor stays empty there.
+    const trigger: { icon: LucideIcon; label: string; hexColor: string; twColor: string } = attemptedDeliveryCount > 0
+      ? { icon: getIneligibleStatusIconComponent(stageStyles.attemptedDelivery.icon), label: stageStyles.attemptedDelivery.label, hexColor: stageStyles.attemptedDelivery.color, twColor: "" }
+      : headerMeta
+        ? { icon: headerMeta.icon, label: headerMeta.label, hexColor: "", twColor: headerMeta.color }
+        : { icon: Clock, label: orderStatus, hexColor: "", twColor: "text-zinc-900" }
     return (
       <Popover>
         <PopoverTrigger asChild>
@@ -3106,9 +3120,11 @@ function StatusLabel({ order }: { order: Order }) {
             tabIndex={0}
             onClick={e => e.stopPropagation()}
             aria-label="Show shipment breakdown"
-            className={cn("shrink-0 inline-flex items-center gap-0.5 pl-1.5 pr-1 h-6 rounded-full border border-border bg-card hover:bg-muted transition-colors focus:outline-hidden focus-visible:ring-1 focus-visible:ring-ring cursor-pointer", headline.color)}
+            style={trigger.hexColor ? { color: trigger.hexColor } : undefined}
+            className={cn("shrink-0 inline-flex items-center gap-1 pl-2 pr-1.5 h-6 rounded-full border border-border bg-card hover:bg-muted transition-colors focus:outline-hidden focus-visible:ring-1 focus-visible:ring-ring cursor-pointer", trigger.twColor)}
           >
-            <headline.icon className="size-3.5 shrink-0" aria-hidden />
+            <trigger.icon className="size-3.5 shrink-0" aria-hidden />
+            <span className="text-[10px] font-semibold whitespace-nowrap">{trigger.label}</span>
             <ChevronDown className="size-3 shrink-0 opacity-60" aria-hidden />
           </span>
         </PopoverTrigger>
@@ -3118,7 +3134,7 @@ function StatusLabel({ order }: { order: Order }) {
           onClick={e => e.stopPropagation()}
         >
           {stages.map((s, i) => (
-            <div key={i} className={cn("flex items-center gap-2 px-3 py-2 text-xs font-medium", i > 0 && "border-t border-border", s.color)}>
+            <div key={i} style={{ color: s.color }} className={cn("flex items-center gap-2 px-3 py-2 text-xs font-medium", i > 0 && "border-t border-border")}>
               <s.icon className="size-3.5 shrink-0" aria-hidden />
               {s.count} {s.label}
             </div>
@@ -3153,29 +3169,31 @@ function StatusLabel({ order }: { order: Order }) {
 
 /** Thin visual strip summarizing shipment progress at a glance — only shown
  * when an order spans more than one stage (matches the same condition that
- * gates the colored text breakdown below it), using the same 3 buckets and
- * colors as that text so the two stay consistent. */
-function ShipmentProgressBar({ order }: { order: Order }) {
+ * gates the popover breakdown below it). Colors come from the merchant's
+ * shipmentStageStyles setting, same source as the popover, so the two never
+ * disagree; hidden entirely when shipmentProgressBarEnabled is off. */
+function ShipmentProgressBar({ order, stageStyles, enabled }: { order: Order; stageStyles: ShipmentStageStyles; enabled: boolean }) {
+  if (!enabled) return null
   const breakdown = getOrderFulfillmentBreakdown(order)
   if (!breakdown) return null
   const notYetShipped = order.confirmedCount + order.notDispatchedCount
   const total = order.deliveredCount + order.dispatchedCount + notYetShipped
   if (total <= 0) return null
   const segments = [
-    { count: order.deliveredCount, className: "bg-green-500" },
-    { count: order.dispatchedCount, className: "bg-slate-400" },
-    { count: notYetShipped, className: "bg-zinc-300" },
+    { count: order.deliveredCount, color: stageStyles.delivered.color },
+    { count: order.dispatchedCount, color: stageStyles.onItsWay.color },
+    { count: notYetShipped, color: stageStyles.notYetShipped.color },
   ].filter(s => s.count > 0)
   return (
     <div className="w-full h-1 flex overflow-hidden" role="img" aria-label={breakdown}>
       {segments.map((s, i) => (
-        <div key={i} className={s.className} style={{ width: `${(s.count / total) * 100}%` }} />
+        <div key={i} style={{ width: `${(s.count / total) * 100}%`, backgroundColor: s.color }} />
       ))}
     </div>
   )
 }
 
-function OrderCard({ order, onClick, index = 0 }: { order: Order; onClick: () => void; index?: number }) {
+function OrderCard({ order, onClick, index = 0, shipmentStageStyles, shipmentProgressBarEnabled }: { order: Order; onClick: () => void; index?: number; shipmentStageStyles: ShipmentStageStyles; shipmentProgressBarEnabled: boolean }) {
   const allUniqueImages = order.processedItems.map(i => i.image?.url).filter((u, i, a) => u && a.indexOf(u) === i) as string[]
   const uniqueImages = allUniqueImages.slice(0, 3)
   const extra = allUniqueImages.length - uniqueImages.length
@@ -3205,7 +3223,7 @@ function OrderCard({ order, onClick, index = 0 }: { order: Order; onClick: () =>
         </div>
         <p className="text-xs text-muted-foreground">Ordered {fmt(order.createdAt)} &bull; {order.totalUnits} item{order.totalUnits !== 1 ? "s" : ""}</p>
       </div>
-      <ShipmentProgressBar order={order} />
+      <ShipmentProgressBar order={order} stageStyles={shipmentStageStyles} enabled={shipmentProgressBarEnabled} />
       {/* Images footer */}
       <div className="w-full px-4 py-2.5 border-t border-border bg-muted/60 flex items-center gap-1.5 shrink-0">
         <div className="flex items-center flex-1 min-w-0">
@@ -3224,7 +3242,7 @@ function OrderCard({ order, onClick, index = 0 }: { order: Order; onClick: () =>
             <span className="text-[10px] font-medium text-muted-foreground ml-1.5">+{extra}</span>
           )}
         </div>
-        <StatusLabel order={order} />
+        <StatusLabel order={order} stageStyles={shipmentStageStyles} />
       </div>
     </motion.button>
     </div>
@@ -4368,7 +4386,9 @@ function DashboardClientInner({ authPlaceholder }: { authPlaceholder?: React.Rea
     headerSearchEnabled: true, headerSearchPlaceholder: "Search orders...",
     tableSearchEnabled: true, tableSearchPlaceholder: "Search product or variant...",
     tableColumnsButtonEnabled: true, tableFilterButtonEnabled: true, tablePageSizeEnabled: true,
-    shipmentCardsEnabled: true, productImageLinksEnabled: true, sidebarSubmenusExpandedByDefault: true,
+    shipmentCardsEnabled: true, shipmentProgressBarEnabled: true,
+    shipmentStageStyles: DEFAULT_TENANT_FIELDS.branding.shipmentStageStyles,
+    productImageLinksEnabled: true, sidebarSubmenusExpandedByDefault: true,
     guestBackgroundStyle: "none",
     guestLookupLayout: "split",
     guestLookupLayoutMobile: "classic",
@@ -4747,7 +4767,16 @@ function DashboardClientInner({ authPlaceholder }: { authPlaceholder?: React.Rea
               </div>
             ) : view === "grid" && (
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                {filteredOrders.map((o, i) => <OrderCard key={o.id} order={o} index={i} onClick={() => setSelectedOrder(o)} />)}
+                {filteredOrders.map((o, i) => (
+                  <OrderCard
+                    key={o.id}
+                    order={o}
+                    index={i}
+                    onClick={() => setSelectedOrder(o)}
+                    shipmentStageStyles={branding.shipmentStageStyles}
+                    shipmentProgressBarEnabled={branding.shipmentProgressBarEnabled}
+                  />
+                ))}
               </div>
             )}
 

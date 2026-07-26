@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { validateBrandingInput, type BrandingInput, type PolicyCategoryInput, type SidebarLinkInput, type SidebarSubLinkInput, type ReturnLifecycleMessagesInput, type ReturnLifecycleStatusInput, type ReturnLifecycleStyleInput } from "@/lib/branding-validation"
+import { validateBrandingInput, type BrandingInput, type PolicyCategoryInput, type SidebarLinkInput, type SidebarSubLinkInput, type ReturnLifecycleMessagesInput, type ReturnLifecycleStatusInput, type ReturnLifecycleStyleInput, type ShipmentStageKeyInput, type ShipmentStageStyleInput } from "@/lib/branding-validation"
 import type { TenantBranding } from "@/lib/tenant"
 import { SIDEBAR_ICON_NAMES } from "@/lib/sidebar-icons"
 import { STATUS_ICON_NAMES } from "@/lib/status-icons"
@@ -27,6 +27,16 @@ const RETURN_STATUS_CARDS: { key: ReturnLifecycleStatusInput; name: string }[] =
   { key: "returnDeclined", name: "Return declined" },
   { key: "returnCanceled", name: "Return canceled" },
   { key: "returnCompleted", name: "Return completed" },
+]
+
+/** Drives the "Shipment stages" section — the 5 real shipping stages shown
+ * on My Orders order cards (progress bar + status icon + its popover). */
+const SHIPMENT_STAGE_CARDS: { key: ShipmentStageKeyInput; name: string }[] = [
+  { key: "delivered", name: "Delivered" },
+  { key: "attemptedDelivery", name: "Attempted delivery" },
+  { key: "outForDelivery", name: "Out for delivery" },
+  { key: "onItsWay", name: "On its way" },
+  { key: "notYetShipped", name: "Not yet shipped" },
 ]
 
 declare const shopify: {
@@ -78,6 +88,7 @@ const TAB_FIELDS: Record<SettingsTab, (keyof BrandingInput)[]> = {
   table: [
     "headerSearchEnabled", "headerSearchPlaceholder", "tableSearchEnabled", "tableSearchPlaceholder",
     "tableColumnsButtonEnabled", "tableFilterButtonEnabled", "tablePageSizeEnabled", "shipmentCardsEnabled",
+    "shipmentProgressBarEnabled", "shipmentStageStyles",
     "productImageLinksEnabled", "statusFilterEnabled", "ineligibleMessageEnabled", "eligibleLabel",
     "ineligibleLabel", "defaultOrderView", "returnLifecycleMessages", "returnLifecycleStyles", "refundStatusLabels",
   ],
@@ -122,6 +133,7 @@ const SETTINGS_MODAL_FIELDS: Record<string, (keyof BrandingInput)[]> = {
     "tableColumnsButtonEnabled", "tablePageSizeEnabled", "shipmentCardsEnabled", "productImageLinksEnabled",
   ],
   "table-return-status-modal": ["returnLifecycleStyles", "returnLifecycleMessages"],
+  "table-shipment-stages-modal": ["shipmentProgressBarEnabled", "shipmentStageStyles"],
   "table-awaiting-delivery-modal": ["returnLifecycleMessages"],
   "table-return-window-closed-modal": ["returnLifecycleMessages"],
   "table-refund-modal": ["refundStatusLabels"],
@@ -357,6 +369,10 @@ export function SettingsForm({
   function toggleStatusOpen(key: ReturnLifecycleStatusInput) {
     setOpenStatusKey((prev) => (prev === key ? null : key))
   }
+  const [openShipmentStageKey, setOpenShipmentStageKey] = useState<ShipmentStageKeyInput | null>(null)
+  function toggleShipmentStageOpen(key: ShipmentStageKeyInput) {
+    setOpenShipmentStageKey((prev) => (prev === key ? null : key))
+  }
 
   const [categoryFilter, setCategoryFilter] = useState("")
   const [categoryIds, setCategoryIds] = useState(() =>
@@ -397,6 +413,16 @@ export function SettingsForm({
 
   function setRefundStatusLabel(key: "partiallyRefunded" | "refunded", value: string) {
     setForm((f) => ({ ...f, refundStatusLabels: { ...f.refundStatusLabels, [key]: value } }))
+  }
+
+  function setShipmentStageStyle<K extends keyof ShipmentStageStyleInput>(stageKey: ShipmentStageKeyInput, field: K, value: ShipmentStageStyleInput[K]) {
+    setForm((f) => ({
+      ...f,
+      shipmentStageStyles: {
+        ...f.shipmentStageStyles,
+        [stageKey]: { ...f.shipmentStageStyles[stageKey], [field]: value },
+      },
+    }))
   }
 
   async function authedFetch(input: string, init: RequestInit = {}) {
@@ -1982,6 +2008,67 @@ export function SettingsForm({
                 })}
                 {errors.returnLifecycleMessages && <s-paragraph tone="critical">{errors.returnLifecycleMessages}</s-paragraph>}
                 {errors.returnLifecycleStyles && <s-paragraph tone="critical">{errors.returnLifecycleStyles}</s-paragraph>}
+              </s-stack>
+            </SettingsEditRow>
+
+            <SettingsEditRow
+              modalId="table-shipment-stages-modal"
+              title="Shipment stages"
+              description="The label, icon, and color for each of the 5 shipping stages shown on My Orders order cards."
+              summary={form.shipmentProgressBarEnabled ? "Progress bar on" : "Progress bar off"}
+              modalSize="large-100"
+              errors={errors}
+            >
+              <s-stack direction="block" gap="base">
+                <s-checkbox
+                  label="Show the shipment progress bar on order cards"
+                  name="shipmentProgressBarEnabled"
+                  checked={form.shipmentProgressBarEnabled}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("shipmentProgressBarEnabled", e.target.checked)}
+                ></s-checkbox>
+                <s-text color="subdued">
+                  These same 5 stages also drive the status icon and its popover on each order card — a change here
+                  updates both.
+                </s-text>
+                {SHIPMENT_STAGE_CARDS.map(({ key, name }) => {
+                  const isOpen = openShipmentStageKey === key
+                  const style = form.shipmentStageStyles[key]
+                  return (
+                    <s-box key={key} padding="base" border="base" borderRadius="base">
+                      <s-stack direction="block" gap="small">
+                        <s-stack direction="inline" gap="small-300" alignItems="center">
+                          <s-button onClick={() => toggleShipmentStageOpen(key)}>{isOpen ? "Collapse" : "Expand"}</s-button>
+                          <s-text>{name} — "{style.label}"</s-text>
+                        </s-stack>
+                        {isOpen && (
+                          <>
+                            <s-text-field
+                              label="Label"
+                              value={style.label}
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setShipmentStageStyle(key, "label", e.target.value)}
+                            ></s-text-field>
+                            <s-select
+                              label="Icon"
+                              value={style.icon}
+                              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setShipmentStageStyle(key, "icon", e.target.value)}
+                            >
+                              {STATUS_ICON_NAMES.map((iconName) => (
+                                <s-option key={iconName} value={iconName}>{iconName}</s-option>
+                              ))}
+                            </s-select>
+                            <s-text-field
+                              label="Color"
+                              value={style.color}
+                              placeholder="#16A34A"
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setShipmentStageStyle(key, "color", e.target.value)}
+                            ></s-text-field>
+                          </>
+                        )}
+                      </s-stack>
+                    </s-box>
+                  )
+                })}
+                {errors.shipmentStageStyles && <s-paragraph tone="critical">{errors.shipmentStageStyles}</s-paragraph>}
               </s-stack>
             </SettingsEditRow>
 

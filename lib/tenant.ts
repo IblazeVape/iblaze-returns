@@ -4,12 +4,14 @@ import {
   DEFAULT_TENANT_FIELDS, type PolicyCategory, type SidebarLink, type SidebarLayout, type TenantBranding,
   type ReturnLifecycleStatus, type ReturnLifecycleStyle, type ReturnLifecycleStyles, type ReturnLifecycleMessages,
   type ReturnClosedReason, type RefundStatus, type RefundStatusLabels,
+  type ShipmentStageKey, type ShipmentStageStyle, type ShipmentStageStyles,
 } from "@/lib/tenant-defaults";
 
 export type {
   PolicyCategory, SidebarLink, SidebarLayout, TenantBranding,
   ReturnLifecycleStatus, ReturnLifecycleStyle, ReturnLifecycleStyles, ReturnLifecycleMessages,
   ReturnClosedReason, RefundStatus, RefundStatusLabels,
+  ShipmentStageKey, ShipmentStageStyle, ShipmentStageStyles,
 };
 export { DEFAULT_TENANT_FIELDS };
 
@@ -64,6 +66,10 @@ function mergeBranding(stored: Partial<TenantBranding>): TenantBranding {
       ...DEFAULT_TENANT_FIELDS.branding.returnLifecycleMessages,
       ...(stored.returnLifecycleMessages ?? {}),
     },
+    shipmentStageStyles: {
+      ...DEFAULT_TENANT_FIELDS.branding.shipmentStageStyles,
+      ...(stored.shipmentStageStyles ?? {}),
+    },
   };
 }
 
@@ -88,6 +94,11 @@ export async function setTenant(
         ...DEFAULT_TENANT_FIELDS.branding.returnLifecycleMessages,
         ...(existing?.branding.returnLifecycleMessages ?? {}),
         ...(patch.branding?.returnLifecycleMessages ?? {}),
+      },
+      shipmentStageStyles: {
+        ...DEFAULT_TENANT_FIELDS.branding.shipmentStageStyles,
+        ...(existing?.branding.shipmentStageStyles ?? {}),
+        ...(patch.branding?.shipmentStageStyles ?? {}),
       },
     },
     shop,

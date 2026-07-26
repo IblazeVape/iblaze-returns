@@ -60,6 +60,13 @@ export type RefundStatus = "notRefunded" | "partiallyRefunded" | "refunded";
 export type ReturnLifecycleStyle = { label: string; heading: string; icon: string; color: string };
 export type ReturnLifecycleStyles = Record<ReturnLifecycleStatus, ReturnLifecycleStyle>;
 
+/** The 5 real shipping stages shown on My Orders order cards — the progress
+ * bar, the status icon, and its popover breakdown all read from this same
+ * per-stage label/icon/color, so a merchant only ever edits it in one place. */
+export type ShipmentStageKey = "delivered" | "attemptedDelivery" | "outForDelivery" | "onItsWay" | "notYetShipped";
+export type ShipmentStageStyle = { label: string; icon: string; color: string };
+export type ShipmentStageStyles = Record<ShipmentStageKey, ShipmentStageStyle>;
+
 /**
  * Customer-facing sentences. shipping* fields apply when status is
  * "awaitingDelivery" — the sentence still needs to say which shipping
@@ -152,6 +159,9 @@ export type TenantBranding = {
   tableFilterButtonEnabled: boolean;
   tablePageSizeEnabled: boolean;
   shipmentCardsEnabled: boolean;
+  /** When false, the My Orders grid card shows no shipment progress bar. */
+  shipmentProgressBarEnabled: boolean;
+  shipmentStageStyles: ShipmentStageStyles;
   productImageLinksEnabled: boolean;
   sidebarSubmenusExpandedByDefault: boolean;
   guestBackgroundStyle: "none" | "shapeGrid" | "dotField";
@@ -254,6 +264,14 @@ export const DEFAULT_TENANT_FIELDS = {
     tableFilterButtonEnabled: true,
     tablePageSizeEnabled: true,
     shipmentCardsEnabled: true,
+    shipmentProgressBarEnabled: true,
+    shipmentStageStyles: {
+      delivered:         { label: "Delivered",         icon: "CheckCircle2", color: "#16a34a" },
+      attemptedDelivery: { label: "Attempted delivery", icon: "AlertCircle",  color: "#dc2626" },
+      outForDelivery:    { label: "Out for delivery",   icon: "MapPin",       color: "#2563eb" },
+      onItsWay:          { label: "On its way",         icon: "Truck",        color: "#475569" },
+      notYetShipped:     { label: "Not yet shipped",    icon: "Clock",        color: "#52525b" },
+    },
     productImageLinksEnabled: true,
     sidebarSubmenusExpandedByDefault: true,
     guestBackgroundStyle: "none",

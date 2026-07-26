@@ -3,12 +3,14 @@ import { verifyMerchantSessionToken } from "@/lib/merchant-session-token";
 import {
   validateBrandingInput,
   RETURN_LIFECYCLE_STATUSES,
+  SHIPMENT_STAGE_KEYS,
   type BrandingInput,
   type PolicyCategoryInput,
   type SidebarLinkInput,
   type ReturnLifecycleMessagesInput,
   type ReturnLifecycleStylesInput,
   type RefundStatusLabelsInput,
+  type ShipmentStageStylesInput,
 } from "@/lib/branding-validation";
 import { getTenant, setTenant } from "@/lib/tenant";
 import { sanitizePolicyHtml } from "@/lib/sanitize-policy-html";
@@ -53,6 +55,16 @@ function isRefundStatusLabels(value: unknown): value is RefundStatusLabelsInput 
   if (!value || typeof value !== "object") return false;
   const v = value as Record<string, unknown>;
   return REFUND_STATUS_KEYS.every((key) => typeof v[key] === "string");
+}
+
+function isShipmentStageStyles(value: unknown): value is ShipmentStageStylesInput {
+  if (!value || typeof value !== "object") return false;
+  const v = value as Record<string, unknown>;
+  return SHIPMENT_STAGE_KEYS.every((key) => {
+    const s = v[key] as Record<string, unknown> | undefined;
+    return s && typeof s === "object"
+      && typeof s.label === "string" && typeof s.icon === "string" && typeof s.color === "string";
+  });
 }
 
 export async function PUT(request: NextRequest) {
@@ -133,6 +145,11 @@ export async function PUT(request: NextRequest) {
       typeof body.tablePageSizeEnabled === "boolean" ? body.tablePageSizeEnabled : existing.branding.tablePageSizeEnabled,
     shipmentCardsEnabled:
       typeof body.shipmentCardsEnabled === "boolean" ? body.shipmentCardsEnabled : existing.branding.shipmentCardsEnabled,
+    shipmentProgressBarEnabled:
+      typeof body.shipmentProgressBarEnabled === "boolean" ? body.shipmentProgressBarEnabled : existing.branding.shipmentProgressBarEnabled,
+    shipmentStageStyles: isShipmentStageStyles(body.shipmentStageStyles)
+      ? body.shipmentStageStyles
+      : existing.branding.shipmentStageStyles,
     productImageLinksEnabled:
       typeof body.productImageLinksEnabled === "boolean" ? body.productImageLinksEnabled : existing.branding.productImageLinksEnabled,
     sidebarSubmenusExpandedByDefault:
@@ -281,6 +298,8 @@ export async function PUT(request: NextRequest) {
       tableFilterButtonEnabled: input.tableFilterButtonEnabled,
       tablePageSizeEnabled: input.tablePageSizeEnabled,
       shipmentCardsEnabled: input.shipmentCardsEnabled,
+      shipmentProgressBarEnabled: input.shipmentProgressBarEnabled,
+      shipmentStageStyles: input.shipmentStageStyles,
       productImageLinksEnabled: input.productImageLinksEnabled,
       sidebarSubmenusExpandedByDefault: input.sidebarSubmenusExpandedByDefault,
       guestBackgroundStyle: input.guestBackgroundStyle,

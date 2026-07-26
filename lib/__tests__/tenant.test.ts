@@ -71,6 +71,9 @@ describe("tenant store", () => {
     expect(t?.branding.tableFilterButtonEnabled).toBe(true);
     expect(t?.branding.tablePageSizeEnabled).toBe(true);
     expect(t?.branding.shipmentCardsEnabled).toBe(true);
+    expect(t?.branding.shipmentProgressBarEnabled).toBe(true);
+    expect(t?.branding.shipmentStageStyles.delivered.label).toBe("Delivered");
+    expect(t?.branding.shipmentStageStyles.notYetShipped.icon).toBe("Clock");
     expect(t?.branding.productImageLinksEnabled).toBe(true);
     expect(t?.branding.sidebarSubmenusExpandedByDefault).toBe(true);
     expect(t?.branding.guestBackgroundStyle).toBe("none");
@@ -125,6 +128,14 @@ describe("tenant store", () => {
         tableFilterButtonEnabled: false,
         tablePageSizeEnabled: false,
         shipmentCardsEnabled: false,
+        shipmentProgressBarEnabled: false,
+        shipmentStageStyles: {
+          delivered:         { label: "Arrived",           icon: "CheckCircle2", color: "#111111" },
+          attemptedDelivery: { label: "Attempted",         icon: "AlertCircle",  color: "#4F46E5" },
+          outForDelivery:    { label: "Out for delivery",  icon: "MapPin",       color: "#2563eb" },
+          onItsWay:          { label: "Shipped",           icon: "Truck",        color: "#475569" },
+          notYetShipped:     { label: "Not shipped",       icon: "Clock",        color: "#52525b" },
+        },
         productImageLinksEnabled: false,
         sidebarSubmenusExpandedByDefault: false,
         guestBackgroundStyle: "dotField",
@@ -217,6 +228,9 @@ describe("tenant store", () => {
     expect(t?.branding.headerSearchEnabled).toBe(false);
     expect(t?.branding.tableColumnsButtonEnabled).toBe(false);
     expect(t?.branding.shipmentCardsEnabled).toBe(false);
+    expect(t?.branding.shipmentProgressBarEnabled).toBe(false);
+    expect(t?.branding.shipmentStageStyles.delivered.label).toBe("Arrived");
+    expect(t?.branding.shipmentStageStyles.attemptedDelivery.color).toBe("#4F46E5");
     expect(t?.branding.productImageLinksEnabled).toBe(false);
     expect(t?.branding.sidebarSubmenusExpandedByDefault).toBe(false);
     expect(t?.branding.guestBackgroundStyle).toBe("dotField");

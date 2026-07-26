@@ -1,3 +1,5 @@
+import { STATUS_ICON_NAMES } from "@/lib/status-icons";
+
 export type PolicyCategoryInput = { title: string; desc: string };
 export type SidebarSubLinkInput = { label: string; url: string; icon?: string };
 export type SidebarLinkInput = { label: string; url: string; icon?: string; children?: SidebarSubLinkInput[] };
@@ -33,6 +35,13 @@ export type ReturnLifecycleMessagesInput = {
 
 export type RefundStatusInput = "notRefunded" | "partiallyRefunded" | "refunded";
 export type RefundStatusLabelsInput = Record<RefundStatusInput, string>;
+
+export type ShipmentStageKeyInput = "delivered" | "attemptedDelivery" | "outForDelivery" | "onItsWay" | "notYetShipped";
+export const SHIPMENT_STAGE_KEYS: ShipmentStageKeyInput[] = [
+  "delivered", "attemptedDelivery", "outForDelivery", "onItsWay", "notYetShipped",
+];
+export type ShipmentStageStyleInput = { label: string; icon: string; color: string };
+export type ShipmentStageStylesInput = Record<ShipmentStageKeyInput, ShipmentStageStyleInput>;
 
 export type BrandingInput = {
   name: string;
@@ -72,6 +81,8 @@ export type BrandingInput = {
   tableFilterButtonEnabled: boolean;
   tablePageSizeEnabled: boolean;
   shipmentCardsEnabled: boolean;
+  shipmentProgressBarEnabled: boolean;
+  shipmentStageStyles: ShipmentStageStylesInput;
   productImageLinksEnabled: boolean;
   sidebarSubmenusExpandedByDefault: boolean;
   guestBackgroundStyle: "none" | "shapeGrid" | "dotField";
@@ -278,6 +289,18 @@ export function validateBrandingInput(
       errors.returnLifecycleStyles = `Labels must be ${STORE_LINK_LABEL_MAX_LENGTH} characters or fewer, headings ${POLICY_HEADING_MAX_LENGTH} or fewer.`;
     } else if (styles.some((s) => s.color && !HEX_COLOR_RE.test(s.color))) {
       errors.returnLifecycleStyles = "Each color must be blank or a hex color like #4F46E5.";
+    }
+  }
+  {
+    const stageStyles = SHIPMENT_STAGE_KEYS.map((k) => input.shipmentStageStyles[k]);
+    if (stageStyles.some((s) => !s.label.trim())) {
+      errors.shipmentStageStyles = "Every stage needs a label.";
+    } else if (stageStyles.some((s) => s.label.length > STORE_LINK_LABEL_MAX_LENGTH)) {
+      errors.shipmentStageStyles = `Labels must be ${STORE_LINK_LABEL_MAX_LENGTH} characters or fewer.`;
+    } else if (stageStyles.some((s) => !HEX_COLOR_RE.test(s.color))) {
+      errors.shipmentStageStyles = "Each color must be a hex color like #16A34A.";
+    } else if (stageStyles.some((s) => !STATUS_ICON_NAMES.includes(s.icon))) {
+      errors.shipmentStageStyles = "Each stage needs a valid icon.";
     }
   }
   {
