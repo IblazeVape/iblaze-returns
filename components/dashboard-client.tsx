@@ -3129,20 +3129,17 @@ function StatusLabel({ order }: { order: Order }) {
   }
 
   const isOnItsWay = orderStatus === "On its way" || orderStatus === "Partially dispatched"
-  const earliestDispatch = isOnItsWay
-    ? order.shipments.filter(s => s.shippedAt).map(s => s.shippedAt!).sort()[0]
-    : null
 
   const meta = getOrderHeaderStatusIcon(order)
   const Icon = meta?.icon ?? Clock
-  const isDispatchedDate = isOnItsWay && earliestDispatch
-  const color = isDispatchedDate ? "text-zinc-900" : (meta?.color ?? "text-muted-foreground")
+  const color = isOnItsWay ? "text-zinc-900" : (meta?.color ?? "text-muted-foreground")
 
+  // "On its way" matches the wording used on the order detail page's own
+  // heading/message for this status — the card previously said "Dispatched
+  // {date}" here instead, which read as a different status to the customer.
   const label = orderStatus === "Delivered" && deliveryDate
     ? `Delivered ${fmt(deliveryDate)}`
-    : isDispatchedDate
-    ? `Dispatched ${fmt(earliestDispatch)}`
-    : orderStatus === "Partially dispatched"
+    : isOnItsWay
     ? "On its way"
     : orderStatus
 
