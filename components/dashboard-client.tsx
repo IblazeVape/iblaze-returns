@@ -3086,6 +3086,17 @@ function StatusLabel({ order, expanded, onToggle }: { order: Order; expanded: bo
     </span>
   )
   if (breakdown) {
+    const notYetShipped = order.confirmedCount + order.notDispatchedCount
+    const total = order.deliveredCount + order.attemptedDeliveryCount + order.outForDeliveryCount + order.dispatchedCount + notYetShipped
+    // Headline stage answers "how far along is this order" — delivered is
+    // the most meaningful single number to a customer, falling back down
+    // the stage order only when nothing has been delivered yet.
+    const headline =
+      order.deliveredCount > 0        ? { count: order.deliveredCount, icon: CheckCircle2, color: "text-green-600" } :
+      order.attemptedDeliveryCount > 0 ? { count: order.attemptedDeliveryCount, icon: AlertCircle, color: "text-red-600" } :
+      order.outForDeliveryCount > 0    ? { count: order.outForDeliveryCount, icon: MapPin, color: "text-blue-600" } :
+      order.dispatchedCount > 0        ? { count: order.dispatchedCount, icon: Truck, color: "text-slate-600" } :
+                                          { count: notYetShipped, icon: Clock, color: "text-zinc-600" }
     return (
       <span
         role="button"
@@ -3096,9 +3107,11 @@ function StatusLabel({ order, expanded, onToggle }: { order: Order; expanded: bo
         onKeyDown={e => {
           if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); onToggle() }
         }}
-        className="shrink-0 inline-flex items-center justify-center size-6 rounded-full text-muted-foreground hover:bg-background focus:outline-hidden focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
+        className="shrink-0 inline-flex items-center gap-1 text-[10px] font-semibold pl-1.5 pr-1 py-0.5 rounded-full border border-border bg-card hover:bg-muted transition-colors focus:outline-hidden focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
       >
-        <ChevronDown className={cn("size-3.5 transition-transform duration-150", expanded && "rotate-180")} aria-hidden />
+        <headline.icon className={cn("size-3 shrink-0", headline.color)} aria-hidden />
+        <span className={headline.color}>{headline.count} of {total}</span>
+        <ChevronDown className={cn("size-3 shrink-0 text-muted-foreground transition-transform duration-150", expanded && "rotate-180")} aria-hidden />
       </span>
     )
   }
