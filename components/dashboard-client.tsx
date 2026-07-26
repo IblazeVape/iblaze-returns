@@ -3074,7 +3074,7 @@ function orderGlowClass(order: Order): string {
 }
 
 function StatusLabel({ order }: { order: Order }) {
-  const { orderStatus, cancelledAt } = order
+  const { orderStatus, cancelledAt, deliveredCount, dispatchedCount, confirmedCount, notDispatchedCount } = order
   const fmt = (d: string) => new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
   const deliveryDate = order.latestDelivery || order.earliestDelivery
   const breakdown = getOrderFulfillmentBreakdown(order)
@@ -3085,11 +3085,32 @@ function StatusLabel({ order }: { order: Order }) {
       Cancelled {fmt(cancelledAt)}
     </span>
   )
-  // When a fulfillment breakdown exists, the progress bar above the footer
-  // carries the full 5-stage detail (hover/focus any segment) — nothing
-  // extra is needed here, so the footer stays exactly as uncrowded as it
-  // is with a single-stage order.
-  if (breakdown) return null
+  if (breakdown) {
+    const notYetShipped = confirmedCount + notDispatchedCount
+    const chips: { key: string; count: number; label: string; icon: LucideIcon; color: string }[] = [
+      { key: "d", count: deliveredCount, label: "Delivered", icon: CheckCircle2, color: "text-green-600" },
+      { key: "s", count: dispatchedCount, label: "On its way", icon: Truck, color: "text-slate-600" },
+      { key: "p", count: notYetShipped, label: "Not yet shipped", icon: Clock, color: "text-zinc-600" },
+    ].filter(c => c.count > 0)
+    return (
+      <span className="flex items-center gap-1 shrink-0">
+        {chips.map(c => (
+          <Tooltip key={c.key}>
+            <TooltipTrigger asChild>
+              <span
+                tabIndex={0}
+                className={cn("inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full border border-border bg-card focus:outline-hidden focus-visible:ring-1 focus-visible:ring-ring", c.color)}
+              >
+                <c.icon className="size-3 shrink-0" aria-hidden />
+                {c.count}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent side="top">{c.label}</TooltipContent>
+          </Tooltip>
+        ))}
+      </span>
+    )
+  }
 
   const isOnItsWay = orderStatus === "On its way" || orderStatus === "Partially dispatched"
   const earliestDispatch = isOnItsWay
@@ -3117,37 +3138,25 @@ function StatusLabel({ order }: { order: Order }) {
   )
 }
 
-/** Thin visual strip summarizing shipment progress at a glance — shows all 5
- * real shipping stages proportionally, with no numbers on the card itself.
- * Hovering (or focusing, for keyboard/touch) any segment reveals its count
- * and label via tooltip, so the footer below never needs its own status
- * text no matter how many stages are active. */
+/** Thin visual strip summarizing shipment progress at a glance — only shown
+ * when an order spans more than one stage (matches the same condition that
+ * gates the colored text breakdown below it), using the same 3 buckets and
+ * colors as that text so the two stay consistent. */
 function ShipmentProgressBar({ order }: { order: Order }) {
   const breakdown = getOrderFulfillmentBreakdown(order)
   if (!breakdown) return null
   const notYetShipped = order.confirmedCount + order.notDispatchedCount
-  const segments: { count: number; label: string; className: string }[] = [
-    { count: order.deliveredCount, label: "delivered", className: "bg-green-500" },
-    { count: order.attemptedDeliveryCount, label: "attempted delivery", className: "bg-red-500" },
-    { count: order.outForDeliveryCount, label: "out for delivery", className: "bg-blue-500" },
-    { count: order.dispatchedCount, label: "on its way", className: "bg-slate-400" },
-    { count: notYetShipped, label: "not yet shipped", className: "bg-zinc-300" },
-  ].filter(s => s.count > 0)
-  const total = segments.reduce((sum, s) => sum + s.count, 0)
+  const total = order.deliveredCount + order.dispatchedCount + notYetShipped
   if (total <= 0) return null
+  const segments = [
+    { count: order.deliveredCount, className: "bg-green-500" },
+    { count: order.dispatchedCount, className: "bg-slate-400" },
+    { count: notYetShipped, className: "bg-zinc-300" },
+  ].filter(s => s.count > 0)
   return (
-    <div className="w-full h-1.5 flex overflow-hidden">
+    <div className="w-full h-1 flex overflow-hidden" role="img" aria-label={breakdown}>
       {segments.map((s, i) => (
-        <Tooltip key={i}>
-          <TooltipTrigger asChild>
-            <div
-              tabIndex={0}
-              className={cn(s.className, "focus:outline-hidden focus-visible:brightness-90")}
-              style={{ width: `${(s.count / total) * 100}%` }}
-            />
-          </TooltipTrigger>
-          <TooltipContent side="top">{s.count} {s.label}</TooltipContent>
-        </Tooltip>
+        <div key={i} className={s.className} style={{ width: `${(s.count / total) * 100}%` }} />
       ))}
     </div>
   )
@@ -3160,10 +3169,7 @@ function OrderCard({ order, onClick, index = 0 }: { order: Order; onClick: () =>
   const total = parseFloat(order.totalPriceSet.shopMoney.amount)
   const fmt = (d: string) => new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
   const deliveryDate = order.latestDelivery || order.earliestDelivery
-  // The footer only ever carries a cancelled/single-stage label — when a
-  // multi-stage breakdown exists that label is null (the bar covers it),
-  // so the footer strip is skipped entirely rather than rendering empty.
-  const showFooter = !!order.cancelledAt || !getOrderFulfillmentBreakdown(order)
+
 
   const cancelled = !!order.cancelledAt
   return (
@@ -3178,23 +3184,6 @@ function OrderCard({ order, onClick, index = 0 }: { order: Order; onClick: () =>
         cancelled ? "border-border cursor-not-allowed" : cn("border-border", orderGlowClass(order))
       )}
     >
-      {/* Image strip */}
-      <div className="w-full h-16 border-b border-border bg-muted/60 flex items-center justify-center gap-2 shrink-0">
-        <div className="flex -space-x-2.5">
-          {uniqueImages.length > 0 ? uniqueImages.map((url, i) => (
-            <div key={i} className="w-11 h-11 rounded-md border-2 border-card dark:border-border bg-card overflow-hidden shadow-xs shrink-0">
-              <img src={url} alt="" className="w-full h-full object-cover" />
-            </div>
-          )) : (
-            <div className="w-11 h-11 rounded-md border-2 border-card dark:border-border bg-card overflow-hidden shadow-xs shrink-0">
-              <ProductImagePlaceholder iconClassName="size-4" />
-            </div>
-          )}
-        </div>
-        {extra > 0 && (
-          <span className="text-[10px] font-medium text-muted-foreground">+{extra}</span>
-        )}
-      </div>
       {/* Info section */}
       <div className="flex-1 px-4 pt-4 pb-3 flex flex-col gap-1.5">
         <div className="flex items-start justify-between gap-2">
@@ -3204,11 +3193,26 @@ function OrderCard({ order, onClick, index = 0 }: { order: Order; onClick: () =>
         <p className="text-xs text-muted-foreground">Ordered {fmt(order.createdAt)} &bull; {order.totalUnits} item{order.totalUnits !== 1 ? "s" : ""}</p>
       </div>
       <ShipmentProgressBar order={order} />
-      {showFooter && (
-        <div className="w-full px-4 py-2.5 border-t border-border bg-muted/60 flex items-center justify-end shrink-0">
-          <StatusLabel order={order} />
+      {/* Images footer */}
+      <div className="w-full px-4 py-2.5 border-t border-border bg-muted/60 flex items-center gap-1.5 shrink-0">
+        <div className="flex items-center flex-1 min-w-0">
+          <div className="flex -space-x-2">
+            {uniqueImages.length > 0 ? uniqueImages.map((url, i) => (
+              <div key={i} className="w-8 h-8 rounded-md border-2 border-muted dark:border-border bg-card overflow-hidden shadow-xs shrink-0">
+                <img src={url} alt="" className="w-full h-full object-cover" />
+              </div>
+            )) : (
+              <div className="w-8 h-8 rounded-md border-2 border-muted dark:border-border bg-card overflow-hidden shadow-xs shrink-0">
+                <ProductImagePlaceholder iconClassName="size-3" />
+              </div>
+            )}
+          </div>
+          {extra > 0 && (
+            <span className="text-[10px] font-medium text-muted-foreground ml-1.5">+{extra}</span>
+          )}
         </div>
-      )}
+        <StatusLabel order={order} />
+      </div>
     </motion.button>
     </div>
   )
