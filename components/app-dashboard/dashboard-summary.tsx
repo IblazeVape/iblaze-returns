@@ -42,9 +42,10 @@ function humanizeReason(reason: string): string {
 /** Mirrors settings-form.tsx's TABS list — tab ids must match SettingsTab exactly. */
 const SETTINGS_QUICK_LINKS = [
   { tab: "branding", label: "Branding", description: "Logo, accent color, storefront and support links." },
-  { tab: "returns", label: "Returns policy", description: "Return window, policy dialog, confirmation messages." },
+  { tab: "lookup", label: "Guest lookup", description: "Who can look up an order, and the Find your order screen." },
+  { tab: "ordersList", label: "My Orders", description: "Order search, default view, and shipment stage colors." },
+  { tab: "orderDetail", label: "Order detail", description: "Return window, policy dialog, item list and statuses." },
   { tab: "navigation", label: "Navigation", description: "Store link, order status link, sidebar links and layout." },
-  { tab: "table", label: "Table & search", description: "Header search, table search, columns and filters." },
 ] as const;
 
 /** Bold card title with a dashed underline, matching the native admin app card header style. */

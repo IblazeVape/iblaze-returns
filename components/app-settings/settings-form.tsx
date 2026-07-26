@@ -63,34 +63,48 @@ declare const shopify: {
 const SAVE_BAR_ID = "settings-save-bar";
 
 type MediaLibraryFile = { id: string; url: string; alt: string | null; width: number; height: number };
-type SettingsTab = "branding" | "returns" | "navigation" | "table" | "danger";
+/** Tabs are organized by which page a setting actually controls — not by
+ * feature domain — so a merchant editing "what happens on the order detail
+ * page" never has to also wade through settings for the My Orders grid, or
+ * vice versa. See SETTINGS_MODAL_FIELDS below for the per-card breakdown. */
+type SettingsTab = "branding" | "lookup" | "ordersList" | "orderDetail" | "navigation" | "danger";
 
 const TAB_FIELDS: Record<SettingsTab, (keyof BrandingInput)[]> = {
+  // Global identity — applies everywhere, not scoped to one page.
   branding: [
-    "name", "logoUrl", "logoHeight", "accentColor", "storefrontUrl", "supportEmail", "guestBackgroundStyle",
-    "guestLookupLayout", "guestLookupLayoutMobile", "guestLookupHeadline", "guestLookupSubtext", "guestLookupHeroUrl",
-    "guestLookupBrandDisplay", "guestLookupLogoUrl", "guestLookupOverlayOpacity", "guestLookupOverlayBlur",
-    "guestLookupSnakeBorder", "guestLookupSideStyle", "guestLookupGradientFrom", "guestLookupGradientTo",
+    "name", "logoUrl", "logoHeight", "accentColor", "storefrontUrl", "supportEmail",
     "toastPosition", "portalCustomScript",
   ],
-  returns: [
-    "returnWindowDays", "requirePolicyAcceptance", "returnReviewEnabled", "alwaysShowGuestLookup", "guestLookupEnabled",
-    "loggedInLookupRequirePostcode",
+  // The pre-login "Find your order" page, and who's allowed to use it.
+  lookup: [
+    "guestBackgroundStyle", "guestLookupLayout", "guestLookupLayoutMobile", "guestLookupHeadline", "guestLookupSubtext",
+    "guestLookupHeroUrl", "guestLookupBrandDisplay", "guestLookupLogoUrl", "guestLookupOverlayOpacity",
+    "guestLookupOverlayBlur", "guestLookupSnakeBorder", "guestLookupSideStyle", "guestLookupGradientFrom",
+    "guestLookupGradientTo", "alwaysShowGuestLookup", "guestLookupEnabled", "loggedInLookupRequirePostcode",
+  ],
+  // The My Orders grid/list page, before a customer clicks into one order.
+  ordersList: [
+    "headerSearchEnabled", "headerSearchPlaceholder", "defaultOrderView",
+    "shipmentProgressBarEnabled", "shipmentStageStyles",
+  ],
+  // Everything shown after a customer opens one specific order, including
+  // the return-submission flow (window length, policy, confirmations) that
+  // only ever happens on this page.
+  orderDetail: [
+    "returnWindowDays", "requirePolicyAcceptance", "returnReviewEnabled",
     "policyHeading", "policySubheading", "policyLastUpdated", "policyBodyMode", "policyCategories", "policyBodyText",
     "policyFooterNoteEnabled", "policyFooterNote", "policyAcceptedMessage", "policyDeclinedMessage",
     "policyPresentation", "policyExternalUrl", "policyReviewButtonLabel",
+    "tableSearchEnabled", "tableSearchPlaceholder",
+    "tableColumnsButtonEnabled", "tableFilterButtonEnabled", "tablePageSizeEnabled", "shipmentCardsEnabled",
+    "productImageLinksEnabled", "statusFilterEnabled", "ineligibleMessageEnabled", "eligibleLabel",
+    "ineligibleLabel", "returnLifecycleMessages", "returnLifecycleStyles", "refundStatusLabels",
   ],
+  // Cross-page chrome — sidebar and header appear the same everywhere.
   navigation: [
     "storeLinkEnabled", "storeLinkLabel", "orderStatusLinkEnabled", "orderStatusLinkLabel",
     "sidebarLinks", "sidebarNote", "sidebarSubmenusExpandedByDefault", "sidebarLayoutSwitcherEnabled",
     "defaultSidebarLayout", "sidebarEnabled", "lookupSidebarEnabled", "sidebarDefaultOpenOnDesktop", "sidebarAvatarEnabled", "headerAvatarEnabled",
-  ],
-  table: [
-    "headerSearchEnabled", "headerSearchPlaceholder", "tableSearchEnabled", "tableSearchPlaceholder",
-    "tableColumnsButtonEnabled", "tableFilterButtonEnabled", "tablePageSizeEnabled", "shipmentCardsEnabled",
-    "shipmentProgressBarEnabled", "shipmentStageStyles",
-    "productImageLinksEnabled", "statusFilterEnabled", "ineligibleMessageEnabled", "eligibleLabel",
-    "ineligibleLabel", "defaultOrderView", "returnLifecycleMessages", "returnLifecycleStyles", "refundStatusLabels",
   ],
   // No fields of its own — Reset actions act on the whole form/tenant record,
   // not a validated field subset, so there's nothing for the Save-error tab
@@ -102,20 +116,32 @@ const TAB_FIELDS: Record<SettingsTab, (keyof BrandingInput)[]> = {
 const SETTINGS_MODAL_FIELDS: Record<string, (keyof BrandingInput)[]> = {
   "branding-identity-modal": ["name", "logoUrl", "logoHeight", "accentColor", "storefrontUrl", "supportEmail"],
   "branding-portal-extras-modal": ["toastPosition", "portalCustomScript"],
-  "branding-lookup-modal": [
+  "lookup-screen-modal": [
     "guestBackgroundStyle", "guestLookupLayout", "guestLookupLayoutMobile", "guestLookupHeadline", "guestLookupSubtext",
     "guestLookupHeroUrl", "guestLookupBrandDisplay", "guestLookupLogoUrl",
     "guestLookupOverlayOpacity", "guestLookupOverlayBlur", "guestLookupSnakeBorder",
     "guestLookupSideStyle", "guestLookupGradientFrom", "guestLookupGradientTo",
   ],
-  "returns-window-modal": ["returnWindowDays", "requirePolicyAcceptance", "returnReviewEnabled"],
-  "returns-lookup-audience-modal": ["alwaysShowGuestLookup", "guestLookupEnabled", "loggedInLookupRequirePostcode"],
-  "returns-policy-modal": [
+  "lookup-audience-modal": ["alwaysShowGuestLookup", "guestLookupEnabled", "loggedInLookupRequirePostcode"],
+  "orders-list-search-modal": ["headerSearchEnabled", "headerSearchPlaceholder"],
+  "orders-list-view-modal": ["defaultOrderView"],
+  "orders-list-shipment-stages-modal": ["shipmentProgressBarEnabled", "shipmentStageStyles"],
+  "order-detail-return-window-modal": ["returnWindowDays", "requirePolicyAcceptance", "returnReviewEnabled"],
+  "order-detail-items-modal": [
+    "tableSearchEnabled", "tableSearchPlaceholder", "tableFilterButtonEnabled", "statusFilterEnabled",
+    "eligibleLabel", "ineligibleLabel", "ineligibleMessageEnabled",
+    "tableColumnsButtonEnabled", "tablePageSizeEnabled", "shipmentCardsEnabled", "productImageLinksEnabled",
+  ],
+  "order-detail-policy-modal": [
     "policyHeading", "policySubheading", "policyLastUpdated", "policyBodyMode",
     "policyCategories", "policyBodyText", "policyFooterNoteEnabled", "policyFooterNote",
     "policyPresentation", "policyExternalUrl", "policyReviewButtonLabel",
   ],
-  "returns-confirm-modal": ["policyAcceptedMessage", "policyDeclinedMessage"],
+  "order-detail-confirm-modal": ["policyAcceptedMessage", "policyDeclinedMessage"],
+  "order-detail-status-modal": ["returnLifecycleStyles", "returnLifecycleMessages"],
+  "order-detail-awaiting-delivery-modal": ["returnLifecycleMessages"],
+  "order-detail-window-closed-modal": ["returnLifecycleMessages"],
+  "order-detail-refund-modal": ["refundStatusLabels"],
   "nav-sidebar-layout-modal": [
     "sidebarEnabled", "lookupSidebarEnabled",
     "sidebarLayoutSwitcherEnabled", "defaultSidebarLayout", "sidebarDefaultOpenOnDesktop",
@@ -126,17 +152,6 @@ const SETTINGS_MODAL_FIELDS: Record<string, (keyof BrandingInput)[]> = {
     "storeLinkEnabled", "storeLinkLabel", "orderStatusLinkEnabled", "orderStatusLinkLabel",
     "headerAvatarEnabled",
   ],
-  "table-header-search-modal": ["headerSearchEnabled", "headerSearchPlaceholder"],
-  "table-order-items-modal": [
-    "tableSearchEnabled", "tableSearchPlaceholder", "tableFilterButtonEnabled", "statusFilterEnabled",
-    "eligibleLabel", "ineligibleLabel", "ineligibleMessageEnabled", "defaultOrderView",
-    "tableColumnsButtonEnabled", "tablePageSizeEnabled", "shipmentCardsEnabled", "productImageLinksEnabled",
-  ],
-  "table-return-status-modal": ["returnLifecycleStyles", "returnLifecycleMessages"],
-  "table-shipment-stages-modal": ["shipmentProgressBarEnabled", "shipmentStageStyles"],
-  "table-awaiting-delivery-modal": ["returnLifecycleMessages"],
-  "table-return-window-closed-modal": ["returnLifecycleMessages"],
-  "table-refund-modal": ["refundStatusLabels"],
 };
 
 function firstModalForErrors(errors: Partial<Record<keyof BrandingInput, string>>): string | null {
@@ -357,11 +372,13 @@ export function SettingsForm({
   // — they fell back to unstyled inline text with no panel switching), so
   // tab navigation is done manually here with plain state instead.
   // Lets Dashboard's quick-access cards deep-link straight to a tab
-  // (/app?tab=returns) instead of always landing on Branding.
+  // (/app?tab=orderDetail) instead of always landing on Branding.
   const [activeTab, setActiveTab] = useState<SettingsTab>(() => {
     if (typeof window === "undefined") return "branding"
     const tab = new URLSearchParams(window.location.search).get("tab")
-    return tab === "returns" || tab === "navigation" || tab === "table" || tab === "danger" ? tab : "branding"
+    return tab === "lookup" || tab === "ordersList" || tab === "orderDetail" || tab === "navigation" || tab === "danger"
+      ? tab
+      : "branding"
   })
   // Return-status cards stay accordion-style. Sidebar links + policy categories
   // use compact drag-sortable tables instead.
@@ -679,9 +696,10 @@ export function SettingsForm({
 
   const TABS: { id: SettingsTab; label: string }[] = [
     { id: "branding", label: "Branding" },
-    { id: "returns", label: "Returns policy" },
+    { id: "lookup", label: "Guest lookup" },
+    { id: "ordersList", label: "My Orders" },
+    { id: "orderDetail", label: "Order detail" },
     { id: "navigation", label: "Navigation" },
-    { id: "table", label: "Table & search" },
     { id: "danger", label: "Danger zone" },
   ]
 
@@ -699,7 +717,7 @@ export function SettingsForm({
       <s-section padding="none">
         <s-box padding="base" borderBlockEndWidth="base" borderColor="subdued">
           <s-stack direction="block" gap="small-300">
-            <s-paragraph tone="subdued">Customize branding, returns policy, navigation, and table behavior for your customer returns portal.</s-paragraph>
+            <s-paragraph tone="subdued">Each tab covers one part of the customer portal — branding, guest lookup, the My Orders list, the order detail page, navigation, or reset options.</s-paragraph>
             {/* s-tabs/s-tab-list/s-tab don't render correctly in this app's
                 embedded runtime (see activeTab's own comment below) — this
                 restyles the same manual button+state approach to look like
@@ -890,8 +908,68 @@ export function SettingsForm({
                 {errors.supportEmail && <s-paragraph tone="critical">{errors.supportEmail}</s-paragraph>}
               </s-stack>
             </SettingsEditRow>
+
             <SettingsEditRow
-              modalId="branding-lookup-modal"
+              modalId="branding-portal-extras-modal"
+              title="Messages & widgets"
+              description="Where short success and error messages appear, and optional chat or help widgets on the portal."
+              summary={`${({
+                "top-left": "Toasts top-left",
+                "top-center": "Toasts top-centre",
+                "top-right": "Toasts top-right",
+                "bottom-left": "Toasts bottom-left",
+                "bottom-center": "Toasts bottom-centre",
+                "bottom-right": "Toasts bottom-right",
+              } as const)[form.toastPosition]}${form.portalCustomScript.trim() ? " · custom script on" : ""}`}
+              modalSize="large"
+              errors={errors}
+            >
+              <s-stack direction="block" gap="base">
+                <s-select
+                  label="Where success / error messages appear"
+                  name="toastPosition"
+                  value={form.toastPosition}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                    set("toastPosition", e.target.value as BrandingInput["toastPosition"])
+                  }
+                >
+                  <s-option value="top-left">Top left</s-option>
+                  <s-option value="top-center">Top centre</s-option>
+                  <s-option value="top-right">Top right</s-option>
+                  <s-option value="bottom-left">Bottom left</s-option>
+                  <s-option value="bottom-center">Bottom centre</s-option>
+                  <s-option value="bottom-right">Bottom right</s-option>
+                </s-select>
+                {errors.toastPosition && <s-paragraph tone="critical">{errors.toastPosition}</s-paragraph>}
+
+                <s-divider></s-divider>
+                <s-text-area
+                  label="Custom HTML / script (optional)"
+                  name="portalCustomScript"
+                  value={form.portalCustomScript}
+                  rows={6}
+                  maxLength={20000}
+                  placeholder={"<!-- e.g. HelpCrunch / chat widget snippet -->"}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("portalCustomScript", e.target.value)}
+                ></s-text-area>
+                <s-paragraph tone="subdued">
+                  Injected on the customer portal only. Use for chat widgets and similar tools. Only add scripts you trust.
+                </s-paragraph>
+                {errors.portalCustomScript && <s-paragraph tone="critical">{errors.portalCustomScript}</s-paragraph>}
+              </s-stack>
+            </SettingsEditRow>
+          </s-stack>
+        </s-section>
+      )}
+
+      {activeTab === "lookup" && (
+        <s-section heading="Guest lookup">
+          <s-stack direction="block" gap="base">
+            <s-paragraph color="subdued">
+              Edit one area at a time. Changes stay in this form until you Save.
+            </s-paragraph>
+            <SettingsEditRow
+              modalId="lookup-screen-modal"
               title="Find your order screen"
               description="How the Find your order screen looks when someone looks up a return."
               summary={[
@@ -1240,103 +1318,9 @@ export function SettingsForm({
                 )}
               </s-stack>
             </SettingsEditRow>
-            <SettingsEditRow
-              modalId="branding-portal-extras-modal"
-              title="Messages & widgets"
-              description="Where short success and error messages appear, and optional chat or help widgets on the portal."
-              summary={`${({
-                "top-left": "Toasts top-left",
-                "top-center": "Toasts top-centre",
-                "top-right": "Toasts top-right",
-                "bottom-left": "Toasts bottom-left",
-                "bottom-center": "Toasts bottom-centre",
-                "bottom-right": "Toasts bottom-right",
-              } as const)[form.toastPosition]}${form.portalCustomScript.trim() ? " · custom script on" : ""}`}
-              modalSize="large"
-              errors={errors}
-            >
-              <s-stack direction="block" gap="base">
-                <s-select
-                  label="Where success / error messages appear"
-                  name="toastPosition"
-                  value={form.toastPosition}
-                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-                    set("toastPosition", e.target.value as BrandingInput["toastPosition"])
-                  }
-                >
-                  <s-option value="top-left">Top left</s-option>
-                  <s-option value="top-center">Top centre</s-option>
-                  <s-option value="top-right">Top right</s-option>
-                  <s-option value="bottom-left">Bottom left</s-option>
-                  <s-option value="bottom-center">Bottom centre</s-option>
-                  <s-option value="bottom-right">Bottom right</s-option>
-                </s-select>
-                {errors.toastPosition && <s-paragraph tone="critical">{errors.toastPosition}</s-paragraph>}
 
-                <s-divider></s-divider>
-                <s-text-area
-                  label="Custom HTML / script (optional)"
-                  name="portalCustomScript"
-                  value={form.portalCustomScript}
-                  rows={6}
-                  maxLength={20000}
-                  placeholder={"<!-- e.g. HelpCrunch / chat widget snippet -->"}
-                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("portalCustomScript", e.target.value)}
-                ></s-text-area>
-                <s-paragraph tone="subdued">
-                  Injected on the customer portal only. Use for chat widgets and similar tools. Only add scripts you trust.
-                </s-paragraph>
-                {errors.portalCustomScript && <s-paragraph tone="critical">{errors.portalCustomScript}</s-paragraph>}
-              </s-stack>
-            </SettingsEditRow>
-          </s-stack>
-        </s-section>
-      )}
-
-      {activeTab === "returns" && (
-        <s-section heading="Returns">
-          <s-stack direction="block" gap="base">
-            <s-paragraph color="subdued">
-              Edit one area at a time. Changes stay in this form until you Save.
-            </s-paragraph>
             <SettingsEditRow
-              modalId="returns-window-modal"
-              title="Return window"
-              description="How long customers have to return, and the steps they must complete before submitting."
-              summary={`${form.returnWindowDays} days · Policy acceptance ${form.requirePolicyAcceptance ? "on" : "off"} · Review step ${form.returnReviewEnabled ? "on" : "off"}`}
-              modalSize="large"
-              errors={errors}
-            >
-              <s-stack direction="block" gap="base">
-                <s-number-field
-                  label="Return window (days)"
-                  name="returnWindowDays"
-                  min={1}
-                  max={365}
-                  value={form.returnWindowDays}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("returnWindowDays", Number(e.target.value))}
-                ></s-number-field>
-                {errors.returnWindowDays && <s-paragraph tone="critical">{errors.returnWindowDays}</s-paragraph>}
-
-                <s-stack direction="block" gap="small-200">
-                  <CheckboxWithHelp
-                    label="Require customers to accept the returns policy before selecting items"
-                    name="requirePolicyAcceptance"
-                    checked={form.requirePolicyAcceptance}
-                    onChange={(e) => set("requirePolicyAcceptance", e.target.checked)}
-                  />
-                  <CheckboxWithHelp
-                    label="Show a Review return step before customers submit"
-                    name="returnReviewEnabled"
-                    checked={form.returnReviewEnabled}
-                    onChange={(e) => set("returnReviewEnabled", e.target.checked)}
-                    help="When off, the primary button submits immediately (Submit return) instead of opening a review screen."
-                  />
-                </s-stack>
-              </s-stack>
-            </SettingsEditRow>
-            <SettingsEditRow
-              modalId="returns-lookup-audience-modal"
+              modalId="lookup-audience-modal"
               title="Who can look up orders"
               description="Who can look up an order, and what logged-in customers must enter."
               summary={
@@ -1381,199 +1365,132 @@ export function SettingsForm({
                 {errors.loggedInLookupRequirePostcode && <s-paragraph tone="critical">{errors.loggedInLookupRequirePostcode}</s-paragraph>}
               </s-stack>
             </SettingsEditRow>
-            <SettingsEditRow
-              modalId="returns-policy-modal"
-              title="Returns policy"
-              description="How customers review your returns policy before selecting items to return."
-              summary={
-                form.policyPresentation === "externalLink"
-                  ? `External link · ${hostFromUrl(form.policyExternalUrl) || form.policyExternalUrl || "URL required"}`
-                  : `${form.policyHeading || "Untitled"} · ${form.policyBodyMode === "text" ? "Free text" : `${form.policyCategories.length} categor${form.policyCategories.length === 1 ? "y" : "ies"}`}`
-              }
-              modalSize="large-100"
-              errors={errors}
-            >
-              <s-stack direction="block" gap="base">
-                <s-paragraph tone="subdued">How customers review your policy before they can select items to return.</s-paragraph>
-
-                <s-select
-                  label="Policy experience"
-                  name="policyPresentation"
-                  value={form.policyPresentation}
-                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-                    set("policyPresentation", e.target.value as "dialog" | "externalLink")
-                  }
-                >
-                  <s-option value="dialog">In-app dialog (recommended)</s-option>
-                  <s-option value="externalLink">Link to an external policy page</s-option>
-                </s-select>
-                {errors.policyPresentation && <s-paragraph tone="critical">{errors.policyPresentation}</s-paragraph>}
-
-                {form.policyPresentation === "externalLink" ? (
-                  <>
-                    <s-url-field
-                      label="Policy page URL"
-                      name="policyExternalUrl"
-                      value={form.policyExternalUrl}
-                      placeholder="https://your-store.com/pages/returns-policy"
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policyExternalUrl", e.target.value)}
-                    ></s-url-field>
-                    {errors.policyExternalUrl && <s-paragraph tone="critical">{errors.policyExternalUrl}</s-paragraph>}
-                    <s-text-field
-                      label="Review button text"
-                      name="policyReviewButtonLabel"
-                      value={form.policyReviewButtonLabel}
-                      placeholder="Read policy"
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policyReviewButtonLabel", e.target.value)}
-                    ></s-text-field>
-                    {errors.policyReviewButtonLabel && <s-paragraph tone="critical">{errors.policyReviewButtonLabel}</s-paragraph>}
-                    <s-text-field
-                      label="Policy banner text"
-                      name="policySubheading"
-                      value={form.policySubheading}
-                      placeholder="Review our returns policy before selecting items to return."
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policySubheading", e.target.value)}
-                    ></s-text-field>
-                    {errors.policySubheading && <s-paragraph tone="critical">{errors.policySubheading}</s-paragraph>}
-                    <s-paragraph tone="subdued">
-                      Shown next to the button on the order page. The button opens your policy URL in a new tab and stays visible — it does not hide after click.
-                    </s-paragraph>
-                  </>
-                ) : null}
-
-                {form.policyPresentation === "dialog" && (
-                  <>
-                    <s-text-field
-                      label="Review button text"
-                      name="policyReviewButtonLabel"
-                      value={form.policyReviewButtonLabel}
-                      placeholder="Review & Accept"
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policyReviewButtonLabel", e.target.value)}
-                    ></s-text-field>
-                    {errors.policyReviewButtonLabel && <s-paragraph tone="critical">{errors.policyReviewButtonLabel}</s-paragraph>}
-
-                    <s-text-field
-                      label="Policy dialog heading"
-                      name="policyHeading"
-                      value={form.policyHeading}
-                      placeholder="iBlaze Returns Policy"
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policyHeading", e.target.value)}
-                    ></s-text-field>
-                    {errors.policyHeading && <s-paragraph tone="critical">{errors.policyHeading}</s-paragraph>}
-
-                    <s-text-field
-                      label="Policy banner / dialog intro"
-                      name="policySubheading"
-                      value={form.policySubheading}
-                      placeholder="Review our returns policy before selecting items to return."
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policySubheading", e.target.value)}
-                    ></s-text-field>
-                    <s-paragraph tone="subdued">
-                      Shown on the order page next to the review button, and again as the intro inside the policy dialog.
-                    </s-paragraph>
-                    {errors.policySubheading && <s-paragraph tone="critical">{errors.policySubheading}</s-paragraph>}
-
-                    <s-text-field
-                      label="Last updated"
-                      name="policyLastUpdated"
-                      value={form.policyLastUpdated}
-                      placeholder="14 July 2026"
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policyLastUpdated", e.target.value)}
-                    ></s-text-field>
-                    <s-paragraph tone="subdued">Shown under the dialog intro. Leave blank to hide it. Free text — you control the date format.</s-paragraph>
-                    {errors.policyLastUpdated && <s-paragraph tone="critical">{errors.policyLastUpdated}</s-paragraph>}
-
-                    <s-stack direction="inline" gap="small-300">
-                      <s-button
-                        variant={form.policyBodyMode === "categories" ? "primary" : "secondary"}
-                        onClick={() => set("policyBodyMode", "categories")}
-                      >
-                        Category list
-                      </s-button>
-                      <s-button
-                        variant={form.policyBodyMode === "text" ? "primary" : "secondary"}
-                        onClick={() => set("policyBodyMode", "text")}
-                      >
-                        Free text
-                      </s-button>
-                    </s-stack>
-
-                    {form.policyBodyMode === "categories" ? (
-                      <PolicyCategoriesTable
-                        categories={form.policyCategories}
-                        categoryIds={categoryIds}
-                        filter={categoryFilter}
-                        onFilterChange={setCategoryFilter}
-                        onUpdate={updateCategory}
-                        onAdd={addCategory}
-                        onRemove={removeCategory}
-                        onReorder={reorderCategories}
-                        error={errors.policyCategories}
-                      />
-                    ) : (
-                      <>
-                        <s-text color="subdued">Policy body text</s-text>
-                        <RichTextEditor
-                          value={form.policyBodyText}
-                          onChange={(value) => set("policyBodyText", value)}
-                          placeholder="Write your full returns policy here instead of using category cards."
-                        />
-                        {errors.policyBodyText && <s-paragraph tone="critical">{errors.policyBodyText}</s-paragraph>}
-                      </>
-                    )}
-
-                    <CheckboxWithHelp
-                      label="Show the footer note"
-                      name="policyFooterNoteEnabled"
-                      checked={form.policyFooterNoteEnabled}
-                      onChange={(e) => set("policyFooterNoteEnabled", e.target.checked)}
-                    />
-                    <s-text-area
-                      label="Footer note"
-                      name="policyFooterNote"
-                      value={form.policyFooterNote}
-                      maxLength={300}
-                      rows={2}
-                      disabled={!form.policyFooterNoteEnabled}
-                      onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("policyFooterNote", e.target.value)}
-                    ></s-text-area>
-                    {errors.policyFooterNote && <s-paragraph tone="critical">{errors.policyFooterNote}</s-paragraph>}
-                  </>
-                )}
-              </s-stack>
-            </SettingsEditRow>
-
-            <SettingsEditRow
-              modalId="returns-confirm-modal"
-              title="Confirmation messages"
-              description="Short confirmation messages after a customer accepts or declines the in-app policy."
-              summary={`“${(form.policyAcceptedMessage || "Policy accepted").slice(0, 40)}” · “${(form.policyDeclinedMessage || "Policy declined").slice(0, 40)}”`}
-              modalSize="large"
-              errors={errors}
-            >
-              <s-stack direction="block" gap="base">
-                <s-text-field
-                  label="Accepted message"
-                  name="policyAcceptedMessage"
-                  value={form.policyAcceptedMessage}
-                  placeholder="Policy accepted"
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policyAcceptedMessage", e.target.value)}
-                ></s-text-field>
-                {errors.policyAcceptedMessage && <s-paragraph tone="critical">{errors.policyAcceptedMessage}</s-paragraph>}
-                <s-text-field
-                  label="Declined message"
-                  name="policyDeclinedMessage"
-                  value={form.policyDeclinedMessage}
-                  placeholder="Policy declined"
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policyDeclinedMessage", e.target.value)}
-                ></s-text-field>
-                {errors.policyDeclinedMessage && <s-paragraph tone="critical">{errors.policyDeclinedMessage}</s-paragraph>}
-              </s-stack>
-            </SettingsEditRow>
           </s-stack>
         </s-section>
       )}
 
+      {activeTab === "ordersList" && (
+        <s-section heading="My Orders">
+          <s-stack direction="block" gap="base">
+            <s-paragraph color="subdued">
+              Edit one area at a time. Changes stay in this form until you Save.
+            </s-paragraph>
+            <SettingsEditRow
+              modalId="orders-list-search-modal"
+              title="Order search"
+              description="Whether customers can search their orders from the top bar."
+              summary={
+                form.headerSearchEnabled
+                  ? `On · “${form.headerSearchPlaceholder || "Search orders..."}”`
+                  : "Off"
+              }
+              modalSize="large"
+              errors={errors}
+            >
+              <s-stack direction="block" gap="base">
+                <s-checkbox
+                  label="Show order search in the top bar"
+                  name="headerSearchEnabled"
+                  checked={form.headerSearchEnabled}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("headerSearchEnabled", e.target.checked)}
+                ></s-checkbox>
+                <s-text-field
+                  label="Grey hint text inside the search box"
+                  name="headerSearchPlaceholder"
+                  value={form.headerSearchPlaceholder}
+                  placeholder="Search orders..."
+                  disabled={!form.headerSearchEnabled}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("headerSearchPlaceholder", e.target.value)}
+                ></s-text-field>
+                {errors.headerSearchPlaceholder && <s-paragraph tone="critical">{errors.headerSearchPlaceholder}</s-paragraph>}
+              </s-stack>
+            </SettingsEditRow>
+
+            <SettingsEditRow
+              modalId="orders-list-view-modal"
+              title="Default view"
+              description="How the My Orders list looks by default — a grid of cards or a simple table of rows."
+              summary={form.defaultOrderView === "grid" ? "Grid cards" : "List rows"}
+              modalSize="large"
+              errors={errors}
+            >
+              <s-stack direction="block" gap="base">
+                <s-select
+                  label="How the My Orders list looks by default"
+                  name="defaultOrderView"
+                  value={form.defaultOrderView}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => set("defaultOrderView", e.target.value as "list" | "grid")}
+                >
+                  <s-option value="grid">Grid of order cards</s-option>
+                  <s-option value="list">Simple list of rows</s-option>
+                </s-select>
+              </s-stack>
+            </SettingsEditRow>
+
+            <SettingsEditRow
+              modalId="orders-list-shipment-stages-modal"
+              title="Shipment stages"
+              description="The label, icon, and color for each of the 5 shipping stages shown on My Orders order cards."
+              summary={form.shipmentProgressBarEnabled ? "Progress bar on" : "Progress bar off"}
+              modalSize="large-100"
+              errors={errors}
+            >
+              <s-stack direction="block" gap="base">
+                <s-checkbox
+                  label="Show the shipment progress bar on order cards"
+                  name="shipmentProgressBarEnabled"
+                  checked={form.shipmentProgressBarEnabled}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("shipmentProgressBarEnabled", e.target.checked)}
+                ></s-checkbox>
+                <s-text color="subdued">
+                  These same 5 stages also drive the status icon and its popover on each order card — a change here
+                  updates both.
+                </s-text>
+                {SHIPMENT_STAGE_CARDS.map(({ key, name }) => {
+                  const isOpen = openShipmentStageKey === key
+                  const style = form.shipmentStageStyles[key]
+                  return (
+                    <s-box key={key} padding="base" border="base" borderRadius="base">
+                      <s-stack direction="block" gap="small">
+                        <s-stack direction="inline" gap="small-300" alignItems="center">
+                          <s-button onClick={() => toggleShipmentStageOpen(key)}>{isOpen ? "Collapse" : "Expand"}</s-button>
+                          <s-text>{name} — "{style.label}"</s-text>
+                        </s-stack>
+                        {isOpen && (
+                          <>
+                            <s-text-field
+                              label="Label"
+                              value={style.label}
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setShipmentStageStyle(key, "label", e.target.value)}
+                            ></s-text-field>
+                            <s-select
+                              label="Icon"
+                              value={style.icon}
+                              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setShipmentStageStyle(key, "icon", e.target.value)}
+                            >
+                              {STATUS_ICON_NAMES.map((iconName) => (
+                                <s-option key={iconName} value={iconName}>{iconName}</s-option>
+                              ))}
+                            </s-select>
+                            <s-text-field
+                              label="Color"
+                              value={style.color}
+                              placeholder="#16A34A"
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setShipmentStageStyle(key, "color", e.target.value)}
+                            ></s-text-field>
+                          </>
+                        )}
+                      </s-stack>
+                    </s-box>
+                  )
+                })}
+                {errors.shipmentStageStyles && <s-paragraph tone="critical">{errors.shipmentStageStyles}</s-paragraph>}
+              </s-stack>
+            </SettingsEditRow>
+
+          </s-stack>
+        </s-section>
+      )}
 
       {activeTab === "navigation" && (
         <s-section heading="Navigation">
@@ -1765,51 +1682,59 @@ export function SettingsForm({
         </s-section>
       )}
 
-      {activeTab === "table" && (
-        <s-section heading="Table & status">
+
+      {activeTab === "orderDetail" && (
+        <s-section heading="Order detail">
           <s-stack direction="block" gap="base">
             <s-paragraph color="subdued">
               Edit one area at a time. Changes stay in this form until you Save.
             </s-paragraph>
             <SettingsEditRow
-              modalId="table-header-search-modal"
-              title="Order search"
-              description="Whether customers can search their orders from the top bar."
-              summary={
-                form.headerSearchEnabled
-                  ? `On · “${form.headerSearchPlaceholder || "Search orders..."}”`
-                  : "Off"
-              }
+              modalId="order-detail-return-window-modal"
+              title="Return window"
+              description="How long customers have to return, and the steps they must complete before submitting."
+              summary={`${form.returnWindowDays} days · Policy acceptance ${form.requirePolicyAcceptance ? "on" : "off"} · Review step ${form.returnReviewEnabled ? "on" : "off"}`}
               modalSize="large"
               errors={errors}
             >
               <s-stack direction="block" gap="base">
-                <s-checkbox
-                  label="Show order search in the top bar"
-                  name="headerSearchEnabled"
-                  checked={form.headerSearchEnabled}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("headerSearchEnabled", e.target.checked)}
-                ></s-checkbox>
-                <s-text-field
-                  label="Grey hint text inside the search box"
-                  name="headerSearchPlaceholder"
-                  value={form.headerSearchPlaceholder}
-                  placeholder="Search orders..."
-                  disabled={!form.headerSearchEnabled}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("headerSearchPlaceholder", e.target.value)}
-                ></s-text-field>
-                {errors.headerSearchPlaceholder && <s-paragraph tone="critical">{errors.headerSearchPlaceholder}</s-paragraph>}
+                <s-number-field
+                  label="Return window (days)"
+                  name="returnWindowDays"
+                  min={1}
+                  max={365}
+                  value={form.returnWindowDays}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("returnWindowDays", Number(e.target.value))}
+                ></s-number-field>
+                {errors.returnWindowDays && <s-paragraph tone="critical">{errors.returnWindowDays}</s-paragraph>}
+
+                <s-stack direction="block" gap="small-200">
+                  <CheckboxWithHelp
+                    label="Require customers to accept the returns policy before selecting items"
+                    name="requirePolicyAcceptance"
+                    checked={form.requirePolicyAcceptance}
+                    onChange={(e) => set("requirePolicyAcceptance", e.target.checked)}
+                  />
+                  <CheckboxWithHelp
+                    label="Show a Review return step before customers submit"
+                    name="returnReviewEnabled"
+                    checked={form.returnReviewEnabled}
+                    onChange={(e) => set("returnReviewEnabled", e.target.checked)}
+                    help="When off, the primary button submits immediately (Submit return) instead of opening a review screen."
+                  />
+                </s-stack>
               </s-stack>
             </SettingsEditRow>
+
             <SettingsEditRow
-              modalId="table-order-items-modal"
-              title="Order detail"
-              description="How products and tools appear when a customer opens an order."
-              summary={`${form.defaultOrderView === "grid" ? "Grid cards" : "List rows"} · ${[
+              modalId="order-detail-items-modal"
+              title="Item list & tools"
+              description="Search, filters, columns, and shipment cards inside an order."
+              summary={[
                 form.tableSearchEnabled && "product search",
                 form.tablePageSizeEnabled && "rows per page",
                 form.shipmentCardsEnabled && "shipments",
-              ].filter(Boolean).join(" · ") || "simple layout"}`}
+              ].filter(Boolean).join(" · ") || "simple layout"}
               modalSize="large-100"
               errors={errors}
             >
@@ -1869,16 +1794,6 @@ export function SettingsForm({
                   checked={form.ineligibleMessageEnabled}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("ineligibleMessageEnabled", e.target.checked)}
                 ></s-checkbox>
-                <s-select
-                  label="How the My Orders list looks by default"
-                  name="defaultOrderView"
-                  value={form.defaultOrderView}
-                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => set("defaultOrderView", e.target.value as "list" | "grid")}
-                >
-                  <s-option value="grid">Grid of order cards</s-option>
-                  <s-option value="list">Simple list of rows</s-option>
-                </s-select>
-
                 <s-stack direction="block" gap="small-200">
                   <s-checkbox
                     label="Show a Columns button so customers can hide/show table columns"
@@ -1908,8 +1823,199 @@ export function SettingsForm({
                 </s-stack>
               </s-stack>
             </SettingsEditRow>
+
             <SettingsEditRow
-              modalId="table-return-status-modal"
+              modalId="order-detail-policy-modal"
+              title="Returns policy"
+              description="How customers review your returns policy before selecting items to return."
+              summary={
+                form.policyPresentation === "externalLink"
+                  ? `External link · ${hostFromUrl(form.policyExternalUrl) || form.policyExternalUrl || "URL required"}`
+                  : `${form.policyHeading || "Untitled"} · ${form.policyBodyMode === "text" ? "Free text" : `${form.policyCategories.length} categor${form.policyCategories.length === 1 ? "y" : "ies"}`}`
+              }
+              modalSize="large-100"
+              errors={errors}
+            >
+              <s-stack direction="block" gap="base">
+                <s-paragraph tone="subdued">How customers review your policy before they can select items to return.</s-paragraph>
+
+                <s-select
+                  label="Policy experience"
+                  name="policyPresentation"
+                  value={form.policyPresentation}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                    set("policyPresentation", e.target.value as "dialog" | "externalLink")
+                  }
+                >
+                  <s-option value="dialog">In-app dialog (recommended)</s-option>
+                  <s-option value="externalLink">Link to an external policy page</s-option>
+                </s-select>
+                {errors.policyPresentation && <s-paragraph tone="critical">{errors.policyPresentation}</s-paragraph>}
+
+                {form.policyPresentation === "externalLink" ? (
+                  <>
+                    <s-url-field
+                      label="Policy page URL"
+                      name="policyExternalUrl"
+                      value={form.policyExternalUrl}
+                      placeholder="https://your-store.com/pages/returns-policy"
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policyExternalUrl", e.target.value)}
+                    ></s-url-field>
+                    {errors.policyExternalUrl && <s-paragraph tone="critical">{errors.policyExternalUrl}</s-paragraph>}
+                    <s-text-field
+                      label="Review button text"
+                      name="policyReviewButtonLabel"
+                      value={form.policyReviewButtonLabel}
+                      placeholder="Read policy"
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policyReviewButtonLabel", e.target.value)}
+                    ></s-text-field>
+                    {errors.policyReviewButtonLabel && <s-paragraph tone="critical">{errors.policyReviewButtonLabel}</s-paragraph>}
+                    <s-text-field
+                      label="Policy banner text"
+                      name="policySubheading"
+                      value={form.policySubheading}
+                      placeholder="Review our returns policy before selecting items to return."
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policySubheading", e.target.value)}
+                    ></s-text-field>
+                    {errors.policySubheading && <s-paragraph tone="critical">{errors.policySubheading}</s-paragraph>}
+                    <s-paragraph tone="subdued">
+                      Shown next to the button on the order page. The button opens your policy URL in a new tab and stays visible — it does not hide after click.
+                    </s-paragraph>
+                  </>
+                ) : null}
+
+                {form.policyPresentation === "dialog" && (
+                  <>
+                    <s-text-field
+                      label="Review button text"
+                      name="policyReviewButtonLabel"
+                      value={form.policyReviewButtonLabel}
+                      placeholder="Review & Accept"
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policyReviewButtonLabel", e.target.value)}
+                    ></s-text-field>
+                    {errors.policyReviewButtonLabel && <s-paragraph tone="critical">{errors.policyReviewButtonLabel}</s-paragraph>}
+
+                    <s-text-field
+                      label="Policy dialog heading"
+                      name="policyHeading"
+                      value={form.policyHeading}
+                      placeholder="iBlaze Returns Policy"
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policyHeading", e.target.value)}
+                    ></s-text-field>
+                    {errors.policyHeading && <s-paragraph tone="critical">{errors.policyHeading}</s-paragraph>}
+
+                    <s-text-field
+                      label="Policy banner / dialog intro"
+                      name="policySubheading"
+                      value={form.policySubheading}
+                      placeholder="Review our returns policy before selecting items to return."
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policySubheading", e.target.value)}
+                    ></s-text-field>
+                    <s-paragraph tone="subdued">
+                      Shown on the order page next to the review button, and again as the intro inside the policy dialog.
+                    </s-paragraph>
+                    {errors.policySubheading && <s-paragraph tone="critical">{errors.policySubheading}</s-paragraph>}
+
+                    <s-text-field
+                      label="Last updated"
+                      name="policyLastUpdated"
+                      value={form.policyLastUpdated}
+                      placeholder="14 July 2026"
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policyLastUpdated", e.target.value)}
+                    ></s-text-field>
+                    <s-paragraph tone="subdued">Shown under the dialog intro. Leave blank to hide it. Free text — you control the date format.</s-paragraph>
+                    {errors.policyLastUpdated && <s-paragraph tone="critical">{errors.policyLastUpdated}</s-paragraph>}
+
+                    <s-stack direction="inline" gap="small-300">
+                      <s-button
+                        variant={form.policyBodyMode === "categories" ? "primary" : "secondary"}
+                        onClick={() => set("policyBodyMode", "categories")}
+                      >
+                        Category list
+                      </s-button>
+                      <s-button
+                        variant={form.policyBodyMode === "text" ? "primary" : "secondary"}
+                        onClick={() => set("policyBodyMode", "text")}
+                      >
+                        Free text
+                      </s-button>
+                    </s-stack>
+
+                    {form.policyBodyMode === "categories" ? (
+                      <PolicyCategoriesTable
+                        categories={form.policyCategories}
+                        categoryIds={categoryIds}
+                        filter={categoryFilter}
+                        onFilterChange={setCategoryFilter}
+                        onUpdate={updateCategory}
+                        onAdd={addCategory}
+                        onRemove={removeCategory}
+                        onReorder={reorderCategories}
+                        error={errors.policyCategories}
+                      />
+                    ) : (
+                      <>
+                        <s-text color="subdued">Policy body text</s-text>
+                        <RichTextEditor
+                          value={form.policyBodyText}
+                          onChange={(value) => set("policyBodyText", value)}
+                          placeholder="Write your full returns policy here instead of using category cards."
+                        />
+                        {errors.policyBodyText && <s-paragraph tone="critical">{errors.policyBodyText}</s-paragraph>}
+                      </>
+                    )}
+
+                    <CheckboxWithHelp
+                      label="Show the footer note"
+                      name="policyFooterNoteEnabled"
+                      checked={form.policyFooterNoteEnabled}
+                      onChange={(e) => set("policyFooterNoteEnabled", e.target.checked)}
+                    />
+                    <s-text-area
+                      label="Footer note"
+                      name="policyFooterNote"
+                      value={form.policyFooterNote}
+                      maxLength={300}
+                      rows={2}
+                      disabled={!form.policyFooterNoteEnabled}
+                      onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("policyFooterNote", e.target.value)}
+                    ></s-text-area>
+                    {errors.policyFooterNote && <s-paragraph tone="critical">{errors.policyFooterNote}</s-paragraph>}
+                  </>
+                )}
+              </s-stack>
+            </SettingsEditRow>
+
+            <SettingsEditRow
+              modalId="order-detail-confirm-modal"
+              title="Confirmation messages"
+              description="Short confirmation messages after a customer accepts or declines the in-app policy."
+              summary={`“${(form.policyAcceptedMessage || "Policy accepted").slice(0, 40)}” · “${(form.policyDeclinedMessage || "Policy declined").slice(0, 40)}”`}
+              modalSize="large"
+              errors={errors}
+            >
+              <s-stack direction="block" gap="base">
+                <s-text-field
+                  label="Accepted message"
+                  name="policyAcceptedMessage"
+                  value={form.policyAcceptedMessage}
+                  placeholder="Policy accepted"
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policyAcceptedMessage", e.target.value)}
+                ></s-text-field>
+                {errors.policyAcceptedMessage && <s-paragraph tone="critical">{errors.policyAcceptedMessage}</s-paragraph>}
+                <s-text-field
+                  label="Declined message"
+                  name="policyDeclinedMessage"
+                  value={form.policyDeclinedMessage}
+                  placeholder="Policy declined"
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("policyDeclinedMessage", e.target.value)}
+                ></s-text-field>
+                {errors.policyDeclinedMessage && <s-paragraph tone="critical">{errors.policyDeclinedMessage}</s-paragraph>}
+              </s-stack>
+            </SettingsEditRow>
+
+            <SettingsEditRow
+              modalId="order-detail-status-modal"
               title="Return status"
               description="How each return stage looks and what sentence customers see."
               summary={`${RETURN_STATUS_CARDS.length} return stages`}
@@ -2011,69 +2117,9 @@ export function SettingsForm({
               </s-stack>
             </SettingsEditRow>
 
-            <SettingsEditRow
-              modalId="table-shipment-stages-modal"
-              title="Shipment stages"
-              description="The label, icon, and color for each of the 5 shipping stages shown on My Orders order cards."
-              summary={form.shipmentProgressBarEnabled ? "Progress bar on" : "Progress bar off"}
-              modalSize="large-100"
-              errors={errors}
-            >
-              <s-stack direction="block" gap="base">
-                <s-checkbox
-                  label="Show the shipment progress bar on order cards"
-                  name="shipmentProgressBarEnabled"
-                  checked={form.shipmentProgressBarEnabled}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("shipmentProgressBarEnabled", e.target.checked)}
-                ></s-checkbox>
-                <s-text color="subdued">
-                  These same 5 stages also drive the status icon and its popover on each order card — a change here
-                  updates both.
-                </s-text>
-                {SHIPMENT_STAGE_CARDS.map(({ key, name }) => {
-                  const isOpen = openShipmentStageKey === key
-                  const style = form.shipmentStageStyles[key]
-                  return (
-                    <s-box key={key} padding="base" border="base" borderRadius="base">
-                      <s-stack direction="block" gap="small">
-                        <s-stack direction="inline" gap="small-300" alignItems="center">
-                          <s-button onClick={() => toggleShipmentStageOpen(key)}>{isOpen ? "Collapse" : "Expand"}</s-button>
-                          <s-text>{name} — "{style.label}"</s-text>
-                        </s-stack>
-                        {isOpen && (
-                          <>
-                            <s-text-field
-                              label="Label"
-                              value={style.label}
-                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setShipmentStageStyle(key, "label", e.target.value)}
-                            ></s-text-field>
-                            <s-select
-                              label="Icon"
-                              value={style.icon}
-                              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setShipmentStageStyle(key, "icon", e.target.value)}
-                            >
-                              {STATUS_ICON_NAMES.map((iconName) => (
-                                <s-option key={iconName} value={iconName}>{iconName}</s-option>
-                              ))}
-                            </s-select>
-                            <s-text-field
-                              label="Color"
-                              value={style.color}
-                              placeholder="#16A34A"
-                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setShipmentStageStyle(key, "color", e.target.value)}
-                            ></s-text-field>
-                          </>
-                        )}
-                      </s-stack>
-                    </s-box>
-                  )
-                })}
-                {errors.shipmentStageStyles && <s-paragraph tone="critical">{errors.shipmentStageStyles}</s-paragraph>}
-              </s-stack>
-            </SettingsEditRow>
 
             <SettingsEditRow
-              modalId="table-awaiting-delivery-modal"
+              modalId="order-detail-awaiting-delivery-modal"
               title="Awaiting delivery"
               description="Messages shown while an item is still shipping and hasn't been delivered yet."
               summary="Not shipped · on its way · out for delivery · attempted"
@@ -2095,8 +2141,9 @@ export function SettingsForm({
               </s-stack>
             </SettingsEditRow>
 
+
             <SettingsEditRow
-              modalId="table-return-window-closed-modal"
+              modalId="order-detail-window-closed-modal"
               title="Return window closed"
               description="Messages when an item's return window has permanently passed."
               summary="Window expired · final sale · other"
@@ -2119,8 +2166,9 @@ export function SettingsForm({
               </s-stack>
             </SettingsEditRow>
 
+
             <SettingsEditRow
-              modalId="table-refund-modal"
+              modalId="order-detail-refund-modal"
               title="Refund labels"
               description="Labels next to items that are partly or fully refunded."
               summary={`“${form.refundStatusLabels.partiallyRefunded || "Partially refunded"}” · “${form.refundStatusLabels.refunded || "Refunded"}”`}
