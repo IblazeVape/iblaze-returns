@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { portalToast, setPortalToastPosition } from "@/lib/portal-toast"
 import { PortalCustomScripts } from "@/components/apps-returns/portal-custom-scripts"
-import { ChevronRight, ChevronDown, LayoutGrid, List, ArrowLeft, RotateCcw, CheckCircle2, ShoppingBag, ShieldCheck, ExternalLink, Lock, Truck, Package, Search, MapPin, SlidersHorizontal, XCircle, CircleX, Columns2, Clock, BadgeCheck, HelpCircle, Eye, Info, AlertCircle, type LucideIcon } from "lucide-react"
+import { ChevronRight, ChevronDown, LayoutGrid, List, ArrowLeft, RotateCcw, CheckCircle2, ShoppingBag, ShieldCheck, ExternalLink, Lock, Truck, Package, Search, MapPin, SlidersHorizontal, XCircle, CircleX, Columns2, Clock, BadgeCheck, HelpCircle, Eye, Info, type LucideIcon } from "lucide-react"
 
 import { PortalShell } from "@/components/portal-shell"
 import { SidebarLayoutProvider, useSidebarLayout } from "@/components/sidebar-layout-provider"
@@ -3073,7 +3073,7 @@ function orderGlowClass(order: Order): string {
   }
 }
 
-function StatusLabel({ order, expanded, onToggle }: { order: Order; expanded: boolean; onToggle: () => void }) {
+function StatusLabel({ order }: { order: Order }) {
   const { orderStatus, cancelledAt } = order
   const fmt = (d: string) => new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
   const deliveryDate = order.latestDelivery || order.earliestDelivery
@@ -3085,36 +3085,11 @@ function StatusLabel({ order, expanded, onToggle }: { order: Order; expanded: bo
       Cancelled {fmt(cancelledAt)}
     </span>
   )
-  if (breakdown) {
-    const notYetShipped = order.confirmedCount + order.notDispatchedCount
-    const total = order.deliveredCount + order.attemptedDeliveryCount + order.outForDeliveryCount + order.dispatchedCount + notYetShipped
-    // Headline stage answers "how far along is this order" — delivered is
-    // the most meaningful single number to a customer, falling back down
-    // the stage order only when nothing has been delivered yet.
-    const headline =
-      order.deliveredCount > 0        ? { count: order.deliveredCount, icon: CheckCircle2, color: "text-green-600" } :
-      order.attemptedDeliveryCount > 0 ? { count: order.attemptedDeliveryCount, icon: AlertCircle, color: "text-red-600" } :
-      order.outForDeliveryCount > 0    ? { count: order.outForDeliveryCount, icon: MapPin, color: "text-blue-600" } :
-      order.dispatchedCount > 0        ? { count: order.dispatchedCount, icon: Truck, color: "text-slate-600" } :
-                                          { count: notYetShipped, icon: Clock, color: "text-zinc-600" }
-    return (
-      <span
-        role="button"
-        tabIndex={0}
-        aria-expanded={expanded}
-        aria-label={expanded ? "Hide shipment breakdown" : "Show shipment breakdown"}
-        onClick={e => { e.stopPropagation(); onToggle() }}
-        onKeyDown={e => {
-          if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); onToggle() }
-        }}
-        className="shrink-0 inline-flex items-center gap-1 text-[10px] font-semibold pl-1.5 pr-1 py-0.5 rounded-full border border-border bg-card hover:bg-muted transition-colors focus:outline-hidden focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
-      >
-        <headline.icon className={cn("size-3 shrink-0", headline.color)} aria-hidden />
-        <span className={headline.color}>{headline.count} of {total}</span>
-        <ChevronDown className={cn("size-3 shrink-0 text-muted-foreground transition-transform duration-150", expanded && "rotate-180")} aria-hidden />
-      </span>
-    )
-  }
+  // When a fulfillment breakdown exists, the progress bar above the footer
+  // carries the full 5-stage detail (hover/focus any segment) — nothing
+  // extra is needed here, so the footer stays exactly as uncrowded as it
+  // is with a single-stage order.
+  if (breakdown) return null
 
   const isOnItsWay = orderStatus === "On its way" || orderStatus === "Partially dispatched"
   const earliestDispatch = isOnItsWay
@@ -3142,60 +3117,39 @@ function StatusLabel({ order, expanded, onToggle }: { order: Order; expanded: bo
   )
 }
 
-/** Thin visual strip summarizing shipment progress at a glance — only shown
- * when an order spans more than one stage (matches the same condition that
- * gates the colored text breakdown below it), using the same 3 buckets and
- * colors as that text so the two stay consistent. */
+/** Thin visual strip summarizing shipment progress at a glance — shows all 5
+ * real shipping stages proportionally, with no numbers on the card itself.
+ * Hovering (or focusing, for keyboard/touch) any segment reveals its count
+ * and label via tooltip, so the footer below never needs its own status
+ * text no matter how many stages are active. */
 function ShipmentProgressBar({ order }: { order: Order }) {
   const breakdown = getOrderFulfillmentBreakdown(order)
   if (!breakdown) return null
   const notYetShipped = order.confirmedCount + order.notDispatchedCount
-  const total = order.deliveredCount + order.dispatchedCount + notYetShipped
-  if (total <= 0) return null
-  const segments = [
-    { count: order.deliveredCount, className: "bg-green-500" },
-    { count: order.dispatchedCount, className: "bg-slate-400" },
-    { count: notYetShipped, className: "bg-zinc-300" },
+  const segments: { count: number; label: string; className: string }[] = [
+    { count: order.deliveredCount, label: "delivered", className: "bg-green-500" },
+    { count: order.attemptedDeliveryCount, label: "attempted delivery", className: "bg-red-500" },
+    { count: order.outForDeliveryCount, label: "out for delivery", className: "bg-blue-500" },
+    { count: order.dispatchedCount, label: "on its way", className: "bg-slate-400" },
+    { count: notYetShipped, label: "not yet shipped", className: "bg-zinc-300" },
   ].filter(s => s.count > 0)
+  const total = segments.reduce((sum, s) => sum + s.count, 0)
+  if (total <= 0) return null
   return (
-    <div className="w-full h-1 flex overflow-hidden" role="img" aria-label={breakdown}>
+    <div className="w-full h-1.5 flex overflow-hidden">
       {segments.map((s, i) => (
-        <div key={i} className={s.className} style={{ width: `${(s.count / total) * 100}%` }} />
+        <Tooltip key={i}>
+          <TooltipTrigger asChild>
+            <div
+              tabIndex={0}
+              className={cn(s.className, "focus:outline-hidden focus-visible:brightness-90")}
+              style={{ width: `${(s.count / total) * 100}%` }}
+            />
+          </TooltipTrigger>
+          <TooltipContent side="top">{s.count} {s.label}</TooltipContent>
+        </Tooltip>
       ))}
     </div>
-  )
-}
-
-/** Full 5-stage breakdown, shown only when the card's chevron is expanded —
- * kept out of the card by default so the footer never gets more crowded than
- * it is today, no matter how many of the 5 real shipping stages are active. */
-function ShipmentStageBreakdown({ order }: { order: Order }) {
-  const notYetShipped = order.confirmedCount + order.notDispatchedCount
-  const stages: { count: number; label: string; icon: LucideIcon; color: string }[] = [
-    { count: order.deliveredCount, label: "delivered", icon: CheckCircle2, color: "text-green-600" },
-    { count: order.attemptedDeliveryCount, label: "attempted delivery", icon: AlertCircle, color: "text-red-600" },
-    { count: order.outForDeliveryCount, label: "out for delivery", icon: MapPin, color: "text-blue-600" },
-    { count: order.dispatchedCount, label: "on its way", icon: Truck, color: "text-slate-600" },
-    { count: notYetShipped, label: "not yet shipped", icon: Clock, color: "text-zinc-600" },
-  ].filter(s => s.count > 0)
-  if (stages.length === 0) return null
-  return (
-    <motion.div
-      initial={{ height: 0, opacity: 0 }}
-      animate={{ height: "auto", opacity: 1 }}
-      exit={{ height: 0, opacity: 0 }}
-      transition={{ duration: 0.15, ease: "easeOut" }}
-      className="w-full overflow-hidden"
-    >
-      <div className="w-full px-4 py-2 border-t border-dashed border-border flex items-center gap-3 flex-wrap">
-        {stages.map((s, i) => (
-          <span key={i} className={cn("inline-flex items-center gap-1 text-[10px] font-semibold", s.color)}>
-            <s.icon className="size-3 shrink-0" aria-hidden />
-            {s.count} {s.label}
-          </span>
-        ))}
-      </div>
-    </motion.div>
   )
 }
 
@@ -3206,7 +3160,6 @@ function OrderCard({ order, onClick, index = 0 }: { order: Order; onClick: () =>
   const total = parseFloat(order.totalPriceSet.shopMoney.amount)
   const fmt = (d: string) => new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
   const deliveryDate = order.latestDelivery || order.earliestDelivery
-  const [breakdownExpanded, setBreakdownExpanded] = useState(false)
 
   const cancelled = !!order.cancelledAt
   return (
@@ -3248,11 +3201,8 @@ function OrderCard({ order, onClick, index = 0 }: { order: Order; onClick: () =>
             <span className="text-[10px] font-medium text-muted-foreground ml-1.5">+{extra}</span>
           )}
         </div>
-        <StatusLabel order={order} expanded={breakdownExpanded} onToggle={() => setBreakdownExpanded(v => !v)} />
+        <StatusLabel order={order} />
       </div>
-      <AnimatePresence initial={false}>
-        {breakdownExpanded && <ShipmentStageBreakdown order={order} />}
-      </AnimatePresence>
     </motion.button>
     </div>
   )
