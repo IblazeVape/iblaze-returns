@@ -4746,18 +4746,9 @@ function DashboardClientInner({ authPlaceholder }: { authPlaceholder?: React.Rea
                 )}
               </div>
             ) : view === "grid" && (
-              <>
-                {filteredOrders.some(o => getOrderFulfillmentBreakdown(o)) && (
-                  <div className="flex items-center gap-3 flex-wrap text-[11px] font-medium text-muted-foreground bg-muted/60 border border-border rounded-lg px-3 py-1.5">
-                    <span className="inline-flex items-center gap-1 text-green-600"><CheckCircle2 className="size-3" aria-hidden />Delivered</span>
-                    <span className="inline-flex items-center gap-1 text-slate-600"><Truck className="size-3" aria-hidden />On its way</span>
-                    <span className="inline-flex items-center gap-1 text-zinc-600"><Clock className="size-3" aria-hidden />Not yet shipped</span>
-                  </div>
-                )}
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                  {filteredOrders.map((o, i) => <OrderCard key={o.id} order={o} index={i} onClick={() => setSelectedOrder(o)} />)}
-                </div>
-              </>
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                {filteredOrders.map((o, i) => <OrderCard key={o.id} order={o} index={i} onClick={() => setSelectedOrder(o)} />)}
+              </div>
             )}
 
             {view === "list" && !loading && (
