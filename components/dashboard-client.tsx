@@ -3106,24 +3106,23 @@ function StatusLabel({ order }: { order: Order }) {
             tabIndex={0}
             onClick={e => e.stopPropagation()}
             aria-label="Show shipment breakdown"
-            className={cn("shrink-0 inline-flex items-center justify-center size-6 rounded-full border border-border bg-card hover:bg-muted transition-colors focus:outline-hidden focus-visible:ring-1 focus-visible:ring-ring cursor-pointer", headline.color)}
+            className={cn("shrink-0 inline-flex items-center gap-0.5 pl-1.5 pr-1 h-6 rounded-full border border-border bg-card hover:bg-muted transition-colors focus:outline-hidden focus-visible:ring-1 focus-visible:ring-ring cursor-pointer", headline.color)}
           >
             <headline.icon className="size-3.5 shrink-0" aria-hidden />
+            <ChevronDown className="size-3 shrink-0 opacity-60" aria-hidden />
           </span>
         </PopoverTrigger>
         <PopoverContent
-          className="w-48 p-2"
+          className="w-48 p-0 overflow-hidden"
           align="end"
           onClick={e => e.stopPropagation()}
         >
-          <div className="flex flex-col gap-0.5">
-            {stages.map((s, i) => (
-              <div key={i} className={cn("flex items-center gap-2 px-1.5 py-1 text-xs font-medium", s.color)}>
-                <s.icon className="size-3.5 shrink-0" aria-hidden />
-                {s.count} {s.label}
-              </div>
-            ))}
-          </div>
+          {stages.map((s, i) => (
+            <div key={i} className={cn("flex items-center gap-2 px-3 py-2 text-xs font-medium", i > 0 && "border-t border-border", s.color)}>
+              <s.icon className="size-3.5 shrink-0" aria-hidden />
+              {s.count} {s.label}
+            </div>
+          ))}
         </PopoverContent>
       </Popover>
     )
