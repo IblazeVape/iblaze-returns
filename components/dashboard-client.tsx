@@ -3197,15 +3197,20 @@ function OrderCard({ order, onClick, index = 0, shipmentStageStyles, shipmentPro
   // "+N" reflects leftover UNITS not pictured, not leftover distinct
   // products — an order with 18 units across only 2 products should read as
   // nearly full, not show "+0" just because there are only 2 thumbnails.
+  // Items with no product image can't be pictured, but their units still
+  // count toward the leftover total (previously silently dropped entirely,
+  // which under-counted the badge whenever an order had an imageless line
+  // item — e.g. 92 total units showing as only "3 pictured + 69").
   const imageUnitCounts = new Map<string, number>()
+  let noImageUnits = 0
   for (const item of order.processedItems) {
     const url = item.image?.url
-    if (!url) continue
+    if (!url) { noImageUnits += item.quantity; continue }
     imageUnitCounts.set(url, (imageUnitCounts.get(url) ?? 0) + item.quantity)
   }
   const allUniqueImages = [...imageUnitCounts.keys()]
   const uniqueImages = allUniqueImages.slice(0, 3)
-  const extraUnits = allUniqueImages.slice(3).reduce((sum, url) => sum + (imageUnitCounts.get(url) ?? 0), 0)
+  const extraUnits = allUniqueImages.slice(3).reduce((sum, url) => sum + (imageUnitCounts.get(url) ?? 0), 0) + noImageUnits
   const total = parseFloat(order.totalPriceSet.shopMoney.amount)
   const fmt = (d: string) => new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
   const deliveryDate = order.latestDelivery || order.earliestDelivery

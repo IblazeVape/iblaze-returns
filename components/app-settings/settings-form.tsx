@@ -1856,7 +1856,7 @@ export function SettingsForm({
                   checked={form.ineligibleMessageEnabled}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("ineligibleMessageEnabled", e.target.checked)}
                 ></s-checkbox>
-                <s-stack direction="block" gap="small-200">
+                <s-stack direction="block" gap="base">
                   <s-checkbox
                     label="Show a Columns button so customers can hide/show table columns"
                     name="tableColumnsButtonEnabled"
