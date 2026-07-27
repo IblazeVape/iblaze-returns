@@ -30,7 +30,9 @@ const RETURN_STATUS_CARDS: { key: ReturnLifecycleStatusInput; name: string }[] =
 ]
 
 /** Drives the "Shipment stages" section — the 5 real shipping stages shown
- * on My Orders order cards (progress bar + status icon + its popover). */
+ * on My Orders order cards (progress bar + status icon + its popover), each
+ * paired with its order-detail sentence (see SHIPMENT_STAGE_MESSAGE_FIELD)
+ * so a merchant edits one stage in one place instead of two. */
 const SHIPMENT_STAGE_CARDS: { key: ShipmentStageKeyInput; name: string }[] = [
   { key: "delivered", name: "Delivered" },
   { key: "attemptedDelivery", name: "Attempted delivery" },
@@ -38,6 +40,16 @@ const SHIPMENT_STAGE_CARDS: { key: ShipmentStageKeyInput; name: string }[] = [
   { key: "onItsWay", name: "On its way" },
   { key: "notYetShipped", name: "Not yet shipped" },
 ]
+
+/** Delivered has no entry here — once an item is delivered it moves to a
+ * different return status (eligible to return, etc.), so there's no
+ * "awaiting delivery" sentence for it to own. */
+const SHIPMENT_STAGE_MESSAGE_FIELD: Partial<Record<ShipmentStageKeyInput, keyof ReturnLifecycleMessagesInput>> = {
+  attemptedDelivery: "shippingAttemptedDelivery",
+  outForDelivery: "shippingOutForDelivery",
+  onItsWay: "shippingOnItsWay",
+  notYetShipped: "shippingConfirmed",
+}
 
 declare const shopify: {
   idToken: () => Promise<string>;
@@ -85,7 +97,7 @@ const TAB_FIELDS: Record<SettingsTab, (keyof BrandingInput)[]> = {
   // The My Orders grid/list page, before a customer clicks into one order.
   ordersList: [
     "headerSearchEnabled", "headerSearchPlaceholder", "defaultOrderView",
-    "shipmentProgressBarEnabled", "shipmentStageStyles",
+    "shipmentProgressBarEnabled", "shipmentStageStyles", "returnLifecycleMessages",
   ],
   // Everything shown after a customer opens one specific order, including
   // the return-submission flow (window length, policy, confirmations) that
@@ -125,7 +137,7 @@ const SETTINGS_MODAL_FIELDS: Record<string, (keyof BrandingInput)[]> = {
   "lookup-audience-modal": ["alwaysShowGuestLookup", "guestLookupEnabled", "loggedInLookupRequirePostcode"],
   "orders-list-search-modal": ["headerSearchEnabled", "headerSearchPlaceholder"],
   "orders-list-view-modal": ["defaultOrderView"],
-  "orders-list-shipment-stages-modal": ["shipmentProgressBarEnabled", "shipmentStageStyles"],
+  "orders-list-shipment-stages-modal": ["shipmentProgressBarEnabled", "shipmentStageStyles", "returnLifecycleMessages"],
   "order-detail-return-window-modal": ["returnWindowDays", "requirePolicyAcceptance", "returnReviewEnabled"],
   "order-detail-items-modal": [
     "tableSearchEnabled", "tableSearchPlaceholder", "tableFilterButtonEnabled", "statusFilterEnabled",
@@ -139,7 +151,6 @@ const SETTINGS_MODAL_FIELDS: Record<string, (keyof BrandingInput)[]> = {
   ],
   "order-detail-confirm-modal": ["policyAcceptedMessage", "policyDeclinedMessage"],
   "order-detail-status-modal": ["returnLifecycleStyles", "returnLifecycleMessages"],
-  "order-detail-awaiting-delivery-modal": ["returnLifecycleMessages"],
   "order-detail-window-closed-modal": ["returnLifecycleMessages"],
   "order-detail-refund-modal": ["refundStatusLabels"],
   "nav-sidebar-layout-modal": [
@@ -209,11 +220,6 @@ function hostFromUrl(url: string): string | null {
   } catch {
     return null
   }
-}
-
-/** Small "On"/"Off" pill for a summary line — reads like a status badge instead of plain text. */
-function OnOffBadge({ on }: { on: boolean }) {
-  return <s-badge tone={on ? "success" : "neutral"}>{on ? "On" : "Off"}</s-badge>
 }
 
 /** Live “what’s set now” line — optional logo/swatch, then short text parts. */
@@ -501,86 +507,124 @@ export function SettingsForm({
   }
   function addCategory() {
     setCategoryIds((ids) => [...ids, newCategoryRowId()])
-    setForm((f) => ({ ...f, policyCategories: [...f.policyCategories, { title: "", desc: "" }] }))
+    setForm((f) => {
+      const next = { ...f, policyCategories: [...f.policyCategories, { title: "", desc: "" }] }
+      setErrors(validateBrandingInput(next).errors)
+      return next
+    })
   }
   function removeCategory(index: number) {
     setCategoryIds((ids) => ids.filter((_, i) => i !== index))
-    setForm((f) => ({ ...f, policyCategories: f.policyCategories.filter((_, i) => i !== index) }))
+    setForm((f) => {
+      const next = { ...f, policyCategories: f.policyCategories.filter((_, i) => i !== index) }
+      setErrors(validateBrandingInput(next).errors)
+      return next
+    })
   }
   function reorderCategories(fromIndex: number, toIndex: number) {
     setCategoryIds((ids) => reorderList(ids, fromIndex, toIndex))
-    setForm((f) => ({
-      ...f,
-      policyCategories: reorderList(f.policyCategories, fromIndex, toIndex),
-    }))
+    setForm((f) => {
+      const next = { ...f, policyCategories: reorderList(f.policyCategories, fromIndex, toIndex) }
+      setErrors(validateBrandingInput(next).errors)
+      return next
+    })
   }
 
   function updateSidebarLink(index: number, patch: Partial<SidebarLinkInput>) {
-    setForm((f) => ({ ...f, sidebarLinks: f.sidebarLinks.map((l, i) => (i === index ? { ...l, ...patch } : l)) }))
+    setForm((f) => {
+      const next = { ...f, sidebarLinks: f.sidebarLinks.map((l, i) => (i === index ? { ...l, ...patch } : l)) }
+      setErrors(validateBrandingInput(next).errors)
+      return next
+    })
   }
   function addSidebarLink() {
     setSidebarLinkIds((ids) => [...ids, newSidebarLinkRowId()])
     setSidebarSubLinkIds((ids) => [...ids, []])
-    setForm((f) => ({ ...f, sidebarLinks: [...f.sidebarLinks, { label: "", url: "" }] }))
+    setForm((f) => {
+      const next = { ...f, sidebarLinks: [...f.sidebarLinks, { label: "", url: "" }] }
+      setErrors(validateBrandingInput(next).errors)
+      return next
+    })
   }
   function removeSidebarLink(index: number) {
     setSidebarLinkIds((ids) => ids.filter((_, i) => i !== index))
     setSidebarSubLinkIds((ids) => ids.filter((_, i) => i !== index))
-    setForm((f) => ({ ...f, sidebarLinks: f.sidebarLinks.filter((_, i) => i !== index) }))
+    setForm((f) => {
+      const next = { ...f, sidebarLinks: f.sidebarLinks.filter((_, i) => i !== index) }
+      setErrors(validateBrandingInput(next).errors)
+      return next
+    })
   }
   function reorderSidebarLinks(fromIndex: number, toIndex: number) {
     setSidebarLinkIds((ids) => reorderList(ids, fromIndex, toIndex))
     setSidebarSubLinkIds((ids) => reorderList(ids, fromIndex, toIndex))
-    setForm((f) => ({
-      ...f,
-      sidebarLinks: reorderList(f.sidebarLinks, fromIndex, toIndex),
-    }))
+    setForm((f) => {
+      const next = { ...f, sidebarLinks: reorderList(f.sidebarLinks, fromIndex, toIndex) }
+      setErrors(validateBrandingInput(next).errors)
+      return next
+    })
   }
 
   function addSubLink(parentIndex: number) {
     setSidebarSubLinkIds((ids) =>
       ids.map((row, i) => (i === parentIndex ? [...row, newSidebarLinkRowId()] : row))
     )
-    setForm((f) => ({
-      ...f,
-      sidebarLinks: f.sidebarLinks.map((l, i) =>
-        i === parentIndex ? { ...l, children: [...(l.children ?? []), { label: "", url: "" }] } : l
-      ),
-    }))
+    setForm((f) => {
+      const next = {
+        ...f,
+        sidebarLinks: f.sidebarLinks.map((l, i) =>
+          i === parentIndex ? { ...l, children: [...(l.children ?? []), { label: "", url: "" }] } : l
+        ),
+      }
+      setErrors(validateBrandingInput(next).errors)
+      return next
+    })
   }
   function updateSubLink(parentIndex: number, childIndex: number, patch: Partial<SidebarSubLinkInput>) {
-    setForm((f) => ({
-      ...f,
-      sidebarLinks: f.sidebarLinks.map((l, i) =>
-        i === parentIndex
-          ? { ...l, children: (l.children ?? []).map((c, ci) => (ci === childIndex ? { ...c, ...patch } : c)) }
-          : l
-      ),
-    }))
+    setForm((f) => {
+      const next = {
+        ...f,
+        sidebarLinks: f.sidebarLinks.map((l, i) =>
+          i === parentIndex
+            ? { ...l, children: (l.children ?? []).map((c, ci) => (ci === childIndex ? { ...c, ...patch } : c)) }
+            : l
+        ),
+      }
+      setErrors(validateBrandingInput(next).errors)
+      return next
+    })
   }
   function removeSubLink(parentIndex: number, childIndex: number) {
     setSidebarSubLinkIds((ids) =>
       ids.map((row, i) => (i === parentIndex ? row.filter((_, ci) => ci !== childIndex) : row))
     )
-    setForm((f) => ({
-      ...f,
-      sidebarLinks: f.sidebarLinks.map((l, i) =>
-        i === parentIndex ? { ...l, children: (l.children ?? []).filter((_, ci) => ci !== childIndex) } : l
-      ),
-    }))
+    setForm((f) => {
+      const next = {
+        ...f,
+        sidebarLinks: f.sidebarLinks.map((l, i) =>
+          i === parentIndex ? { ...l, children: (l.children ?? []).filter((_, ci) => ci !== childIndex) } : l
+        ),
+      }
+      setErrors(validateBrandingInput(next).errors)
+      return next
+    })
   }
   function reorderSubLinks(parentIndex: number, fromIndex: number, toIndex: number) {
     setSidebarSubLinkIds((ids) =>
       ids.map((row, i) => (i === parentIndex ? reorderList(row, fromIndex, toIndex) : row))
     )
-    setForm((f) => ({
-      ...f,
-      sidebarLinks: f.sidebarLinks.map((l, i) =>
-        i === parentIndex
-          ? { ...l, children: reorderList(l.children ?? [], fromIndex, toIndex) }
-          : l
-      ),
-    }))
+    setForm((f) => {
+      const next = {
+        ...f,
+        sidebarLinks: f.sidebarLinks.map((l, i) =>
+          i === parentIndex
+            ? { ...l, children: reorderList(l.children ?? [], fromIndex, toIndex) }
+            : l
+        ),
+      }
+      setErrors(validateBrandingInput(next).errors)
+      return next
+    })
   }
 
   function resetSidebarLinkRowIds(links: SidebarLinkInput[]) {
@@ -1383,12 +1427,9 @@ export function SettingsForm({
               title="Order search"
               description="Whether customers can search their orders from the top bar."
               summary={
-                <s-stack direction="inline" gap="small-200" alignItems="center">
-                  <OnOffBadge on={form.headerSearchEnabled} />
-                  {form.headerSearchEnabled && (
-                    <s-text color="subdued">“{form.headerSearchPlaceholder || "Search orders..."}”</s-text>
-                  )}
-                </s-stack>
+                form.headerSearchEnabled
+                  ? `On · “${form.headerSearchPlaceholder || "Search orders..."}”`
+                  : "Off"
               }
               modalSize="large"
               errors={errors}
@@ -1436,13 +1477,8 @@ export function SettingsForm({
             <SettingsEditRow
               modalId="orders-list-shipment-stages-modal"
               title="Shipment stages"
-              description="The label, icon, and color for each of the 5 shipping stages shown on My Orders order cards."
-              summary={
-                <s-stack direction="inline" gap="small-200" alignItems="center">
-                  <OnOffBadge on={form.shipmentProgressBarEnabled} />
-                  <s-text color="subdued">Progress bar</s-text>
-                </s-stack>
-              }
+              description="The label, icon, color, and order-detail sentence for each of the 5 shipping stages."
+              summary={form.shipmentProgressBarEnabled ? "Progress bar on" : "Progress bar off"}
               modalSize="large-100"
               errors={errors}
             >
@@ -1454,12 +1490,14 @@ export function SettingsForm({
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("shipmentProgressBarEnabled", e.target.checked)}
                 ></s-checkbox>
                 <s-text color="subdued">
-                  These same 5 stages also drive the status icon and its popover on each order card — a change here
-                  updates both.
+                  These same 5 stages also drive the status icon and its popover on each order card, and (except
+                  Delivered) the sentence shown on the order detail page while an item is still shipping — a change
+                  here updates all of it in one place.
                 </s-text>
                 {SHIPMENT_STAGE_CARDS.map(({ key, name }) => {
                   const isOpen = openShipmentStageKey === key
                   const style = form.shipmentStageStyles[key]
+                  const messageField = SHIPMENT_STAGE_MESSAGE_FIELD[key]
                   return (
                     <s-box key={key} padding="base" border="base" borderRadius="base">
                       <s-stack direction="block" gap="small">
@@ -1489,6 +1527,19 @@ export function SettingsForm({
                               placeholder="#16A34A"
                               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setShipmentStageStyle(key, "color", e.target.value)}
                             ></s-text-field>
+                            {messageField ? (
+                              <s-text-area
+                                label="Order detail sentence"
+                                value={form.returnLifecycleMessages[messageField]}
+                                rows={2}
+                                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage(messageField, e.target.value)}
+                              ></s-text-area>
+                            ) : (
+                              <s-paragraph tone="subdued">
+                                No sentence here — once delivered, the item becomes eligible to return and its
+                                message comes from "Return status" instead.
+                              </s-paragraph>
+                            )}
                           </>
                         )}
                       </s-stack>
@@ -1496,6 +1547,7 @@ export function SettingsForm({
                   )
                 })}
                 {errors.shipmentStageStyles && <s-paragraph tone="critical">{errors.shipmentStageStyles}</s-paragraph>}
+                {errors.returnLifecycleMessages && <s-paragraph tone="critical">{errors.returnLifecycleMessages}</s-paragraph>}
               </s-stack>
             </SettingsEditRow>
 
@@ -2108,7 +2160,8 @@ export function SettingsForm({
                             {key === "awaitingDelivery" && (
                               <s-paragraph tone="subdued">
                                 This status covers several shipping stages (not shipped, on its way, out for delivery,
-                                attempted delivery) — edit each stage&apos;s sentence in &quot;Awaiting delivery&quot; below.
+                                attempted delivery) — edit each stage&apos;s sentence under &quot;Shipment stages&quot;
+                                on the My Orders tab.
                               </s-paragraph>
                             )}
                             {key === "returnWindowClosed" && (
@@ -2125,30 +2178,6 @@ export function SettingsForm({
                 })}
                 {errors.returnLifecycleMessages && <s-paragraph tone="critical">{errors.returnLifecycleMessages}</s-paragraph>}
                 {errors.returnLifecycleStyles && <s-paragraph tone="critical">{errors.returnLifecycleStyles}</s-paragraph>}
-              </s-stack>
-            </SettingsEditRow>
-
-
-            <SettingsEditRow
-              modalId="order-detail-awaiting-delivery-modal"
-              title="Awaiting delivery"
-              description="Messages shown while an item is still shipping and hasn't been delivered yet."
-              summary="Not shipped · on its way · out for delivery · attempted"
-              modalSize="large-100"
-              errors={errors}
-            >
-              <s-stack direction="block" gap="base">
-                <s-text color="subdued">
-                  The specific sentence shown under the "Awaiting delivery" badge, depending on the shipment's stage.
-                </s-text>
-                <s-text-area label="Not yet shipped" value={form.returnLifecycleMessages.shippingConfirmed} rows={2}
-                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("shippingConfirmed", e.target.value)}></s-text-area>
-                <s-text-area label="On its way" value={form.returnLifecycleMessages.shippingOnItsWay} rows={2}
-                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("shippingOnItsWay", e.target.value)}></s-text-area>
-                <s-text-area label="Out for delivery" value={form.returnLifecycleMessages.shippingOutForDelivery} rows={2}
-                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("shippingOutForDelivery", e.target.value)}></s-text-area>
-                <s-text-area label="Attempted delivery" value={form.returnLifecycleMessages.shippingAttemptedDelivery} rows={2}
-                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("shippingAttemptedDelivery", e.target.value)}></s-text-area>
               </s-stack>
             </SettingsEditRow>
 
