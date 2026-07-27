@@ -13,11 +13,11 @@ import { migrateMarkdownIfNeeded } from "@/lib/markdown-to-html"
 import { GUEST_LOOKUP_GRADIENT_PRESETS, matchGuestLookupGradientPreset } from "@/lib/guest-lookup-gradients"
 
 /** RETURN_STATUS_CARDS drives the "Return status" section (7 cards, each with
- * label/heading/icon/color, plus a per-status sentence for returnRequested,
- * returnInProgress, returnCanceled, and returnCompleted). returnDeclined has no
- * sentence field here since its text comes from the real Shopify decline reason,
- * not a static template. awaitingDelivery and returnWindowClosed sentences live
- * in their own settings rows below (multiple reasons under each status).
+ * label/heading/icon/color, plus a per-status sentence). returnDeclined has no
+ * sentence field since its text comes from the real Shopify decline reason,
+ * not a static template. awaitingDelivery and returnWindowClosed nest multiple
+ * sentences (one per shipping stage / closed reason) directly inside their own
+ * card instead of a single sentence, since each covers several sub-cases.
  */
 const RETURN_STATUS_CARDS: { key: ReturnLifecycleStatusInput; name: string }[] = [
   { key: "awaitingDelivery", name: "Awaiting delivery" },
@@ -40,6 +40,29 @@ const SHIPMENT_STAGE_CARDS: { key: ShipmentStageKeyInput; name: string }[] = [
   { key: "outForDelivery", name: "Out for delivery" },
   { key: "onItsWay", name: "On its way" },
   { key: "notYetShipped", name: "Not yet shipped" },
+]
+
+/** Drives the settings search box — one entry per settings card. Kept as its
+ * own hand-maintained registry (same pattern as TAB_FIELDS / SETTINGS_MODAL_FIELDS
+ * above) rather than derived from the JSX, since titles/descriptions are plain
+ * literals scattered through the render tree with no single source to read from. */
+const SETTINGS_SEARCH_INDEX: { tab: SettingsTab; modalId: string; title: string; keywords: string }[] = [
+  { tab: "branding", modalId: "branding-identity-modal", title: "Brand", keywords: "name logo logo height colour color accent storefront support email" },
+  { tab: "branding", modalId: "branding-portal-extras-modal", title: "Messages & widgets", keywords: "toast position success error message custom html script chat widget" },
+  { tab: "lookup", modalId: "lookup-screen-modal", title: "Find your order screen", keywords: "guest lookup layout desktop mobile background photo hero image gradient logo headline supporting line blur darken" },
+  { tab: "lookup", modalId: "lookup-audience-modal", title: "Who can look up orders", keywords: "guest login logged in postcode always show order lookup form" },
+  { tab: "ordersList", modalId: "orders-list-search-modal", title: "Order search", keywords: "header search top bar placeholder hint text" },
+  { tab: "ordersList", modalId: "orders-list-view-modal", title: "Default view", keywords: "grid cards list rows default order view" },
+  { tab: "ordersList", modalId: "orders-list-shipment-stages-modal", title: "Shipment stages", keywords: "progress bar icon color label delivered attempted delivery out for delivery on its way not yet shipped" },
+  { tab: "returnFlow", modalId: "return-flow-window-modal", title: "Return window", keywords: "days policy acceptance review step" },
+  { tab: "returnFlow", modalId: "return-flow-policy-modal", title: "Returns policy", keywords: "policy dialog external link page url categories body text footer note heading" },
+  { tab: "returnFlow", modalId: "return-flow-confirm-modal", title: "Policy confirmation messages", keywords: "accepted declined confirmation message" },
+  { tab: "orderDetail", modalId: "order-detail-items-modal", title: "Item list & tools", keywords: "search filter eligible ineligible tabs columns rows per page shipment tracking product image link" },
+  { tab: "orderDetail", modalId: "order-detail-status-modal", title: "Return status", keywords: "badge heading icon color sentence awaiting delivery window closed requested in progress declined canceled completed final sale outside" },
+  { tab: "orderDetail", modalId: "order-detail-refund-modal", title: "Refund labels", keywords: "partially refunded refund label" },
+  { tab: "navigation", modalId: "nav-sidebar-layout-modal", title: "Sidebar layout", keywords: "sidebar inset layout switcher open desktop avatar" },
+  { tab: "navigation", modalId: "nav-sidebar-links-modal", title: "Sidebar links", keywords: "links note expand sub-links" },
+  { tab: "navigation", modalId: "nav-header-links-modal", title: "Header", keywords: "store link order status account menu top bar" },
 ]
 
 declare const shopify: {
@@ -383,6 +406,19 @@ export function SettingsForm({
       ? tab
       : "branding"
   })
+  const [settingsSearchQuery, setSettingsSearchQuery] = useState("")
+  const settingsSearchMatches = settingsSearchQuery.trim().length > 0
+    ? SETTINGS_SEARCH_INDEX.filter((entry) => {
+        const q = settingsSearchQuery.trim().toLowerCase()
+        return entry.title.toLowerCase().includes(q) || entry.keywords.toLowerCase().includes(q)
+      })
+    : []
+  function goToSettingsMatch(entry: { tab: SettingsTab; modalId: string }) {
+    setActiveTab(entry.tab)
+    setSettingsSearchQuery("")
+    setTimeout(() => showSettingsModal(entry.modalId), 50)
+  }
+
   // Return-status cards stay accordion-style. Sidebar links + policy categories
   // use compact drag-sortable tables instead.
   const [openStatusKey, setOpenStatusKey] = useState<ReturnLifecycleStatusInput | null>(null)
@@ -760,6 +796,62 @@ export function SettingsForm({
         <s-box padding="base" borderBlockEndWidth="base" borderColor="subdued">
           <s-stack direction="block" gap="small-300">
             <s-paragraph tone="subdued">Each tab covers one part of the customer portal — branding, guest lookup, the My Orders list, the return flow, the order detail page, navigation, or reset options.</s-paragraph>
+            <div style={{ position: "relative", maxWidth: 360 }}>
+              <s-text-field
+                label="Search settings"
+                labelAccessibilityVisibility="exclusive"
+                placeholder="Search settings…"
+                value={settingsSearchQuery}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSettingsSearchQuery(e.target.value)}
+              ></s-text-field>
+              {settingsSearchQuery.trim().length > 0 && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "100%",
+                    left: 0,
+                    right: 0,
+                    zIndex: 10,
+                    marginTop: 4,
+                    background: "#fff",
+                    border: "1px solid #d1d5db",
+                    borderRadius: 8,
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+                    overflow: "hidden",
+                  }}
+                >
+                  {settingsSearchMatches.length > 0 ? (
+                    settingsSearchMatches.map((entry) => (
+                      <button
+                        key={entry.modalId}
+                        type="button"
+                        onClick={() => goToSettingsMatch(entry)}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: 8,
+                          width: "100%",
+                          padding: "8px 12px",
+                          background: "none",
+                          border: "none",
+                          borderBottom: "1px solid #f1f1f1",
+                          cursor: "pointer",
+                          fontFamily: "inherit",
+                          fontSize: 13,
+                          textAlign: "left",
+                        }}
+                      >
+                        <span>{entry.title}</span>
+                        <span style={{ fontSize: 11, color: "#6b6b6b" }}>{TABS.find((t) => t.id === entry.tab)?.label}</span>
+                      </button>
+                    ))
+                  ) : (
+                    <div style={{ padding: "8px 12px", fontSize: 13, color: "#6b6b6b" }}>No settings match "{settingsSearchQuery}"</div>
+                  )}
+                </div>
+              )}
+            </div>
             {/* s-tabs/s-tab-list/s-tab don't render correctly in this app's
                 embedded runtime (see activeTab's own comment below) — this
                 restyles the same manual button+state approach to look like
