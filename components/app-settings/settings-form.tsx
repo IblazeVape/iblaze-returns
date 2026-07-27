@@ -211,6 +211,11 @@ function hostFromUrl(url: string): string | null {
   }
 }
 
+/** Small "On"/"Off" pill for a summary line — reads like a status badge instead of plain text. */
+function OnOffBadge({ on }: { on: boolean }) {
+  return <s-badge tone={on ? "success" : "neutral"}>{on ? "On" : "Off"}</s-badge>
+}
+
 /** Live “what’s set now” line — optional logo/swatch, then short text parts. */
 function SettingsValueSummary({
   leading,
@@ -1330,7 +1335,7 @@ export function SettingsForm({
                     ? `Guest lookup on · everyone starts on Find your order${form.loggedInLookupRequirePostcode ? " · postcode required when logged in" : ""}`
                     : "Guest lookup on · logged-in customers see their orders"
               }
-              modalSize="large"
+              modalSize="small"
               errors={errors}
             >
               <s-stack direction="block" gap="small-200">
@@ -1380,9 +1385,12 @@ export function SettingsForm({
               title="Order search"
               description="Whether customers can search their orders from the top bar."
               summary={
-                form.headerSearchEnabled
-                  ? `On · “${form.headerSearchPlaceholder || "Search orders..."}”`
-                  : "Off"
+                <s-stack direction="inline" gap="small-200" alignItems="center">
+                  <OnOffBadge on={form.headerSearchEnabled} />
+                  {form.headerSearchEnabled && (
+                    <s-text color="subdued">“{form.headerSearchPlaceholder || "Search orders..."}”</s-text>
+                  )}
+                </s-stack>
               }
               modalSize="large"
               errors={errors}
