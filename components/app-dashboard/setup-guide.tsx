@@ -60,7 +60,7 @@ export function SetupGuide({ shop, branding, returnWindowDays, returnVolume }: S
       description: "Set the return window and policy details customers see before requesting a return.",
       done: returnWindowDays !== DEFAULT_RETURN_WINDOW_DAYS,
       buttonLabel: "Go to Returns policy",
-      href: "/app?tab=orderDetail",
+      href: "/app?tab=returnFlow",
     },
     {
       id: "test-return",

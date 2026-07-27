@@ -44,7 +44,8 @@ const SETTINGS_QUICK_LINKS = [
   { tab: "branding", label: "Branding", description: "Logo, accent color, storefront and support links." },
   { tab: "lookup", label: "Guest lookup", description: "Who can look up an order, and the Find your order screen." },
   { tab: "ordersList", label: "My Orders", description: "Order search, default view, and shipment stage colors." },
-  { tab: "orderDetail", label: "Order detail", description: "Return window, policy dialog, item list and statuses." },
+  { tab: "returnFlow", label: "Return flow", description: "Return window, returns policy, and confirmation messages." },
+  { tab: "orderDetail", label: "Order detail", description: "Item list, tools, return statuses, and refund labels." },
   { tab: "navigation", label: "Navigation", description: "Store link, order status link, sidebar links and layout." },
 ] as const;
 

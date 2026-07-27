@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import { validateBrandingInput, type BrandingInput, type PolicyCategoryInput, type SidebarLinkInput, type SidebarSubLinkInput, type ReturnLifecycleMessagesInput, type ReturnLifecycleStatusInput, type ReturnLifecycleStyleInput, type ShipmentStageKeyInput, type ShipmentStageStyleInput } from "@/lib/branding-validation"
 import type { TenantBranding } from "@/lib/tenant"
 import { SIDEBAR_ICON_NAMES } from "@/lib/sidebar-icons"
-import { STATUS_ICON_NAMES } from "@/lib/status-icons"
+import { STATUS_ICON_NAMES, getStatusIcon } from "@/lib/status-icons"
 import { RichTextEditor } from "@/components/app-settings/rich-text-editor"
 import { PolicyCategoriesTable, newCategoryRowId, reorderList } from "@/components/app-settings/policy-categories-table"
 import { SidebarLinksTable, newSidebarLinkRowId } from "@/components/app-settings/sidebar-links-table"
@@ -29,10 +29,11 @@ const RETURN_STATUS_CARDS: { key: ReturnLifecycleStatusInput; name: string }[] =
   { key: "returnCompleted", name: "Return completed" },
 ]
 
-/** Drives the "Shipment stages" section — the 5 real shipping stages shown
- * on My Orders order cards (progress bar + status icon + its popover), each
- * paired with its order-detail sentence (see SHIPMENT_STAGE_MESSAGE_FIELD)
- * so a merchant edits one stage in one place instead of two. */
+/** Drives the "Shipment stages" section — icon/color/label only, for the 5
+ * real shipping stages shown on My Orders order cards (progress bar + status
+ * icon + its popover). The order-detail sentence for these same stages lives
+ * under "Return status" > Awaiting delivery instead, since anything shown on
+ * the order detail page belongs on that tab. */
 const SHIPMENT_STAGE_CARDS: { key: ShipmentStageKeyInput; name: string }[] = [
   { key: "delivered", name: "Delivered" },
   { key: "attemptedDelivery", name: "Attempted delivery" },
@@ -40,16 +41,6 @@ const SHIPMENT_STAGE_CARDS: { key: ShipmentStageKeyInput; name: string }[] = [
   { key: "onItsWay", name: "On its way" },
   { key: "notYetShipped", name: "Not yet shipped" },
 ]
-
-/** Delivered has no entry here — once an item is delivered it moves to a
- * different return status (eligible to return, etc.), so there's no
- * "awaiting delivery" sentence for it to own. */
-const SHIPMENT_STAGE_MESSAGE_FIELD: Partial<Record<ShipmentStageKeyInput, keyof ReturnLifecycleMessagesInput>> = {
-  attemptedDelivery: "shippingAttemptedDelivery",
-  outForDelivery: "shippingOutForDelivery",
-  onItsWay: "shippingOnItsWay",
-  notYetShipped: "shippingConfirmed",
-}
 
 declare const shopify: {
   idToken: () => Promise<string>;
@@ -79,7 +70,7 @@ type MediaLibraryFile = { id: string; url: string; alt: string | null; width: nu
  * feature domain — so a merchant editing "what happens on the order detail
  * page" never has to also wade through settings for the My Orders grid, or
  * vice versa. See SETTINGS_MODAL_FIELDS below for the per-card breakdown. */
-type SettingsTab = "branding" | "lookup" | "ordersList" | "orderDetail" | "navigation" | "danger";
+type SettingsTab = "branding" | "lookup" | "ordersList" | "returnFlow" | "orderDetail" | "navigation" | "danger";
 
 const TAB_FIELDS: Record<SettingsTab, (keyof BrandingInput)[]> = {
   // Global identity — applies everywhere, not scoped to one page.
@@ -97,16 +88,20 @@ const TAB_FIELDS: Record<SettingsTab, (keyof BrandingInput)[]> = {
   // The My Orders grid/list page, before a customer clicks into one order.
   ordersList: [
     "headerSearchEnabled", "headerSearchPlaceholder", "defaultOrderView",
-    "shipmentProgressBarEnabled", "shipmentStageStyles", "returnLifecycleMessages",
+    "shipmentProgressBarEnabled", "shipmentStageStyles",
   ],
-  // Everything shown after a customer opens one specific order, including
-  // the return-submission flow (window length, policy, confirmations) that
-  // only ever happens on this page.
-  orderDetail: [
+  // The return-submission flow itself: window length, policy content, and
+  // the confirmation messages — split out of Order detail since it's a
+  // distinct concern from "what the item list looks like."
+  returnFlow: [
     "returnWindowDays", "requirePolicyAcceptance", "returnReviewEnabled",
     "policyHeading", "policySubheading", "policyLastUpdated", "policyBodyMode", "policyCategories", "policyBodyText",
     "policyFooterNoteEnabled", "policyFooterNote", "policyAcceptedMessage", "policyDeclinedMessage",
     "policyPresentation", "policyExternalUrl", "policyReviewButtonLabel",
+  ],
+  // What the item list looks like and what each status says, after a
+  // customer opens one specific order.
+  orderDetail: [
     "tableSearchEnabled", "tableSearchPlaceholder",
     "tableColumnsButtonEnabled", "tableFilterButtonEnabled", "tablePageSizeEnabled", "shipmentCardsEnabled",
     "productImageLinksEnabled", "statusFilterEnabled", "ineligibleMessageEnabled", "eligibleLabel",
@@ -138,18 +133,18 @@ const SETTINGS_MODAL_FIELDS: Record<string, (keyof BrandingInput)[]> = {
   "orders-list-search-modal": ["headerSearchEnabled", "headerSearchPlaceholder"],
   "orders-list-view-modal": ["defaultOrderView"],
   "orders-list-shipment-stages-modal": ["shipmentProgressBarEnabled", "shipmentStageStyles", "returnLifecycleMessages"],
-  "order-detail-return-window-modal": ["returnWindowDays", "requirePolicyAcceptance", "returnReviewEnabled"],
+  "return-flow-window-modal": ["returnWindowDays", "requirePolicyAcceptance", "returnReviewEnabled"],
   "order-detail-items-modal": [
     "tableSearchEnabled", "tableSearchPlaceholder", "tableFilterButtonEnabled", "statusFilterEnabled",
     "eligibleLabel", "ineligibleLabel", "ineligibleMessageEnabled",
     "tableColumnsButtonEnabled", "tablePageSizeEnabled", "shipmentCardsEnabled", "productImageLinksEnabled",
   ],
-  "order-detail-policy-modal": [
+  "return-flow-policy-modal": [
     "policyHeading", "policySubheading", "policyLastUpdated", "policyBodyMode",
     "policyCategories", "policyBodyText", "policyFooterNoteEnabled", "policyFooterNote",
     "policyPresentation", "policyExternalUrl", "policyReviewButtonLabel",
   ],
-  "order-detail-confirm-modal": ["policyAcceptedMessage", "policyDeclinedMessage"],
+  "return-flow-confirm-modal": ["policyAcceptedMessage", "policyDeclinedMessage"],
   "order-detail-status-modal": ["returnLifecycleStyles", "returnLifecycleMessages"],
   "order-detail-refund-modal": ["refundStatusLabels"],
   "nav-sidebar-layout-modal": [
@@ -384,7 +379,7 @@ export function SettingsForm({
   const [activeTab, setActiveTab] = useState<SettingsTab>(() => {
     if (typeof window === "undefined") return "branding"
     const tab = new URLSearchParams(window.location.search).get("tab")
-    return tab === "lookup" || tab === "ordersList" || tab === "orderDetail" || tab === "navigation" || tab === "danger"
+    return tab === "lookup" || tab === "ordersList" || tab === "returnFlow" || tab === "orderDetail" || tab === "navigation" || tab === "danger"
       ? tab
       : "branding"
   })
@@ -744,6 +739,7 @@ export function SettingsForm({
     { id: "branding", label: "Branding" },
     { id: "lookup", label: "Guest lookup" },
     { id: "ordersList", label: "My Orders" },
+    { id: "returnFlow", label: "Return flow" },
     { id: "orderDetail", label: "Order detail" },
     { id: "navigation", label: "Navigation" },
     { id: "danger", label: "Danger zone" },
@@ -763,7 +759,7 @@ export function SettingsForm({
       <s-section padding="none">
         <s-box padding="base" borderBlockEndWidth="base" borderColor="subdued">
           <s-stack direction="block" gap="small-300">
-            <s-paragraph tone="subdued">Each tab covers one part of the customer portal — branding, guest lookup, the My Orders list, the order detail page, navigation, or reset options.</s-paragraph>
+            <s-paragraph tone="subdued">Each tab covers one part of the customer portal — branding, guest lookup, the My Orders list, the return flow, the order detail page, navigation, or reset options.</s-paragraph>
             {/* s-tabs/s-tab-list/s-tab don't render correctly in this app's
                 embedded runtime (see activeTab's own comment below) — this
                 restyles the same manual button+state approach to look like
@@ -1476,7 +1472,7 @@ export function SettingsForm({
             <SettingsEditRow
               modalId="orders-list-shipment-stages-modal"
               title="Shipment stages"
-              description="Shown on My Orders cards, before a customer opens an order: the icon and progress bar for each of the 5 real shipping stages, plus the matching sentence on the order detail page while an item is still shipping."
+              description="Shown only on My Orders cards, before a customer opens an order: the icon, color, label, and progress bar for each of the 5 real shipping stages. The sentence shown on the order detail page for these stages lives under Return status, on the Order detail tab."
               summary={form.shipmentProgressBarEnabled ? "Progress bar on" : "Progress bar off"}
               modalSize="large-100"
               errors={errors}
@@ -1489,19 +1485,21 @@ export function SettingsForm({
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("shipmentProgressBarEnabled", e.target.checked)}
                 ></s-checkbox>
                 <s-text color="subdued">
-                  These same 5 stages also drive the status icon and its popover on each order card, and (except
-                  Delivered) the sentence shown on the order detail page while an item is still shipping — a change
-                  here updates all of it in one place.
+                  These same 5 stages also drive the status icon and its popover on each order card — a change here
+                  updates both.
                 </s-text>
                 {SHIPMENT_STAGE_CARDS.map(({ key, name }) => {
                   const isOpen = openShipmentStageKey === key
                   const style = form.shipmentStageStyles[key]
-                  const messageField = SHIPMENT_STAGE_MESSAGE_FIELD[key]
+                  const Icon = getStatusIcon(style.icon)
                   return (
                     <s-box key={key} padding="base" border="base" borderRadius="base">
                       <s-stack direction="block" gap="small">
                         <s-stack direction="inline" gap="small-300" alignItems="center">
                           <s-button onClick={() => toggleShipmentStageOpen(key)}>{isOpen ? "Collapse" : "Expand"}</s-button>
+                          <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 20, height: 20, borderRadius: 999, background: style.color, flexShrink: 0 }}>
+                            <Icon size={12} color="#fff" />
+                          </span>
                           <s-text>{name} — "{style.label}"</s-text>
                         </s-stack>
                         {isOpen && (
@@ -1511,34 +1509,28 @@ export function SettingsForm({
                               value={style.label}
                               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setShipmentStageStyle(key, "label", e.target.value)}
                             ></s-text-field>
-                            <s-select
-                              label="Icon"
-                              value={style.icon}
-                              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setShipmentStageStyle(key, "icon", e.target.value)}
-                            >
-                              {STATUS_ICON_NAMES.map((iconName) => (
-                                <s-option key={iconName} value={iconName}>{iconName}</s-option>
-                              ))}
-                            </s-select>
+                            <s-stack direction="inline" gap="small-300" alignItems="center">
+                              <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, borderRadius: 999, background: style.color, flexShrink: 0 }}>
+                                <Icon size={18} color="#fff" />
+                              </span>
+                              <span style={{ flex: 1 }}>
+                                <s-select
+                                  label="Icon"
+                                  value={style.icon}
+                                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setShipmentStageStyle(key, "icon", e.target.value)}
+                                >
+                                  {STATUS_ICON_NAMES.map((iconName) => (
+                                    <s-option key={iconName} value={iconName}>{iconName}</s-option>
+                                  ))}
+                                </s-select>
+                              </span>
+                            </s-stack>
                             <s-text-field
                               label="Color"
                               value={style.color}
                               placeholder="#16A34A"
                               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setShipmentStageStyle(key, "color", e.target.value)}
                             ></s-text-field>
-                            {messageField ? (
-                              <s-text-area
-                                label="Order detail sentence"
-                                value={form.returnLifecycleMessages[messageField]}
-                                rows={2}
-                                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage(messageField, e.target.value)}
-                              ></s-text-area>
-                            ) : (
-                              <s-paragraph tone="subdued">
-                                No sentence here — once delivered, the item becomes eligible to return and its
-                                message comes from "Return status" instead.
-                              </s-paragraph>
-                            )}
                           </>
                         )}
                       </s-stack>
@@ -1546,7 +1538,6 @@ export function SettingsForm({
                   )
                 })}
                 {errors.shipmentStageStyles && <s-paragraph tone="critical">{errors.shipmentStageStyles}</s-paragraph>}
-                {errors.returnLifecycleMessages && <s-paragraph tone="critical">{errors.returnLifecycleMessages}</s-paragraph>}
               </s-stack>
             </SettingsEditRow>
 
@@ -1745,14 +1736,14 @@ export function SettingsForm({
       )}
 
 
-      {activeTab === "orderDetail" && (
-        <s-section heading="Order detail">
+      {activeTab === "returnFlow" && (
+        <s-section heading="Return flow">
           <s-stack direction="block" gap="base">
             <s-paragraph color="subdued">
               Edit one area at a time. Changes stay in this form until you Save.
             </s-paragraph>
             <SettingsEditRow
-              modalId="order-detail-return-window-modal"
+              modalId="return-flow-window-modal"
               title="Return window"
               description="How long customers have to return, and the steps they must complete before submitting."
               summary={`${form.returnWindowDays} days · Policy acceptance ${form.requirePolicyAcceptance ? "on" : "off"} · Review step ${form.returnReviewEnabled ? "on" : "off"}`}
@@ -1788,106 +1779,9 @@ export function SettingsForm({
               </s-stack>
             </SettingsEditRow>
 
-            <SettingsEditRow
-              modalId="order-detail-items-modal"
-              title="Item list & tools"
-              description="Search, filters, columns, and shipment cards inside an order."
-              summary={[
-                form.tableSearchEnabled && "product search",
-                form.tablePageSizeEnabled && "rows per page",
-                form.shipmentCardsEnabled && "shipments",
-              ].filter(Boolean).join(" · ") || "simple layout"}
-              modalSize="large-100"
-              errors={errors}
-            >
-              <s-stack direction="block" gap="base">
-                <s-stack direction="block" gap="small-200">
-                  <s-checkbox
-                    label="Show search box to find a product or variant in the order"
-                    name="tableSearchEnabled"
-                    checked={form.tableSearchEnabled}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("tableSearchEnabled", e.target.checked)}
-                  ></s-checkbox>
-                  <s-text-field
-                    label="Hint text inside the product search box"
-                    name="tableSearchPlaceholder"
-                    value={form.tableSearchPlaceholder}
-                    placeholder="Search product or variant..."
-                    disabled={!form.tableSearchEnabled}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("tableSearchPlaceholder", e.target.value)}
-                  ></s-text-field>
-                  {errors.tableSearchPlaceholder && <s-paragraph tone="critical">{errors.tableSearchPlaceholder}</s-paragraph>}
-                </s-stack>
-
-                <s-stack direction="block" gap="small-200">
-                  <s-checkbox
-                    label="Show a Filter button for items that can’t be returned"
-                    name="tableFilterButtonEnabled"
-                    checked={form.tableFilterButtonEnabled}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("tableFilterButtonEnabled", e.target.checked)}
-                  ></s-checkbox>
-                  <s-checkbox
-                    label="Show Eligible / Ineligible tabs on the order"
-                    name="statusFilterEnabled"
-                    checked={form.statusFilterEnabled}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("statusFilterEnabled", e.target.checked)}
-                  ></s-checkbox>
-                </s-stack>
-
-                <s-text-field
-                  label="Name for the ‘can be returned’ tab"
-                  name="eligibleLabel"
-                  value={form.eligibleLabel}
-                  placeholder="Eligible"
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("eligibleLabel", e.target.value)}
-                ></s-text-field>
-                {errors.eligibleLabel && <s-paragraph tone="critical">{errors.eligibleLabel}</s-paragraph>}
-                <s-text-field
-                  label="Name for the ‘can’t be returned’ tab"
-                  name="ineligibleLabel"
-                  value={form.ineligibleLabel}
-                  placeholder="Ineligible"
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("ineligibleLabel", e.target.value)}
-                ></s-text-field>
-                {errors.ineligibleLabel && <s-paragraph tone="critical">{errors.ineligibleLabel}</s-paragraph>}
-                <s-checkbox
-                  label={'Show the "These items can’t be selected here" message on the can’t-return tab'}
-                  name="ineligibleMessageEnabled"
-                  checked={form.ineligibleMessageEnabled}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("ineligibleMessageEnabled", e.target.checked)}
-                ></s-checkbox>
-                <s-stack direction="block" gap="base">
-                  <s-checkbox
-                    label="Show a Columns button so customers can hide/show table columns"
-                    name="tableColumnsButtonEnabled"
-                    checked={form.tableColumnsButtonEnabled}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("tableColumnsButtonEnabled", e.target.checked)}
-                  ></s-checkbox>
-                  <CheckboxWithHelp
-                    label="Show rows-per-page control (Show 10 / 25 / 50)"
-                    name="tablePageSizeEnabled"
-                    checked={form.tablePageSizeEnabled}
-                    onChange={(e) => set("tablePageSizeEnabled", e.target.checked)}
-                    help="When on, customers can choose how many product rows appear on each page of the order item table."
-                  />
-                  <s-checkbox
-                    label="Show shipment tracking cards above the item list"
-                    name="shipmentCardsEnabled"
-                    checked={form.shipmentCardsEnabled}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("shipmentCardsEnabled", e.target.checked)}
-                  ></s-checkbox>
-                  <s-checkbox
-                    label="Make product images link to the storefront product page"
-                    name="productImageLinksEnabled"
-                    checked={form.productImageLinksEnabled}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("productImageLinksEnabled", e.target.checked)}
-                  ></s-checkbox>
-                </s-stack>
-              </s-stack>
-            </SettingsEditRow>
 
             <SettingsEditRow
-              modalId="order-detail-policy-modal"
+              modalId="return-flow-policy-modal"
               title="Returns policy"
               description="How customers review your returns policy before selecting items to return."
               summary={
@@ -2048,8 +1942,9 @@ export function SettingsForm({
               </s-stack>
             </SettingsEditRow>
 
+
             <SettingsEditRow
-              modalId="order-detail-confirm-modal"
+              modalId="return-flow-confirm-modal"
               title="Policy confirmation messages"
               description="Short confirmation messages after a customer accepts or declines the in-app policy."
               summary={`“${(form.policyAcceptedMessage || "Policy accepted").slice(0, 40)}” · “${(form.policyDeclinedMessage || "Policy declined").slice(0, 40)}”`}
@@ -2076,6 +1971,115 @@ export function SettingsForm({
               </s-stack>
             </SettingsEditRow>
 
+          </s-stack>
+        </s-section>
+      )}
+
+      {activeTab === "orderDetail" && (
+        <s-section heading="Order detail">
+          <s-stack direction="block" gap="base">
+            <s-paragraph color="subdued">
+              Edit one area at a time. Changes stay in this form until you Save.
+            </s-paragraph>
+            <SettingsEditRow
+              modalId="order-detail-items-modal"
+              title="Item list & tools"
+              description="Search, filters, columns, and shipment cards inside an order."
+              summary={[
+                form.tableSearchEnabled && "product search",
+                form.tablePageSizeEnabled && "rows per page",
+                form.shipmentCardsEnabled && "shipments",
+              ].filter(Boolean).join(" · ") || "simple layout"}
+              modalSize="large-100"
+              errors={errors}
+            >
+              <s-stack direction="block" gap="base">
+                <s-stack direction="block" gap="small-200">
+                  <s-checkbox
+                    label="Show search box to find a product or variant in the order"
+                    name="tableSearchEnabled"
+                    checked={form.tableSearchEnabled}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("tableSearchEnabled", e.target.checked)}
+                  ></s-checkbox>
+                  <s-text-field
+                    label="Hint text inside the product search box"
+                    name="tableSearchPlaceholder"
+                    value={form.tableSearchPlaceholder}
+                    placeholder="Search product or variant..."
+                    disabled={!form.tableSearchEnabled}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("tableSearchPlaceholder", e.target.value)}
+                  ></s-text-field>
+                  {errors.tableSearchPlaceholder && <s-paragraph tone="critical">{errors.tableSearchPlaceholder}</s-paragraph>}
+                </s-stack>
+
+                <s-stack direction="block" gap="small-200">
+                  <s-checkbox
+                    label="Show a Filter button for items that can’t be returned"
+                    name="tableFilterButtonEnabled"
+                    checked={form.tableFilterButtonEnabled}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("tableFilterButtonEnabled", e.target.checked)}
+                  ></s-checkbox>
+                  <s-checkbox
+                    label="Show Eligible / Ineligible tabs on the order"
+                    name="statusFilterEnabled"
+                    checked={form.statusFilterEnabled}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("statusFilterEnabled", e.target.checked)}
+                  ></s-checkbox>
+                </s-stack>
+
+                <s-text-field
+                  label="Name for the ‘can be returned’ tab"
+                  name="eligibleLabel"
+                  value={form.eligibleLabel}
+                  placeholder="Eligible"
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("eligibleLabel", e.target.value)}
+                ></s-text-field>
+                {errors.eligibleLabel && <s-paragraph tone="critical">{errors.eligibleLabel}</s-paragraph>}
+                <s-text-field
+                  label="Name for the ‘can’t be returned’ tab"
+                  name="ineligibleLabel"
+                  value={form.ineligibleLabel}
+                  placeholder="Ineligible"
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("ineligibleLabel", e.target.value)}
+                ></s-text-field>
+                {errors.ineligibleLabel && <s-paragraph tone="critical">{errors.ineligibleLabel}</s-paragraph>}
+                <s-checkbox
+                  label={'Show the "These items can’t be selected here" message on the can’t-return tab'}
+                  name="ineligibleMessageEnabled"
+                  checked={form.ineligibleMessageEnabled}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("ineligibleMessageEnabled", e.target.checked)}
+                ></s-checkbox>
+                <s-stack direction="block" gap="base">
+                  <s-checkbox
+                    label="Show a Columns button so customers can hide/show table columns"
+                    name="tableColumnsButtonEnabled"
+                    checked={form.tableColumnsButtonEnabled}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("tableColumnsButtonEnabled", e.target.checked)}
+                  ></s-checkbox>
+                  <CheckboxWithHelp
+                    label="Show rows-per-page control (Show 10 / 25 / 50)"
+                    name="tablePageSizeEnabled"
+                    checked={form.tablePageSizeEnabled}
+                    onChange={(e) => set("tablePageSizeEnabled", e.target.checked)}
+                    help="When on, customers can choose how many product rows appear on each page of the order item table."
+                  />
+                  <s-checkbox
+                    label="Show shipment tracking cards above the item list"
+                    name="shipmentCardsEnabled"
+                    checked={form.shipmentCardsEnabled}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("shipmentCardsEnabled", e.target.checked)}
+                  ></s-checkbox>
+                  <s-checkbox
+                    label="Make product images link to the storefront product page"
+                    name="productImageLinksEnabled"
+                    checked={form.productImageLinksEnabled}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => set("productImageLinksEnabled", e.target.checked)}
+                  ></s-checkbox>
+                </s-stack>
+              </s-stack>
+            </SettingsEditRow>
+
+
             <SettingsEditRow
               modalId="order-detail-status-modal"
               title="Return status"
@@ -2092,11 +2096,16 @@ export function SettingsForm({
               {RETURN_STATUS_CARDS.map(({ key, name }) => {
                   const isOpen = openStatusKey === key
                   const style = form.returnLifecycleStyles[key]
+                  const Icon = getStatusIcon(style.icon)
+                  const swatchColor = style.color || "#71717a"
                   return (
                     <s-box key={key} padding="base" border="base" borderRadius="base">
                       <s-stack direction="block" gap="small">
                         <s-stack direction="inline" gap="small-300" alignItems="center">
                           <s-button onClick={() => toggleStatusOpen(key)}>{isOpen ? "Collapse" : "Expand"}</s-button>
+                          <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 20, height: 20, borderRadius: 999, background: swatchColor, flexShrink: 0 }}>
+                            <Icon size={12} color="#fff" />
+                          </span>
                           <s-text>{name} — "{style.label}"</s-text>
                         </s-stack>
                         {isOpen && (
@@ -2111,15 +2120,22 @@ export function SettingsForm({
                               value={style.heading}
                               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setStatusStyle(key, "heading", e.target.value)}
                             ></s-text-field>
-                            <s-select
-                              label="Icon"
-                              value={style.icon}
-                              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setStatusStyle(key, "icon", e.target.value)}
-                            >
-                              {STATUS_ICON_NAMES.map((iconName) => (
-                                <s-option key={iconName} value={iconName}>{iconName}</s-option>
-                              ))}
-                            </s-select>
+                            <s-stack direction="inline" gap="small-300" alignItems="center">
+                              <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, borderRadius: 999, background: swatchColor, flexShrink: 0 }}>
+                                <Icon size={18} color="#fff" />
+                              </span>
+                              <span style={{ flex: 1 }}>
+                                <s-select
+                                  label="Icon"
+                                  value={style.icon}
+                                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setStatusStyle(key, "icon", e.target.value)}
+                                >
+                                  {STATUS_ICON_NAMES.map((iconName) => (
+                                    <s-option key={iconName} value={iconName}>{iconName}</s-option>
+                                  ))}
+                                </s-select>
+                              </span>
+                            </s-stack>
                             <s-text-field
                               label="Color (optional — leave blank for the portal's default color)"
                               value={style.color}
@@ -2157,11 +2173,20 @@ export function SettingsForm({
                               </>
                             )}
                             {key === "awaitingDelivery" && (
-                              <s-paragraph tone="subdued">
-                                This status covers several shipping stages (not shipped, on its way, out for delivery,
-                                attempted delivery) — edit each stage&apos;s sentence under &quot;Shipment stages&quot;
-                                on the My Orders tab.
-                              </s-paragraph>
+                              <>
+                                <s-text color="subdued">
+                                  The specific sentence shown under this badge, depending on the shipment's stage.
+                                  The icon/color for each stage is under "Shipment stages" on the My Orders tab.
+                                </s-text>
+                                <s-text-area label="Not yet shipped" value={form.returnLifecycleMessages.shippingConfirmed} rows={2}
+                                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("shippingConfirmed", e.target.value)}></s-text-area>
+                                <s-text-area label="On its way" value={form.returnLifecycleMessages.shippingOnItsWay} rows={2}
+                                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("shippingOnItsWay", e.target.value)}></s-text-area>
+                                <s-text-area label="Out for delivery" value={form.returnLifecycleMessages.shippingOutForDelivery} rows={2}
+                                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("shippingOutForDelivery", e.target.value)}></s-text-area>
+                                <s-text-area label="Attempted delivery" value={form.returnLifecycleMessages.shippingAttemptedDelivery} rows={2}
+                                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("shippingAttemptedDelivery", e.target.value)}></s-text-area>
+                              </>
                             )}
                             {key === "returnWindowClosed" && (
                               <>
@@ -2189,6 +2214,7 @@ export function SettingsForm({
                 {errors.returnLifecycleStyles && <s-paragraph tone="critical">{errors.returnLifecycleStyles}</s-paragraph>}
               </s-stack>
             </SettingsEditRow>
+
 
 
             <SettingsEditRow
