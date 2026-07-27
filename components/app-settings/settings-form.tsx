@@ -1476,7 +1476,7 @@ export function SettingsForm({
             <SettingsEditRow
               modalId="orders-list-shipment-stages-modal"
               title="Shipment stages"
-              description="The label, icon, color, and order-detail sentence for each of the 5 shipping stages."
+              description="Shown on My Orders cards, before a customer opens an order: the icon and progress bar for each of the 5 real shipping stages, plus the matching sentence on the order detail page while an item is still shipping."
               summary={form.shipmentProgressBarEnabled ? "Progress bar on" : "Progress bar off"}
               modalSize="large-100"
               errors={errors}
@@ -2079,15 +2079,15 @@ export function SettingsForm({
             <SettingsEditRow
               modalId="order-detail-status-modal"
               title="Return status"
-              description="How each return stage looks and what sentence customers see."
+              description="Shown on the order detail page's Ineligible tab, after a customer opens an order: the badge, icon, and color for each of the 7 return stages, plus the sentence for most of them (shipping-stage sentences are under Shipment stages on My Orders instead)."
               summary={`${RETURN_STATUS_CARDS.length} return stages`}
               modalSize="large-100"
               errors={errors}
             >
             <s-stack direction="block" gap="base">
               <s-text color="subdued">
-                The label, mobile heading, icon, and color shown for each stage of a return. Use {"{days}"} for the
-                return window length.
+                Shown on the order detail page's Ineligible tab. The label, mobile heading, icon, and color for each
+                stage of a return. Use {"{days}"} for the return window length.
               </s-text>
               {RETURN_STATUS_CARDS.map(({ key, name }) => {
                   const isOpen = openStatusKey === key
