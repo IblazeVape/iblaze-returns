@@ -330,9 +330,7 @@ function SettingsEditRow({
         </s-stack>
       </s-box>
       <s-modal id={modalId} heading={title} size={modalSize}>
-        <div style={{ paddingBottom: 28 }}>
-          {children}
-        </div>
+        {children}
         <s-button slot="primary-action" variant="primary" commandFor={modalId} command="--hide">
           Done
         </s-button>
@@ -1335,7 +1333,7 @@ export function SettingsForm({
                     ? `Guest lookup on · everyone starts on Find your order${form.loggedInLookupRequirePostcode ? " · postcode required when logged in" : ""}`
                     : "Guest lookup on · logged-in customers see their orders"
               }
-              modalSize="small"
+              modalSize="large"
               errors={errors}
             >
               <s-stack direction="block" gap="small-200">
@@ -1439,7 +1437,12 @@ export function SettingsForm({
               modalId="orders-list-shipment-stages-modal"
               title="Shipment stages"
               description="The label, icon, and color for each of the 5 shipping stages shown on My Orders order cards."
-              summary={form.shipmentProgressBarEnabled ? "Progress bar on" : "Progress bar off"}
+              summary={
+                <s-stack direction="inline" gap="small-200" alignItems="center">
+                  <OnOffBadge on={form.shipmentProgressBarEnabled} />
+                  <s-text color="subdued">Progress bar</s-text>
+                </s-stack>
+              }
               modalSize="large-100"
               errors={errors}
             >
