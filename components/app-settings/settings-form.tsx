@@ -151,7 +151,6 @@ const SETTINGS_MODAL_FIELDS: Record<string, (keyof BrandingInput)[]> = {
   ],
   "order-detail-confirm-modal": ["policyAcceptedMessage", "policyDeclinedMessage"],
   "order-detail-status-modal": ["returnLifecycleStyles", "returnLifecycleMessages"],
-  "order-detail-window-closed-modal": ["returnLifecycleMessages"],
   "order-detail-refund-modal": ["refundStatusLabels"],
   "nav-sidebar-layout-modal": [
     "sidebarEnabled", "lookupSidebarEnabled",
@@ -2051,7 +2050,7 @@ export function SettingsForm({
 
             <SettingsEditRow
               modalId="order-detail-confirm-modal"
-              title="Confirmation messages"
+              title="Policy confirmation messages"
               description="Short confirmation messages after a customer accepts or declines the in-app policy."
               summary={`“${(form.policyAcceptedMessage || "Policy accepted").slice(0, 40)}” · “${(form.policyDeclinedMessage || "Policy declined").slice(0, 40)}”`}
               modalSize="large"
@@ -2165,10 +2164,20 @@ export function SettingsForm({
                               </s-paragraph>
                             )}
                             {key === "returnWindowClosed" && (
-                              <s-paragraph tone="subdued">
-                                This status covers several reasons (outside the return window, final sale, or other) —
-                                edit each reason&apos;s sentence in &quot;Return window closed&quot; below.
-                              </s-paragraph>
+                              <>
+                                <s-text color="subdued">
+                                  The specific sentence shown under this badge, depending on why the item can't be
+                                  returned.
+                                </s-text>
+                                <s-text-area label="Outside the return window (with a closed date)" value={form.returnLifecycleMessages.outsideWindow} rows={2}
+                                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("outsideWindow", e.target.value)}></s-text-area>
+                                <s-text-area label="Outside the return window (no closed date available)" value={form.returnLifecycleMessages.outsideWindowNoDate} rows={2}
+                                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("outsideWindowNoDate", e.target.value)}></s-text-area>
+                                <s-text-area label="Final sale" value={form.returnLifecycleMessages.finalSale} rows={2}
+                                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("finalSale", e.target.value)}></s-text-area>
+                                <s-text-area label="Other" value={form.returnLifecycleMessages.otherNotReturnable} rows={2}
+                                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("otherNotReturnable", e.target.value)}></s-text-area>
+                              </>
                             )}
                           </>
                         )}
@@ -2178,31 +2187,6 @@ export function SettingsForm({
                 })}
                 {errors.returnLifecycleMessages && <s-paragraph tone="critical">{errors.returnLifecycleMessages}</s-paragraph>}
                 {errors.returnLifecycleStyles && <s-paragraph tone="critical">{errors.returnLifecycleStyles}</s-paragraph>}
-              </s-stack>
-            </SettingsEditRow>
-
-
-            <SettingsEditRow
-              modalId="order-detail-window-closed-modal"
-              title="Return window closed"
-              description="Messages when an item's return window has permanently passed."
-              summary="Window expired · final sale · other"
-              modalSize="large-100"
-              errors={errors}
-            >
-              <s-stack direction="block" gap="base">
-                <s-text color="subdued">
-                  The specific sentence shown under the "Return window closed" badge, depending on why the item can't
-                  be returned.
-                </s-text>
-                <s-text-area label="Outside the return window (with a closed date)" value={form.returnLifecycleMessages.outsideWindow} rows={2}
-                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("outsideWindow", e.target.value)}></s-text-area>
-                <s-text-area label="Outside the return window (no closed date available)" value={form.returnLifecycleMessages.outsideWindowNoDate} rows={2}
-                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("outsideWindowNoDate", e.target.value)}></s-text-area>
-                <s-text-area label="Final sale" value={form.returnLifecycleMessages.finalSale} rows={2}
-                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("finalSale", e.target.value)}></s-text-area>
-                <s-text-area label="Other" value={form.returnLifecycleMessages.otherNotReturnable} rows={2}
-                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReturnLifecycleMessage("otherNotReturnable", e.target.value)}></s-text-area>
               </s-stack>
             </SettingsEditRow>
 

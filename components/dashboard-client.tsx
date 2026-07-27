@@ -3194,9 +3194,18 @@ function ShipmentProgressBar({ order, stageStyles, enabled }: { order: Order; st
 }
 
 function OrderCard({ order, onClick, index = 0, shipmentStageStyles, shipmentProgressBarEnabled }: { order: Order; onClick: () => void; index?: number; shipmentStageStyles: ShipmentStageStyles; shipmentProgressBarEnabled: boolean }) {
-  const allUniqueImages = order.processedItems.map(i => i.image?.url).filter((u, i, a) => u && a.indexOf(u) === i) as string[]
+  // "+N" reflects leftover UNITS not pictured, not leftover distinct
+  // products — an order with 18 units across only 2 products should read as
+  // nearly full, not show "+0" just because there are only 2 thumbnails.
+  const imageUnitCounts = new Map<string, number>()
+  for (const item of order.processedItems) {
+    const url = item.image?.url
+    if (!url) continue
+    imageUnitCounts.set(url, (imageUnitCounts.get(url) ?? 0) + item.quantity)
+  }
+  const allUniqueImages = [...imageUnitCounts.keys()]
   const uniqueImages = allUniqueImages.slice(0, 3)
-  const extra = allUniqueImages.length - uniqueImages.length
+  const extraUnits = allUniqueImages.slice(3).reduce((sum, url) => sum + (imageUnitCounts.get(url) ?? 0), 0)
   const total = parseFloat(order.totalPriceSet.shopMoney.amount)
   const fmt = (d: string) => new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
   const deliveryDate = order.latestDelivery || order.earliestDelivery
@@ -3238,8 +3247,8 @@ function OrderCard({ order, onClick, index = 0, shipmentStageStyles, shipmentPro
               </div>
             )}
           </div>
-          {extra > 0 && (
-            <span className="text-[10px] font-medium text-muted-foreground ml-1.5">+{extra}</span>
+          {extraUnits > 0 && (
+            <span className="text-[10px] font-medium text-muted-foreground ml-1.5">+{extraUnits}</span>
           )}
         </div>
         <StatusLabel order={order} stageStyles={shipmentStageStyles} />
