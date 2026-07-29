@@ -3133,6 +3133,10 @@ function StatusLabel({ order, stageStyles, orderStatusStyles }: { order: Order; 
 
   // Reads the same orderStatusStyles setting as the order detail page's own
   // header, so the label/color here can't drift from what's shown there.
+  // Same pill styling as the multi-stage trigger above (border, background,
+  // rounded-full) so every status looks consistent on the card — a
+  // single-stage order like "Delivered" previously rendered as bare
+  // icon+text with no border while "Partially delivered" got the full pill.
   const meta = getOrderHeaderStatusIcon(order, orderStatusStyles)
   const Icon = meta?.icon ?? Clock
   const color = meta?.color ?? "#71717a"
@@ -3142,8 +3146,11 @@ function StatusLabel({ order, stageStyles, orderStatusStyles }: { order: Order; 
     : meta?.label ?? orderStatus
 
   return (
-    <span className="text-[10px] font-medium shrink-0 inline-flex items-center gap-1" style={{ color }}>
-      <Icon className="size-3 shrink-0" aria-hidden />
+    <span
+      className="shrink-0 inline-flex items-center gap-1 px-2 h-6 rounded-full border border-border bg-card text-[10px] font-semibold"
+      style={{ color }}
+    >
+      <Icon className="size-3.5 shrink-0" aria-hidden />
       {label}
     </span>
   )
