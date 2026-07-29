@@ -30,7 +30,7 @@ import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, Dr
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { PolicyHtml } from "@/components/policy-html"
 import { getCachedAccentColor, setCachedAccentColor, getCachedSidebarDefaultOpen, setCachedSidebarDefaultOpen } from "@/lib/accent-color-cache"
-import type { TenantBranding, ReturnLifecycleStyle, ReturnLifecycleStyles, ReturnLifecycleMessages, RefundStatusLabels, ShipmentStageStyles } from "@/lib/tenant"
+import type { TenantBranding, ReturnLifecycleStyle, ReturnLifecycleStyles, ReturnLifecycleMessages, RefundStatusLabels, ShipmentStageStyles, OrderStatusKey, OrderStatusStyles } from "@/lib/tenant"
 import { DEFAULT_TENANT_FIELDS } from "@/lib/tenant"
 import { getStatusIcon as getIneligibleStatusIconComponent } from "@/lib/status-icons"
 import { cn } from "@/lib/utils"
@@ -976,34 +976,37 @@ function CountBadge({
 }
 
 // ─── Status pill for order header card ───────────────────────────────────────
-function getOrderStatusSegment(order: Order): { text: string; label: string } | null {
-  const { orderStatus, cancelledAt } = order
-  if (cancelledAt) return null
-  const map: Record<string, [string, string]> = {
-    "Delivered":            ["text-green-700",  "Delivered"],
-    "Partially delivered":  ["text-amber-700",  "Partially delivered"],
-    "On its way":           ["text-blue-700",   "On its way"],
-    "Partially dispatched": ["text-blue-700",   "Partially dispatched"],
-    "Out for delivery":     ["text-indigo-700", "Out for delivery"],
-    "Attempted delivery":   ["text-rose-700",   "Attempted delivery"],
-    "Confirmed":            ["text-zinc-600",   "Confirmed"],
-  }
-  const [text, label] = map[orderStatus] || ["text-zinc-600", orderStatus]
-  return { text, label }
+/** Maps the raw order.orderStatus string (from the API) to the settings key
+ * a merchant edits under My Orders > Order status. Both getOrderStatusSegment
+ * and getOrderFulfillmentHeadline read through this so the label/color shown
+ * on the My Orders card and the order detail page's header can never drift
+ * apart — they're always reading the same merchant-set value. */
+const ORDER_STATUS_KEY_BY_STRING: Record<string, OrderStatusKey> = {
+  "Delivered":            "delivered",
+  "Partially delivered":  "partiallyDelivered",
+  "On its way":           "onItsWay",
+  "Partially dispatched": "partiallyDispatched",
+  "Out for delivery":     "outForDelivery",
+  "Attempted delivery":   "attemptedDelivery",
+  "Confirmed":            "confirmed",
 }
 
-function getOrderFulfillmentHeadline(order: Order): string {
+/** `text` holds a hex color (from the merchant's orderStatusStyles setting),
+ * not a Tailwind class — despite the field name, kept for the couple of
+ * unused/experimental header variants further down this file that still
+ * destructure `.text`. */
+function getOrderStatusSegment(order: Order, styles: OrderStatusStyles): { text: string; label: string } | null {
+  const { orderStatus, cancelledAt } = order
+  if (cancelledAt) return null
+  const key = ORDER_STATUS_KEY_BY_STRING[orderStatus]
+  const style = key ? styles[key] : null
+  return { text: style?.color ?? "#52525b", label: style?.label ?? orderStatus }
+}
+
+function getOrderFulfillmentHeadline(order: Order, styles: OrderStatusStyles): string {
   if (order.cancelledAt) return "Cancelled"
-  switch (order.orderStatus) {
-    case "Delivered":            return "Delivered"
-    case "Partially delivered":  return "Partially delivered"
-    case "On its way":           return "On its way"
-    case "Partially dispatched": return "Partially dispatched"
-    case "Out for delivery":     return "Out for delivery"
-    case "Attempted delivery":   return "Attempted delivery"
-    case "Confirmed":            return "Confirmed"
-    default:                     return order.orderStatus
-  }
+  const key = ORDER_STATUS_KEY_BY_STRING[order.orderStatus]
+  return key ? styles[key].label : order.orderStatus
 }
 
 function buildOrderFulfillmentBreakdownParts(order: Order): string[] {
@@ -1025,8 +1028,8 @@ function getOrderFulfillmentBreakdown(order: Order): string | null {
   return parts.join(" · ")
 }
 
-function getOrderPageHeaderTitle(order: Order): string {
-  return `${getOrderFulfillmentHeadline(order)} ${order.name}`
+function getOrderPageHeaderTitle(order: Order, styles: OrderStatusStyles): string {
+  return `${getOrderFulfillmentHeadline(order, styles)} ${order.name}`
 }
 
 type OrderSummaryPart =
@@ -1647,7 +1650,10 @@ function StatusPill({ order }: { order: Order }) {
       <span className="size-1.5 rounded-full bg-red-500" />Cancelled
     </span>
   )
-  const seg = getOrderStatusSegment(order)
+  // Unreachable in the live app (HEADER_STAT_DESIGN is fixed at 6, and this
+  // component is only used by earlier header design experiments) — default
+  // styles are enough here rather than threading branding through dead code.
+  const seg = getOrderStatusSegment(order, DEFAULT_TENANT_FIELDS.branding.orderStatusStyles)
   if (!seg) return null
   const borders: Record<string, string> = {
     "text-green-700":  "border-green-200",
@@ -1676,27 +1682,21 @@ function getStatusIcon(orderStatus: string): LucideIcon {
   }
 }
 
-function getOrderHeaderStatusIcon(order: Order): { icon: LucideIcon; color: string; label: string } | null {
+/** `color` is a hex value from the merchant's orderStatusStyles setting (or
+ * "#dc2626" for Cancelled, which isn't part of that setting). */
+function getOrderHeaderStatusIcon(order: Order, styles: OrderStatusStyles): { icon: LucideIcon; color: string; label: string } | null {
   if (order.cancelledAt) {
-    return { icon: XCircle, color: "text-red-600", label: "Cancelled" }
+    return { icon: XCircle, color: "#dc2626", label: "Cancelled" }
   }
-  const seg = getOrderStatusSegment(order)
+  const seg = getOrderStatusSegment(order, styles)
   if (!seg) return null
-  switch (order.orderStatus) {
-    case "Delivered":
-      return { icon: CheckCircle2, color: "text-green-700", label: seg.label }
-    case "Partially delivered":
-      return { icon: Package, color: "text-amber-600", label: seg.label }
-    case "On its way":
-    case "Partially dispatched":
-      return { icon: Truck, color: "text-slate-600", label: seg.label }
-    default:
-      return { icon: Clock, color: "text-zinc-900", label: seg.label }
-  }
+  const key = ORDER_STATUS_KEY_BY_STRING[order.orderStatus]
+  const iconName = key ? styles[key].icon : "Clock"
+  return { icon: getIneligibleStatusIconComponent(iconName), color: seg.text, label: seg.label }
 }
 
-function OrderHeaderStatusIcon({ order }: { order: Order }) {
-  const meta = getOrderHeaderStatusIcon(order)
+function OrderHeaderStatusIcon({ order, styles }: { order: Order; styles: OrderStatusStyles }) {
+  const meta = getOrderHeaderStatusIcon(order, styles)
   if (!meta) return null
   const { icon: Icon, color, label } = meta
   return (
@@ -1733,7 +1733,7 @@ function HeaderStrip({ children }: { children: React.ReactNode }) {
 }
 
 function HeaderStatusCell({ order }: { order: Order }) {
-  const status = getOrderStatusSegment(order)
+  const status = getOrderStatusSegment(order, DEFAULT_TENANT_FIELDS.branding.orderStatusStyles)
   if (!status) return null
   const Icon = getStatusIcon(order.orderStatus)
   return (
@@ -1825,7 +1825,7 @@ function HeaderDesign02({
   activeTab,
   onTabChange,
 }: HeaderBadgesProps) {
-  const status = getOrderStatusSegment(order)
+  const status = getOrderStatusSegment(order, DEFAULT_TENANT_FIELDS.branding.orderStatusStyles)
   const StatusIcon = status ? getStatusIcon(order.orderStatus) : Truck
 
   const rowBase = "flex items-center gap-2 px-3 py-1.5 text-left w-full transition-colors"
@@ -2039,7 +2039,7 @@ function HeaderDesign05({
   activeTab,
   onTabChange,
 }: HeaderBadgesProps) {
-  const status = getOrderStatusSegment(order)
+  const status = getOrderStatusSegment(order, DEFAULT_TENANT_FIELDS.branding.orderStatusStyles)
   const StatusIcon = status ? getStatusIcon(order.orderStatus) : Truck
 
   return (
@@ -2188,7 +2188,7 @@ function OrderHeaderBadges(props: HeaderBadgesProps) {
 }
 
 // ─── Order Status Badges ─────────────────────────────────────────────────────
-function OrderStatusBadges({ order, deliveryDate }: { order: Order; deliveryDate?: string | null }) {
+function OrderStatusBadges({ order, deliveryDate, orderStatusStyles }: { order: Order; deliveryDate?: string | null; orderStatusStyles: OrderStatusStyles }) {
   const { orderStatus, cancelledAt, totalUnits } = order
   const fmt = (d: string) => new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
 
@@ -2196,23 +2196,12 @@ function OrderStatusBadges({ order, deliveryDate }: { order: Order; deliveryDate
     return <span className="text-xs text-red-600">Cancelled {fmt(cancelledAt)}</span>
   }
 
-  const headline = getOrderFulfillmentHeadline(order)
+  const headline = getOrderFulfillmentHeadline(order, orderStatusStyles)
   const breakdown = getOrderFulfillmentBreakdown(order)
-  const primary = (() => {
-    if (orderStatus === "Delivered" && deliveryDate) {
-      return <span className="text-xs text-green-600">Delivered {fmt(deliveryDate)}</span>
-    }
-    switch (orderStatus) {
-      case "Delivered":            return <span className="text-xs text-green-600">{headline}</span>
-      case "Partially delivered":  return <span className="text-xs text-amber-600">{headline}</span>
-      case "On its way":
-      case "Partially dispatched":
-      case "Out for delivery":     return <span className="text-xs text-blue-600">{headline}</span>
-      case "Attempted delivery":   return <span className="text-xs text-rose-600">{headline}</span>
-      case "Confirmed":            return <span className="text-xs text-muted-foreground">{headline}</span>
-      default:                     return <span className="text-xs text-muted-foreground">{headline}</span>
-    }
-  })()
+  const segColor = getOrderStatusSegment(order, orderStatusStyles)?.text ?? "#71717a"
+  const primary = orderStatus === "Delivered" && deliveryDate
+    ? <span className="text-xs" style={{ color: segColor }}>Delivered {fmt(deliveryDate)}</span>
+    : <span className="text-xs" style={{ color: segColor }}>{headline}</span>
 
   const showStats = totalUnits > 0 && orderStatus !== "Delivered" && orderStatus !== "Confirmed" && orderStatus !== "Cancelled" && orderStatus !== "Attempted delivery" && orderStatus !== "Out for delivery"
 
@@ -3073,7 +3062,7 @@ function orderGlowClass(order: Order): string {
   }
 }
 
-function StatusLabel({ order, stageStyles }: { order: Order; stageStyles: ShipmentStageStyles }) {
+function StatusLabel({ order, stageStyles, orderStatusStyles }: { order: Order; stageStyles: ShipmentStageStyles; orderStatusStyles: OrderStatusStyles }) {
   const { orderStatus, cancelledAt, deliveredCount, dispatchedCount, confirmedCount, notDispatchedCount, outForDeliveryCount, attemptedDeliveryCount } = order
   const fmt = (d: string) => new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
   const deliveryDate = order.latestDelivery || order.earliestDelivery
@@ -3099,19 +3088,17 @@ function StatusLabel({ order, stageStyles }: { order: Order; stageStyles: Shipme
       { count: notYetShipped, ...stageStyles.notYetShipped, icon: getIneligibleStatusIconComponent(stageStyles.notYetShipped.icon) },
     ].filter(s => s.count > 0)
     // Reuses the exact same status/icon/color the order detail page's own
-    // header uses (getOrderHeaderStatusIcon) — a "Partially delivered"
-    // order previously showed a plain green "Delivered" checkmark here,
-    // which read as fully complete when 9 of 17 units hadn't shipped yet.
-    // Attempted delivery still takes priority as the one actionable flag.
-    const headerMeta = getOrderHeaderStatusIcon(order)
-    // hexColor is set only for a merchant-customized stage color; the
-    // "Partially delivered"/"On its way" fallback reuses the order detail
-    // page's own Tailwind classes instead, so hexColor stays empty there.
-    const trigger: { icon: LucideIcon; label: string; hexColor: string; twColor: string } = attemptedDeliveryCount > 0
-      ? { icon: getIneligibleStatusIconComponent(stageStyles.attemptedDelivery.icon), label: stageStyles.attemptedDelivery.label, hexColor: stageStyles.attemptedDelivery.color, twColor: "" }
+    // header uses (getOrderHeaderStatusIcon, both driven by the merchant's
+    // orderStatusStyles setting) — a "Partially delivered" order previously
+    // showed a plain green "Delivered" checkmark here, which read as fully
+    // complete when 9 of 17 units hadn't shipped yet. Attempted delivery
+    // still takes priority as the one actionable flag.
+    const headerMeta = getOrderHeaderStatusIcon(order, orderStatusStyles)
+    const trigger: { icon: LucideIcon; label: string; color: string } = attemptedDeliveryCount > 0
+      ? { icon: getIneligibleStatusIconComponent(stageStyles.attemptedDelivery.icon), label: stageStyles.attemptedDelivery.label, color: stageStyles.attemptedDelivery.color }
       : headerMeta
-        ? { icon: headerMeta.icon, label: headerMeta.label, hexColor: "", twColor: headerMeta.color }
-        : { icon: Clock, label: orderStatus, hexColor: "", twColor: "text-zinc-900" }
+        ? { icon: headerMeta.icon, label: headerMeta.label, color: headerMeta.color }
+        : { icon: Clock, label: orderStatus, color: "#18181b" }
     return (
       <Popover>
         <PopoverTrigger asChild>
@@ -3120,8 +3107,8 @@ function StatusLabel({ order, stageStyles }: { order: Order; stageStyles: Shipme
             tabIndex={0}
             onClick={e => e.stopPropagation()}
             aria-label="Show shipment breakdown"
-            style={trigger.hexColor ? { color: trigger.hexColor } : undefined}
-            className={cn("shrink-0 inline-flex items-center gap-1 pl-2 pr-1.5 h-6 rounded-full border border-border bg-card hover:bg-muted transition-colors focus:outline-hidden focus-visible:ring-1 focus-visible:ring-ring cursor-pointer", trigger.twColor)}
+            style={{ color: trigger.color }}
+            className="shrink-0 inline-flex items-center gap-1 pl-2 pr-1.5 h-6 rounded-full border border-border bg-card hover:bg-muted transition-colors focus:outline-hidden focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
           >
             <trigger.icon className="size-3.5 shrink-0" aria-hidden />
             <span className="text-[10px] font-semibold whitespace-nowrap">{trigger.label}</span>
@@ -3144,23 +3131,18 @@ function StatusLabel({ order, stageStyles }: { order: Order; stageStyles: Shipme
     )
   }
 
-  const isOnItsWay = orderStatus === "On its way" || orderStatus === "Partially dispatched"
-
-  const meta = getOrderHeaderStatusIcon(order)
+  // Reads the same orderStatusStyles setting as the order detail page's own
+  // header, so the label/color here can't drift from what's shown there.
+  const meta = getOrderHeaderStatusIcon(order, orderStatusStyles)
   const Icon = meta?.icon ?? Clock
-  const color = isOnItsWay ? "text-zinc-900" : (meta?.color ?? "text-muted-foreground")
+  const color = meta?.color ?? "#71717a"
 
-  // "On its way" matches the wording used on the order detail page's own
-  // heading/message for this status — the card previously said "Dispatched
-  // {date}" here instead, which read as a different status to the customer.
   const label = orderStatus === "Delivered" && deliveryDate
-    ? `Delivered ${fmt(deliveryDate)}`
-    : isOnItsWay
-    ? "On its way"
-    : orderStatus
+    ? `${meta?.label ?? "Delivered"} ${fmt(deliveryDate)}`
+    : meta?.label ?? orderStatus
 
   return (
-    <span className={cn("text-[10px] font-medium shrink-0 inline-flex items-center gap-1", color)}>
+    <span className="text-[10px] font-medium shrink-0 inline-flex items-center gap-1" style={{ color }}>
       <Icon className="size-3 shrink-0" aria-hidden />
       {label}
     </span>
@@ -3193,7 +3175,7 @@ function ShipmentProgressBar({ order, stageStyles, enabled }: { order: Order; st
   )
 }
 
-function OrderCard({ order, onClick, index = 0, shipmentStageStyles, shipmentProgressBarEnabled }: { order: Order; onClick: () => void; index?: number; shipmentStageStyles: ShipmentStageStyles; shipmentProgressBarEnabled: boolean }) {
+function OrderCard({ order, onClick, index = 0, shipmentStageStyles, shipmentProgressBarEnabled, orderStatusStyles }: { order: Order; onClick: () => void; index?: number; shipmentStageStyles: ShipmentStageStyles; shipmentProgressBarEnabled: boolean; orderStatusStyles: OrderStatusStyles }) {
   // "+N" reflects leftover UNITS not pictured, not leftover distinct
   // products — an order with 18 units across only 2 products should read as
   // nearly full, not show "+0" just because there are only 2 thumbnails.
@@ -3256,14 +3238,14 @@ function OrderCard({ order, onClick, index = 0, shipmentStageStyles, shipmentPro
             <span className="text-[10px] font-medium text-muted-foreground ml-1.5">+{extraUnits}</span>
           )}
         </div>
-        <StatusLabel order={order} stageStyles={shipmentStageStyles} />
+        <StatusLabel order={order} stageStyles={shipmentStageStyles} orderStatusStyles={orderStatusStyles} />
       </div>
     </motion.button>
     </div>
   )
 }
 
-function OrderRow({ order, onClick }: { order: Order; onClick: () => void }) {
+function OrderRow({ order, onClick, orderStatusStyles }: { order: Order; onClick: () => void; orderStatusStyles: OrderStatusStyles }) {
   const images = order.processedItems.map(i => i.image?.url).filter(Boolean).slice(0, 3) as string[]
   const total  = parseFloat(order.totalPriceSet.shopMoney.amount)
   const date   = new Date(order.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
@@ -3294,7 +3276,7 @@ function OrderRow({ order, onClick }: { order: Order; onClick: () => void }) {
       <div className="flex-1 min-w-0">
         <p className="font-semibold text-sm group-hover:underline">{order.name}</p>
         <p className="text-xs text-muted-foreground">{date} &bull; {order.totalUnits} item{order.totalUnits !== 1 ? "s" : ""}</p>
-        <div className="mt-1"><OrderStatusBadges order={order} /></div>
+        <div className="mt-1"><OrderStatusBadges order={order} orderStatusStyles={orderStatusStyles} /></div>
       </div>
       <p className="font-semibold text-sm w-16 text-right shrink-0">£{total.toFixed(2)}</p>
       <ChevronRight className="size-4 text-muted-foreground shrink-0" />
@@ -4402,6 +4384,7 @@ function DashboardClientInner({ authPlaceholder }: { authPlaceholder?: React.Rea
     tableColumnsButtonEnabled: true, tableFilterButtonEnabled: true, tablePageSizeEnabled: true,
     shipmentCardsEnabled: true, shipmentProgressBarEnabled: true,
     shipmentStageStyles: DEFAULT_TENANT_FIELDS.branding.shipmentStageStyles,
+    orderStatusStyles: DEFAULT_TENANT_FIELDS.branding.orderStatusStyles,
     productImageLinksEnabled: true, sidebarSubmenusExpandedByDefault: true,
     guestBackgroundStyle: "none",
     guestLookupLayout: "split",
@@ -4641,7 +4624,7 @@ function DashboardClientInner({ authPlaceholder }: { authPlaceholder?: React.Rea
   const showOrdersToolbar = !loading && filteredOrders.length > 0
 
   const user = { name: data?.firstName || "Customer", email: data?.email || "" }
-  const orderHeaderStatus = selectedOrder ? getOrderHeaderStatusIcon(selectedOrder) : null
+  const orderHeaderStatus = selectedOrder ? getOrderHeaderStatusIcon(selectedOrder, branding.orderStatusStyles) : null
   const guestOrderContext = isGuestOrderContext()
   // Destination content isn't ready yet (orders still fetching, or guest
   // order not selected). Hide the sidebar in that window so it can't flash
@@ -4664,7 +4647,7 @@ function DashboardClientInner({ authPlaceholder }: { authPlaceholder?: React.Rea
       headerAvatarEnabled={branding.headerAvatarEnabled}
       sidebarDefaultOpenOnDesktop={branding.sidebarDefaultOpenOnDesktop}
       headerProps={{
-        title: selectedOrder ? getOrderPageHeaderTitle(selectedOrder) : "My Orders",
+        title: selectedOrder ? getOrderPageHeaderTitle(selectedOrder, branding.orderStatusStyles) : "My Orders",
         titleIcon: orderHeaderStatus ? { icon: orderHeaderStatus.icon } : undefined,
         search,
         onSearch: setSearch,
@@ -4789,6 +4772,7 @@ function DashboardClientInner({ authPlaceholder }: { authPlaceholder?: React.Rea
                     onClick={() => setSelectedOrder(o)}
                     shipmentStageStyles={branding.shipmentStageStyles}
                     shipmentProgressBarEnabled={branding.shipmentProgressBarEnabled}
+                    orderStatusStyles={branding.orderStatusStyles}
                   />
                 ))}
               </div>
@@ -4814,7 +4798,7 @@ function DashboardClientInner({ authPlaceholder }: { authPlaceholder?: React.Rea
                           )}
                         </div>
                       )
-                      : filteredOrders.map(o => <OrderRow key={o.id} order={o} onClick={() => setSelectedOrder(o)} />)}
+                      : filteredOrders.map(o => <OrderRow key={o.id} order={o} onClick={() => setSelectedOrder(o)} orderStatusStyles={branding.orderStatusStyles} />)}
                   </CardContent>
                 </Card>
               </motion.div>

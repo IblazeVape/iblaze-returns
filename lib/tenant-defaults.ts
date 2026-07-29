@@ -67,6 +67,17 @@ export type ShipmentStageKey = "delivered" | "attemptedDelivery" | "outForDelive
 export type ShipmentStageStyle = { label: string; icon: string; color: string };
 export type ShipmentStageStyles = Record<ShipmentStageKey, ShipmentStageStyle>;
 
+/** The 7 whole-order status words — one word summarizing the entire order's
+ * progress, shown on the My Orders card (next to the shipment-stage icon)
+ * and again at the top of the order detail page when that order is open.
+ * Distinct from ShipmentStageStyles (5 per-item shipping states) and
+ * ReturnLifecycleStyles (7 per-item reasons something can't be returned). */
+export type OrderStatusKey =
+  | "confirmed" | "partiallyDispatched" | "onItsWay" | "outForDelivery"
+  | "attemptedDelivery" | "partiallyDelivered" | "delivered";
+export type OrderStatusStyle = { label: string; icon: string; color: string };
+export type OrderStatusStyles = Record<OrderStatusKey, OrderStatusStyle>;
+
 /**
  * Customer-facing sentences. shipping* fields apply when status is
  * "awaitingDelivery" — the sentence still needs to say which shipping
@@ -162,6 +173,7 @@ export type TenantBranding = {
   /** When false, the My Orders grid card shows no shipment progress bar. */
   shipmentProgressBarEnabled: boolean;
   shipmentStageStyles: ShipmentStageStyles;
+  orderStatusStyles: OrderStatusStyles;
   productImageLinksEnabled: boolean;
   sidebarSubmenusExpandedByDefault: boolean;
   guestBackgroundStyle: "none" | "shapeGrid" | "dotField";
@@ -271,6 +283,15 @@ export const DEFAULT_TENANT_FIELDS = {
       outForDelivery:    { label: "Out for delivery",   icon: "MapPin",       color: "#2563eb" },
       onItsWay:          { label: "On its way",         icon: "Truck",        color: "#475569" },
       notYetShipped:     { label: "Not yet shipped",    icon: "Clock",        color: "#52525b" },
+    },
+    orderStatusStyles: {
+      confirmed:           { label: "Confirmed",           icon: "Clock",        color: "#52525b" },
+      partiallyDispatched: { label: "Partially dispatched", icon: "Truck",       color: "#1d4ed8" },
+      onItsWay:            { label: "On its way",          icon: "Truck",        color: "#1d4ed8" },
+      outForDelivery:      { label: "Out for delivery",    icon: "MapPin",       color: "#4338ca" },
+      attemptedDelivery:   { label: "Attempted delivery",  icon: "AlertCircle",  color: "#be123c" },
+      partiallyDelivered:  { label: "Partially delivered", icon: "Package",      color: "#b45309" },
+      delivered:           { label: "Delivered",           icon: "CheckCircle2", color: "#15803d" },
     },
     productImageLinksEnabled: true,
     sidebarSubmenusExpandedByDefault: true,

@@ -74,6 +74,8 @@ describe("tenant store", () => {
     expect(t?.branding.shipmentProgressBarEnabled).toBe(true);
     expect(t?.branding.shipmentStageStyles.delivered.label).toBe("Delivered");
     expect(t?.branding.shipmentStageStyles.notYetShipped.icon).toBe("Clock");
+    expect(t?.branding.orderStatusStyles.delivered.label).toBe("Delivered");
+    expect(t?.branding.orderStatusStyles.confirmed.icon).toBe("Clock");
     expect(t?.branding.productImageLinksEnabled).toBe(true);
     expect(t?.branding.sidebarSubmenusExpandedByDefault).toBe(true);
     expect(t?.branding.guestBackgroundStyle).toBe("none");
@@ -135,6 +137,15 @@ describe("tenant store", () => {
           outForDelivery:    { label: "Out for delivery",  icon: "MapPin",       color: "#2563eb" },
           onItsWay:          { label: "Shipped",           icon: "Truck",        color: "#475569" },
           notYetShipped:     { label: "Not shipped",       icon: "Clock",        color: "#52525b" },
+        },
+        orderStatusStyles: {
+          confirmed:           { label: "Awaiting shipment",  icon: "Clock",        color: "#111111" },
+          partiallyDispatched: { label: "Partly shipped",     icon: "Truck",        color: "#4F46E5" },
+          onItsWay:            { label: "Shipped",            icon: "Truck",        color: "#2563eb" },
+          outForDelivery:      { label: "Out for delivery",   icon: "MapPin",       color: "#4338ca" },
+          attemptedDelivery:   { label: "Attempted",          icon: "AlertCircle",  color: "#be123c" },
+          partiallyDelivered:  { label: "Partly arrived",     icon: "Package",      color: "#b45309" },
+          delivered:           { label: "Arrived",            icon: "CheckCircle2", color: "#15803d" },
         },
         productImageLinksEnabled: false,
         sidebarSubmenusExpandedByDefault: false,
@@ -231,6 +242,8 @@ describe("tenant store", () => {
     expect(t?.branding.shipmentProgressBarEnabled).toBe(false);
     expect(t?.branding.shipmentStageStyles.delivered.label).toBe("Arrived");
     expect(t?.branding.shipmentStageStyles.attemptedDelivery.color).toBe("#4F46E5");
+    expect(t?.branding.orderStatusStyles.delivered.label).toBe("Arrived");
+    expect(t?.branding.orderStatusStyles.partiallyDispatched.color).toBe("#4F46E5");
     expect(t?.branding.productImageLinksEnabled).toBe(false);
     expect(t?.branding.sidebarSubmenusExpandedByDefault).toBe(false);
     expect(t?.branding.guestBackgroundStyle).toBe("dotField");

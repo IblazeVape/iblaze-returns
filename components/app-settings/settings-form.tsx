@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { validateBrandingInput, type BrandingInput, type PolicyCategoryInput, type SidebarLinkInput, type SidebarSubLinkInput, type ReturnLifecycleMessagesInput, type ReturnLifecycleStatusInput, type ReturnLifecycleStyleInput, type ShipmentStageKeyInput, type ShipmentStageStyleInput } from "@/lib/branding-validation"
+import { validateBrandingInput, type BrandingInput, type PolicyCategoryInput, type SidebarLinkInput, type SidebarSubLinkInput, type ReturnLifecycleMessagesInput, type ReturnLifecycleStatusInput, type ReturnLifecycleStyleInput, type ShipmentStageKeyInput, type ShipmentStageStyleInput, type OrderStatusKeyInput, type OrderStatusStyleInput } from "@/lib/branding-validation"
 import type { TenantBranding } from "@/lib/tenant"
 import { SIDEBAR_ICON_NAMES } from "@/lib/sidebar-icons"
 import { STATUS_ICON_NAMES, getStatusIcon } from "@/lib/status-icons"
@@ -42,6 +42,21 @@ const SHIPMENT_STAGE_CARDS: { key: ShipmentStageKeyInput; name: string }[] = [
   { key: "notYetShipped", name: "Not yet shipped" },
 ]
 
+/** Drives the "Order status" section — the 7 whole-order status words shown
+ * on the My Orders card (next to the shipment-stage icon) and again at the
+ * top of the order detail page when that order is open. Distinct from
+ * SHIPMENT_STAGE_CARDS (5 per-item shipping states) and RETURN_STATUS_CARDS
+ * (7 per-item reasons something can't be returned). */
+const ORDER_STATUS_CARDS: { key: OrderStatusKeyInput; name: string }[] = [
+  { key: "confirmed", name: "Confirmed" },
+  { key: "partiallyDispatched", name: "Partially dispatched" },
+  { key: "onItsWay", name: "On its way" },
+  { key: "outForDelivery", name: "Out for delivery" },
+  { key: "attemptedDelivery", name: "Attempted delivery" },
+  { key: "partiallyDelivered", name: "Partially delivered" },
+  { key: "delivered", name: "Delivered" },
+]
+
 /** Drives the settings search box — one entry per settings card. Kept as its
  * own hand-maintained registry (same pattern as TAB_FIELDS / SETTINGS_MODAL_FIELDS
  * above) rather than derived from the JSX, since titles/descriptions are plain
@@ -54,6 +69,7 @@ const SETTINGS_SEARCH_INDEX: { tab: SettingsTab; modalId: string; title: string;
   { tab: "ordersList", modalId: "orders-list-search-modal", title: "Order search", keywords: "header search top bar placeholder hint text" },
   { tab: "ordersList", modalId: "orders-list-view-modal", title: "Default view", keywords: "grid cards list rows default order view" },
   { tab: "ordersList", modalId: "orders-list-shipment-stages-modal", title: "Shipment stages", keywords: "progress bar icon color label delivered attempted delivery out for delivery on its way not yet shipped" },
+  { tab: "ordersList", modalId: "orders-list-order-status-modal", title: "Order status", keywords: "whole order headline confirmed partially dispatched on its way out for delivery attempted delivery partially delivered delivered" },
   { tab: "returnFlow", modalId: "return-flow-window-modal", title: "Return window", keywords: "days policy acceptance review step" },
   { tab: "returnFlow", modalId: "return-flow-policy-modal", title: "Returns policy", keywords: "policy dialog external link page url categories body text footer note heading" },
   { tab: "returnFlow", modalId: "return-flow-confirm-modal", title: "Policy confirmation messages", keywords: "accepted declined confirmation message" },
@@ -111,7 +127,7 @@ const TAB_FIELDS: Record<SettingsTab, (keyof BrandingInput)[]> = {
   // The My Orders grid/list page, before a customer clicks into one order.
   ordersList: [
     "headerSearchEnabled", "headerSearchPlaceholder", "defaultOrderView",
-    "shipmentProgressBarEnabled", "shipmentStageStyles",
+    "shipmentProgressBarEnabled", "shipmentStageStyles", "orderStatusStyles",
   ],
   // The return-submission flow itself: window length, policy content, and
   // the confirmation messages — split out of Order detail since it's a
@@ -155,7 +171,8 @@ const SETTINGS_MODAL_FIELDS: Record<string, (keyof BrandingInput)[]> = {
   "lookup-audience-modal": ["alwaysShowGuestLookup", "guestLookupEnabled", "loggedInLookupRequirePostcode"],
   "orders-list-search-modal": ["headerSearchEnabled", "headerSearchPlaceholder"],
   "orders-list-view-modal": ["defaultOrderView"],
-  "orders-list-shipment-stages-modal": ["shipmentProgressBarEnabled", "shipmentStageStyles", "returnLifecycleMessages"],
+  "orders-list-shipment-stages-modal": ["shipmentProgressBarEnabled", "shipmentStageStyles"],
+  "orders-list-order-status-modal": ["orderStatusStyles"],
   "return-flow-window-modal": ["returnWindowDays", "requirePolicyAcceptance", "returnReviewEnabled"],
   "order-detail-items-modal": [
     "tableSearchEnabled", "tableSearchPlaceholder", "tableFilterButtonEnabled", "statusFilterEnabled",
@@ -429,6 +446,10 @@ export function SettingsForm({
   function toggleShipmentStageOpen(key: ShipmentStageKeyInput) {
     setOpenShipmentStageKey((prev) => (prev === key ? null : key))
   }
+  const [openOrderStatusKey, setOpenOrderStatusKey] = useState<OrderStatusKeyInput | null>(null)
+  function toggleOrderStatusOpen(key: OrderStatusKeyInput) {
+    setOpenOrderStatusKey((prev) => (prev === key ? null : key))
+  }
 
   const [categoryFilter, setCategoryFilter] = useState("")
   const [categoryIds, setCategoryIds] = useState(() =>
@@ -477,6 +498,16 @@ export function SettingsForm({
       shipmentStageStyles: {
         ...f.shipmentStageStyles,
         [stageKey]: { ...f.shipmentStageStyles[stageKey], [field]: value },
+      },
+    }))
+  }
+
+  function setOrderStatusStyle<K extends keyof OrderStatusStyleInput>(statusKey: OrderStatusKeyInput, field: K, value: OrderStatusStyleInput[K]) {
+    setForm((f) => ({
+      ...f,
+      orderStatusStyles: {
+        ...f.orderStatusStyles,
+        [statusKey]: { ...f.orderStatusStyles[statusKey], [field]: value },
       },
     }))
   }
@@ -1630,6 +1661,73 @@ export function SettingsForm({
                   )
                 })}
                 {errors.shipmentStageStyles && <s-paragraph tone="critical">{errors.shipmentStageStyles}</s-paragraph>}
+              </s-stack>
+            </SettingsEditRow>
+
+            <SettingsEditRow
+              modalId="orders-list-order-status-modal"
+              title="Order status"
+              description="Shown on the My Orders card, and again at the top of the order detail page when that order is open: one word summarizing the whole order's progress."
+              summary={`${ORDER_STATUS_CARDS.length} order statuses`}
+              modalSize="large-100"
+              errors={errors}
+            >
+              <s-stack direction="block" gap="base">
+                <s-text color="subdued">
+                  Different from "Shipment stages" above (which is per-item, only on the card) and "Return status" on
+                  Order detail (which is why a specific item can't be returned) — this is the single headline word
+                  for the entire order.
+                </s-text>
+                {ORDER_STATUS_CARDS.map(({ key, name }) => {
+                  const isOpen = openOrderStatusKey === key
+                  const style = form.orderStatusStyles[key]
+                  const Icon = getStatusIcon(style.icon)
+                  return (
+                    <s-box key={key} padding="base" border="base" borderRadius="base">
+                      <s-stack direction="block" gap="small">
+                        <s-stack direction="inline" gap="small-300" alignItems="center">
+                          <s-button onClick={() => toggleOrderStatusOpen(key)}>{isOpen ? "Collapse" : "Expand"}</s-button>
+                          <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 20, height: 20, borderRadius: 999, background: style.color, flexShrink: 0 }}>
+                            <Icon size={12} color="#fff" />
+                          </span>
+                          <s-text>{name} — "{style.label}"</s-text>
+                        </s-stack>
+                        {isOpen && (
+                          <>
+                            <s-text-field
+                              label="Label"
+                              value={style.label}
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOrderStatusStyle(key, "label", e.target.value)}
+                            ></s-text-field>
+                            <s-stack direction="inline" gap="small-300" alignItems="center">
+                              <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, borderRadius: 999, background: style.color, flexShrink: 0 }}>
+                                <Icon size={18} color="#fff" />
+                              </span>
+                              <span style={{ flex: 1 }}>
+                                <s-select
+                                  label="Icon"
+                                  value={style.icon}
+                                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setOrderStatusStyle(key, "icon", e.target.value)}
+                                >
+                                  {STATUS_ICON_NAMES.map((iconName) => (
+                                    <s-option key={iconName} value={iconName}>{iconName}</s-option>
+                                  ))}
+                                </s-select>
+                              </span>
+                            </s-stack>
+                            <s-text-field
+                              label="Color"
+                              value={style.color}
+                              placeholder="#15803D"
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOrderStatusStyle(key, "color", e.target.value)}
+                            ></s-text-field>
+                          </>
+                        )}
+                      </s-stack>
+                    </s-box>
+                  )
+                })}
+                {errors.orderStatusStyles && <s-paragraph tone="critical">{errors.orderStatusStyles}</s-paragraph>}
               </s-stack>
             </SettingsEditRow>
 

@@ -43,6 +43,16 @@ export const SHIPMENT_STAGE_KEYS: ShipmentStageKeyInput[] = [
 export type ShipmentStageStyleInput = { label: string; icon: string; color: string };
 export type ShipmentStageStylesInput = Record<ShipmentStageKeyInput, ShipmentStageStyleInput>;
 
+export type OrderStatusKeyInput =
+  | "confirmed" | "partiallyDispatched" | "onItsWay" | "outForDelivery"
+  | "attemptedDelivery" | "partiallyDelivered" | "delivered";
+export const ORDER_STATUS_KEYS: OrderStatusKeyInput[] = [
+  "confirmed", "partiallyDispatched", "onItsWay", "outForDelivery",
+  "attemptedDelivery", "partiallyDelivered", "delivered",
+];
+export type OrderStatusStyleInput = { label: string; icon: string; color: string };
+export type OrderStatusStylesInput = Record<OrderStatusKeyInput, OrderStatusStyleInput>;
+
 export type BrandingInput = {
   name: string;
   logoUrl: string;
@@ -83,6 +93,7 @@ export type BrandingInput = {
   shipmentCardsEnabled: boolean;
   shipmentProgressBarEnabled: boolean;
   shipmentStageStyles: ShipmentStageStylesInput;
+  orderStatusStyles: OrderStatusStylesInput;
   productImageLinksEnabled: boolean;
   sidebarSubmenusExpandedByDefault: boolean;
   guestBackgroundStyle: "none" | "shapeGrid" | "dotField";
@@ -301,6 +312,18 @@ export function validateBrandingInput(
       errors.shipmentStageStyles = "Each color must be a hex color like #16A34A.";
     } else if (stageStyles.some((s) => !STATUS_ICON_NAMES.includes(s.icon))) {
       errors.shipmentStageStyles = "Each stage needs a valid icon.";
+    }
+  }
+  {
+    const orderStyles = ORDER_STATUS_KEYS.map((k) => input.orderStatusStyles[k]);
+    if (orderStyles.some((s) => !s.label.trim())) {
+      errors.orderStatusStyles = "Every order status needs a label.";
+    } else if (orderStyles.some((s) => s.label.length > STORE_LINK_LABEL_MAX_LENGTH)) {
+      errors.orderStatusStyles = `Labels must be ${STORE_LINK_LABEL_MAX_LENGTH} characters or fewer.`;
+    } else if (orderStyles.some((s) => !HEX_COLOR_RE.test(s.color))) {
+      errors.orderStatusStyles = "Each color must be a hex color like #16A34A.";
+    } else if (orderStyles.some((s) => !STATUS_ICON_NAMES.includes(s.icon))) {
+      errors.orderStatusStyles = "Each status needs a valid icon.";
     }
   }
   {

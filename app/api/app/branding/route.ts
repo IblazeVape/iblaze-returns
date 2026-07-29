@@ -4,6 +4,7 @@ import {
   validateBrandingInput,
   RETURN_LIFECYCLE_STATUSES,
   SHIPMENT_STAGE_KEYS,
+  ORDER_STATUS_KEYS,
   type BrandingInput,
   type PolicyCategoryInput,
   type SidebarLinkInput,
@@ -11,6 +12,7 @@ import {
   type ReturnLifecycleStylesInput,
   type RefundStatusLabelsInput,
   type ShipmentStageStylesInput,
+  type OrderStatusStylesInput,
 } from "@/lib/branding-validation";
 import { getTenant, setTenant } from "@/lib/tenant";
 import { sanitizePolicyHtml } from "@/lib/sanitize-policy-html";
@@ -61,6 +63,16 @@ function isShipmentStageStyles(value: unknown): value is ShipmentStageStylesInpu
   if (!value || typeof value !== "object") return false;
   const v = value as Record<string, unknown>;
   return SHIPMENT_STAGE_KEYS.every((key) => {
+    const s = v[key] as Record<string, unknown> | undefined;
+    return s && typeof s === "object"
+      && typeof s.label === "string" && typeof s.icon === "string" && typeof s.color === "string";
+  });
+}
+
+function isOrderStatusStyles(value: unknown): value is OrderStatusStylesInput {
+  if (!value || typeof value !== "object") return false;
+  const v = value as Record<string, unknown>;
+  return ORDER_STATUS_KEYS.every((key) => {
     const s = v[key] as Record<string, unknown> | undefined;
     return s && typeof s === "object"
       && typeof s.label === "string" && typeof s.icon === "string" && typeof s.color === "string";
@@ -150,6 +162,9 @@ export async function PUT(request: NextRequest) {
     shipmentStageStyles: isShipmentStageStyles(body.shipmentStageStyles)
       ? body.shipmentStageStyles
       : existing.branding.shipmentStageStyles,
+    orderStatusStyles: isOrderStatusStyles(body.orderStatusStyles)
+      ? body.orderStatusStyles
+      : existing.branding.orderStatusStyles,
     productImageLinksEnabled:
       typeof body.productImageLinksEnabled === "boolean" ? body.productImageLinksEnabled : existing.branding.productImageLinksEnabled,
     sidebarSubmenusExpandedByDefault:
@@ -300,6 +315,7 @@ export async function PUT(request: NextRequest) {
       shipmentCardsEnabled: input.shipmentCardsEnabled,
       shipmentProgressBarEnabled: input.shipmentProgressBarEnabled,
       shipmentStageStyles: input.shipmentStageStyles,
+      orderStatusStyles: input.orderStatusStyles,
       productImageLinksEnabled: input.productImageLinksEnabled,
       sidebarSubmenusExpandedByDefault: input.sidebarSubmenusExpandedByDefault,
       guestBackgroundStyle: input.guestBackgroundStyle,
