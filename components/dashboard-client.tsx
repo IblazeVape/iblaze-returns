@@ -22,7 +22,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -297,98 +296,6 @@ function ineligibleBucketCounts(ineligibleItems: DisplayItem[]): Record<string, 
   }
 
   return buckets
-}
-
-function statusFiltersMatch(a: string[], b: string[]): boolean {
-  if (a.length !== b.length) return false
-  const sa = [...a].sort()
-  const sb = [...b].sort()
-  return sa.every((v, i) => v === sb[i])
-}
-
-type HeaderStatBlock = {
-  id: string
-  count: number
-  caption: string
-  textColor: string
-  tab: "eligible" | "ineligible"
-  statusFilter: ReturnStatus[]
-  title?: string
-}
-
-function computeHeaderStatBlocks(
-  totalEligibleUnits: number,
-  ineligibleItems: DisplayItem[],
-): HeaderStatBlock[] {
-  const buckets = ineligibleBucketCounts(ineligibleItems)
-  const blocks: HeaderStatBlock[] = []
-
-  if (totalEligibleUnits > 0) {
-    blocks.push({
-      id: "ready",
-      count: totalEligibleUnits,
-      caption: "ready",
-      textColor: "text-green-700",
-      tab: "eligible",
-      statusFilter: [],
-      title: "Ready to return now",
-    })
-  }
-
-  const ineligibleDefs: Array<{
-    id: string
-    count: number
-    caption: string
-    textColor: string
-    statusFilter: ReturnStatus[]
-    title: string
-  }> = [
-    { id: "processing", count: buckets.in_progress || 0, caption: "processing", textColor: "text-orange-600", statusFilter: ["returnInProgress"], title: "Return being processed" },
-    { id: "requested", count: buckets.requested || 0, caption: "requested", textColor: "text-violet-600", statusFilter: ["returnRequested"], title: "Return awaiting review" },
-    { id: "declined", count: buckets.declined || 0, caption: "declined", textColor: "text-[var(--brand)]", statusFilter: ["returnDeclined"], title: "Return declined" },
-    { id: "in_transit", count: buckets.in_transit || 0, caption: "awaiting", textColor: "text-blue-600", statusFilter: ["awaitingDelivery"], title: "Awaiting delivery — returnable once delivered" },
-    { id: "attempted", count: buckets.attempted_delivery || 0, caption: "attempted", textColor: "text-rose-600", statusFilter: ["awaitingDelivery"], title: "Delivery attempted — action may be needed" },
-    { id: "out_for_delivery", count: buckets.out_for_delivery || 0, caption: "out for delivery", textColor: "text-blue-600", statusFilter: ["awaitingDelivery"], title: "Out for delivery today" },
-    { id: "not_shipped", count: buckets.not_shipped || 0, caption: "not shipped", textColor: "text-zinc-600", statusFilter: ["awaitingDelivery"], title: "Not dispatched yet" },
-    { id: "window", count: buckets.window || 0, caption: "expired", textColor: "text-zinc-500", statusFilter: ["returnWindowClosed"], title: "Past return window" },
-    {
-      id: "returned",
-      count: buckets.completed || 0,
-      caption: "returned",
-      textColor: "text-teal-600",
-      statusFilter: ["returnCompleted"],
-      title: "Returned",
-    },
-    {
-      id: "refunded",
-      count: buckets.refunded || 0,
-      caption: "refunded",
-      textColor: "text-green-600",
-      statusFilter: ["returnCompleted"],
-      title: "Refunded",
-    },
-    { id: "final_sale", count: buckets.final_sale || 0, caption: "final sale", textColor: "text-zinc-500", statusFilter: ["returnWindowClosed"], title: "Final sale — not returnable" },
-  ]
-
-  for (const def of ineligibleDefs) {
-    if (def.count > 0) {
-      blocks.push({ ...def, tab: "ineligible" })
-    }
-  }
-
-  if (buckets.other) {
-    blocks.push({
-      id: "other",
-      count: buckets.other,
-      caption: "blocked",
-      textColor: "text-zinc-500",
-      tab: "ineligible",
-      statusFilter: [],
-      title: "Not eligible",
-    })
-  }
-
-  return blocks
 }
 
 // ─── Plain-English order summary (rule-based, from item statuses + reasons) ───
@@ -954,27 +861,6 @@ function StickyOrderSummaryStrip({ order, returnWindowDays }: { order: Order; re
   )
 }
 
-function CountBadge({
-  value,
-  variant = "brand",
-}: {
-  value: number | string
-  variant?: "brand" | "green"
-}) {
-  const base = "inline-flex items-center justify-center rounded-full text-[11px] font-semibold min-w-7 h-7 px-1"
-  if (variant === "green") {
-    return <span className={cn(base, "bg-green-50 text-green-700 border border-green-200")}>{value}</span>
-  }
-  return (
-    <span
-      className={cn(base, "text-[var(--brand)]")}
-      style={{ backgroundColor: "#FFF5F5", border: "1px solid #FECACA" }}
-    >
-      {value}
-    </span>
-  )
-}
-
 // ─── Status pill for order header card ───────────────────────────────────────
 /** Maps the raw order.orderStatus string (from the API) to the settings key
  * a merchant edits under My Orders > Order status. Both getOrderStatusSegment
@@ -992,9 +878,8 @@ const ORDER_STATUS_KEY_BY_STRING: Record<string, OrderStatusKey> = {
 }
 
 /** `text` holds a hex color (from the merchant's orderStatusStyles setting),
- * not a Tailwind class — despite the field name, kept for the couple of
- * unused/experimental header variants further down this file that still
- * destructure `.text`. */
+ * not a Tailwind class — the field name is a holdover from an earlier
+ * Tailwind-class-based version. */
 function getOrderStatusSegment(order: Order, styles: OrderStatusStyles): { text: string; label: string } | null {
   const { orderStatus, cancelledAt } = order
   if (cancelledAt) return null
@@ -1007,6 +892,19 @@ function getOrderFulfillmentHeadline(order: Order, styles: OrderStatusStyles): s
   if (order.cancelledAt) return "Cancelled"
   const key = ORDER_STATUS_KEY_BY_STRING[order.orderStatus]
   return key ? styles[key].label : order.orderStatus
+}
+
+/** `color` is a hex value from the merchant's orderStatusStyles setting (or
+ * "#dc2626" for Cancelled, which isn't part of that setting). */
+function getOrderHeaderStatusIcon(order: Order, styles: OrderStatusStyles): { icon: LucideIcon; color: string; label: string } | null {
+  if (order.cancelledAt) {
+    return { icon: XCircle, color: "#dc2626", label: "Cancelled" }
+  }
+  const seg = getOrderStatusSegment(order, styles)
+  if (!seg) return null
+  const key = ORDER_STATUS_KEY_BY_STRING[order.orderStatus]
+  const iconName = key ? styles[key].icon : "Clock"
+  return { icon: getIneligibleStatusIconComponent(iconName), color: seg.text, label: seg.label }
 }
 
 function buildOrderFulfillmentBreakdownParts(order: Order): string[] {
@@ -1643,549 +1541,6 @@ function OrderPageSummaryStrip({ order }: { order: Order }) {
   )
 }
 
-function StatusPill({ order }: { order: Order }) {
-  const { cancelledAt } = order
-  if (cancelledAt) return (
-    <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-red-50 text-red-700 border border-red-200 px-2.5 py-1 rounded-full shrink-0">
-      <span className="size-1.5 rounded-full bg-red-500" />Cancelled
-    </span>
-  )
-  // Unreachable in the live app (HEADER_STAT_DESIGN is fixed at 6, and this
-  // component is only used by earlier header design experiments) — default
-  // styles are enough here rather than threading branding through dead code.
-  const seg = getOrderStatusSegment(order, DEFAULT_TENANT_FIELDS.branding.orderStatusStyles)
-  if (!seg) return null
-  const borders: Record<string, string> = {
-    "text-green-700":  "border-green-200",
-    "text-amber-700":  "border-amber-200",
-    "text-blue-700":   "border-blue-200",
-    "text-indigo-700": "border-indigo-200",
-    "text-rose-700":   "border-rose-200",
-    "text-zinc-600":   "border-zinc-200",
-  }
-  return (
-    <span className={cn("inline-flex items-center text-xs font-medium border px-2.5 py-1 rounded-full shrink-0 bg-card", seg.text, borders[seg.text] || "border-zinc-200")}>
-      {seg.label}
-    </span>
-  )
-}
-
-function getStatusIcon(orderStatus: string): LucideIcon {
-  switch (orderStatus) {
-    case "Delivered":            return CheckCircle2
-    case "Partially delivered":  return Package
-    case "On its way":
-    case "Partially dispatched":
-    case "Out for delivery":
-    case "Attempted delivery":   return Truck
-    default:                     return Clock
-  }
-}
-
-/** `color` is a hex value from the merchant's orderStatusStyles setting (or
- * "#dc2626" for Cancelled, which isn't part of that setting). */
-function getOrderHeaderStatusIcon(order: Order, styles: OrderStatusStyles): { icon: LucideIcon; color: string; label: string } | null {
-  if (order.cancelledAt) {
-    return { icon: XCircle, color: "#dc2626", label: "Cancelled" }
-  }
-  const seg = getOrderStatusSegment(order, styles)
-  if (!seg) return null
-  const key = ORDER_STATUS_KEY_BY_STRING[order.orderStatus]
-  const iconName = key ? styles[key].icon : "Clock"
-  return { icon: getIneligibleStatusIconComponent(iconName), color: seg.text, label: seg.label }
-}
-
-function OrderHeaderStatusIcon({ order, styles }: { order: Order; styles: OrderStatusStyles }) {
-  const meta = getOrderHeaderStatusIcon(order, styles)
-  if (!meta) return null
-  const { icon: Icon, color, label } = meta
-  return (
-    <span className="inline-flex items-center gap-1.5 shrink-0 text-sm font-bold leading-none">
-      <Icon className={cn("size-3.5 shrink-0", color)} aria-hidden />
-      <span className="text-foreground">{label}</span>
-    </span>
-  )
-}
-
-// ─── Order header stat strip — design variants (1–20, try one at a time) ─────
-const HEADER_STAT_DESIGN = 6 as number
-
-type HeaderBadgesProps = {
-  order: Order
-  totalEligibleUnits: number
-  totalIneligibleUnits: number
-  ineligibleItems: DisplayItem[]
-  hasBothTabs: boolean
-  fullyIneligible: boolean
-  hasEligible: boolean
-  activeTab: "eligible" | "ineligible"
-  ineligibleStatusFilter: string[]
-  onTabChange: (tab: "eligible" | "ineligible") => void
-  onIneligibleFilter: (filter: ReturnStatus[]) => void
-}
-
-function HeaderStrip({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="inline-flex items-stretch self-stretch shrink-0 border-l border-border bg-card -my-3.5 -mr-5">
-      {children}
-    </div>
-  )
-}
-
-function HeaderStatusCell({ order }: { order: Order }) {
-  const status = getOrderStatusSegment(order, DEFAULT_TENANT_FIELDS.branding.orderStatusStyles)
-  if (!status) return null
-  const Icon = getStatusIcon(order.orderStatus)
-  return (
-    <div className="inline-flex items-center gap-1.5 px-4 border-l border-border">
-      <Icon className={cn("size-3.5 shrink-0", status.text)} aria-hidden />
-      <span className={cn("text-xs font-medium whitespace-nowrap", status.text)}>{status.label}</span>
-    </div>
-  )
-}
-
-/** Design 1 — iOS segmented control with sliding thumb */
-function HeaderDesign01({
-  order,
-  totalEligibleUnits,
-  totalIneligibleUnits,
-  hasBothTabs,
-  fullyIneligible,
-  hasEligible,
-  activeTab,
-  onTabChange,
-}: HeaderBadgesProps) {
-  return (
-    <HeaderStrip>
-      <div className="inline-flex items-center px-3">
-        {hasBothTabs ? (
-          <div className="relative inline-flex rounded-lg bg-muted p-1">
-            <button
-              type="button"
-              onClick={() => onTabChange("eligible")}
-              className={cn(
-                "relative z-10 px-3 py-1.5 text-xs font-medium rounded-md transition-colors min-w-28 text-center",
-                activeTab === "eligible" ? "text-foreground" : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {activeTab === "eligible" && (
-                <motion.span
-                  layoutId="header-seg-thumb"
-                  className="absolute inset-0 bg-card rounded-md shadow-xs -z-10"
-                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                />
-              )}
-              <span className="tabular-nums font-semibold text-green-700">{totalEligibleUnits}</span>
-              <span className="text-muted-foreground"> ready</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => onTabChange("ineligible")}
-              className={cn(
-                "relative z-10 px-3 py-1.5 text-xs font-medium rounded-md transition-colors min-w-28 text-center",
-                activeTab === "ineligible" ? "text-foreground" : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {activeTab === "ineligible" && (
-                <motion.span
-                  layoutId="header-seg-thumb"
-                  className="absolute inset-0 bg-card rounded-md shadow-xs -z-10"
-                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                />
-              )}
-              <span className="tabular-nums font-semibold text-[var(--brand)]">{totalIneligibleUnits}</span>
-              <span className="text-muted-foreground"> blocked</span>
-            </button>
-          </div>
-        ) : fullyIneligible ? (
-          <span className="text-xs font-medium px-1 py-1.5">
-            <span className="tabular-nums font-semibold text-[var(--brand)]">{totalIneligibleUnits}</span>
-            <span className="text-muted-foreground"> not eligible</span>
-          </span>
-        ) : hasEligible ? (
-          <span className="text-xs font-medium px-1 py-1.5">
-            <span className="tabular-nums font-semibold text-green-700">{totalEligibleUnits}</span>
-            <span className="text-muted-foreground"> ready to return</span>
-          </span>
-        ) : null}
-      </div>
-      <HeaderStatusCell order={order} />
-    </HeaderStrip>
-  )
-}
-
-/** Design 2 — vertical stat column (stacked rows, icon + label) */
-function HeaderDesign02({
-  order,
-  totalEligibleUnits,
-  totalIneligibleUnits,
-  hasBothTabs,
-  fullyIneligible,
-  hasEligible,
-  activeTab,
-  onTabChange,
-}: HeaderBadgesProps) {
-  const status = getOrderStatusSegment(order, DEFAULT_TENANT_FIELDS.branding.orderStatusStyles)
-  const StatusIcon = status ? getStatusIcon(order.orderStatus) : Truck
-
-  const rowBase = "flex items-center gap-2 px-3 py-1.5 text-left w-full transition-colors"
-  const rowActive = "bg-muted"
-  const rowIdle = "hover:bg-muted/60"
-
-  return (
-    <HeaderStrip>
-      <div className="flex flex-col justify-center divide-y divide-border min-w-38">
-        {hasBothTabs && (
-          <>
-            <button
-              type="button"
-              onClick={() => onTabChange("eligible")}
-              className={cn(rowBase, activeTab === "eligible" ? rowActive : rowIdle, activeTab !== "eligible" && "opacity-60")}
-            >
-              <CheckCircle2 className="size-3.5 shrink-0 text-green-700" aria-hidden />
-              <span className="text-xs leading-tight">
-                <span className="font-semibold tabular-nums text-green-700">{totalEligibleUnits}</span>
-                <span className="text-muted-foreground"> ready</span>
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => onTabChange("ineligible")}
-              className={cn(rowBase, activeTab === "ineligible" ? rowActive : rowIdle, activeTab !== "ineligible" && "opacity-60")}
-            >
-              <XCircle className="size-3.5 shrink-0 text-[var(--brand)]" aria-hidden />
-              <span className="text-xs leading-tight">
-                <span className="font-semibold tabular-nums text-[var(--brand)]">{totalIneligibleUnits}</span>
-                <span className="text-muted-foreground"> blocked</span>
-              </span>
-            </button>
-          </>
-        )}
-        {fullyIneligible && (
-          <div className={cn(rowBase, rowActive)}>
-            <XCircle className="size-3.5 shrink-0 text-[var(--brand)]" aria-hidden />
-            <span className="text-xs leading-tight">
-              <span className="font-semibold tabular-nums text-[var(--brand)]">{totalIneligibleUnits}</span>
-              <span className="text-muted-foreground"> not eligible</span>
-            </span>
-          </div>
-        )}
-        {hasEligible && !hasBothTabs && (
-          <div className={cn(rowBase, rowActive)}>
-            <CheckCircle2 className="size-3.5 shrink-0 text-green-700" aria-hidden />
-            <span className="text-xs leading-tight">
-              <span className="font-semibold tabular-nums text-green-700">{totalEligibleUnits}</span>
-              <span className="text-muted-foreground"> ready</span>
-            </span>
-          </div>
-        )}
-        {status && (
-          <div className={cn(rowBase, hasBothTabs && "cursor-default")}>
-            <StatusIcon className={cn("size-3.5 shrink-0", status.text)} aria-hidden />
-            <span className={cn("text-xs font-medium leading-tight", status.text)}>{status.label}</span>
-          </div>
-        )}
-      </div>
-    </HeaderStrip>
-  )
-}
-
-/** Design 3 — stats inline in meta line; status pill only on the right */
-function HeaderMetaStats({
-  totalEligibleUnits,
-  totalIneligibleUnits,
-  hasBothTabs,
-  fullyIneligible,
-  hasEligible,
-  activeTab,
-  onTabChange,
-}: Pick<HeaderBadgesProps, "totalEligibleUnits" | "totalIneligibleUnits" | "hasBothTabs" | "fullyIneligible" | "hasEligible" | "activeTab" | "onTabChange">) {
-  const link = (active: boolean) => cn(
-    "tabular-nums hover:underline",
-    active ? "font-semibold" : "font-medium opacity-70",
-  )
-
-  if (hasBothTabs) {
-    return (
-      <>
-        {" · "}
-        <button type="button" onClick={() => onTabChange("eligible")} className={cn(link(activeTab === "eligible"), "text-green-700")}>
-          {totalEligibleUnits} ready
-        </button>
-        {" · "}
-        <button type="button" onClick={() => onTabChange("ineligible")} className={cn(link(activeTab === "ineligible"), "text-[var(--brand)]")}>
-          {totalIneligibleUnits} blocked
-        </button>
-      </>
-    )
-  }
-  if (fullyIneligible) {
-    return (
-      <>
-        {" · "}
-        <span className="text-[var(--brand)] font-medium tabular-nums">{totalIneligibleUnits} not eligible</span>
-      </>
-    )
-  }
-  if (hasEligible) {
-    return (
-      <>
-        {" · "}
-        <span className="text-green-700 font-medium tabular-nums">{totalEligibleUnits} ready to return</span>
-      </>
-    )
-  }
-  return null
-}
-
-function HeaderDesign03({ order }: Pick<HeaderBadgesProps, "order">) {
-  return <StatusPill order={order} />
-}
-
-/** Design 4 — row 1: order + status pill; row 2: full-width tab bar */
-function HeaderDesign04TabBar({
-  totalEligibleUnits,
-  totalIneligibleUnits,
-  hasBothTabs,
-  fullyIneligible,
-  hasEligible,
-  activeTab,
-  onTabChange,
-}: HeaderBadgesProps) {
-  if (hasBothTabs) {
-    const tab = (t: "eligible" | "ineligible", label: string, count: number, accent: string) => (
-      <button
-        type="button"
-        onClick={() => onTabChange(t)}
-        className={cn(
-          "flex-1 py-2.5 text-sm font-medium relative transition-colors",
-          activeTab === t ? "text-foreground font-semibold bg-card" : "text-muted-foreground bg-muted/40 hover:bg-muted/55",
-        )}
-      >
-        {label} ({count})
-        {activeTab === t && <span className={cn("absolute bottom-0 left-0 right-0 h-0.5", accent)} />}
-      </button>
-    )
-    return (
-      <div className="flex border-b bg-muted/40">
-        {tab("eligible", "Eligible", totalEligibleUnits, "bg-green-600")}
-        <div className="w-px bg-border self-stretch" aria-hidden />
-        {tab("ineligible", "Ineligible", totalIneligibleUnits, "bg-[var(--brand)]")}
-      </div>
-    )
-  }
-  if (fullyIneligible || hasEligible) {
-    const count = fullyIneligible ? totalIneligibleUnits : totalEligibleUnits
-    const label = fullyIneligible ? "Ineligible" : "Eligible"
-    const color = fullyIneligible ? "text-[var(--brand)]" : "text-green-700"
-    return (
-      <div className="border-b bg-card px-5 py-2.5 text-sm font-semibold">
-        {label}{" "}
-        <span className={cn("tabular-nums", color)}>({count})</span>
-      </div>
-    )
-  }
-  return null
-}
-
-function HeaderDesign04({ order }: Pick<HeaderBadgesProps, "order">) {
-  return <StatusPill order={order} />
-}
-
-function HeaderIconTab({
-  icon: Icon,
-  count,
-  tooltip,
-  textColor,
-  active,
-  onClick,
-}: {
-  icon: LucideIcon
-  count: number
-  tooltip: string
-  textColor: string
-  active?: boolean
-  onClick?: () => void
-}) {
-  const inner = (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "inline-flex items-center gap-1 px-3 h-full bg-card transition-colors",
-        active ? "bg-muted" : "opacity-50 hover:opacity-100 hover:bg-muted/80",
-      )}
-    >
-      <Icon className={cn("size-3.5 shrink-0", textColor)} aria-hidden />
-      <span className={cn("text-sm font-semibold tabular-nums", textColor)}>{count}</span>
-    </button>
-  )
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>{inner}</TooltipTrigger>
-      <TooltipContent side="bottom" sideOffset={4}>{tooltip}</TooltipContent>
-    </Tooltip>
-  )
-}
-
-/** Design 5 — icon + count only; full label in tooltip */
-function HeaderDesign05({
-  order,
-  totalEligibleUnits,
-  totalIneligibleUnits,
-  hasBothTabs,
-  fullyIneligible,
-  hasEligible,
-  activeTab,
-  onTabChange,
-}: HeaderBadgesProps) {
-  const status = getOrderStatusSegment(order, DEFAULT_TENANT_FIELDS.branding.orderStatusStyles)
-  const StatusIcon = status ? getStatusIcon(order.orderStatus) : Truck
-
-  return (
-    <HeaderStrip>
-      <div className="inline-flex items-stretch divide-x divide-border">
-        {hasBothTabs && (
-          <>
-            <HeaderIconTab
-              icon={CheckCircle2}
-              count={totalEligibleUnits}
-              tooltip={`${totalEligibleUnits} ready to return`}
-              textColor="text-green-700"
-              active={activeTab === "eligible"}
-              onClick={() => onTabChange("eligible")}
-            />
-            <HeaderIconTab
-              icon={XCircle}
-              count={totalIneligibleUnits}
-              tooltip={`${totalIneligibleUnits} not eligible`}
-              textColor="text-[var(--brand)]"
-              active={activeTab === "ineligible"}
-              onClick={() => onTabChange("ineligible")}
-            />
-          </>
-        )}
-        {fullyIneligible && (
-          <HeaderIconTab
-            icon={XCircle}
-            count={totalIneligibleUnits}
-            tooltip={`${totalIneligibleUnits} not eligible`}
-            textColor="text-[var(--brand)]"
-            active
-          />
-        )}
-        {hasEligible && !hasBothTabs && (
-          <HeaderIconTab
-            icon={CheckCircle2}
-            count={totalEligibleUnits}
-            tooltip={`${totalEligibleUnits} ready to return`}
-            textColor="text-green-700"
-            active
-          />
-        )}
-      </div>
-      {status && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <span className="inline-flex items-center justify-center px-3 h-full bg-card cursor-default">
-              <StatusIcon className={cn("size-3.5", status.text)} aria-label={status.label} />
-            </span>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" sideOffset={4}>{status.label}</TooltipContent>
-        </Tooltip>
-      )}
-    </HeaderStrip>
-  )
-}
-
-function HeaderHeroCell({
-  count,
-  caption,
-  textColor,
-  active,
-  title,
-  onClick,
-}: {
-  count: number
-  caption: string
-  textColor: string
-  active?: boolean
-  title?: string
-  onClick?: () => void
-}) {
-  const cls = cn(
-    "inline-flex flex-col items-center justify-center gap-0 px-3 sm:px-4 min-w-13 shrink-0 h-full bg-card transition-colors",
-    onClick && "cursor-pointer hover:bg-muted/80",
-    active ? "bg-muted" : onClick && "opacity-55",
-  )
-  const content = (
-    <>
-      <span className={cn("text-xl font-bold tabular-nums leading-none", textColor)}>{count}</span>
-      <span className="text-[9px] uppercase tracking-wide text-muted-foreground leading-none mt-1 whitespace-nowrap">{caption}</span>
-    </>
-  )
-  if (onClick) return <button type="button" className={cls} title={title} onClick={onClick}>{content}</button>
-  return <span className={cls} title={title}>{content}</span>
-}
-
-/** Design 6 — hero blocks per ineligible category */
-function HeaderDesign06({
-  totalEligibleUnits,
-  ineligibleItems,
-  activeTab,
-  ineligibleStatusFilter,
-  onTabChange,
-  onIneligibleFilter,
-}: HeaderBadgesProps) {
-  const blocks = useMemo(
-    () => computeHeaderStatBlocks(totalEligibleUnits, ineligibleItems),
-    [totalEligibleUnits, ineligibleItems],
-  )
-
-  const navigate = (block: HeaderStatBlock) => {
-    onTabChange(block.tab)
-    onIneligibleFilter(block.statusFilter)
-  }
-
-  const isBlockActive = (block: HeaderStatBlock) => {
-    if (block.tab === "eligible") {
-      return activeTab === "eligible" && ineligibleStatusFilter.length === 0
-    }
-    if (activeTab !== "ineligible") return false
-    if (block.statusFilter.length === 0) return ineligibleStatusFilter.length === 0
-    return statusFiltersMatch(ineligibleStatusFilter, block.statusFilter)
-  }
-
-  return (
-    <HeaderStrip>
-      <div className="inline-flex items-stretch divide-x divide-border overflow-x-auto max-w-[min(100vw-2rem,32rem)]">
-        {blocks.map(block => (
-          <HeaderHeroCell
-            key={block.id}
-            count={block.count}
-            caption={block.caption}
-            textColor={block.textColor}
-            title={block.title}
-            active={isBlockActive(block)}
-            onClick={() => navigate(block)}
-          />
-        ))}
-      </div>
-    </HeaderStrip>
-  )
-}
-
-function OrderHeaderBadges(props: HeaderBadgesProps) {
-  switch (HEADER_STAT_DESIGN) {
-    case 1: return <HeaderDesign01 {...props} />
-    case 2: return <HeaderDesign02 {...props} />
-    case 3: return <HeaderDesign03 order={props.order} />
-    case 4: return <HeaderDesign04 order={props.order} />
-    case 5: return <HeaderDesign05 {...props} />
-    case 6: return <HeaderDesign06 {...props} />
-    default: return <HeaderDesign01 {...props} />
-  }
-}
 
 // ─── Order Status Badges ─────────────────────────────────────────────────────
 function OrderStatusBadges({ order, deliveryDate, orderStatusStyles }: { order: Order; deliveryDate?: string | null; orderStatusStyles: OrderStatusStyles }) {
@@ -3456,8 +2811,7 @@ function OrderDetail({
   // piece inside it (tab selector, search, filter, columns, page size) is
   // independently conditional, and with everything disabled/hidden the bar
   // itself must not render at all (it was showing as an empty bordered strip).
-  const showToolbarTabSelector = (statusFilterEnabled && hasBothTabs && HEADER_STAT_DESIGN !== 4)
-    || (!fullyIneligible && HEADER_STAT_DESIGN !== 4 && HEADER_STAT_DESIGN !== 6)
+  const showToolbarTabSelector = statusFilterEnabled && hasBothTabs
   const showToolbarFilter = tableFilterButtonEnabled && activeTab === "ineligible" && showIneligibleFilter
   const hasAnyToolbarControl = showToolbarTabSelector || tableSearchEnabled || showToolbarFilter || tableColumnsButtonEnabled || tablePageSizeEnabled
 
@@ -3704,82 +3058,6 @@ function OrderDetail({
           {/* Cancelled accent stripe */}
           {order.cancelledAt && <div className="h-1 bg-red-400 w-full" />}
 
-          {/* ── Order header ── */}
-          {!order.cancelledAt && HEADER_STAT_DESIGN === 4 ? (
-            <>
-              <HeaderDesign04TabBar
-                order={order}
-                totalEligibleUnits={totalEligibleUnits}
-                totalIneligibleUnits={totalIneligibleUnits}
-                ineligibleItems={ineligibleItems}
-                hasBothTabs={hasBothTabs}
-                fullyIneligible={fullyIneligible}
-                hasEligible={hasEligible}
-                activeTab={activeTab}
-                ineligibleStatusFilter={ineligibleStatusFilter}
-                onTabChange={(t) => { setActiveTab(t); setCurrentPage(1) }}
-                onIneligibleFilter={(filter) => { setIneligibleStatusFilter(filter); setCurrentPage(1) }}
-              />
-            </>
-          ) : HEADER_STAT_DESIGN !== 6 ? (
-          <div className={cn(
-            "px-5 py-3.5 border-b flex items-center gap-4",
-            order.cancelledAt ? "bg-red-50/40" : "bg-muted/20",
-            "justify-between",
-          )}>
-            <div className="min-w-0">
-              {order.cancelledAt && (
-                <p className="text-sm font-semibold text-foreground leading-tight mb-1">Cancelled</p>
-              )}
-              <p className="text-xs text-muted-foreground tabular-nums leading-normal">
-                Placed {new Date(order.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}{" "}
-                with {order.totalUnits} item{order.totalUnits !== 1 ? "s" : ""} for £{total.toFixed(2)}
-                {refundedAmount > 0 && ` (£${refundedAmount.toFixed(2)} refunded)`}
-                {HEADER_STAT_DESIGN === 3 && !order.cancelledAt && (
-                  <HeaderMetaStats
-                    totalEligibleUnits={totalEligibleUnits}
-                    totalIneligibleUnits={totalIneligibleUnits}
-                    hasBothTabs={hasBothTabs}
-                    fullyIneligible={fullyIneligible}
-                    hasEligible={hasEligible}
-                    activeTab={activeTab}
-                    onTabChange={(t) => { setActiveTab(t); setCurrentPage(1) }}
-                  />
-                )}
-              </p>
-              {order.cancelledAt && (
-                <p className="text-xs text-red-600 mt-1">No items were dispatched — returns are not applicable.</p>
-              )}
-            </div>
-            {order.cancelledAt ? (
-              <StatusPill order={order} />
-            ) : (
-              <OrderHeaderBadges
-                order={order}
-                totalEligibleUnits={totalEligibleUnits}
-                totalIneligibleUnits={totalIneligibleUnits}
-                ineligibleItems={ineligibleItems}
-                hasBothTabs={hasBothTabs}
-                fullyIneligible={fullyIneligible}
-                hasEligible={hasEligible}
-                activeTab={activeTab}
-                ineligibleStatusFilter={ineligibleStatusFilter}
-                onTabChange={(t) => { setActiveTab(t); setCurrentPage(1) }}
-                onIneligibleFilter={(filter) => { setIneligibleStatusFilter(filter); setCurrentPage(1) }}
-              />
-            )}
-          </div>
-          ) : null}
-
-          {!order.cancelledAt && orderSummary.text && HEADER_STAT_DESIGN !== 6 && (
-            <div className="border-b bg-blue-50/50 dark:bg-blue-950/40 flex items-center gap-2 py-2.5 px-5">
-              <Info className="size-3.5 text-[#004085] dark:text-blue-300 shrink-0" aria-hidden />
-              <p className="text-xs font-medium leading-snug text-[#004085] dark:text-blue-200 tabular-nums min-w-0">
-                {orderSummary.text}
-              </p>
-            </div>
-          )}
-
           {!order.cancelledAt && (
             <>
             {hasEligible && requirePolicyAcceptance && (isExternalPolicy || !policyAccepted) && (
@@ -3818,7 +3096,7 @@ function OrderDetail({
             <div className="border-b bg-card px-3 py-2.5">
               {/* Desktop: single row — tab + search + filter + columns + show */}
               <div className="hidden min-[1025px]:flex items-center gap-2">
-                {statusFilterEnabled && hasBothTabs && HEADER_STAT_DESIGN !== 4 ? (
+                {statusFilterEnabled && hasBothTabs && (
                   <Select value={activeTab} onValueChange={(v) => { setActiveTab(v as "eligible" | "ineligible"); setCurrentPage(1) }}>
                     <SelectTrigger className="w-fit min-w-[120px] max-w-[260px] h-8 bg-transparent text-sm"><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -3826,12 +3104,7 @@ function OrderDetail({
                       <SelectItem value="ineligible">{ineligibleLabel} ({totalIneligibleUnits})</SelectItem>
                     </SelectContent>
                   </Select>
-                ) : !fullyIneligible && HEADER_STAT_DESIGN !== 4 && HEADER_STAT_DESIGN !== 6 ? (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-foreground">{eligibleLabel}</span>
-                    <CountBadge value={totalEligibleUnits} variant="green" />
-                  </div>
-                ) : null}
+                )}
                 {tableSearchEnabled && (
                   <div className="relative flex-1">
                     <Search className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
@@ -3979,16 +3252,8 @@ function OrderDetail({
             </div>
             )}
 
-            {/* ── Mobile: label when only one tab (no tab bar needed) ── */}
-            {!hasBothTabs && !fullyIneligible && HEADER_STAT_DESIGN !== 4 && HEADER_STAT_DESIGN !== 6 && (
-              <div className="min-[1025px]:hidden px-4 py-2.5 border-b flex items-center justify-between">
-                <span className="text-sm font-semibold text-foreground">{eligibleLabel}</span>
-                <CountBadge value={totalEligibleUnits} variant="green" />
-              </div>
-            )}
-
             {/* ── Mobile tab bar — edge-to-edge, flush separator ── */}
-            {statusFilterEnabled && hasBothTabs && HEADER_STAT_DESIGN !== 4 && (
+            {statusFilterEnabled && hasBothTabs && (
               <div className="min-[1025px]:hidden flex border-b">
                 <button
                   type="button"

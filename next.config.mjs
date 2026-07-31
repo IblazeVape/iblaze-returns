@@ -1,5 +1,3 @@
-import { createMDX } from "fumadocs-mdx/next";
-
 const APP_ORIGIN = "https://iblaze-returns.vercel.app";
 
 /** @type {import('next').NextConfig} */
@@ -20,8 +18,8 @@ const nextConfig = {
   // minting fetch — ever runs). assetPrefix makes Next.js request those
   // assets directly from our own domain instead, bypassing the proxy for
   // static assets while page navigation still correctly goes through it.
-  // Safe for directly-accessed routes too (/, /home) — that's already where
-  // their assets live. Production-only: in local dev this would point at the
+  // Safe for directly-accessed routes too (/) — that's already where their
+  // assets live. Production-only: in local dev this would point at the
   // deployed build instead of the live dev server, breaking `npm run dev`.
   assetPrefix: process.env.NODE_ENV === "production" ? APP_ORIGIN : undefined,
   // Next.js normally 308-redirects trailing-slash mismatches (framework-level,
@@ -33,20 +31,20 @@ const nextConfig = {
   // forms already render the same page) removes the trigger entirely.
   skipTrailingSlashRedirect: true,
   // Marketing site (StarterCN) runs as its own Vercel deployment and is served
-  // under /home via these rewrites — one domain, separate build ("two houses,
-  // one front door"). MARKETING_SITE_URL is the marketing deployment's base URL
-  // (e.g. https://iblaze-marketing.vercel.app). The marketing app sets
-  // basePath:"/home", so it serves /home and /home/_next/* — proxied here.
+  // at the returns app's root via this rewrite — one domain, separate build
+  // ("two houses, one front door"). MARKETING_SITE_URL is the marketing
+  // deployment's base URL (e.g. https://iblaze-marketing.vercel.app). The
+  // marketing app itself still uses basePath:"/home" internally, so its own
+  // static assets (/home/_next/*) keep working unchanged via the second rule
+  // below — only the page's external-facing path moved from /home to /.
   async rewrites() {
     const marketing = process.env.MARKETING_SITE_URL;
     if (!marketing) return [];
     return [
-      { source: '/home', destination: `${marketing}/home` },
+      { source: '/', destination: `${marketing}/home` },
       { source: '/home/:path*', destination: `${marketing}/home/:path*` },
     ];
   },
 };
 
-const withMDX = createMDX();
-
-export default withMDX(nextConfig);
+export default nextConfig;

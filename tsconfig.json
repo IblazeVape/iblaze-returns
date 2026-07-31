@@ -38,8 +38,6 @@
   "exclude": [
     "node_modules",
     "extensions",
-    "linkify",
-    "marketing-site",
-    "components/dashboard-client.tabs-backup.tsx"
+    "marketing-site"
   ]
 }
